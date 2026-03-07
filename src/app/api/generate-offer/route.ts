@@ -11,15 +11,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { customerName, customerEmail, serviceDescription, hours, hourlyRate, materialCost, customerAddress } = body;
-
     if (!customerName || !customerEmail || !serviceDescription) {
       return NextResponse.json({ error: "Bitte fulle alle Pflichtfelder aus." }, { status: 400 });
     }
-
     const hoursN = Number(hours), rateN = Number(hourlyRate), matN = Number(materialCost);
-
     const offer = await generateOfferText({ customerName, serviceDescription, hours: hoursN, hourlyRate: rateN, materialCost: matN });
-
     const pdfBuffer = await renderToBuffer(OfferPdfDocument({
       offer, customerName,
       customerStreet: customerAddress?.street,
@@ -27,9 +23,7 @@ export async function POST(request: Request) {
       customerCity: customerAddress?.city,
       hours: hoursN, hourlyRate: rateN, materialCost: matN
     }));
-
     const pdfBase64 = pdfBuffer.toString("base64");
-
     if (supabaseServer) {
       try {
         await supabaseServer.from("offers").insert({
@@ -39,7 +33,6 @@ export async function POST(request: Request) {
         });
       } catch (e) { console.warn("Supabase Fehler:", e); }
     }
-
     if (resend && process.env.RESEND_FROM_EMAIL) {
       try {
         await resend.emails.send({
@@ -49,7 +42,6 @@ export async function POST(request: Request) {
         });
       } catch (e) { console.warn("Resend Fehler:", e); }
     }
-
     return NextResponse.json({ offer, pdfUrl: "data:application/pdf;base64," + pdfBase64 });
   } catch (error) {
     console.error("Fehler:", error);
