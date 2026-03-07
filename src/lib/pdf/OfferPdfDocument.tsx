@@ -1,24 +1,24 @@
+import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import type { OfferText } from "../openai";
+import type { OfferText } from "@/lib/openai";
 
 const styles = StyleSheet.create({
-  page: { padding: 50, fontFamily: "Helvetica", fontSize: 11, color: "#1a1a1a", lineHeight: 1.5 },
-  header: { marginBottom: 30 },
-  companyName: { fontSize: 18, fontWeight: "bold", color: "#1a1a1a" },
-  companySubtitle: { fontSize: 10, color: "#666", marginTop: 2 },
-  section: { marginBottom: 16 },
-  label: { fontSize: 9, color: "#888", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 },
-  value: { fontSize: 11, color: "#1a1a1a" },
-  divider: { borderBottom: "1 solid #e5e7eb", marginVertical: 16 },
-  tableHeader: { flexDirection: "row", backgroundColor: "#f9fafb", padding: "8 12", borderRadius: 4, marginBottom: 4 },
-  tableRow: { flexDirection: "row", padding: "6 12" },
-  tableCell: { flex: 1, fontSize: 10 },
-  tableCellRight: { flex: 1, fontSize: 10, textAlign: "right" },
-  totalBox: { backgroundColor: "#f0fdf4", padding: "10 12", borderRadius: 4, flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
-  totalLabel: { fontSize: 12, fontWeight: "bold", color: "#166534" },
-  totalValue: { fontSize: 14, fontWeight: "bold", color: "#166534" },
-  footer: { position: "absolute", bottom: 30, left: 50, right: 50, borderTop: "1 solid #e5e7eb", paddingTop: 10, flexDirection: "row", justifyContent: "space-between" },
-  footerText: { fontSize: 8, color: "#9ca3af" }
+  page: { padding: 48, fontSize: 11, fontFamily: "Helvetica", color: "#1a1a1a" },
+  header: { marginBottom: 32 },
+  company: { fontSize: 18, fontWeight: "bold", color: "#059669", marginBottom: 4 },
+  subtitle: { fontSize: 10, color: "#6b7280" },
+  section: { marginBottom: 20 },
+  label: { fontSize: 9, color: "#6b7280", textTransform: "uppercase", marginBottom: 4, letterSpacing: 0.8 },
+  body: { lineHeight: 1.6, color: "#374151" },
+  divider: { borderBottomWidth: 1, borderBottomColor: "#e5e7eb", marginVertical: 20 },
+  table: { marginTop: 12 },
+  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  rowTotal: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, marginTop: 4 },
+  rowLabel: { color: "#6b7280", flex: 1 },
+  rowValue: { fontWeight: "bold", textAlign: "right" },
+  totalLabel: { fontWeight: "bold", fontSize: 13, flex: 1 },
+  totalValue: { fontWeight: "bold", fontSize: 13, color: "#059669", textAlign: "right" },
+  footer: { position: "absolute", bottom: 32, left: 48, right: 48, fontSize: 9, color: "#9ca3af", textAlign: "center" }
 });
 
 type Props = {
@@ -32,89 +32,68 @@ type Props = {
   materialCost: number;
 };
 
-export function OfferPdfDocument({ offer, customerName, customerStreet, customerZip, customerCity, hours, hourlyRate, materialCost }: Props) {
+export function OfferPdfDocument(props: Props) {
+  const { offer, customerName, customerStreet, customerZip, customerCity, hours, hourlyRate, materialCost } = props;
   const laborCost = hours * hourlyRate;
-  const subtotal = laborCost + materialCost;
-  const tax = subtotal * 0.19;
-  const total = subtotal + tax;
-  const offerNumber = "ANG-" + Date.now().toString().slice(-6);
+  const net = laborCost + materialCost;
+  const vat = net * 0.19;
+  const gross = net + vat;
   const today = new Date().toLocaleDateString("de-DE");
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.companyName}>Angebot</Text>
-          <Text style={styles.companySubtitle}>Professioneller Handwerksbetrieb</Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 24 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>An</Text>
-            <Text style={styles.value}>{customerName}</Text>
-            {customerStreet && <Text style={{ fontSize: 10, color: "#555" }}>{customerStreet}</Text>}
-            {(customerZip || customerCity) && <Text style={{ fontSize: 10, color: "#555" }}>{customerZip} {customerCity}</Text>}
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.label}>Angebotsnummer</Text>
-            <Text style={styles.value}>{offerNumber}</Text>
-            <Text style={{ fontSize: 9, color: "#888", marginTop: 4 }}>Datum: {today}</Text>
-            <Text style={{ fontSize: 9, color: "#888" }}>Gueltig 30 Tage</Text>
-          </View>
+          <Text style={styles.company}>KI-Angebotsgenerator</Text>
+          <Text style={styles.subtitle}>Ihr professionelles Angebot vom {today}</Text>
         </View>
         <View style={styles.divider} />
+        <View style={styles.section}>
+          <Text style={styles.label}>Angebot fuer</Text>
+          <Text style={{ fontWeight: "bold", marginBottom: 2 }}>{customerName}</Text>
+          {customerStreet && <Text style={styles.body}>{customerStreet}</Text>}
+          {customerZip && customerCity && <Text style={styles.body}>{customerZip} {customerCity}</Text>}
+        </View>
         <View style={styles.section}>
           <Text style={styles.label}>Betreff</Text>
-          <Text style={{ ...styles.value, fontWeight: "bold" }}>{offer.subject}</Text>
+          <Text style={{ fontWeight: "bold", fontSize: 13 }}>{offer.subject}</Text>
         </View>
         <View style={styles.section}>
-          <Text style={{ fontSize: 11, color: "#374151", lineHeight: 1.6 }}>{offer.intro}</Text>
+          <Text style={styles.label}>Anschreiben</Text>
+          <Text style={styles.body}>{offer.intro}</Text>
+        </View>
+        <View style={styles.section}>
+          <Text style={styles.label}>Leistungsbeschreibung</Text>
+          <Text style={styles.body}>{offer.details}</Text>
         </View>
         <View style={styles.divider} />
+        <View style={styles.table}>
+          <Text style={styles.label}>Kostenuebersicht</Text>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Arbeitszeit ({hours} Std. x {hourlyRate} EUR)</Text>
+            <Text style={styles.rowValue}>{laborCost.toFixed(2)} EUR</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Materialkosten</Text>
+            <Text style={styles.rowValue}>{materialCost.toFixed(2)} EUR</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Zwischensumme (netto)</Text>
+            <Text style={styles.rowValue}>{net.toFixed(2)} EUR</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>MwSt. 19%</Text>
+            <Text style={styles.rowValue}>{vat.toFixed(2)} EUR</Text>
+          </View>
+          <View style={styles.rowTotal}>
+            <Text style={styles.totalLabel}>Gesamtbetrag (brutto)</Text>
+            <Text style={styles.totalValue}>{gross.toFixed(2)} EUR</Text>
+          </View>
+        </View>
+        <View style={[styles.divider, { marginTop: 24 }]} />
         <View style={styles.section}>
-          <View style={styles.tableHeader}>
-            <Text style={{ ...styles.tableCell, fontWeight: "bold", fontSize: 9 }}>POSITION</Text>
-            <Text style={{ ...styles.tableCell, fontWeight: "bold", fontSize: 9, textAlign: "right" }}>MENGE</Text>
-            <Text style={{ ...styles.tableCell, fontWeight: "bold", fontSize: 9, textAlign: "right" }}>EINZELPREIS</Text>
-            <Text style={{ ...styles.tableCellRight, fontWeight: "bold", fontSize: 9 }}>GESAMT</Text>
-          </View>
-          <View style={styles.tableRow}>
-            <Text style={styles.tableCell}>Arbeitsleistung</Text>
-            <Text style={{ ...styles.tableCell, textAlign: "right" }}>{hours} Std.</Text>
-            <Text style={{ ...styles.tableCell, textAlign: "right" }}>{hourlyRate.toFixed(2)} EUR</Text>
-            <Text style={styles.tableCellRight}>{laborCost.toFixed(2)} EUR</Text>
-          </View>
-          {materialCost > 0 && (
-            <View style={styles.tableRow}>
-              <Text style={styles.tableCell}>Materialkosten</Text>
-              <Text style={{ ...styles.tableCell, textAlign: "right" }}>1 Pauschal</Text>
-              <Text style={{ ...styles.tableCell, textAlign: "right" }}>{materialCost.toFixed(2)} EUR</Text>
-              <Text style={styles.tableCellRight}>{materialCost.toFixed(2)} EUR</Text>
-            </View>
-          )}
-          <View style={styles.divider} />
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 4 }}>
-            <Text style={{ fontSize: 10, color: "#555", marginRight: 40 }}>Zwischensumme:</Text>
-            <Text style={{ fontSize: 10 }}>{subtotal.toFixed(2)} EUR</Text>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 }}>
-            <Text style={{ fontSize: 10, color: "#555", marginRight: 40 }}>MwSt. 19%:</Text>
-            <Text style={{ fontSize: 10 }}>{tax.toFixed(2)} EUR</Text>
-          </View>
-          <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Gesamtbetrag</Text>
-            <Text style={styles.totalValue}>{total.toFixed(2)} EUR</Text>
-          </View>
+          <Text style={styles.body}>{offer.closing}</Text>
         </View>
-        <View style={styles.divider} />
-        <View style={styles.section}>
-          <Text style={{ fontSize: 11, color: "#374151", lineHeight: 1.6 }}>{offer.details}</Text>
-        </View>
-        <View style={{ marginTop: 16 }}>
-          <Text style={{ fontSize: 11, color: "#374151", lineHeight: 1.6 }}>{offer.closing}</Text>
-        </View>
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Dieses Angebot wurde mit KI-Unterstutzung erstellt.</Text>
-          <Text style={styles.footerText}>{today}</Text>
-        </View>
+        <Text style={styles.footer}>Dieses Angebot wurde mit KI-Unterstuetzung erstellt. Alle Angaben ohne Gewaehr.</Text>
       </Page>
     </Document>
   );
