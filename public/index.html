@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WhatsApp Embedded Signup (Coexistence)</title>
+    <style>
+      :root {
+        --bg: #eef4ff;
+        --surface: #ffffff;
+        --line: #dbe1ee;
+        --text: #111827;
+        --muted: #4b5563;
+        --primary: #155eef;
+        --primary-dark: #0040c1;
+        --success: #0f766e;
+        --warning: #b45309;
+        --danger: #b91c1c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 0% 0%, #d8e6ff 0%, transparent 45%),
+          radial-gradient(circle at 100% 100%, #e4f8f2 0%, transparent 35%),
+          var(--bg);
+      }
+
+      .wrap {
+        max-width: 920px;
+        margin: 36px auto;
+        padding: 0 16px;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 12px 30px rgba(17, 24, 39, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 10px 0;
+        font-size: 1.55rem;
+      }
+
+      p {
+        margin: 0 0 12px 0;
+        line-height: 1.5;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .btn {
+        appearance: none;
+        border: none;
+        border-radius: 999px;
+        padding: 13px 20px;
+        font-weight: 700;
+        font-size: 0.98rem;
+        color: white;
+        background: linear-gradient(120deg, var(--primary), var(--primary-dark));
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .status {
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        border: 1px solid var(--line);
+      }
+
+      .status.info {
+        background: #f8fafc;
+      }
+
+      .status.ok {
+        color: var(--success);
+        border-color: #99f6e4;
+        background: #f0fdfa;
+      }
+
+      .status.warn {
+        color: var(--warning);
+        border-color: #fcd34d;
+        background: #fffbeb;
+      }
+
+      .status.error {
+        color: var(--danger);
+        border-color: #fecaca;
+        background: #fef2f2;
+      }
+
+      pre {
+        margin: 0;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        border: 1px solid var(--line);
+        background: #f8fafc;
+        overflow: auto;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      @media (max-width: 640px) {
+        .panel {
+          padding: 18px;
+        }
+
+        h1 {
+          font-size: 1.35rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="panel grid">
+        <h1>WhatsApp Business App verbinden</h1>
+        <p class="muted">
+          Dieser Flow startet <strong>Facebook Login for Business</strong> +
+          <strong>WhatsApp Embedded Signup</strong> fuer
+          <strong>Business App Users / Coexistence</strong>.
+        </p>
+
+        <button id="connectBtn" class="btn" type="button">WhatsApp Business App verbinden</button>
+
+        <div id="status" class="status info">Initialisiere…</div>
+
+        <p class="muted">
+          Nach erfolgreichem Login wirst du automatisch auf
+          <code>REDIRECT_URI</code> geleitet. Dort werden <code>waba_id</code> und
+          <code>phone_number_id</code> abgefragt und lokal gespeichert.
+        </p>
+
+        <pre id="debug">Lade Konfiguration…</pre>
+      </section>
+    </main>
+
+    <script src="/client-config.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
