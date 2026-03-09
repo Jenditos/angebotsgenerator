@@ -27,6 +27,14 @@ export type CompanySettings = {
   companyWebsite: string;
   senderCopyEmail: string;
   logoDataUrl: string;
+  // Letzte manuell hinterlegte Startnummer, z. B. ANG-2026-991490
+  startOfferNumber: string;
+  // Vom System zuletzt verwendete Angebotsnummer
+  lastOfferNumber: string;
+  // Fallback-Zähler falls kein numerischer Suffix erkennbar ist
+  offerNumberFallbackCounter: number;
+  // Firmenspezifische zusätzliche Leistungsarten
+  customServiceTypes: string[];
 };
 
 export type GenerateOfferRequest = {
@@ -44,4 +52,5 @@ export type GenerateOfferRequest = {
   hourlyRate: number | string;
   materialCost: number | string;
   sendEmail?: boolean;
+  offerNumber?: string;
 };

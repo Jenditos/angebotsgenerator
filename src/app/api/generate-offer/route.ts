@@ -3,9 +3,10 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
-import { readSettings } from "@/lib/settings-store";
+import { readSettings, writeSettings } from "@/lib/settings-store";
 import { sendViaConnectedMailbox } from "@/lib/email-sender";
 import { GenerateOfferRequest } from "@/types/offer";
+import { OfferNumberService } from "@/server/services/offer-number-service";
 
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
     const customerEmail = body.customerEmail?.trim() ?? "";
     const serviceDescription = body.serviceDescription?.trim() ?? "";
     const sendEmailRequested = Boolean(body.sendEmail);
+    const manualOfferNumber = body.offerNumber?.trim() ?? "";
 
     const hours = toNumber(body.hours);
     const hourlyRate = toNumber(body.hourlyRate);
@@ -103,6 +105,18 @@ export async function POST(request: Request) {
           : ""
     };
     const senderName = settings.ownerName?.trim() || settings.companyName?.trim() || "Ihr Handwerksbetrieb";
+
+    const offerNumberResult = OfferNumberService.resolveOfferNumberForCreate({
+      manualOfferNumber,
+      lastOfferNumber: settings.lastOfferNumber,
+      startOfferNumber: settings.startOfferNumber,
+      fallbackCounter: settings.offerNumberFallbackCounter
+    });
+
+    await writeSettings({
+      lastOfferNumber: offerNumberResult.nextOfferNumber,
+      offerNumberFallbackCounter: offerNumberResult.nextFallbackCounter
+    });
     const mailText = buildOfferEmailText({
       customerType,
       salutation,
@@ -212,7 +226,8 @@ export async function POST(request: Request) {
       mailText,
       pdfBase64,
       emailStatus,
-      emailInfo
+      emailInfo,
+      offerNumber: offerNumberResult.nextOfferNumber
     });
   } catch (error) {
     console.error("generate-offer failed", error);

@@ -25,7 +25,13 @@ export async function POST(request: Request) {
       companyPhone: body.companyPhone?.trim() ?? "",
       companyWebsite: body.companyWebsite?.trim() ?? "",
       senderCopyEmail: body.senderCopyEmail?.trim() ?? "",
-      logoDataUrl: body.logoDataUrl?.trim() ?? ""
+      logoDataUrl: body.logoDataUrl?.trim() ?? "",
+      startOfferNumber: body.startOfferNumber?.trim() ?? "",
+      lastOfferNumber: body.lastOfferNumber?.trim() ?? "",
+      offerNumberFallbackCounter: Number(body.offerNumberFallbackCounter ?? 0),
+      customServiceTypes: Array.isArray(body.customServiceTypes)
+        ? body.customServiceTypes.map((item) => String(item).trim()).filter(Boolean)
+        : []
     };
 
     const settings = await writeSettings(sanitized);
