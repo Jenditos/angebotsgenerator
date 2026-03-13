@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { getSeedServices, hasServiceLabel, normalizeSearchValue, searchServices } from "@/lib/service-catalog";
+import { OfferPositionInput, ServiceCatalogItem } from "@/types/offer";
 
 type OfferText = {
   subject: string;
@@ -16,6 +18,11 @@ type ApiResponse = {
   pdfBase64: string;
   emailStatus: "not_requested" | "sent" | "not_configured" | "failed";
   emailInfo: string;
+};
+
+type ServicesApiResponse = {
+  services?: ServiceCatalogItem[];
+  error?: string;
 };
 
 type ParsedVoiceFields = {
@@ -63,6 +70,20 @@ type AddressSuggestion = {
   secondary: string;
 };
 
+type ServiceSubitemEntry = {
+  id: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  price: string;
+};
+
+type SelectedServiceEntry = {
+  id: string;
+  label: string;
+  subitems: ServiceSubitemEntry[];
+};
+
 type OfferForm = {
   customerType: "person" | "company";
   companyName: string;
@@ -94,6 +115,125 @@ const initialForm: OfferForm = {
   hourlyRate: "",
   materialCost: ""
 };
+
+type StepProgress = {
+  customerDataStarted: boolean;
+  pdfGenerationStarted: boolean;
+  mailDraftStarted: boolean;
+};
+
+const initialStepProgress: StepProgress = {
+  customerDataStarted: false,
+  pdfGenerationStarted: false,
+  mailDraftStarted: false
+};
+
+const UNIT_OPTIONS = [
+  "Stück",
+  "m",
+  "m²",
+  "m³",
+  "kg",
+  "t",
+  "l",
+  "Stunde",
+  "Tag",
+  "Pauschal"
+];
+
+const MAIN_SERVICE_SUBITEM_SUGGESTIONS: Array<{ match: string; suggestions: string[] }> = [
+  { match: "betonarbeiten", suggestions: ["Beton liefern", "Schalung herstellen", "Bewehrung einbauen", "Abdichtung", "Entsorgung"] },
+  { match: "fliesen", suggestions: ["Untergrund vorbereiten", "Fliesen verlegen", "Fugen ausführen", "Sockelleisten setzen", "Material entsorgen"] },
+  { match: "elektro", suggestions: ["Kabel verlegen", "Steckdosen montieren", "Schalter montieren", "Leuchten anschließen", "Prüfung / Messung"] },
+  { match: "sanitär", suggestions: ["Leitungen verlegen", "Armaturen montieren", "Waschbecken montieren", "Dichtheitsprüfung", "Funktionsprüfung"] },
+  { match: "trockenbau", suggestions: ["Unterkonstruktion montieren", "Beplankung anbringen", "Dämmung einbringen", "Spachteln", "Schleifen"] },
+  { match: "maler", suggestions: ["Untergrund abdecken", "Spachtelarbeiten", "Grundierung", "Anstrich", "Nachreinigung"] }
+];
+
+function createSubitemEntry(description = ""): ServiceSubitemEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    description,
+    quantity: "",
+    unit: UNIT_OPTIONS[0],
+    price: ""
+  };
+}
+
+function createSelectedServiceEntry(label: string): SelectedServiceEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label,
+    subitems: [createSubitemEntry()]
+  };
+}
+
+function selectedServiceToRequestValue(service: SelectedServiceEntry): string {
+  return service.label.trim();
+}
+
+function getSubitemUnit(subitem: ServiceSubitemEntry): string {
+  return subitem.unit.trim() || "Pauschal";
+}
+
+function parseLocaleNumber(rawValue: string): number {
+  const normalized = rawValue.trim().replace(/\s+/g, "").replace(",", ".");
+  if (!normalized) {
+    return NaN;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function formatEuroValue(value: number): string {
+  return new Intl.NumberFormat("de-DE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
+  const quantity = parseLocaleNumber(subitem.quantity);
+  const price = parseLocaleNumber(subitem.price);
+  if (!Number.isFinite(quantity) || !Number.isFinite(price)) {
+    return 0;
+  }
+
+  return quantity * price;
+}
+
+function subitemToPreviewText(subitem: ServiceSubitemEntry): string {
+  const description = subitem.description.trim();
+  if (!description) {
+    return "";
+  }
+
+  const quantity = parseLocaleNumber(subitem.quantity);
+  const unit = getSubitemUnit(subitem);
+  const price = parseLocaleNumber(subitem.price);
+  const total = Number.isFinite(quantity) && Number.isFinite(price) ? quantity * price : NaN;
+
+  if (Number.isFinite(quantity) && Number.isFinite(price)) {
+    return `${description} - ${quantity} ${unit} - ${formatEuroValue(price)} EUR - ${formatEuroValue(total)} EUR`;
+  }
+
+  if (Number.isFinite(quantity)) {
+    return `${description} - ${quantity} ${unit}`;
+  }
+
+  return description;
+}
+
+function getSubitemSuggestionsForService(serviceLabel: string): string[] {
+  const normalizedLabel = normalizeSearchValue(serviceLabel);
+  if (!normalizedLabel) {
+    return [];
+  }
+
+  const matched = MAIN_SERVICE_SUBITEM_SUGGESTIONS.find((entry) => normalizedLabel.includes(entry.match));
+  return matched?.suggestions ?? [];
+}
 
 function normalizeAddressSuggestion(item: NominatimItem): AddressSuggestion | null {
   const road = item.address?.road?.trim() ?? "";
@@ -138,7 +278,18 @@ export default function HomePage() {
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
+  const [isHeroExpanded, setIsHeroExpanded] = useState(false);
+  const [stepProgress, setStepProgress] = useState<StepProgress>(initialStepProgress);
+  const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>(getSeedServices());
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedServices, setSelectedServices] = useState<SelectedServiceEntry[]>([]);
+  const [isServiceSearchOpen, setIsServiceSearchOpen] = useState(false);
+  const [isServiceCatalogLoading, setIsServiceCatalogLoading] = useState(false);
+  const [isAddingCustomService, setIsAddingCustomService] = useState(false);
+  const [serviceInfo, setServiceInfo] = useState("");
+  const [serviceError, setServiceError] = useState("");
   const recognitionRef = useRef<any>(null);
+  const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
 
   const personDisplayName = `${form.firstName} ${form.lastName}`.trim();
@@ -152,8 +303,58 @@ export default function HomePage() {
       : "";
   const hoursNumber = Number(form.hours || 0);
   const hourlyRateNumber = Number(form.hourlyRate || 0);
-  const materialNumber = Number(form.materialCost || 0);
-  const liveTotal = hoursNumber * hourlyRateNumber + materialNumber;
+  const subitemsTotal = useMemo(
+    () =>
+      selectedServices.reduce((serviceSum, service) => {
+        const subitemsSum = service.subitems.reduce((sum, subitem) => sum + calculateSubitemTotal(subitem), 0);
+        return serviceSum + subitemsSum;
+      }, 0),
+    [selectedServices]
+  );
+  const laborTotal = hoursNumber * hourlyRateNumber;
+  const liveTotal = subitemsTotal > 0 ? subitemsTotal : laborTotal;
+  const serviceSearchValue = serviceSearch.trim();
+  const serviceSuggestions = useMemo(
+    () => searchServices(serviceCatalog, serviceSearchValue, 14),
+    [serviceCatalog, serviceSearchValue]
+  );
+  const canCreateCustomService =
+    serviceSearchValue.length >= 2 && !hasServiceLabel(serviceCatalog, serviceSearchValue);
+  const groupedServiceSuggestions = useMemo(() => {
+    const grouped = new Map<string, ServiceCatalogItem[]>();
+
+    for (const suggestion of serviceSuggestions) {
+      const services = grouped.get(suggestion.category) ?? [];
+      services.push(suggestion);
+      grouped.set(suggestion.category, services);
+    }
+
+    return Array.from(grouped.entries());
+  }, [serviceSuggestions]);
+  const serviceSummaryText = useMemo(() => {
+    const selectedText = selectedServices
+      .map((service) => {
+        const subitemsText = service.subitems
+          .map(subitemToPreviewText)
+          .filter(Boolean)
+          .join(", ");
+
+        if (subitemsText) {
+          return `${service.label}: ${subitemsText}`;
+        }
+
+        return selectedServiceToRequestValue(service);
+      })
+      .filter(Boolean)
+      .join(" • ");
+    const detailText = form.serviceDescription.trim();
+
+    if (selectedText && detailText) {
+      return `${selectedText} - ${detailText}`;
+    }
+
+    return selectedText || detailText || "";
+  }, [selectedServices, form.serviceDescription]);
 
   useEffect(() => {
     const speechCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -166,6 +367,84 @@ export default function HomePage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadServiceCatalog() {
+      setIsServiceCatalogLoading(true);
+      setServiceError("");
+
+      try {
+        const response = await fetch("/api/services?limit=250");
+        const data = (await response.json()) as ServicesApiResponse;
+        if (!response.ok) {
+          if (mounted) {
+            setServiceError(data.error ?? "Leistungen konnten nicht geladen werden.");
+          }
+          return;
+        }
+
+        if (mounted) {
+          setServiceCatalog(Array.isArray(data.services) ? data.services : []);
+        }
+      } catch {
+        if (mounted) {
+          setServiceError("Leistungen konnten nicht geladen werden.");
+        }
+      } finally {
+        if (mounted) {
+          setIsServiceCatalogLoading(false);
+        }
+      }
+    }
+
+    void loadServiceCatalog();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function closeServiceSearch(event: MouseEvent) {
+      if (!servicePickerRef.current) {
+        return;
+      }
+
+      if (servicePickerRef.current.contains(event.target as Node)) {
+        return;
+      }
+
+      setIsServiceSearchOpen(false);
+    }
+
+    document.addEventListener("mousedown", closeServiceSearch);
+    return () => document.removeEventListener("mousedown", closeServiceSearch);
+  }, []);
+
+  useEffect(() => {
+    if (stepProgress.customerDataStarted) {
+      return;
+    }
+
+    const formTouched = [
+      form.companyName,
+      form.firstName,
+      form.lastName,
+      form.street,
+      form.postalCode,
+      form.city,
+      form.customerEmail,
+      form.serviceDescription,
+      form.hours,
+      form.hourlyRate
+    ].some((value) => value.trim().length > 0);
+
+    if (formTouched || selectedServices.length > 0) {
+      setStepProgress((prev) => ({ ...prev, customerDataStarted: true }));
+    }
+  }, [form, selectedServices.length, stepProgress.customerDataStarted]);
 
   useEffect(() => {
     const street = form.street.trim();
@@ -240,6 +519,182 @@ export default function HomePage() {
       city: suggestion.city || prev.city
     }));
     setAddressSuggestions([]);
+  }
+
+  function addSelectedService(serviceLabel: string) {
+    const trimmed = serviceLabel.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setSelectedServices((prev) => {
+      const key = normalizeSearchValue(trimmed);
+      if (prev.some((service) => normalizeSearchValue(service.label) === key)) {
+        return prev;
+      }
+
+      return [...prev, createSelectedServiceEntry(trimmed)];
+    });
+    setForm((prev) => ({
+      ...prev,
+      serviceDescription: prev.serviceDescription.trim() ? prev.serviceDescription : trimmed
+    }));
+    setServiceSearch("");
+    setIsServiceSearchOpen(false);
+    setServiceError("");
+  }
+
+  function removeSelectedService(serviceId: string) {
+    setSelectedServices((prev) => prev.filter((service) => service.id !== serviceId));
+  }
+
+  function addServiceSubitem(serviceId: string, description = "") {
+    setSelectedServices((prev) =>
+      prev.map((service) =>
+        service.id === serviceId ? { ...service, subitems: [...service.subitems, createSubitemEntry(description)] } : service
+      )
+    );
+  }
+
+  function updateServiceSubitem(
+    serviceId: string,
+    subitemId: string,
+    field: "description" | "quantity" | "unit" | "price",
+    value: string
+  ) {
+    setSelectedServices((prev) =>
+      prev.map((service) => {
+        if (service.id !== serviceId) {
+          return service;
+        }
+
+        return {
+          ...service,
+          subitems: service.subitems.map((subitem) => {
+            if (subitem.id !== subitemId) {
+              return subitem;
+            }
+
+            if (field === "unit") {
+              return {
+                ...subitem,
+                unit: value
+              };
+            }
+
+            if (field === "description") {
+              return {
+                ...subitem,
+                description: value
+              };
+            }
+
+            if (field === "quantity") {
+              return {
+                ...subitem,
+                quantity: value
+              };
+            }
+
+            return {
+              ...subitem,
+              price: value
+            };
+          })
+        };
+      })
+    );
+  }
+
+  function removeServiceSubitem(serviceId: string, subitemId: string) {
+    setSelectedServices((prev) =>
+      prev.map((service) => {
+        if (service.id !== serviceId) {
+          return service;
+        }
+
+        const nextSubitems = service.subitems.filter((subitem) => subitem.id !== subitemId);
+        return {
+          ...service,
+          subitems: nextSubitems.length > 0 ? nextSubitems : [createSubitemEntry()]
+        };
+      })
+    );
+  }
+
+  function addSuggestedSubitem(serviceId: string, suggestion: string) {
+    const normalizedSuggestion = normalizeSearchValue(suggestion);
+
+    setSelectedServices((prev) =>
+      prev.map((service) => {
+        if (service.id !== serviceId) {
+          return service;
+        }
+
+        const hasSuggestion = service.subitems.some(
+          (subitem) => normalizeSearchValue(subitem.description) === normalizedSuggestion
+        );
+        if (hasSuggestion) {
+          return service;
+        }
+
+        if (service.subitems.length === 1) {
+          const first = service.subitems[0];
+          const firstIsEmpty = !first.description.trim() && !first.quantity.trim() && !first.price.trim();
+
+          if (firstIsEmpty) {
+            return {
+              ...service,
+              subitems: [{ ...first, description: suggestion }]
+            };
+          }
+        }
+
+        return {
+          ...service,
+          subitems: [...service.subitems, createSubitemEntry(suggestion)]
+        };
+      })
+    );
+  }
+
+  async function addCustomService() {
+    const label = serviceSearch.trim();
+    if (label.length < 2) {
+      setServiceError("Bitte mindestens zwei Zeichen eingeben.");
+      return;
+    }
+
+    setServiceError("");
+    setServiceInfo("");
+    setIsAddingCustomService(true);
+
+    try {
+      const response = await fetch("/api/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label })
+      });
+      const data = (await response.json()) as ServicesApiResponse & {
+        customService?: { label?: string };
+      };
+
+      if (!response.ok) {
+        setServiceError(data.error ?? "Eigene Leistung konnte nicht gespeichert werden.");
+        return;
+      }
+
+      if (Array.isArray(data.services)) {
+        setServiceCatalog(data.services);
+      }
+      const savedLabel = data.customService?.label?.trim() || label;
+      addSelectedService(savedLabel);
+      setServiceInfo(`Eigene Leistung gespeichert: ${savedLabel}`);
+    } catch {
+      setServiceError("Eigene Leistung konnte nicht gespeichert werden.");
+    } finally {
+      setIsAddingCustomService(false);
+    }
   }
 
   function startSpeechInput() {
@@ -431,6 +886,7 @@ export default function HomePage() {
   async function openMailDraftWithOffer(payload: ApiResponse) {
     const mailText = payload.mailText;
     const file = createPdfFile(payload.pdfBase64);
+    setStepProgress((prev) => (prev.mailDraftStarted ? prev : { ...prev, mailDraftStarted: true }));
 
     if (typeof navigator !== "undefined" && "canShare" in navigator && "share" in navigator) {
       const nav = navigator as Navigator & {
@@ -460,18 +916,109 @@ export default function HomePage() {
     return "Mailfenster geöffnet. PDF wurde heruntergeladen und kann direkt angehängt werden.";
   }
 
+  function buildValidatedPositions(services: SelectedServiceEntry[]): { positions: OfferPositionInput[]; errorMessage: string } {
+    const positions: OfferPositionInput[] = [];
+
+    for (const service of services) {
+      for (const subitem of service.subitems) {
+        const description = subitem.description.trim();
+        const quantityRaw = subitem.quantity.trim();
+        const priceRaw = subitem.price.trim();
+        const hasAnyValue = Boolean(description || quantityRaw || priceRaw);
+
+        if (!hasAnyValue) {
+          continue;
+        }
+
+        if (!description) {
+          return {
+            positions: [],
+            errorMessage: `Bitte Unterpunkt-Bezeichnung für "${service.label}" ausfüllen.`
+          };
+        }
+
+        const quantity = parseLocaleNumber(quantityRaw);
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+          return {
+            positions: [],
+            errorMessage: `Bitte eine gültige Menge für "${description}" eingeben.`
+          };
+        }
+
+        if (!priceRaw) {
+          return {
+            positions: [],
+            errorMessage: `EP / Preis EUR ist für "${description}" verpflichtend.`
+          };
+        }
+
+        const price = parseLocaleNumber(priceRaw);
+        if (!Number.isFinite(price) || price < 0) {
+          return {
+            positions: [],
+            errorMessage: `Bitte einen gültigen EP / Preis EUR für "${description}" eingeben.`
+          };
+        }
+
+        positions.push({
+          group: service.label.trim(),
+          description: `- ${description}`,
+          quantity: String(quantity),
+          unit: getSubitemUnit(subitem),
+          unitPrice: String(price)
+        });
+      }
+    }
+
+    if (services.length > 0 && positions.length === 0) {
+      return {
+        positions: [],
+        errorMessage: "Bitte mindestens einen Unterpunkt mit Menge und EP / Preis EUR erfassen."
+      };
+    }
+
+    return {
+      positions,
+      errorMessage: ""
+    };
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setResult(null);
     setPostActionInfo("");
+
+    const selectedServicesPayload = selectedServices
+      .map(selectedServiceToRequestValue)
+      .filter((value) => value.length > 0);
+    const { positions: positionsPayload, errorMessage } = buildValidatedPositions(selectedServices);
+
+    if (errorMessage) {
+      setError(errorMessage);
+      return;
+    }
+
+    if (!form.serviceDescription.trim() && selectedServicesPayload.length === 0 && positionsPayload.length === 0) {
+      setError("Bitte mindestens eine Leistung auswählen oder eine Projektbeschreibung eingeben.");
+      return;
+    }
+
+    setStepProgress((prev) =>
+      prev.pdfGenerationStarted ? prev : { ...prev, pdfGenerationStarted: true }
+    );
     setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/generate-offer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, sendEmail: false })
+        body: JSON.stringify({
+          ...form,
+          selectedServices: selectedServicesPayload,
+          positions: positionsPayload,
+          sendEmail: false
+        })
       });
 
       const data = await response.json();
@@ -506,28 +1053,45 @@ export default function HomePage() {
           </Link>
         </header>
 
-        <section className="hero glassCard">
-          <p className="heroEyebrow">Visioro</p>
-          <h1>Angebote in Minuten statt in Stunden</h1>
-          <p className="heroText">
-            Du gibst Kundendaten und Leistung ein, Visioro erstellt den Text, baut ein sauberes PDF und öffnet direkt
-            deinen Mail-Entwurf.
-          </p>
-          <div className="stepRow">
-            <article className="stepTile">
-              <span>1</span>
-              <strong>Kundendaten erfassen</strong>
-            </article>
-            <article className="stepTile">
-              <span>2</span>
-              <strong>Text + PDF generieren</strong>
-            </article>
-            <article className="stepTile">
-              <span>3</span>
-              <strong>Mail-Entwurf absenden</strong>
-            </article>
-          </div>
-        </section>
+        <div className="heroDisclosure">
+          <button
+            type="button"
+            className="heroQuestionButton"
+            aria-expanded={isHeroExpanded}
+            aria-controls="hero-info-panel"
+            onClick={() => setIsHeroExpanded((prev) => !prev)}
+            title="Info zur Angebots-Erstellung anzeigen"
+          >
+            ?
+          </button>
+
+          <section
+            id="hero-info-panel"
+            className={`hero glassCard heroExpandable ${isHeroExpanded ? "heroExpandableOpen" : ""}`}
+            aria-hidden={!isHeroExpanded}
+          >
+            <p className="heroEyebrow">Visioro</p>
+            <h1>Angebote in Sekunden statt in Stunden</h1>
+            <p className="heroText">
+              Du gibst Kundendaten und Leistung ein, Visioro erstellt den Text, baut ein sauberes PDF und öffnet
+              direkt deinen Mail-Entwurf.
+            </p>
+            <div className="stepRow">
+              <article className={`stepTile ${stepProgress.customerDataStarted ? "stepTileDone" : ""}`}>
+                <span>{stepProgress.customerDataStarted ? "✓" : "1"}</span>
+                <strong>Kundendaten erfassen</strong>
+              </article>
+              <article className={`stepTile ${stepProgress.pdfGenerationStarted ? "stepTileDone" : ""}`}>
+                <span>{stepProgress.pdfGenerationStarted ? "✓" : "2"}</span>
+                <strong>Text + PDF generieren</strong>
+              </article>
+              <article className={`stepTile ${stepProgress.mailDraftStarted ? "stepTileDone" : ""}`}>
+                <span>{stepProgress.mailDraftStarted ? "✓" : "3"}</span>
+                <strong>Mail-Entwurf absenden</strong>
+              </article>
+            </div>
+          </section>
+        </div>
 
         <section className="workspaceGrid">
           <article className="glassCard formCard">
@@ -713,12 +1277,219 @@ export default function HomePage() {
                 />
               </label>
 
+              <div className="field span2">
+                <span>Leistungen auswählen</span>
+                <div className="servicePicker" ref={servicePickerRef}>
+                  <input
+                    value={serviceSearch}
+                    placeholder="Leistung suchen (z. B. Fliesenarbeiten, Erdarbeiten, Wartung)"
+                    onFocus={() => setIsServiceSearchOpen(true)}
+                    onChange={(event) => {
+                      setServiceSearch(event.target.value);
+                      setIsServiceSearchOpen(true);
+                      setServiceInfo("");
+                      setServiceError("");
+                    }}
+                  />
+
+                  {isServiceSearchOpen ? (
+                    <div className="serviceSuggestionList" role="listbox" aria-label="Leistungsvorschläge">
+                      {isServiceCatalogLoading ? <p className="serviceSuggestionHint">Leistungen werden geladen ...</p> : null}
+
+                      {groupedServiceSuggestions.map(([category, suggestions]) => (
+                        <div key={category} className="serviceSuggestionGroup">
+                          <p className="serviceSuggestionGroupLabel">{category}</p>
+                          {suggestions.map((service) => (
+                            <button
+                              key={service.id}
+                              type="button"
+                              className="serviceSuggestionButton"
+                              onClick={() => addSelectedService(service.label)}
+                            >
+                              <strong>{service.label}</strong>
+                              {service.source === "custom" ? <span>Eigene Leistung</span> : <span>Standard</span>}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+
+                      {!isServiceCatalogLoading && groupedServiceSuggestions.length === 0 ? (
+                        <p className="serviceSuggestionHint">Keine passenden Leistungen gefunden.</p>
+                      ) : null}
+
+                      {canCreateCustomService ? (
+                        <button
+                          type="button"
+                          className="serviceAddCustomButton"
+                          onClick={addCustomService}
+                          disabled={isAddingCustomService}
+                        >
+                          {isAddingCustomService
+                            ? "Eigene Leistung wird gespeichert ..."
+                            : `+ Eigene Leistung hinzufügen: "${serviceSearchValue}"`}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="selectedServiceList">
+                  {selectedServices.length === 0 ? (
+                    <p className="selectedServiceHint">Noch keine Leistung ausgewählt.</p>
+                  ) : (
+                    selectedServices.map((service) => {
+                      const subitemSuggestions = getSubitemSuggestionsForService(service.label);
+
+                      return (
+                        <div key={service.id} className="selectedServiceCard">
+                          <div className="selectedServiceHeader">
+                            <strong className="selectedServiceLabel">{service.label}</strong>
+                            <button
+                              type="button"
+                              className="selectedServiceRemoveButton"
+                              onClick={() => removeSelectedService(service.id)}
+                              aria-label={`${service.label} entfernen`}
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          {subitemSuggestions.length > 0 ? (
+                            <div className="selectedServiceSuggestionRow">
+                              {subitemSuggestions.map((suggestion) => (
+                                <button
+                                  key={`${service.id}-${suggestion}`}
+                                  type="button"
+                                  className="selectedServiceSuggestionButton"
+                                  onClick={() => addSuggestedSubitem(service.id, suggestion)}
+                                >
+                                  + {suggestion}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          <div className="selectedSubitemTable">
+                            <div className="selectedSubitemTableHead" aria-hidden>
+                              <span>Unterpunkt</span>
+                              <span>Menge</span>
+                              <span>Einheit</span>
+                              <span>EP / Preis EUR*</span>
+                              <span>Gesamtpreis EUR</span>
+                              <span />
+                            </div>
+
+                            <div className="selectedSubitemList">
+                              {service.subitems.map((subitem, index) => {
+                                const subitemTotal = calculateSubitemTotal(subitem);
+
+                                return (
+                                  <div key={subitem.id} className="selectedSubitemRow">
+                                    <div className="selectedSubitemCell">
+                                      <input
+                                        className="selectedSubitemDescriptionInput"
+                                        value={subitem.description}
+                                        onChange={(event) =>
+                                          updateServiceSubitem(service.id, subitem.id, "description", event.target.value)
+                                        }
+                                        placeholder={index === 0 ? "Unterpunkt (z. B. Beton liefern)" : "Weiterer Unterpunkt"}
+                                        aria-label={`Unterpunkt für ${service.label}`}
+                                      />
+                                    </div>
+                                    <div className="selectedSubitemCell">
+                                      <input
+                                        className="selectedSubitemQuantityInput"
+                                        value={subitem.quantity}
+                                        onChange={(event) =>
+                                          updateServiceSubitem(service.id, subitem.id, "quantity", event.target.value)
+                                        }
+                                        placeholder="0"
+                                        inputMode="decimal"
+                                        aria-label={`Menge für ${service.label}`}
+                                      />
+                                    </div>
+                                    <div className="selectedSubitemCell">
+                                      <select
+                                        className="selectedSubitemUnitSelect"
+                                        value={subitem.unit}
+                                        onChange={(event) =>
+                                          updateServiceSubitem(service.id, subitem.id, "unit", event.target.value)
+                                        }
+                                        aria-label={`Einheit für ${service.label}`}
+                                      >
+                                        {UNIT_OPTIONS.map((unitOption) => (
+                                          <option key={unitOption} value={unitOption}>
+                                            {unitOption}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="selectedSubitemCell">
+                                      <input
+                                        className="selectedSubitemPriceInput"
+                                        value={subitem.price}
+                                        onChange={(event) =>
+                                          updateServiceSubitem(service.id, subitem.id, "price", event.target.value)
+                                        }
+                                        placeholder="0,00"
+                                        inputMode="decimal"
+                                        aria-label={`EP / Preis EUR für ${service.label}`}
+                                      />
+                                    </div>
+                                    <div className="selectedSubitemCell">
+                                      <input
+                                        className="selectedSubitemTotalInput"
+                                        value={formatEuroValue(subitemTotal)}
+                                        readOnly
+                                        aria-label={`Gesamtpreis EUR für ${service.label}`}
+                                      />
+                                    </div>
+                                    <div className="selectedSubitemCell selectedSubitemCellAction">
+                                      <button
+                                        type="button"
+                                        className="selectedSubitemRemoveButton"
+                                        onClick={() => removeServiceSubitem(service.id, subitem.id)}
+                                        aria-label={`Unterpunkt ${index + 1} für ${service.label} löschen`}
+                                      >
+                                        Löschen
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="selectedServiceAddSubitemButton"
+                            onClick={() => addServiceSubitem(service.id)}
+                          >
+                            + Unterpunkt hinzufügen
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {serviceInfo ? (
+                  <p className="voiceInfo" role="status" aria-live="polite">
+                    {serviceInfo}
+                  </p>
+                ) : null}
+                {serviceError ? (
+                  <p className="voiceWarning" role="alert">
+                    {serviceError}
+                  </p>
+                ) : null}
+              </div>
+
               <label className="field span2">
-                <span>Leistung / Projektbeschreibung</span>
+                <span>Projektbeschreibung / Zusatzdetails (frei)</span>
                 <textarea
-                  required
                   rows={4}
-                  placeholder="z. B. Reparatur, Montage, Wartung oder Renovierungsarbeiten"
+                  placeholder="z. B. inkl. Verlegung von 60x60 Feinsteinzeugfliesen"
                   value={form.serviceDescription}
                   onChange={(e) => setForm((prev) => ({ ...prev, serviceDescription: e.target.value }))}
                 />
@@ -748,21 +1519,17 @@ export default function HomePage() {
                 />
               </label>
 
-              <label className="field span2">
-                <span>Materialkosten (EUR)</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.materialCost}
-                  onChange={(e) => setForm((prev) => ({ ...prev, materialCost: e.target.value }))}
-                />
-              </label>
-
               <button className="primaryButton submitButton" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Angebot wird erstellt..." : "Angebot erstellen und Mail-Entwurf öffnen"}
+                {isSubmitting ? "Angebot wird erstellt..." : "Angebot erstellen"}
               </button>
+
+              <p className="formHint span2">
+                Tipp: Die Spalten der PDF-Tabelle kannst du in den{" "}
+                <Link href="/settings" className="formHintLink">
+                  Einstellungen
+                </Link>{" "}
+                unter „PDF-Tabellenspalten“ anpassen.
+              </p>
             </form>
 
             {error ? <p className="error">{error}</p> : null}
@@ -789,22 +1556,24 @@ export default function HomePage() {
             <div className="quoteSheet">
               <div className="quoteHeader">
                 <span>Leistungsübersicht</span>
-                <strong>{form.serviceDescription || "Leistung noch nicht angegeben"}</strong>
+                <strong>{serviceSummaryText || "Leistung noch nicht angegeben"}</strong>
               </div>
 
               <div className="quoteRow">
-                <span>Arbeitszeit</span>
-                <span>
-                  {hoursNumber || 0} Std. x {hourlyRateNumber || 0} EUR
-                </span>
+                <span>Unterpunkte gesamt</span>
+                <span>{formatEuroValue(subitemsTotal)} EUR</span>
               </div>
-              <div className="quoteRow">
-                <span>Material</span>
-                <span>{materialNumber || 0} EUR</span>
-              </div>
+              {subitemsTotal <= 0 ? (
+                <div className="quoteRow">
+                  <span>Arbeitszeit (Fallback)</span>
+                  <span>
+                    {hoursNumber || 0} Std. x {hourlyRateNumber || 0} EUR
+                  </span>
+                </div>
+              ) : null}
               <div className="quoteTotal">
                 <span>Gesamtsumme</span>
-                <strong>{Number.isFinite(liveTotal) ? `${liveTotal.toFixed(2)} EUR` : "0.00 EUR"}</strong>
+                <strong>{`${formatEuroValue(Number.isFinite(liveTotal) ? liveTotal : 0)} EUR`}</strong>
               </div>
 
               <p className="quoteHint">Bei Klick auf den Button öffnet sich dein Mail-Entwurf zum finalen Senden.</p>

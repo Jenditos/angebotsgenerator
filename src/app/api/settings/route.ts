@@ -25,8 +25,19 @@ export async function POST(request: Request) {
       companyPhone: body.companyPhone?.trim() ?? "",
       companyWebsite: body.companyWebsite?.trim() ?? "",
       senderCopyEmail: body.senderCopyEmail?.trim() ?? "",
-      logoDataUrl: body.logoDataUrl?.trim() ?? ""
+      logoDataUrl: body.logoDataUrl?.trim() ?? "",
+      vatRate: Number(body.vatRate),
+      offerValidityDays: Number(body.offerValidityDays),
+      offerTermsText: body.offerTermsText?.trim() ?? ""
     };
+
+    if (Array.isArray(body.pdfTableColumns)) {
+      sanitized.pdfTableColumns = body.pdfTableColumns;
+    }
+
+    if (Array.isArray(body.customServices)) {
+      sanitized.customServices = body.customServices;
+    }
 
     const settings = await writeSettings(sanitized);
     return NextResponse.json({ settings });
