@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { OfferPositionsTable, createEmptyPosition } from "@/components/OfferPositionsTable";
+import { OfferPosition, OfferTotals } from "@/types/offer-position";
+import { CompanySettings } from "@/types/offer";
 
 type OfferText = {
   subject: string;
@@ -63,6 +66,11 @@ type AddressSuggestion = {
   secondary: string;
 };
 
+
+type SettingsResponse = {
+  settings: CompanySettings;
+};
+
 type OfferForm = {
   customerType: "person" | "company";
   companyName: string;
@@ -77,6 +85,7 @@ type OfferForm = {
   hours: string;
   hourlyRate: string;
   materialCost: string;
+  offerNumber: string;
 };
 
 const initialForm: OfferForm = {
@@ -92,7 +101,8 @@ const initialForm: OfferForm = {
   serviceDescription: "",
   hours: "",
   hourlyRate: "",
-  materialCost: ""
+  materialCost: "",
+  offerNumber: ""
 };
 
 function normalizeAddressSuggestion(item: NominatimItem): AddressSuggestion | null {
@@ -138,6 +148,9 @@ export default function HomePage() {
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
+  const [positions, setPositions] = useState<OfferPosition[]>([createEmptyPosition()]);
+  const [positionTotals, setPositionTotals] = useState<OfferTotals>({ netTotal: 0, vatAmount: 0, grossTotal: 0 });
+  const [customServiceTypes, setCustomServiceTypes] = useState<string[]>([]);
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef("");
 
@@ -153,7 +166,15 @@ export default function HomePage() {
   const hoursNumber = Number(form.hours || 0);
   const hourlyRateNumber = Number(form.hourlyRate || 0);
   const materialNumber = Number(form.materialCost || 0);
-  const liveTotal = hoursNumber * hourlyRateNumber + materialNumber;
+  const positionsDescription = useMemo(
+    () =>
+      positions
+        .map((position) => `${position.serviceType}: ${position.description}`.trim())
+        .filter(Boolean)
+        .join("; "),
+    [positions]
+  );
+  const liveTotal = positionTotals.netTotal > 0 ? positionTotals.netTotal : hoursNumber * hourlyRateNumber + materialNumber;
 
   useEffect(() => {
     const speechCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -164,6 +185,32 @@ export default function HomePage() {
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/settings");
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as SettingsResponse;
+        if (!active) {
+          return;
+        }
+
+        setCustomServiceTypes(data.settings.customServiceTypes ?? []);
+      } catch {
+        // Einstellungen optional: Fallback auf Standard-Leistungsarten.
+      }
+    })();
+
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -471,7 +518,12 @@ export default function HomePage() {
       const response = await fetch("/api/generate-offer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, sendEmail: false })
+        body: JSON.stringify({
+          ...form,
+          serviceDescription: positionsDescription || form.serviceDescription,
+          materialCost: positionTotals.netTotal > 0 ? positionTotals.netTotal : form.materialCost,
+          sendEmail: false
+        })
       });
 
       const data = await response.json();
@@ -713,6 +765,15 @@ export default function HomePage() {
                 />
               </label>
 
+              <label className="field">
+                <span>Angebotsnummer (optional)</span>
+                <input
+                  value={form.offerNumber}
+                  onChange={(e) => setForm((prev) => ({ ...prev, offerNumber: e.target.value }))}
+                  placeholder="Leer lassen = automatisch"
+                />
+              </label>
+
               <label className="field span2">
                 <span>Leistung / Projektbeschreibung</span>
                 <textarea
@@ -760,6 +821,30 @@ export default function HomePage() {
                 />
               </label>
 
+              <div className="span2">
+                <OfferPositionsTable
+                  positions={positions}
+                  customServiceTypes={customServiceTypes}
+                  onCustomServiceTypesChange={async (nextTypes) => {
+                    setCustomServiceTypes(nextTypes);
+
+                    try {
+                      await fetch("/api/settings", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ customServiceTypes: nextTypes })
+                      });
+                    } catch {
+                      // Keine harte Fehlermeldung: Positionserfassung bleibt nutzbar.
+                    }
+                  }}
+                  onChange={({ positions: nextPositions, totals }) => {
+                    setPositions(nextPositions);
+                    setPositionTotals(totals);
+                  }}
+                />
+              </div>
+
               <button className="primaryButton submitButton" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Angebot wird erstellt..." : "Angebot erstellen und Mail-Entwurf öffnen"}
               </button>
@@ -789,7 +874,7 @@ export default function HomePage() {
             <div className="quoteSheet">
               <div className="quoteHeader">
                 <span>Leistungsübersicht</span>
-                <strong>{form.serviceDescription || "Leistung noch nicht angegeben"}</strong>
+                <strong>{positionsDescription || form.serviceDescription || "Leistung noch nicht angegeben"}</strong>
               </div>
 
               <div className="quoteRow">
@@ -800,7 +885,7 @@ export default function HomePage() {
               </div>
               <div className="quoteRow">
                 <span>Material</span>
-                <span>{materialNumber || 0} EUR</span>
+                <span>{(positionTotals.netTotal > 0 ? positionTotals.netTotal : materialNumber) || 0} EUR</span>
               </div>
               <div className="quoteTotal">
                 <span>Gesamtsumme</span>

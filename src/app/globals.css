@@ -695,3 +695,179 @@ textarea:focus {
     scroll-behavior: auto !important;
   }
 }
+
+.positionsCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(72, 117, 198, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 14px;
+}
+
+.positionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.positionsAddButton {
+  padding: 8px 14px;
+  font-size: 0.84rem;
+}
+
+.positionsTableWrap {
+  overflow-x: auto;
+}
+
+.positionsTable {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.positionsTable thead th {
+  text-align: left;
+  padding: 8px;
+  color: #51698f;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(72, 117, 198, 0.2);
+}
+
+.positionsTable tbody td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(72, 117, 198, 0.14);
+  vertical-align: top;
+}
+
+.positionsTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.positionsTypeahead {
+  position: relative;
+  min-width: 250px;
+}
+
+.positionsTypeaheadList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid rgba(79, 115, 190, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 15px 28px rgba(31, 63, 112, 0.18);
+}
+
+.positionsTypeaheadList button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #1d365f;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.positionsTypeaheadList button:hover {
+  background: rgba(231, 241, 255, 0.62);
+}
+
+.positionsTypeaheadEmpty {
+  padding: 8px 10px;
+  color: #6178a0;
+  font-size: 0.82rem;
+}
+
+.positionsPrice {
+  font-weight: 700;
+  color: #1c3660;
+  white-space: nowrap;
+}
+
+.positionsDeleteButton {
+  border: 1px solid rgba(229, 72, 102, 0.38);
+  color: var(--danger);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.positionsDeleteButton:hover {
+  background: rgba(229, 72, 102, 0.08);
+}
+
+.positionsCustomCard {
+  border: 1px solid rgba(67, 123, 214, 0.24);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(240, 247, 255, 0.7);
+  display: grid;
+  gap: 8px;
+}
+
+.positionsCustomCard p {
+  font-size: 0.85rem;
+  color: #2f4e81;
+}
+
+.positionsCustomRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.positionsCustomRow .primaryButton {
+  padding: 9px 16px;
+}
+
+.positionsTotals {
+  margin-left: auto;
+  width: min(100%, 360px);
+  border: 1px solid rgba(67, 123, 214, 0.18);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 7px;
+}
+
+.positionsTotals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.positionsTotals span {
+  color: #4b638d;
+}
+
+.positionsGrandTotal {
+  border-top: 1px solid rgba(72, 117, 198, 0.2);
+  padding-top: 7px;
+  font-size: 0.98rem !important;
+}
+
+@media (max-width: 900px) {
+  .positionsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .positionsTotals {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .positionsCustomRow {
+    grid-template-columns: 1fr;
+  }
+}

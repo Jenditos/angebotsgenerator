@@ -16,7 +16,11 @@ const defaultSettings: CompanySettings = {
   companyPhone: "+49 30 123456",
   companyWebsite: "www.musterbetrieb.de",
   senderCopyEmail: "",
-  logoDataUrl: ""
+  logoDataUrl: "",
+  startOfferNumber: "",
+  lastOfferNumber: "",
+  offerNumberFallbackCounter: 0,
+  customServiceTypes: []
 };
 
 function asTrimmedString(value: unknown, fallback = ""): string {
@@ -25,6 +29,20 @@ function asTrimmedString(value: unknown, fallback = ""): string {
   }
   const trimmed = value.trim();
   return trimmed || fallback;
+}
+
+
+function asNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(new Set(value.map((item) => asTrimmedString(item)).filter(Boolean)));
 }
 
 export function getDefaultSettings(): CompanySettings {
@@ -50,6 +68,10 @@ export async function readSettings(): Promise<CompanySettings> {
       companyPhone: asTrimmedString(parsed.companyPhone, defaultSettings.companyPhone),
       companyWebsite: asTrimmedString(parsed.companyWebsite, defaultSettings.companyWebsite),
       senderCopyEmail: asTrimmedString(parsed.senderCopyEmail, defaultSettings.senderCopyEmail),
+      startOfferNumber: asTrimmedString(parsed.startOfferNumber, defaultSettings.startOfferNumber),
+      lastOfferNumber: asTrimmedString(parsed.lastOfferNumber, defaultSettings.lastOfferNumber),
+      offerNumberFallbackCounter: asNumber(parsed.offerNumberFallbackCounter, defaultSettings.offerNumberFallbackCounter),
+      customServiceTypes: asStringArray(parsed.customServiceTypes),
       logoDataUrl: (() => {
         const logo = asTrimmedString(parsed.logoDataUrl, defaultSettings.logoDataUrl);
         return logo.length <= MAX_LOGO_DATA_URL_LENGTH ? logo : "";
@@ -66,6 +88,10 @@ export async function writeSettings(payload: Partial<CompanySettings>): Promise<
   const next = {
     ...current,
     ...payload,
+    startOfferNumber: asTrimmedString(payload.startOfferNumber, current.startOfferNumber),
+    lastOfferNumber: asTrimmedString(payload.lastOfferNumber, current.lastOfferNumber),
+    offerNumberFallbackCounter: asNumber(payload.offerNumberFallbackCounter, current.offerNumberFallbackCounter),
+    customServiceTypes: payload.customServiceTypes ? asStringArray(payload.customServiceTypes) : current.customServiceTypes,
     logoDataUrl: payloadLogo.length <= MAX_LOGO_DATA_URL_LENGTH ? payloadLogo : "",
     companyPostalCity: undefined
   };

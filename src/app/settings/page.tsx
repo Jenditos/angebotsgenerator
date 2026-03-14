@@ -14,6 +14,10 @@ type CompanySettings = {
   companyWebsite: string;
   senderCopyEmail: string;
   logoDataUrl: string;
+  startOfferNumber: string;
+  lastOfferNumber: string;
+  offerNumberFallbackCounter: number;
+  customServiceTypes: string[];
 };
 
 const emptySettings: CompanySettings = {
@@ -26,7 +30,11 @@ const emptySettings: CompanySettings = {
   companyPhone: "",
   companyWebsite: "",
   senderCopyEmail: "",
-  logoDataUrl: ""
+  logoDataUrl: "",
+  startOfferNumber: "",
+  lastOfferNumber: "",
+  offerNumberFallbackCounter: 0,
+  customServiceTypes: []
 };
 
 export default function SettingsPage() {
@@ -201,6 +209,38 @@ export default function SettingsPage() {
                 type="email"
                 value={settings.senderCopyEmail}
                 onChange={(e) => setSettings((prev) => ({ ...prev, senderCopyEmail: e.target.value }))}
+              />
+            </label>
+
+            <label className="field">
+              <span>Start-Angebotsnummer</span>
+              <input
+                value={settings.startOfferNumber}
+                onChange={(e) => setSettings((prev) => ({ ...prev, startOfferNumber: e.target.value }))}
+                placeholder="z. B. ANG-2026-991490"
+              />
+            </label>
+
+            <label className="field">
+              <span>Letzte Angebotsnummer (automatisch)</span>
+              <input
+                value={settings.lastOfferNumber}
+                onChange={(e) => setSettings((prev) => ({ ...prev, lastOfferNumber: e.target.value }))}
+              />
+            </label>
+
+            <label className="field span2">
+              <span>Eigene Leistungsarten (eine pro Zeile)</span>
+              <textarea
+                rows={4}
+                value={settings.customServiceTypes.join("\n")}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    customServiceTypes: e.target.value.split("\n").map((item) => item.trim()).filter(Boolean)
+                  }))
+                }
+                placeholder={"Photovoltaik\nSmart Home"}
               />
             </label>
 
