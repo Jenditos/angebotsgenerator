@@ -7,122 +7,58 @@ type ServiceSeedCategory = {
   services: string[];
 };
 
+const HANDWERK_SERVICE_LABELS = Array.from(
+  new Set([
+    "Abbrucharbeiten",
+    "Abdichtungsarbeiten",
+    "Anstricharbeiten",
+    "Außenputz",
+    "Badsanierung",
+    "Baustelleneinrichtung",
+    "Betonarbeiten",
+    "Bodenbelagsarbeiten",
+    "Dachabdichtung",
+    "Dacharbeiten",
+    "Dämmarbeiten",
+    "Elektroinstallation",
+    "Entwässerungsarbeiten",
+    "Erdarbeiten",
+    "Estricharbeiten",
+    "Fassadenarbeiten",
+    "Fenster einbauen",
+    "Fliesenarbeiten",
+    "Fundamentarbeiten",
+    "Garten- und Landschaftsbau",
+    "Gerüstbau",
+    "Heizungsinstallation",
+    "Innenputz",
+    "Kabelverlegung",
+    "Malerarbeiten",
+    "Mauerarbeiten",
+    "Pflasterarbeiten",
+    "Putzarbeiten",
+    "Renovierungsarbeiten",
+    "Reparaturarbeiten",
+    "Rohbauarbeiten",
+    "Sanitärinstallation",
+    "Schalungsarbeiten",
+    "Schimmelsanierung",
+    "Spachtelarbeiten",
+    "Straßenbau",
+    "Tapezierarbeiten",
+    "Trockenbauarbeiten",
+    "Wärmedämmung",
+    "Wartungsarbeiten",
+    "Zaunbau",
+    "Zimmererarbeiten",
+  ]),
+).sort((left, right) => left.localeCompare(right, "de"));
+
 const SERVICE_SEED_CATEGORIES: ServiceSeedCategory[] = [
   {
-    category: "Allgemein",
-    services: ["Angebot", "Baustelleneinrichtung", "An- und Abfahrt", "Entsorgung", "Reinigung"]
+    category: "Handwerksleistungen",
+    services: HANDWERK_SERVICE_LABELS,
   },
-  {
-    category: "Neubau / Rohbau",
-    services: [
-      "Erdarbeiten",
-      "Fundamentarbeiten",
-      "Mauerarbeiten",
-      "Betonarbeiten",
-      "Bewehrung",
-      "Schalungsarbeiten",
-      "Abdichtungsarbeiten",
-      "Kellerbau",
-      "Stahlbau",
-      "Zimmererarbeiten",
-      "Gerüstarbeiten"
-    ]
-  },
-  {
-    category: "Dach / Fassade",
-    services: [
-      "Dachdeckungsarbeiten",
-      "Dachabdichtungsarbeiten",
-      "Dachdämmung",
-      "Spengler-/Klempnerarbeiten",
-      "Fassadendämmung",
-      "Putz- und Stuckarbeiten",
-      "WDVS",
-      "Vorgehängte hinterlüftete Fassade",
-      "Fassadenanstrich"
-    ]
-  },
-  {
-    category: "Innenausbau",
-    services: [
-      "Trockenbauarbeiten",
-      "Innenputz",
-      "Estricharbeiten",
-      "Fliesen- und Plattenarbeiten",
-      "Bodenbelagsarbeiten (Parkett, Laminat, Vinyl, Teppich)",
-      "Maler- und Lackierarbeiten",
-      "Tapezierarbeiten",
-      "Innentüren/Fenster einbauen"
-    ]
-  },
-  {
-    category: "Haustechnik",
-    services: [
-      "Elektroinstallation (Stark- und Schwachstrom)",
-      "Beleuchtung",
-      "Netzwerk-/Datenverkabelung",
-      "Blitzschutz",
-      "Sanitärinstallation (Wasser/Abwasser)",
-      "Heizungsinstallation",
-      "Lüftungsanlage",
-      "Wärmepumpe",
-      "Fußbodenheizung"
-    ]
-  },
-  {
-    category: "Außenanlagen / Tiefbau",
-    services: [
-      "Entwässerungsarbeiten",
-      "Dränarbeiten",
-      "Pflasterarbeiten",
-      "Natursteinarbeiten",
-      "Zaunbau",
-      "Carport/Garage",
-      "Garten- und Landschaftsbau",
-      "Erdmodellierung",
-      "Begrünung/Bepflanzung"
-    ]
-  },
-  {
-    category: "Renovierung / Sanierung",
-    services: [
-      "Renovierung",
-      "Sanierung",
-      "Modernisierung",
-      "Teilsanierung",
-      "Altbausanierung",
-      "Badsanierung",
-      "Fassadensanierung",
-      "Betonsanierung",
-      "Schimmelsanierung",
-      "Energetische Sanierung",
-      "Dachsanierung",
-      "Fenstertausch"
-    ]
-  },
-  {
-    category: "Instandhaltung / Wartung",
-    services: [
-      "Wartung",
-      "Inspektion",
-      "Instandsetzung",
-      "Reparatur",
-      "Dichtheitsprüfung",
-      "Anlagenprüfung",
-      "Wartungsverträge"
-    ]
-  },
-  {
-    category: "Spezialleistungen",
-    services: [
-      "Photovoltaik-Anlage",
-      "Solarthermie",
-      "Smart-Home-Installation",
-      "Brandschutzmaßnahmen",
-      "Barrierefreier Umbau",
-      "Abdichtung von Balkonen/Terrassen"
-    ]
-  }
 ];
 
 const MAX_CUSTOM_SERVICES = 500;

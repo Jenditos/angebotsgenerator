@@ -111,7 +111,8 @@ export function getEmailConnectUrl(provider: EmailProvider, request: Request, re
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: "code",
-      scope: "openid email https://www.googleapis.com/auth/gmail.send",
+      scope:
+        "openid email https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.compose",
       access_type: "offline",
       prompt: "consent",
       include_granted_scopes: "true",
@@ -126,7 +127,7 @@ export function getEmailConnectUrl(provider: EmailProvider, request: Request, re
     redirect_uri: redirectUri,
     response_type: "code",
     response_mode: "query",
-    scope: "offline_access Mail.Send User.Read",
+    scope: "offline_access Mail.Send Mail.ReadWrite User.Read",
     state
   });
   return `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize?${params.toString()}`;
@@ -168,7 +169,7 @@ async function exchangeMicrosoftCode(code: string, redirectUri: string): Promise
     code,
     redirect_uri: redirectUri,
     grant_type: "authorization_code",
-    scope: "offline_access Mail.Send User.Read"
+    scope: "offline_access Mail.Send Mail.ReadWrite User.Read"
   });
   const response = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: "POST",
@@ -324,7 +325,7 @@ async function refreshMicrosoft(connection: EmailConnection): Promise<EmailConne
     client_secret: clientSecret,
     grant_type: "refresh_token",
     refresh_token: connection.refreshToken,
-    scope: "offline_access Mail.Send User.Read"
+    scope: "offline_access Mail.Send Mail.ReadWrite User.Read"
   });
   const response = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: "POST",

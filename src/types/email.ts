@@ -16,7 +16,12 @@ export type EmailSendPayload = {
   filename?: string;
 };
 
+export type EmailDraftPayload = EmailSendPayload;
+
 export type EmailSendResult =
   | { ok: true; info: string }
   | { ok: false; reason: "not_connected" | "failed"; info: string };
 
+export type EmailDraftResult =
+  | { ok: true; info: string; composeUrl: string; draftId?: string }
+  | { ok: false; reason: "not_connected" | "failed"; info: string };

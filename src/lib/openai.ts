@@ -1,7 +1,284 @@
 import OpenAI from "openai";
+import { getSeedServices, normalizeSearchValue } from "@/lib/service-catalog";
 import { OfferPromptInput, OfferText } from "@/types/offer";
 
 let client: OpenAI | null = null;
+const KNOWN_SERVICE_LABELS = Array.from(
+  new Set(getSeedServices().map((service) => service.label)),
+).sort((left, right) => right.length - left.length);
+const ADDRESS_JOINER_WORDS = new Set([
+  "am",
+  "an",
+  "auf",
+  "bei",
+  "hinter",
+  "im",
+  "in",
+  "neben",
+  "ober",
+  "unter",
+  "vor",
+  "vom",
+  "zum",
+  "zur",
+]);
+const CITY_STOPWORDS = new Set([
+  "aber",
+  "bitte",
+  "ep",
+  "euro",
+  "eur",
+  "für",
+  "ja",
+  "kilogramm",
+  "material",
+  "materialkosten",
+  "mit",
+  "oder",
+  "ohne",
+  "preis",
+  "pro",
+  "stunden",
+  "stundensatz",
+  "und",
+]);
+const POSITION_DESCRIPTION_BLOCKLIST = new Set([
+  "anrede",
+  "email",
+  "kunden e mail",
+  "kunden email",
+  "material",
+  "materialkosten",
+  "ort",
+  "plz",
+  "stundensatz",
+  "strasse",
+]);
+const UNIT_TOKEN_PATTERN =
+  "(?:stück|stk|m²|m2|m³|m3|m|kg|t|l|std|stunde|stunden|tag|pauschal|psch\\.?)";
+const NUMBER_WORDS: Record<string, number> = {
+  null: 0,
+  zero: 0,
+  eins: 1,
+  ein: 1,
+  eine: 1,
+  einen: 1,
+  einem: 1,
+  einer: 1,
+  zwei: 2,
+  drei: 3,
+  vier: 4,
+  fuenf: 5,
+  funf: 5,
+  fünf: 5,
+  sechs: 6,
+  sieben: 7,
+  acht: 8,
+  neun: 9,
+  zehn: 10,
+  elf: 11,
+  zwoelf: 12,
+  zwölf: 12,
+  dreizehn: 13,
+  vierzehn: 14,
+  fuenfzehn: 15,
+  fünfzehn: 15,
+  sechzehn: 16,
+  siebzehn: 17,
+  achtzehn: 18,
+  neunzehn: 19,
+  zwanzig: 20,
+  dreissig: 30,
+  dreißig: 30,
+  vierzig: 40,
+  fuenfzig: 50,
+  fünfzig: 50,
+  sechzig: 60,
+  siebzig: 70,
+  achtzig: 80,
+  neunzig: 90,
+};
+const DIGIT_WORDS: Record<string, string> = {
+  null: "0",
+  zero: "0",
+  eins: "1",
+  ein: "1",
+  eine: "1",
+  zwei: "2",
+  drei: "3",
+  vier: "4",
+  fuenf: "5",
+  funf: "5",
+  fünf: "5",
+  sechs: "6",
+  sieben: "7",
+  acht: "8",
+  neun: "9",
+};
+
+function normalizeGermanUmlauts(value: string): string {
+  return value
+    .replace(/ä/gi, "ae")
+    .replace(/ö/gi, "oe")
+    .replace(/ü/gi, "ue")
+    .replace(/ß/gi, "ss");
+}
+
+function parseGermanNumberToken(token: string): number | undefined {
+  const normalized = normalizeGermanUmlauts(token.toLowerCase()).trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (/^\d+(?:[.,]\d+)?$/.test(normalized)) {
+    const direct = Number(normalized.replace(",", "."));
+    return Number.isFinite(direct) ? direct : undefined;
+  }
+
+  if (normalized in NUMBER_WORDS) {
+    return NUMBER_WORDS[normalized];
+  }
+
+  const undMatch = normalized.match(
+    /^(ein|eins|zwei|drei|vier|fuenf|funf|sechs|sieben|acht|neun)und(zwanzig|dreissig|vierzig|fuenfzig|sechzig|siebzig|achtzig|neunzig)$/,
+  );
+  if (undMatch) {
+    const ones = NUMBER_WORDS[undMatch[1]];
+    const tens = NUMBER_WORDS[undMatch[2]];
+    if (ones !== undefined && tens !== undefined) {
+      return ones + tens;
+    }
+  }
+
+  if (normalized.endsWith("hundert")) {
+    const prefix = normalized.replace(/hundert$/, "");
+    const prefixValue = prefix ? parseGermanNumberToken(prefix) : 1;
+    if (prefixValue !== undefined) {
+      return prefixValue * 100;
+    }
+  }
+
+  if (normalized.endsWith("tausend")) {
+    const prefix = normalized.replace(/tausend$/, "");
+    const prefixValue = prefix ? parseGermanNumberToken(prefix) : 1;
+    if (prefixValue !== undefined) {
+      return prefixValue * 1000;
+    }
+  }
+
+  return undefined;
+}
+
+function parseSpokenNumberText(value: string): number | undefined {
+  const normalized = normalizeGermanUmlauts(value.toLowerCase())
+    .replace(/[^\w\s.,-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized.includes("komma") || normalized.includes("punkt")) {
+    const decimalMatch = normalized.match(/^(.*?)\s+(?:komma|punkt)\s+(.*)$/);
+    if (decimalMatch) {
+      const leftValue = parseSpokenNumberText(decimalMatch[1].trim());
+      if (leftValue === undefined) {
+        return undefined;
+      }
+
+      const rightTokens = decimalMatch[2]
+        .trim()
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(Boolean);
+      if (rightTokens.length === 0) {
+        return leftValue;
+      }
+
+      const decimalDigits = rightTokens
+        .map((token) => {
+          const normalizedToken = normalizeGermanUmlauts(token.toLowerCase());
+          if (normalizedToken in DIGIT_WORDS) {
+            return DIGIT_WORDS[normalizedToken];
+          }
+          if (/^\d$/.test(normalizedToken)) {
+            return normalizedToken;
+          }
+          return "";
+        })
+        .join("");
+
+      if (!decimalDigits) {
+        return leftValue;
+      }
+
+      const decimalValue = Number(`${leftValue}.${decimalDigits}`);
+      return Number.isFinite(decimalValue) ? decimalValue : leftValue;
+    }
+  }
+
+  if (/^\d+(?:[.,]\d+)?$/.test(normalized)) {
+    const direct = Number(normalized.replace(",", "."));
+    return Number.isFinite(direct) ? direct : undefined;
+  }
+
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return undefined;
+  }
+
+  let total = 0;
+  let current = 0;
+
+  for (const token of tokens) {
+    if (token === "und") {
+      continue;
+    }
+
+    if (token === "hundert") {
+      current = (current || 1) * 100;
+      continue;
+    }
+
+    if (token === "tausend") {
+      total += (current || 1) * 1000;
+      current = 0;
+      continue;
+    }
+
+    const tokenValue = parseGermanNumberToken(token);
+    if (tokenValue === undefined) {
+      return undefined;
+    }
+
+    current += tokenValue;
+  }
+
+  const result = total + current;
+  if (result === 0 && !tokens.some((token) => token === "null" || token === "zero")) {
+    return undefined;
+  }
+
+  return result;
+}
+
+function normalizeTranscriptForPositionExtraction(transcript: string): string {
+  const withNormalizedNumbers = transcript.replace(
+    /\b([A-Za-zÄÖÜäöüß]+)\b/g,
+    (token) => {
+      const numberValue = parseGermanNumberToken(token);
+      if (numberValue === undefined) {
+        return token;
+      }
+      return String(numberValue);
+    },
+  );
+
+  return withNormalizedNumbers
+    .replace(/(\d+)\s*(?:komma|punkt)\s*(\d+)/gi, "$1.$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function getClient(): OpenAI | null {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -37,6 +314,7 @@ function isValidOfferText(value: Partial<OfferText>): value is OfferText {
 }
 
 export type ParsedIntakeFields = {
+  positions?: ParsedIntakePosition[];
   customerType?: "person" | "company";
   companyName?: string;
   salutation?: "herr" | "frau";
@@ -50,6 +328,14 @@ export type ParsedIntakeFields = {
   hours?: number;
   hourlyRate?: number;
   materialCost?: number;
+};
+
+export type ParsedIntakePosition = {
+  group?: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
 };
 
 export type IntakeParseResult = {
@@ -66,13 +352,18 @@ function normalizeNumberValue(input: unknown): number | undefined {
     return undefined;
   }
 
-  const cleaned = input.replace(",", ".").replace(/[^\d.-]/g, "").trim();
+  const normalizedInput = normalizeGermanUmlauts(input);
+  const cleaned = normalizedInput.replace(",", ".").replace(/[^\d.-]/g, "").trim();
   if (!cleaned) {
-    return undefined;
+    return parseSpokenNumberText(normalizedInput);
   }
 
   const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : undefined;
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  return parseSpokenNumberText(normalizedInput);
 }
 
 function normalizeTextValue(input: unknown): string | undefined {
@@ -83,11 +374,381 @@ function normalizeTextValue(input: unknown): string | undefined {
   return value ? value : undefined;
 }
 
+function normalizeUnitLabel(value: unknown): string {
+  const normalized = normalizeSearchValue(normalizeTextValue(value) ?? "");
+  if (!normalized) {
+    return "Pauschal";
+  }
+
+  if (normalized === "stuck" || normalized === "stk") {
+    return "Stück";
+  }
+  if (normalized === "m2" || normalized === "qm") {
+    return "m²";
+  }
+  if (normalized === "m3") {
+    return "m³";
+  }
+  if (normalized === "std" || normalized === "stunde" || normalized === "stunden" || normalized === "h") {
+    return "Std";
+  }
+  if (normalized === "psch" || normalized === "pauschale") {
+    return "Pauschal";
+  }
+
+  const knownUnits = new Set(["stuck", "m", "m2", "m3", "kg", "t", "l", "std", "tag", "pauschal"]);
+  if (!knownUnits.has(normalized)) {
+    return "Pauschal";
+  }
+
+  return normalized === "m2"
+    ? "m²"
+    : normalized === "m3"
+      ? "m³"
+      : normalized === "std"
+        ? "Std"
+        : normalized === "stuck"
+          ? "Stück"
+          : normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function normalizeParsedPositions(input: unknown): ParsedIntakePosition[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  const positions: ParsedIntakePosition[] = [];
+  for (const entry of input) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+
+    const item = entry as {
+      group?: unknown;
+      description?: unknown;
+      quantity?: unknown;
+      unit?: unknown;
+      unitPrice?: unknown;
+    };
+    const description = normalizeTextValue(item.description);
+    const quantity = normalizeNumberValue(item.quantity);
+    const unitPrice = normalizeNumberValue(item.unitPrice);
+
+    if (!description || !quantity || quantity <= 0 || unitPrice === undefined || unitPrice < 0) {
+      continue;
+    }
+
+    positions.push({
+      group: normalizeTextValue(item.group)
+        ? formatPositionText(String(item.group))
+        : undefined,
+      description: formatPositionText(description),
+      quantity,
+      unit: normalizeUnitLabel(item.unit),
+      unitPrice,
+    });
+  }
+
+  return positions.slice(0, 30);
+}
+
+
+function stripWrappingPunctuation(value: string): string {
+  return value.replace(/^[,.;:!?()[\]{}]+|[,.;:!?()[\]{}]+$/g, "").trim();
+}
+
+function capitalizeEntryStart(value: string): string {
+  const cleaned = value.trim();
+  if (!cleaned) {
+    return "";
+  }
+
+  const matchIndex = cleaned.search(/[A-Za-zÄÖÜäöüß]/);
+  if (matchIndex < 0) {
+    return cleaned;
+  }
+
+  return (
+    cleaned.slice(0, matchIndex) +
+    cleaned.charAt(matchIndex).toUpperCase() +
+    cleaned.slice(matchIndex + 1)
+  );
+}
+
+function formatPositionText(value: string): string {
+  const cleaned = value
+    .split(/\s+/)
+    .map((part) => stripWrappingPunctuation(part))
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return capitalizeEntryStart(cleaned);
+}
+
+function formatLooseText(value: string): string {
+  return value
+    .split(/\s+/)
+    .map((part) => stripWrappingPunctuation(part))
+    .filter(Boolean)
+    .map((part) => {
+      if (/\d/.test(part) || part.includes("@")) {
+        return part;
+      }
+
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ")
+    .trim();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function extractLeadingPersonName(prefix: string): {
+  firstName?: string;
+  lastName?: string;
+} {
+  const explicitMatch = prefix.match(
+    /^([A-Za-zÄÖÜäöüß-]{2,})\s+([A-Za-zÄÖÜäöüß-]{2,})(?=\s+(?:am|an|auf|bei|hinter|im|in|neben|ober|unter|vor|vom|zum|zur)\b)/i,
+  );
+  if (explicitMatch) {
+    return {
+      firstName: formatLooseText(explicitMatch[1]),
+      lastName: formatLooseText(explicitMatch[2]),
+    };
+  }
+
+  const genericMatch = prefix.match(
+    /^([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{1,})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{1,})(?=\s+[A-Za-zÄÖÜäöüß.\-]+\s+\d+[a-zA-Z]?\b)/,
+  );
+  if (genericMatch) {
+    return {
+      firstName: formatLooseText(genericMatch[1]),
+      lastName: formatLooseText(genericMatch[2]),
+    };
+  }
+
+  return {};
+}
+
+function stripLeadingName(prefix: string, parsed: ParsedIntakeFields): string {
+  if (!parsed.firstName || !parsed.lastName) {
+    return prefix.trim();
+  }
+
+  const namePattern = new RegExp(
+    `^${escapeRegExp(parsed.firstName)}\\s+${escapeRegExp(parsed.lastName)}\\s+`,
+    "i",
+  );
+  return prefix.replace(namePattern, "").trim();
+}
+
+function extractStreetFromPrefix(
+  prefix: string,
+  parsed: ParsedIntakeFields,
+): string | undefined {
+  const strippedPrefix = stripLeadingName(prefix, parsed);
+  if (!strippedPrefix) {
+    return undefined;
+  }
+
+  const conventionalMatch = strippedPrefix.match(
+    /([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß.\-]+(?:\s+[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß.\-]+){0,5}\s+\d+[a-zA-Z]?)$/i,
+  );
+  if (conventionalMatch?.[1]) {
+    return formatLooseText(conventionalMatch[1]);
+  }
+
+  return undefined;
+}
+
+function extractCityFromSuffix(
+  suffix: string,
+  parsed: ParsedIntakeFields,
+): string | undefined {
+  const nameParts = new Set(
+    [parsed.firstName, parsed.lastName]
+      .filter(Boolean)
+      .map((value) => normalizeSearchValue(String(value))),
+  );
+  const rawTokens = suffix
+    .split(/\s+/)
+    .map((token) => stripWrappingPunctuation(token))
+    .filter(Boolean);
+  const cityTokens: string[] = [];
+
+  for (const rawToken of rawTokens) {
+    const normalizedToken = normalizeSearchValue(rawToken);
+    if (!normalizedToken || rawToken.includes("@") || /^\d/.test(rawToken)) {
+      break;
+    }
+    if (CITY_STOPWORDS.has(normalizedToken)) {
+      break;
+    }
+    if (cityTokens.length > 0 && nameParts.has(normalizedToken)) {
+      break;
+    }
+
+    cityTokens.push(formatLooseText(rawToken));
+    if (cityTokens.length >= 3) {
+      break;
+    }
+  }
+
+  return cityTokens.length > 0 ? cityTokens.join(" ") : undefined;
+}
+
+function extractServiceDescriptionFromTranscript(
+  transcript: string,
+): string | undefined {
+  const normalizedTranscript = normalizeSearchValue(transcript);
+  const knownService = KNOWN_SERVICE_LABELS.find((label) =>
+    normalizedTranscript.includes(normalizeSearchValue(label)),
+  );
+  if (knownService) {
+    return knownService;
+  }
+
+  const emailMatch = transcript.match(
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+  );
+  const serviceScope = emailMatch
+    ? transcript.slice((emailMatch.index ?? 0) + emailMatch[0].length)
+    : transcript;
+  const normalizedScope = serviceScope
+    .replace(/\b(?:ja|okay|ok|bitte|äh|ähm|hm)\b/gi, " ")
+    .trim();
+  const freeMatch = normalizedScope.match(
+    /\b([A-Za-zÄÖÜäöüß-]+(?:arbeiten|installation|sanierung|renovierung|reparatur|wartung|abdichtung|dämmung|bewehrung|beleuchtung|innenputz|estrich))\b/i,
+  );
+  if (freeMatch?.[1]) {
+    return formatLooseText(freeMatch[1]);
+  }
+
+  return undefined;
+}
+
+function parseGroupAndDescription(rawValue: string): {
+  group?: string;
+  description?: string;
+} {
+  const cleanedBase = stripWrappingPunctuation(
+    rawValue
+      .replace(/\b(?:position|leistung)\s*\d*\b/gi, "")
+      .replace(/\s+/g, " "),
+  );
+  if (!cleanedBase) {
+    return {};
+  }
+
+  let group: string | undefined;
+  let descriptionText = cleanedBase;
+  const groupedMatch = cleanedBase.match(
+    /^([A-Za-zÄÖÜäöüß0-9\- ]{2,40})\s*[:>-]\s*(.+)$/,
+  );
+  if (groupedMatch?.[2]) {
+    group = formatPositionText(groupedMatch[1]);
+    descriptionText = groupedMatch[2];
+  }
+
+  const description = formatPositionText(descriptionText);
+  return {
+    group,
+    description: description || undefined,
+  };
+}
+
+function extractPositionsFromTranscript(transcript: string): ParsedIntakePosition[] {
+  const positions: ParsedIntakePosition[] = [];
+  const seen = new Set<string>();
+  const normalizedTranscript = normalizeTranscriptForPositionExtraction(transcript);
+  const matchers = [
+    {
+      regex: new RegExp(
+        `([A-Za-zÄÖÜäöüß][^,;\\n]{2,90}?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${UNIT_TOKEN_PATTERN})?\\s*(?:zu|a|à|ep|einzelpreis|preis|je|pro)?\\s*(\\d+(?:[.,]\\d+)?)\\s*(?:€|eur|euro)?`,
+        "gi",
+      ),
+      map(match: RegExpExecArray) {
+        return {
+          rawDescription: match[1],
+          quantityRaw: match[2],
+          unitRaw: match[3],
+          unitPriceRaw: match[4],
+        };
+      },
+    },
+    {
+      regex: new RegExp(
+        `(\\d+(?:[.,]\\d+)?)\\s*(${UNIT_TOKEN_PATTERN})?\\s+([A-Za-zÄÖÜäöüß][^,;\\n]{2,90}?)\\s*(?:zu|a|à|ep|einzelpreis|preis|je|pro)\\s*(\\d+(?:[.,]\\d+)?)\\s*(?:€|eur|euro)?`,
+        "gi",
+      ),
+      map(match: RegExpExecArray) {
+        return {
+          rawDescription: match[3],
+          quantityRaw: match[1],
+          unitRaw: match[2],
+          unitPriceRaw: match[4],
+        };
+      },
+    },
+  ];
+
+  for (const matcher of matchers) {
+    let match: RegExpExecArray | null = matcher.regex.exec(normalizedTranscript);
+    while (match) {
+      const mapped = matcher.map(match);
+      const quantity = normalizeNumberValue(mapped.quantityRaw);
+      const unitPrice = normalizeNumberValue(mapped.unitPriceRaw);
+      const parsedTexts = parseGroupAndDescription(mapped.rawDescription);
+
+      if (
+        !parsedTexts.description ||
+        !quantity ||
+        quantity <= 0 ||
+        unitPrice === undefined ||
+        unitPrice < 0
+      ) {
+        match = matcher.regex.exec(normalizedTranscript);
+        continue;
+      }
+
+      const normalizedDescription = normalizeSearchValue(parsedTexts.description);
+      if (POSITION_DESCRIPTION_BLOCKLIST.has(normalizedDescription)) {
+        match = matcher.regex.exec(normalizedTranscript);
+        continue;
+      }
+
+      const dedupeKey = `${normalizeSearchValue(parsedTexts.group ?? "")}|${normalizeSearchValue(parsedTexts.description)}|${quantity}|${unitPrice}`;
+      if (!seen.has(dedupeKey)) {
+        seen.add(dedupeKey);
+        positions.push({
+          group: parsedTexts.group,
+          description: parsedTexts.description,
+          quantity,
+          unit: normalizeUnitLabel(mapped.unitRaw),
+          unitPrice,
+        });
+      }
+
+      if (positions.length >= 30) {
+        return positions;
+      }
+
+      match = matcher.regex.exec(normalizedTranscript);
+    }
+  }
+
+  return positions;
+}
+
 function toParsedFields(input: Record<string, unknown>): ParsedIntakeFields {
   const customerTypeRaw = normalizeTextValue(input.customerType)?.toLowerCase();
   const salutationRaw = normalizeTextValue(input.salutation)?.toLowerCase();
 
   return {
+    positions: normalizeParsedPositions(input.positions),
     customerType: customerTypeRaw === "company" || customerTypeRaw === "firma" ? "company" : customerTypeRaw === "person" ? "person" : undefined,
     companyName: normalizeTextValue(input.companyName),
     salutation: salutationRaw === "frau" ? "frau" : salutationRaw === "herr" ? "herr" : undefined,
@@ -103,6 +764,7 @@ function toParsedFields(input: Record<string, unknown>): ParsedIntakeFields {
     materialCost: normalizeNumberValue(input.materialCost)
   };
 }
+
 
 function fallbackParseIntake(transcript: string): ParsedIntakeFields {
   const text = transcript.trim();
@@ -141,15 +803,45 @@ function fallbackParseIntake(transcript: string): ParsedIntakeFields {
     parsed.customerEmail = emailMatch[0];
   }
 
-  const postalCityMatch = text.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\- ]{2,})/);
-  if (postalCityMatch) {
-    parsed.postalCode = postalCityMatch[1];
-    parsed.city = postalCityMatch[2].trim();
+  const addressScope = emailMatch
+    ? text.slice(0, emailMatch.index).trim()
+    : text;
+  const postalCodeMatch = addressScope.match(/\b(\d{5})\b/);
+  if (postalCodeMatch) {
+    parsed.postalCode = postalCodeMatch[1];
+
+    const beforePostal = addressScope
+      .slice(0, postalCodeMatch.index)
+      .trim();
+    const afterPostal = addressScope
+      .slice((postalCodeMatch.index ?? 0) + postalCodeMatch[0].length)
+      .trim();
+
+    const leadingName = extractLeadingPersonName(beforePostal);
+    if (!parsed.firstName && leadingName.firstName) {
+      parsed.firstName = leadingName.firstName;
+    }
+    if (!parsed.lastName && leadingName.lastName) {
+      parsed.lastName = leadingName.lastName;
+    }
+    if (!parsed.customerType && parsed.firstName && parsed.lastName) {
+      parsed.customerType = "person";
+    }
+
+    const detectedStreet = extractStreetFromPrefix(beforePostal, parsed);
+    if (detectedStreet) {
+      parsed.street = detectedStreet;
+    }
+
+    const detectedCity = extractCityFromSuffix(afterPostal, parsed);
+    if (detectedCity) {
+      parsed.city = detectedCity;
+    }
   }
 
   const streetMatch = text.match(/\b([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\- ]{2,}(?:straße|strasse|weg|allee|platz|gasse|ring|ufer|damm|chaussee)\s+\d+[a-zA-Z]?)\b/i);
-  if (streetMatch) {
-    parsed.street = streetMatch[1].trim();
+  if (!parsed.street && streetMatch) {
+    parsed.street = formatLooseText(streetMatch[1]);
   }
 
   const hoursMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:stunden|stunde|std\b)/i);
@@ -180,6 +872,43 @@ function fallbackParseIntake(transcript: string): ParsedIntakeFields {
       parsed.serviceDescription = cleaned;
     }
   }
+
+  if (!parsed.serviceDescription) {
+    const detectedService = extractServiceDescriptionFromTranscript(text);
+    if (detectedService) {
+      parsed.serviceDescription = detectedService;
+    }
+  }
+
+  if (
+    !parsed.customerType &&
+    parsed.firstName &&
+    parsed.lastName &&
+    !parsed.companyName
+  ) {
+    parsed.customerType = "person";
+  }
+
+  if (
+    parsed.firstName &&
+    parsed.lastName &&
+    !parsed.street &&
+    !parsed.postalCode
+  ) {
+    const words = text.split(/\s+/).map((part) => stripWrappingPunctuation(part));
+    const numberIndex = words.findIndex((part) => /^\d+[a-zA-Z]?$/.test(part));
+    if (numberIndex >= 2) {
+      const streetWords = words.slice(2, numberIndex + 1).filter(Boolean);
+      if (
+        streetWords.length >= 2 &&
+        ADDRESS_JOINER_WORDS.has(normalizeSearchValue(streetWords[0]))
+      ) {
+        parsed.street = formatLooseText(streetWords.join(" "));
+      }
+    }
+  }
+
+  parsed.positions = extractPositionsFromTranscript(text);
 
   return parsed;
 }
@@ -261,7 +990,7 @@ export async function parseOfferIntake(transcript: string): Promise<IntakeParseR
         {
           role: "system",
           content:
-            "Extrahiere aus deutschem Spracheingabe-Text strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Gib serviceDescription nur als kurze Leistungsbeschreibung aus (maximal 80 Zeichen), niemals als kompletten Original-Transkripttext."
+            "Extrahiere aus deutschem Spracheingabe-Text strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Erkenne mehrere Positionen zuverlässig und trenne sie sauber in positions (description, quantity, unit, unitPrice). Gib serviceDescription nur als kurze Projektbeschreibung aus (maximal 80 Zeichen) und nur, wenn der Text explizit Projektbeschreibung/Zusatzdetails erwähnt. Reine Positionslisten dürfen nicht in serviceDescription landen. Gib customerEmail technisch verwertbar im Format local@domain aus und normalisiere gesprochene Varianten wie 'at'/'punkt'."
         },
         {
           role: "user",
@@ -280,6 +1009,15 @@ Antwort-JSON-Schema:
   "city": "string|null",
   "customerEmail": "string|null",
   "serviceDescription": "string|null",
+  "positions": [
+    {
+      "group": "string|null",
+      "description": "string",
+      "quantity": "number",
+      "unit": "string|null",
+      "unitPrice": "number"
+    }
+  ],
   "hours": "number|null",
   "hourlyRate": "number|null",
   "materialCost": "number|null"

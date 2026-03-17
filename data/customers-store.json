@@ -1,0 +1,249 @@
+{
+  "lastCustomerSequence": 7,
+  "customers": [
+    {
+      "customerNumber": "KDN-000001",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Max",
+      "lastName": "Müller",
+      "street": "Musterstr. 1",
+      "postalCode": "40231",
+      "city": "Düsseldorf",
+      "customerEmail": "bekteshilorent7@gmail.com",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstr. 1, 40231 Düsseldorf",
+      "createdAt": "2026-03-16T13:03:51.106Z",
+      "updatedAt": "2026-03-16T13:03:51.106Z"
+    },
+    {
+      "customerNumber": "KDN-000002",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Max",
+      "lastName": "Müller",
+      "street": "Musterstraße 1",
+      "postalCode": "40231",
+      "city": "Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "draftState": {
+        "serviceDescription": "Dachabdichtung",
+        "hours": "23",
+        "hourlyRate": "233",
+        "materialCost": "",
+        "invoiceDate": "2026-03-17",
+        "serviceDate": "2026-03-17",
+        "paymentDueDays": "14",
+        "positions": [
+          {
+            "label": "Dachabdichtung",
+            "subitems": [
+              {
+                "description": "Dachabdichtung",
+                "quantity": "42",
+                "unit": "Stück",
+                "price": "23"
+              }
+            ]
+          }
+        ]
+      },
+      "createdAt": "2026-03-16T13:37:50.826Z",
+      "updatedAt": "2026-03-17T11:09:47.390Z"
+    },
+    {
+      "customerNumber": "KDN-000003",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Lorent",
+      "lastName": "Müller",
+      "street": "Musterstraße 1",
+      "postalCode": "40231",
+      "city": "Düsseldorf",
+      "customerEmail": "lorent.mueller@gmail.com",
+      "customerName": "Lorent Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "draftState": {
+        "serviceDescription": "Dachabdichtung",
+        "hours": "23",
+        "hourlyRate": "233",
+        "materialCost": "",
+        "invoiceDate": "2026-03-17",
+        "serviceDate": "2026-03-17",
+        "paymentDueDays": "14",
+        "positions": [
+          {
+            "label": "Anstricharbeiten",
+            "subitems": [
+              {
+                "description": "Anstricharbeiten",
+                "quantity": "232",
+                "unit": "Stück",
+                "price": "232"
+              }
+            ]
+          }
+        ]
+      },
+      "createdAt": "2026-03-17T11:10:46.504Z",
+      "updatedAt": "2026-03-17T11:10:46.504Z"
+    },
+    {
+      "customerNumber": "KDN-000004",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Thomas",
+      "lastName": "Meißner",
+      "street": "Missgeburtstrasse 5",
+      "postalCode": "11111",
+      "city": "Missgeburt",
+      "customerEmail": "thomas.meissner@gmail.com",
+      "customerName": "Thomas Meißner",
+      "customerAddress": "Missgeburtstrasse 5, 11111 Missgeburt",
+      "draftState": {
+        "serviceDescription": "Abbrucharbeiten inkls",
+        "hours": "2332",
+        "hourlyRate": "232",
+        "materialCost": "",
+        "invoiceDate": "2026-03-17",
+        "serviceDate": "2026-03-17",
+        "paymentDueDays": "14",
+        "positions": [
+          {
+            "label": "Abbrucharbeiten",
+            "subitems": [
+              {
+                "description": "Abbrucharbeiten",
+                "quantity": "223",
+                "unit": "Stück",
+                "price": "232"
+              }
+            ]
+          }
+        ]
+      },
+      "createdAt": "2026-03-17T11:12:55.365Z",
+      "updatedAt": "2026-03-17T11:15:54.743Z"
+    },
+    {
+      "customerNumber": "KDN-000005",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Maxi",
+      "lastName": "Kingi",
+      "street": "Kingistr. 1",
+      "postalCode": "11111",
+      "city": "Kingi",
+      "customerEmail": "maxi.kinig@gmail.com",
+      "customerName": "Maxi Kingi",
+      "customerAddress": "Kingistr. 1, 11111 Kingi",
+      "draftState": {
+        "serviceDescription": "Inkl. BlowJob",
+        "hours": "12",
+        "hourlyRate": "22",
+        "materialCost": "",
+        "invoiceDate": "2026-03-17",
+        "serviceDate": "",
+        "paymentDueDays": "14",
+        "positions": [
+          {
+            "label": "Außenputz",
+            "subitems": [
+              {
+                "description": "Außenputz",
+                "quantity": "2312",
+                "unit": "Stück",
+                "price": "331"
+              }
+            ]
+          }
+        ]
+      },
+      "createdAt": "2026-03-17T11:41:46.367Z",
+      "updatedAt": "2026-03-17T13:11:45.317Z"
+    },
+    {
+      "customerNumber": "KDN-000006",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Max",
+      "lastName": "Muster",
+      "street": "Musterstraße 1",
+      "postalCode": "40231",
+      "city": "Düsseldorf",
+      "customerEmail": "max@example.com",
+      "customerName": "Max Muster",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "draftState": {
+        "serviceDescription": "Rechnungsposition",
+        "hours": "3",
+        "hourlyRate": "60",
+        "materialCost": "0",
+        "invoiceDate": "2026-03-17",
+        "serviceDate": "2026-03-01 bis 2026-03-10",
+        "paymentDueDays": "14",
+        "positions": [
+          {
+            "label": "Betonarbeiten",
+            "subitems": [
+              {
+                "description": "Beton liefern",
+                "quantity": "3",
+                "unit": "m²",
+                "price": "60"
+              }
+            ]
+          }
+        ]
+      },
+      "createdAt": "2026-03-17T13:28:44.227Z",
+      "updatedAt": "2026-03-17T13:29:46.654Z"
+    },
+    {
+      "customerNumber": "KDN-000007",
+      "customerType": "person",
+      "companyName": "",
+      "salutation": "herr",
+      "firstName": "Max",
+      "lastName": "Mueller",
+      "street": "Musterstrasse 5",
+      "postalCode": "40231",
+      "city": "Duesseldorf",
+      "customerEmail": "not-an-email",
+      "customerName": "Max Mueller",
+      "customerAddress": "Musterstrasse 5, 40231 Duesseldorf",
+      "draftState": {
+        "serviceDescription": "Betonarbeiten",
+        "hours": "0",
+        "hourlyRate": "0",
+        "materialCost": "0",
+        "invoiceDate": "2026-03-17",
+        "serviceDate": "",
+        "paymentDueDays": "14",
+        "positions": [
+          {
+            "label": "Weitere Positionen",
+            "subitems": [
+              {
+                "description": "Beton liefern",
+                "quantity": "1",
+                "unit": "m²",
+                "price": "10"
+              }
+            ]
+          }
+        ]
+      },
+      "createdAt": "2026-03-17T13:40:58.014Z",
+      "updatedAt": "2026-03-17T13:44:53.301Z"
+    }
+  ]
+}

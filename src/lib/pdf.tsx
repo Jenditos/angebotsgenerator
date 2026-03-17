@@ -1,362 +1,441 @@
-import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
-import { getDefaultPdfTableColumns, sortPdfTableColumns } from "@/lib/pdf-table-config";
-import { CompanySettings, OfferPdfLineItem, OfferText, PdfTableColumnId } from "@/types/offer";
+import {
+  Document,
+  Font,
+  Image,
+  Page,
+  StyleSheet,
+  Text,
+  View,
+} from "@react-pdf/renderer";
+import {
+  getDefaultPdfTableColumns,
+  sortPdfTableColumns,
+} from "@/lib/pdf-table-config";
+import {
+  DocumentType,
+  CompanySettings,
+  OfferPdfLineItem,
+  OfferText,
+  PdfTableColumnId,
+} from "@/types/offer";
 
 Font.registerHyphenationCallback((word) => [word]);
 
+const VISIORO_LOGO_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="210" height="48" viewBox="0 0 210 48" fill="none">
+  <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="12" fill="#3F6FB2" stroke="#2B4F85" stroke-width="1.5"/>
+  <path d="M13 14L24 34L35 14" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="58" y="31" font-family="Helvetica, Arial, sans-serif" font-size="23" font-weight="700" fill="#2B4F85">Visioro</text>
+</svg>
+`;
+
+const VISIORO_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(VISIORO_LOGO_SVG)}`;
+
 const theme = {
   canvas: "#ffffff",
-  pageTint: "#ffffff",
-  card: "#ffffff",
-  cardSoft: "#ffffff",
   border: "#d5dde8",
   borderSoft: "#e5e9f0",
   text: "#10203a",
   textMuted: "#435068",
   textSoft: "#6a778f",
   accent: "#3f6fb2",
-  accentSoft: "#ffffff",
-  accentStrong: "#2b4f85"
+  accentStrong: "#2b4f85",
 };
 
 const styles = StyleSheet.create({
   page: {
     backgroundColor: theme.canvas,
-    paddingHorizontal: 28,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingHorizontal: 34,
+    paddingTop: 14,
+    paddingBottom: 32,
     fontFamily: "Helvetica",
-    fontSize: 9.8,
-    color: theme.text
+    fontSize: 9.6,
+    color: theme.text,
   },
-  pageShell: {
-    border: `1 solid ${theme.border}`,
-    borderRadius: 16,
-    backgroundColor: theme.pageTint,
-    padding: 16
-  },
-  titleRow: {
+  topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12
-  },
-  brandBlock: {
-    width: "69%"
-  },
-  brandPill: {
-    borderRadius: 999,
-    border: `1 solid ${theme.border}`,
-    backgroundColor: theme.card,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    marginBottom: 6,
-    alignSelf: "flex-start"
-  },
-  brandPillText: {
-    fontSize: 7.5,
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-    color: theme.accentStrong
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: 700,
     marginBottom: 2,
-    color: theme.text
   },
-  logoBlock: {
-    width: "29%",
-    minHeight: 98,
-    justifyContent: "center",
-    alignItems: "flex-end"
+  topLeft: {
+    width: "56%",
   },
-  logo: {
-    width: 102,
-    height: 102,
-    objectFit: "contain"
+  visioroLogo: {
+    width: 132,
+    height: 30,
+    objectFit: "contain",
+    marginBottom: 1,
   },
-  metaPanel: {
-    border: `1 solid ${theme.border}`,
-    borderRadius: 12,
-    backgroundColor: theme.card,
-    padding: 10,
-    marginBottom: 10
-  },
-  metaGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  metaCell: {
-    width: "32%",
-    borderRadius: 8,
-    border: `1 solid ${theme.borderSoft}`,
-    backgroundColor: theme.cardSoft,
-    paddingVertical: 7,
-    paddingHorizontal: 8
-  },
-  metaLabel: {
-    fontSize: 7.8,
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
+  senderCompactLine: {
+    fontSize: 8,
     color: theme.textSoft,
-    marginBottom: 3
+    lineHeight: 1.35,
+    marginBottom: 0.5,
   },
-  metaValue: {
-    fontSize: 10.6,
+  senderContactLine: {
+    fontSize: 7.8,
+    color: theme.textSoft,
+    lineHeight: 1.3,
+  },
+  topRight: {
+    width: "40%",
+    alignItems: "flex-end",
+  },
+  companyLogo: {
+    width: 222,
+    height: 108,
+    objectFit: "contain",
+  },
+  topDivider: {
+    borderTop: `1 solid ${theme.border}`,
+    marginBottom: 4,
+  },
+  offerHeading: {
+    fontSize: 24,
     fontWeight: 700,
-    color: theme.text,
-    lineHeight: 1.25
+    letterSpacing: 0.9,
+    color: theme.accentStrong,
+    marginBottom: 4,
   },
-  panelGrid: {
+  addressMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10
+    alignItems: "flex-start",
+    marginBottom: 4,
   },
-  panel: {
-    width: "49%",
-    border: `1 solid ${theme.border}`,
-    borderRadius: 12,
-    backgroundColor: theme.card,
-    padding: 10
+  recipientBlock: {
+    width: "56%",
   },
-  panelHeader: {
-    fontSize: 7.8,
+  blockLabel: {
+    fontSize: 7.9,
     textTransform: "uppercase",
-    letterSpacing: 0.7,
+    letterSpacing: 0.6,
     color: theme.textSoft,
-    marginBottom: 6
+    marginBottom: 3,
   },
-  panelTitle: {
-    fontSize: 11,
+  recipientName: {
+    fontSize: 10.9,
     fontWeight: 700,
     color: theme.text,
-    marginBottom: 4
+    lineHeight: 1.18,
+    marginBottom: 0.3,
   },
-  panelLine: {
+  recipientLine: {
     color: theme.textMuted,
-    marginBottom: 2,
-    lineHeight: 1.35
+    lineHeight: 1.18,
+    marginBottom: 0.3,
   },
-  projectPanel: {
+  metadataBlock: {
+    width: "40%",
     border: `1 solid ${theme.border}`,
-    borderRadius: 12,
-    backgroundColor: theme.card,
-    padding: 10,
-    marginBottom: 10
+    paddingHorizontal: 7,
+    paddingVertical: 4.5,
   },
-  projectSummaryGrid: {
+  metadataRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 8
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 1.5,
   },
-  projectSummaryCell: {
-    width: "33.33%",
-    paddingRight: 8,
-    marginBottom: 7
+  metadataRowLast: {
+    marginBottom: 0,
   },
-  projectSummaryLabel: {
-    fontSize: 7.5,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    color: theme.textSoft,
-    marginBottom: 2
-  },
-  projectSummaryValue: {
-    fontSize: 9.2,
-    color: theme.text,
-    lineHeight: 1.3
-  },
-  projectBody: {
-    borderRadius: 8,
-    border: `1 solid ${theme.borderSoft}`,
-    backgroundColor: theme.accentSoft,
-    paddingHorizontal: 9,
-    paddingVertical: 8
-  },
-  projectText: {
+  metadataLabel: {
+    width: "62%",
+    fontSize: 8,
     color: theme.textMuted,
-    lineHeight: 1.45
+    lineHeight: 1.3,
   },
-  tablePanel: {
+  metadataValue: {
+    width: "36%",
+    fontSize: 8.5,
+    color: theme.text,
+    textAlign: "right",
+    lineHeight: 1.3,
+  },
+  introSection: {
+    borderTop: `1 solid ${theme.border}`,
+    paddingTop: 4,
+    marginBottom: 5,
+  },
+  introParagraph: {
+    color: theme.textMuted,
+    lineHeight: 1.18,
+    marginBottom: 2.1,
+  },
+  introParagraphSalutation: {
+    marginBottom: 4.8,
+  },
+  introParagraphLast: {
+    marginBottom: 0,
+  },
+  locationBlock: {
     border: `1 solid ${theme.border}`,
-    borderRadius: 12,
-    backgroundColor: theme.card,
-    marginBottom: 10
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    marginBottom: 5,
+  },
+  locationColumn: {
+    width: "100%",
+  },
+  locationLine: {
+    color: theme.textMuted,
+    lineHeight: 1.32,
+    marginBottom: 0.5,
+  },
+  continuationHeader: {
+    borderBottom: `1 solid ${theme.border}`,
+    paddingBottom: 6,
+    marginBottom: 7,
+  },
+  continuationHeading: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: theme.accentStrong,
+    marginBottom: 2,
+  },
+  continuationSubtitle: {
+    fontSize: 8.3,
+    color: theme.textSoft,
+  },
+  tableWrap: {
+    border: `1 solid ${theme.border}`,
+    marginBottom: 5,
+  },
+  tableDetailsSection: {
+    border: `1 solid ${theme.border}`,
+    borderTop: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: -5,
+    marginBottom: 5,
+  },
+  tableDetailsLabel: {
+    fontSize: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.35,
+    color: theme.textSoft,
+    marginBottom: 2,
+  },
+  tableDetailsText: {
+    fontSize: 8.8,
+    lineHeight: 1.3,
+    color: theme.textMuted,
   },
   tableHead: {
     flexDirection: "row",
-    backgroundColor: "#f7f9fc",
-    borderBottom: `1 solid ${theme.border}`
+    borderBottom: `1 solid ${theme.border}`,
+    backgroundColor: theme.accent,
   },
   tableHeadCell: {
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    fontSize: 8.3,
-    textTransform: "uppercase",
-    letterSpacing: 0.45,
-    color: theme.textMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 8.2,
+    color: "#ffffff",
     fontWeight: 700,
-    lineHeight: 1.25
+    lineHeight: 1.2,
   },
   tableHeadCellDescription: {
-    paddingRight: 14
+    paddingRight: 12,
   },
   tableRow: {
     flexDirection: "row",
-    borderBottom: `1 solid ${theme.borderSoft}`
+    borderBottom: `1 solid ${theme.borderSoft}`,
+  },
+  tableRowAlt: {
+    backgroundColor: "#f8fbff",
   },
   tableGroupRow: {
     borderBottom: `1 solid ${theme.borderSoft}`,
-    backgroundColor: "#f4f6f9"
+    backgroundColor: "#edf3fb",
   },
   tableGroupCell: {
     width: "100%",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 8.2,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 8.05,
     textTransform: "uppercase",
-    letterSpacing: 0.45,
+    letterSpacing: 0.35,
     color: theme.textMuted,
-    fontWeight: 700
-  },
-  tableRowAlt: {
-    backgroundColor: "#fafbfc"
+    fontWeight: 700,
   },
   tableCell: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6.2,
     color: theme.text,
-    lineHeight: 1.45,
-    fontSize: 9
+    lineHeight: 1.38,
+    fontSize: 8.9,
   },
   tableCellDescription: {
-    paddingRight: 14
+    paddingRight: 12,
   },
   tableCellDivider: {
-    borderRight: `1 solid ${theme.borderSoft}`
+    borderRight: `1 solid ${theme.borderSoft}`,
   },
   tableCellNumeric: {
-    textAlign: "right"
+    textAlign: "right",
+  },
+  totalsWrap: {
+    alignItems: "flex-end",
+    marginBottom: 6,
   },
   totalsBox: {
-    margin: 8,
-    borderRadius: 10,
-    border: `1 solid ${theme.accent}`,
-    backgroundColor: theme.card,
-    paddingVertical: 7,
-    paddingHorizontal: 10
+    width: "51%",
+    border: `1 solid ${theme.border}`,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   totalsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 5
+    marginBottom: 4,
   },
   totalsRowLast: {
-    marginBottom: 0
+    marginBottom: 0,
   },
   totalsLabel: {
-    fontSize: 9.2,
-    color: theme.textMuted
+    fontSize: 9,
+    color: theme.textMuted,
   },
   totalsValue: {
-    fontSize: 9.2,
-    color: theme.text
+    fontSize: 9,
+    color: theme.text,
   },
   totalsDivider: {
     borderTop: `1 solid ${theme.border}`,
     marginTop: 1,
-    marginBottom: 6
+    marginBottom: 5,
   },
   totalsGrandLabel: {
     fontSize: 11,
+    fontWeight: 700,
     color: theme.text,
-    fontWeight: 700
   },
   totalsGrandValue: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: 700,
-    color: theme.accentStrong
+    color: theme.accentStrong,
   },
   validityText: {
-    marginTop: 8,
-    fontSize: 8.6,
-    color: theme.textMuted
+    marginTop: 5,
+    fontSize: 8.4,
+    color: theme.textMuted,
   },
-  notePanel: {
-    border: `1 solid ${theme.border}`,
-    borderRadius: 12,
-    backgroundColor: theme.card,
-    padding: 10
+  notesSection: {
+    borderTop: `1 solid ${theme.border}`,
+    paddingTop: 5,
+    marginTop: 5,
+    marginBottom: 4,
+  },
+  noteTitle: {
+    fontSize: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
+    color: theme.textSoft,
+    marginBottom: 3,
   },
   noteText: {
     color: theme.textMuted,
-    lineHeight: 1.45,
-    marginBottom: 7
+    lineHeight: 1.35,
+    marginBottom: 0,
   },
-  noteSubHeader: {
-    fontSize: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    color: theme.textSoft,
-    marginBottom: 4,
-    marginTop: 2
+  closingSection: {
+    marginTop: 1,
   },
-  footerHint: {
-    marginTop: 10,
+  closingLine: {
+    color: theme.textMuted,
+    lineHeight: 1.3,
+    marginBottom: 5,
+  },
+  closingSignature: {
+    color: theme.text,
+    lineHeight: 1.3,
+    fontWeight: 700,
+  },
+  pageFooter: {
+    position: "absolute",
+    right: 34,
+    bottom: 14,
     fontSize: 8,
     color: theme.textSoft,
-    textAlign: "right"
-  }
+    textAlign: "right",
+  },
 });
 
 type OfferPdfDocumentProps = {
   offer: OfferText;
+  offerNumber: string;
+  documentType?: DocumentType;
+  customerNumber?: string;
+  createdAt: string;
+  invoiceDate?: string;
+  serviceDate?: string;
+  paymentDueDays?: number;
   customerName: string;
   customerAddress: string;
   customerEmail: string;
   serviceDescription: string;
+  projectDetails?: string;
   lineItems: OfferPdfLineItem[];
   settings: CompanySettings;
 };
 
 function isNumericColumn(columnId: PdfTableColumnId): boolean {
-  return columnId === "position" || columnId === "quantity" || columnId === "unitPrice" || columnId === "totalPrice";
+  return (
+    columnId === "position" ||
+    columnId === "quantity" ||
+    columnId === "unitPrice" ||
+    columnId === "totalPrice"
+  );
 }
 
 const COLUMN_WEIGHTS: Record<PdfTableColumnId, number> = {
-  position: 0.32,
-  quantity: 0.68,
-  description: 5.05,
-  unit: 0.95,
-  unitPrice: 1.28,
-  totalPrice: 1.42
+  position: 0.52,
+  description: 5.5,
+  quantity: 1.0,
+  unit: 0.92,
+  unitPrice: 1.3,
+  totalPrice: 1.45,
 };
 
-function cellValueForColumn(columnId: PdfTableColumnId, lineItem: OfferPdfLineItem): string {
-  const formatMoney = (value: number) =>
-    new Intl.NumberFormat("de-DE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+const CLASSIC_COLUMN_ORDER: PdfTableColumnId[] = [
+  "position",
+  "description",
+  "quantity",
+  "unit",
+  "unitPrice",
+  "totalPrice",
+];
 
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("de-DE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function cellValueForColumn(
+  columnId: PdfTableColumnId,
+  lineItem: OfferPdfLineItem,
+): string {
   switch (columnId) {
     case "position":
       return String(lineItem.position);
     case "quantity":
       return new Intl.NumberFormat("de-DE", {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
       }).format(lineItem.quantity);
     case "description":
       return lineItem.description;
     case "unit":
       return lineItem.unit || "-";
     case "unitPrice":
-      return `${formatMoney(lineItem.unitPrice)} EUR`;
+      return `${formatMoney(lineItem.unitPrice)} €`;
     case "totalPrice":
-      return `${formatMoney(lineItem.totalPrice)} EUR`;
+      return `${formatMoney(lineItem.totalPrice)} €`;
     default:
       return "";
   }
@@ -376,13 +455,146 @@ function addDays(base: Date, days: number): Date {
   return target;
 }
 
-function extractAreaFromServiceDescription(text: string): string | null {
-  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(m²|m2|qm)/i);
-  if (!match) {
-    return null;
+function resolveDateInput(value: string | undefined, fallback: Date): Date {
+  if (!value) {
+    return fallback;
   }
 
-  return `${match[1]} ${match[2].replace(/qm/i, "m²")}`;
+  const normalized = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return fallback;
+  }
+
+  const parsed = new Date(`${normalized}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
+function splitAddressLines(value: string): string[] {
+  return value
+    .split(/\n|,/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function splitParagraphs(value: string): string[] {
+  return value
+    .split(/\r?\n\s*\r?\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function stripLocationLines(value: string): string {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .filter((line) => !/^(Leistungsort|Lieferanschrift)\s*:/i.test(line))
+    .join("\n")
+    .trim();
+}
+
+const INVOICE_NOTE_BLACKLIST_PATTERNS = [
+  /Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten\.?/gi,
+  /Dieses Angebot basiert auf den aktuell gültigen Materialpreisen\.?/gi,
+];
+
+function sanitizeInvoiceTermsText(value: string): string {
+  let sanitized = value;
+  for (const pattern of INVOICE_NOTE_BLACKLIST_PATTERNS) {
+    sanitized = sanitized.replace(pattern, " ");
+  }
+
+  return sanitized.replace(/\s+/g, " ").trim();
+}
+
+function buildInvoicePaymentDueLabel(days: number): string {
+  if (days <= 0) {
+    return "Zahlbar sofort ohne Abzug";
+  }
+
+  return `Zahlbar innerhalb von ${days} Tagen ohne Abzug`;
+}
+
+function buildInvoicePaymentDueSentence(days: number): string {
+  if (days <= 0) {
+    return "sofort ohne Abzug";
+  }
+
+  return `innerhalb von ${days} Tagen ohne Abzug`;
+}
+
+function isSalutationParagraph(value: string): boolean {
+  return /^sehr\s+geehrt/i.test(value.trim());
+}
+
+function normalizeAddressForComparison(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function addressesAreEquivalent(left: string, right: string): boolean {
+  const leftNormalized = normalizeAddressForComparison(left);
+  const rightNormalized = normalizeAddressForComparison(right);
+  if (!leftNormalized || !rightNormalized) {
+    return false;
+  }
+
+  return (
+    leftNormalized === rightNormalized ||
+    leftNormalized.includes(rightNormalized) ||
+    rightNormalized.includes(leftNormalized)
+  );
+}
+
+function extractOptionalLocationBlock(
+  serviceDescription: string,
+): { label: "Leistungsort" | "Lieferanschrift"; value: string } | null {
+  const lines = serviceDescription
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    const match = line.match(
+      /^(Leistungsort|Lieferanschrift)\s*:\s*(.+)$/i,
+    );
+    if (!match) {
+      continue;
+    }
+
+    const normalizedLabel = match[1].toLowerCase();
+    const value = match[2].trim();
+    if (!value) {
+      continue;
+    }
+
+    return {
+      label: normalizedLabel === "lieferanschrift" ? "Lieferanschrift" : "Leistungsort",
+      value,
+    };
+  }
+
+  return null;
+}
+
+function buildSenderCompactLine(settings: CompanySettings): string {
+  const postalCity = [settings.companyPostalCode, settings.companyCity]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return [settings.companyName, settings.companyStreet, postalCity]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function buildSenderContactLine(settings: CompanySettings): string {
+  return [settings.companyPhone, settings.companyEmail, settings.companyWebsite]
+    .map((value) => (value || "").trim())
+    .filter(Boolean)
+    .join(" • ");
 }
 
 type TableRenderableRow =
@@ -395,17 +607,16 @@ type TableRenderableRow =
       item: OfferPdfLineItem;
     };
 
-function buildTableRenderableRows(rows: OfferPdfLineItem[]): TableRenderableRow[] {
+function buildTableRenderableRows(
+  rows: OfferPdfLineItem[],
+): TableRenderableRow[] {
   const renderableRows: TableRenderableRow[] = [];
   let currentGroup = "";
 
   rows.forEach((row) => {
     const rowGroup = row.group?.trim() || "";
     if (rowGroup && rowGroup !== currentGroup) {
-      renderableRows.push({
-        kind: "group",
-        title: rowGroup
-      });
+      renderableRows.push({ kind: "group", title: rowGroup });
       currentGroup = rowGroup;
     }
 
@@ -413,63 +624,201 @@ function buildTableRenderableRows(rows: OfferPdfLineItem[]): TableRenderableRow[
       currentGroup = "";
     }
 
-    renderableRows.push({
-      kind: "item",
-      item: row
-    });
+    renderableRows.push({ kind: "item", item: row });
   });
 
   return renderableRows;
 }
 
+function toTableHeaderLabel(
+  columnId: PdfTableColumnId,
+  fallbackLabel: string,
+): string {
+  switch (columnId) {
+    case "position":
+      return "Pos.";
+    case "description":
+      return "Bezeichnung";
+    case "quantity":
+      return "Menge";
+    case "unit":
+      return "Einheit";
+    case "unitPrice":
+      return "E-Preis €";
+    case "totalPrice":
+      return "G-Preis €";
+    default:
+      return fallbackLabel;
+  }
+}
+
+function sortColumnsForClassicLayout<T extends { id: PdfTableColumnId }>(
+  columns: T[],
+): T[] {
+  const rankByColumnId = CLASSIC_COLUMN_ORDER.reduce(
+    (acc, columnId, index) => {
+      acc[columnId] = index;
+      return acc;
+    },
+    {} as Record<PdfTableColumnId, number>,
+  );
+
+  return [...columns].sort(
+    (left, right) => rankByColumnId[left.id] - rankByColumnId[right.id],
+  );
+}
+
+function estimateRenderableRowUnits(row: TableRenderableRow): number {
+  if (row.kind === "group") {
+    return 0.8;
+  }
+
+  const descriptionLength = row.item.description.trim().length;
+  return Math.max(1, Math.ceil(descriptionLength / 62));
+}
+
+function chunkRenderableRows(
+  rows: TableRenderableRow[],
+  firstPageCapacity: number,
+  followingPageCapacity: number,
+): TableRenderableRow[][] {
+  if (rows.length === 0) {
+    return [[]];
+  }
+
+  const chunks: TableRenderableRow[][] = [];
+  let currentChunk: TableRenderableRow[] = [];
+  let usedUnits = 0;
+  let capacity = firstPageCapacity;
+
+  rows.forEach((row) => {
+    const rowUnits = estimateRenderableRowUnits(row);
+    if (currentChunk.length > 0 && usedUnits + rowUnits > capacity) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      usedUnits = 0;
+      capacity = followingPageCapacity;
+    }
+
+    currentChunk.push(row);
+    usedUnits += rowUnits;
+  });
+
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+}
+
 export function OfferPdfDocument({
   offer,
+  offerNumber,
+  documentType,
+  customerNumber,
+  createdAt,
+  invoiceDate,
+  serviceDate,
+  paymentDueDays,
   customerName,
   customerAddress,
   customerEmail,
   serviceDescription,
+  projectDetails,
   lineItems,
-  settings
+  settings,
 }: OfferPdfDocumentProps) {
-  const addressParts = customerAddress.split(",").map((part) => part.trim()).filter(Boolean);
-  const customerStreetLine = addressParts[0] || customerAddress;
-  const customerPostalCityLine = addressParts[1] || "";
-  const generatedAt = new Date();
+  const customerAddressLines = splitAddressLines(customerAddress);
+  const customerStreetLine = customerAddressLines[0] || customerAddress;
+  const customerPostalCityLine = customerAddressLines[1] || "";
+  const customerAdditionalLines = customerAddressLines.slice(2);
+  const optionalLocation = extractOptionalLocationBlock(serviceDescription);
+  const customerAddressForComparison = [
+    customerStreetLine,
+    customerPostalCityLine,
+    ...customerAdditionalLines,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const showOptionalLocation =
+    Boolean(optionalLocation) &&
+    !addressesAreEquivalent(
+      optionalLocation?.value ?? "",
+      customerAddressForComparison,
+    );
+  const introParagraphs = splitParagraphs(offer.intro || "");
+  const projectDetailsText = stripLocationLines(projectDetails || "");
 
-  const today = generatedAt.toLocaleDateString("de-DE", {
+  const parsedCreatedAt = new Date(createdAt);
+  const generatedAt = Number.isNaN(parsedCreatedAt.getTime())
+    ? new Date()
+    : parsedCreatedAt;
+  const resolvedDocumentType: DocumentType =
+    documentType === "invoice" ? "invoice" : "offer";
+  const documentDate =
+    resolvedDocumentType === "invoice"
+      ? resolveDateInput(invoiceDate, generatedAt)
+      : generatedAt;
+  const resolvedServiceDate =
+    resolvedDocumentType === "invoice"
+      ? (serviceDate || "").trim()
+      : "";
+
+  const today = documentDate.toLocaleDateString("de-DE", {
     day: "2-digit",
     month: "2-digit",
-    year: "numeric"
+    year: "numeric",
   });
+
   const vatRate = clampNumber(settings.vatRate, 0, 100);
   const offerValidityDays = clampNumber(settings.offerValidityDays, 1, 365);
-  const validUntilDate = addDays(generatedAt, offerValidityDays).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
+  const validUntilDate = addDays(documentDate, offerValidityDays).toLocaleDateString(
+    "de-DE",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    },
+  );
+  const resolvedPaymentDueDays = clampNumber(paymentDueDays ?? 14, 0, 365);
+  const invoicePaymentDueLabel = buildInvoicePaymentDueLabel(
+    resolvedPaymentDueDays,
+  );
 
-  const quoteNumber = `ANG-${generatedAt.getFullYear()}-${generatedAt.getTime().toString().slice(-6)}`;
-  const phoneText = settings.companyPhone || "-";
-  const emailText = settings.companyEmail || "-";
-  const webText = settings.companyWebsite || "-";
-  const projectSummary = {
-    project: serviceDescription.split("\n")[0]?.trim() || "Projekt",
-    location: customerAddress || `${customerStreetLine}${customerPostalCityLine ? `, ${customerPostalCityLine}` : ""}`,
-    area: extractAreaFromServiceDescription(serviceDescription),
-    positions: Math.max(lineItems.length, 1)
-  };
+  const defaultNumberPrefix = resolvedDocumentType === "invoice" ? "RE" : "ANG";
+  const quoteNumber =
+    (typeof offerNumber === "string" ? offerNumber.trim() : "") ||
+    `${defaultNumberPrefix}-${documentDate.getFullYear()}-001`;
+  const documentHeading = resolvedDocumentType === "invoice" ? "RECHNUNG" : "ANGEBOT";
+  const documentNumberLabel =
+    resolvedDocumentType === "invoice" ? "Rechnungs-Nr." : "Angebots-Nr.";
+  const servicePeriodLabel = resolvedServiceDate || "—";
 
-  const configuredColumns = sortPdfTableColumns(settings.pdfTableColumns).filter((column) => column.visible);
-  const fallbackColumns = sortPdfTableColumns(getDefaultPdfTableColumns()).filter((column) => column.visible);
-  const visibleColumns = configuredColumns.length > 0 ? configuredColumns : fallbackColumns;
-  const totalColumnWeight = visibleColumns.reduce((sum, column) => sum + COLUMN_WEIGHTS[column.id], 0) || 1;
+  const senderCompactLine = buildSenderCompactLine(settings);
+  const senderContactLine = buildSenderContactLine(settings);
+  const closingSignatureName =
+    settings.companyName?.trim() ||
+    settings.ownerName?.trim() ||
+    "Ihr Handwerksbetrieb";
+  const configuredColumns = sortPdfTableColumns(settings.pdfTableColumns).filter(
+    (column) => column.visible,
+  );
+  const fallbackColumns = sortPdfTableColumns(getDefaultPdfTableColumns()).filter(
+    (column) => column.visible,
+  );
+  const visibleColumns = sortColumnsForClassicLayout(
+    configuredColumns.length > 0 ? configuredColumns : fallbackColumns,
+  );
+
+  const totalColumnWeight =
+    visibleColumns.reduce((sum, column) => sum + COLUMN_WEIGHTS[column.id], 0) || 1;
+
   const columnWidthById = visibleColumns.reduce(
     (acc, column) => {
       acc[column.id] = `${(COLUMN_WEIGHTS[column.id] / totalColumnWeight) * 100}%`;
       return acc;
     },
-    {} as Partial<Record<PdfTableColumnId, string>>
+    {} as Partial<Record<PdfTableColumnId, string>>,
   );
 
   const subtotal = lineItems.reduce((sum, lineItem) => sum + lineItem.totalPrice, 0);
@@ -483,194 +832,304 @@ export function OfferPdfDocument({
             description: serviceDescription || "Leistung",
             unit: "Psch.",
             unitPrice: 0,
-            totalPrice: 0
-          }
+            totalPrice: 0,
+          },
         ];
+
   const renderableRows = buildTableRenderableRows(tableRows);
+  const rowChunks = chunkRenderableRows(renderableRows, 8.2, 20.2);
+  const pageCount = rowChunks.length;
+
   const vatAmount = subtotal * (vatRate / 100);
   const totalAmount = subtotal + vatAmount;
   const termsText = settings.offerTermsText?.trim();
+  const sanitizedInvoiceTermsText = sanitizeInvoiceTermsText(termsText || "");
+  const notesText =
+    resolvedDocumentType === "invoice"
+      ? [
+          "Diese Rechnung ist gemäß ausgewiesenem Zahlungsziel fällig.",
+          sanitizedInvoiceTermsText,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : termsText || "";
 
-  const formatMoney = (value: number) =>
-    new Intl.NumberFormat("de-DE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+  const chunkStartItemIndex: number[] = [];
+  let consumedItems = 0;
+  rowChunks.forEach((chunk) => {
+    chunkStartItemIndex.push(consumedItems);
+    consumedItems += chunk.filter((row) => row.kind === "item").length;
+  });
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.pageShell}>
-          <View style={styles.titleRow}>
-            <View style={styles.brandBlock}>
-              <View style={styles.brandPill}>
-                <Text style={styles.brandPillText}>Visioro</Text>
-              </View>
-              <Text style={styles.heading}>Angebot</Text>
-            </View>
+      {rowChunks.map((chunk, chunkIndex) => {
+        const isFirstPage = chunkIndex === 0;
+        const isLastPage = chunkIndex === rowChunks.length - 1;
 
-            <View style={styles.logoBlock}>{settings.logoDataUrl ? <Image src={settings.logoDataUrl} style={styles.logo} /> : null}</View>
-          </View>
+        const metadataRows = [
+          { label: documentNumberLabel, value: quoteNumber },
+          { label: "Kunden-Nr.", value: customerNumber?.trim() || "—" },
+          ...(resolvedDocumentType === "invoice"
+            ? [
+                { label: "Rechnungsdatum", value: today },
+                { label: "Leistungszeitraum", value: servicePeriodLabel },
+                {
+                  label: "Zahlungsziel",
+                  value: invoicePaymentDueLabel,
+                },
+              ]
+            : [
+                { label: "Datum", value: today },
+                { label: "Ausführung", value: "—" },
+              ]),
+        ];
 
-          <View style={styles.metaPanel}>
-            <View style={styles.metaGrid}>
-              <View style={styles.metaCell}>
-                <Text style={styles.metaLabel}>Dokument</Text>
-                <Text style={styles.metaValue}>Angebot</Text>
-              </View>
-              <View style={styles.metaCell}>
-                <Text style={styles.metaLabel}>Angebotsnummer</Text>
-                <Text style={styles.metaValue}>{quoteNumber}</Text>
-              </View>
-              <View style={styles.metaCell}>
-                <Text style={styles.metaLabel}>Datum</Text>
-                <Text style={styles.metaValue}>{today}</Text>
-              </View>
-            </View>
-          </View>
+        let globalItemIndex = chunkStartItemIndex[chunkIndex] ?? 0;
 
-          <View style={styles.panelGrid}>
-            <View style={styles.panel}>
-              <Text style={styles.panelHeader}>Anbieter</Text>
-              <Text style={styles.panelTitle}>{settings.companyName}</Text>
-              {settings.ownerName ? <Text style={styles.panelLine}>{settings.ownerName}</Text> : null}
-              {settings.companyStreet ? <Text style={styles.panelLine}>{settings.companyStreet}</Text> : null}
-              {(settings.companyPostalCode || settings.companyCity) ? (
-                <Text style={styles.panelLine}>{`${settings.companyPostalCode} ${settings.companyCity}`.trim()}</Text>
-              ) : null}
-              <Text style={styles.panelLine}>Tel: {phoneText}</Text>
-              <Text style={styles.panelLine}>E-Mail: {emailText}</Text>
-              <Text style={styles.panelLine}>Web: {webText}</Text>
-            </View>
+        return (
+          <Page key={`page-${chunkIndex}`} size="A4" style={styles.page}>
+            {isFirstPage ? (
+              <>
+                <View style={styles.topRow}>
+                  <View style={styles.topLeft}>
+                    <Image src={VISIORO_LOGO_DATA_URL} style={styles.visioroLogo} />
+                    <Text style={styles.senderCompactLine}>
+                      {senderCompactLine || "Handwerksbetrieb • Straße 1 • 12345 Stadt"}
+                    </Text>
+                    {senderContactLine ? (
+                      <Text style={styles.senderContactLine}>{senderContactLine}</Text>
+                    ) : null}
+                  </View>
 
-            <View style={styles.panel}>
-              <Text style={styles.panelHeader}>Kunde</Text>
-              <Text style={styles.panelTitle}>{customerName}</Text>
-              <Text style={styles.panelLine}>{customerStreetLine}</Text>
-              {customerPostalCityLine ? <Text style={styles.panelLine}>{customerPostalCityLine}</Text> : null}
-              <Text style={styles.panelLine}>E-Mail: {customerEmail}</Text>
-            </View>
-          </View>
-
-          <View style={styles.projectPanel}>
-            <Text style={styles.panelHeader}>Projekt-Zusammenfassung</Text>
-            <View style={styles.projectSummaryGrid}>
-              <View style={styles.projectSummaryCell}>
-                <Text style={styles.projectSummaryLabel}>Projekt</Text>
-                <Text style={styles.projectSummaryValue}>{projectSummary.project}</Text>
-              </View>
-              <View style={styles.projectSummaryCell}>
-                <Text style={styles.projectSummaryLabel}>Ort</Text>
-                <Text style={styles.projectSummaryValue}>{projectSummary.location}</Text>
-              </View>
-              <View style={styles.projectSummaryCell}>
-                <Text style={styles.projectSummaryLabel}>Positionen</Text>
-                <Text style={styles.projectSummaryValue}>{projectSummary.positions}</Text>
-              </View>
-              {projectSummary.area ? (
-                <View style={styles.projectSummaryCell}>
-                  <Text style={styles.projectSummaryLabel}>Fläche</Text>
-                  <Text style={styles.projectSummaryValue}>{projectSummary.area}</Text>
+                  <View style={styles.topRight}>
+                    <Image
+                      src={settings.logoDataUrl || VISIORO_LOGO_DATA_URL}
+                      style={styles.companyLogo}
+                    />
+                  </View>
                 </View>
-              ) : null}
-            </View>
-            <Text style={styles.panelHeader}>Leistungsbeschreibung</Text>
-            <View style={styles.projectBody}>
-              <Text style={styles.projectText}>{serviceDescription}</Text>
-            </View>
-          </View>
 
-          <View style={styles.tablePanel}>
-            <View style={styles.tableHead}>
-              {visibleColumns.map((column, columnIndex) => {
-                const columnWidth = columnWidthById[column.id] ?? `${100 / visibleColumns.length}%`;
-                const headCellStyle: any[] = [styles.tableHeadCell, { width: columnWidth }];
-                if (column.id === "description") {
-                  headCellStyle.push(styles.tableHeadCellDescription);
+                <View style={styles.topDivider} />
+
+                <Text style={styles.offerHeading}>{documentHeading}</Text>
+
+                <View style={styles.addressMetaRow}>
+                  <View style={styles.recipientBlock}>
+                    <Text style={styles.recipientName}>{customerName || "Kunde"}</Text>
+                    <Text style={styles.recipientLine}>{customerStreetLine}</Text>
+                    {customerPostalCityLine ? (
+                      <Text style={styles.recipientLine}>{customerPostalCityLine}</Text>
+                    ) : null}
+                    {customerAdditionalLines.map((line, index) => (
+                      <Text key={`customer-extra-${index}`} style={styles.recipientLine}>
+                        {line}
+                      </Text>
+                    ))}
+                    {customerEmail ? (
+                      <Text style={styles.recipientLine}>E-Mail: {customerEmail}</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.metadataBlock}>
+                    {metadataRows.map((row, rowIndex) => {
+                      const rowStyles =
+                        rowIndex === metadataRows.length - 1
+                          ? [styles.metadataRow, styles.metadataRowLast]
+                          : styles.metadataRow;
+                      return (
+                        <View key={`meta-${row.label}`} style={rowStyles}>
+                          <Text style={styles.metadataLabel}>{row.label}</Text>
+                          <Text style={styles.metadataValue}>{row.value}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {showOptionalLocation && optionalLocation ? (
+                  <View style={styles.locationBlock}>
+                    <View style={styles.locationColumn}>
+                      <Text style={styles.blockLabel}>{optionalLocation.label}</Text>
+                      <Text style={styles.locationLine}>{optionalLocation.value}</Text>
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <View style={styles.continuationHeader}>
+                <Text style={styles.continuationHeading}>{documentHeading}</Text>
+                <Text
+                  style={styles.continuationSubtitle}
+                >{`${documentNumberLabel} ${quoteNumber} • ${customerName || "Kunde"}`}</Text>
+              </View>
+            )}
+
+            {isFirstPage && introParagraphs.length > 0 ? (
+              <View style={styles.introSection}>
+                {introParagraphs.map((paragraph, paragraphIndex) => (
+                  <Text
+                    key={`intro-paragraph-${paragraphIndex}`}
+                    style={
+                      paragraphIndex === introParagraphs.length - 1
+                        ? [styles.introParagraph, styles.introParagraphLast]
+                        : paragraphIndex === 0 && isSalutationParagraph(paragraph)
+                          ? [styles.introParagraph, styles.introParagraphSalutation]
+                        : styles.introParagraph
+                    }
+                  >
+                    {paragraph}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+
+            <View style={styles.tableWrap}>
+              <View style={styles.tableHead}>
+                {visibleColumns.map((column, columnIndex) => {
+                  const columnWidth =
+                    columnWidthById[column.id] ?? `${100 / visibleColumns.length}%`;
+                  const headCellStyle: any[] = [
+                    styles.tableHeadCell,
+                    { width: columnWidth },
+                  ];
+
+                  if (column.id === "description") {
+                    headCellStyle.push(styles.tableHeadCellDescription);
+                  }
+                  if (columnIndex < visibleColumns.length - 1) {
+                    headCellStyle.push(styles.tableCellDivider);
+                  }
+                  if (isNumericColumn(column.id)) {
+                    headCellStyle.push(styles.tableCellNumeric);
+                  }
+
+                  return (
+                    <Text
+                      key={`head-${chunkIndex}-${column.id}`}
+                      style={headCellStyle}
+                    >
+                      {toTableHeaderLabel(column.id, column.label)}
+                    </Text>
+                  );
+                })}
+              </View>
+
+              {chunk.map((row, rowIndex) => {
+                if (row.kind === "group") {
+                  return (
+                    <View
+                      key={`group-${chunkIndex}-${rowIndex}-${row.title}`}
+                      style={styles.tableGroupRow}
+                      wrap={false}
+                    >
+                      <Text style={styles.tableGroupCell}>{row.title}</Text>
+                    </View>
+                  );
                 }
-                if (columnIndex < visibleColumns.length - 1) {
-                  headCellStyle.push(styles.tableCellDivider);
-                }
-                if (isNumericColumn(column.id)) {
-                  headCellStyle.push(styles.tableCellNumeric);
-                }
+
+                const rowStyle =
+                  globalItemIndex % 2 === 1
+                    ? [styles.tableRow, styles.tableRowAlt]
+                    : styles.tableRow;
+                globalItemIndex += 1;
 
                 return (
-                  <Text key={`head-${column.id}`} style={headCellStyle}>
-                    {column.label}
-                  </Text>
+                  <View
+                    key={`row-${chunkIndex}-${rowIndex}-${row.item.position}`}
+                    style={rowStyle}
+                    wrap={false}
+                  >
+                    {visibleColumns.map((column, columnIndex) => {
+                      const columnWidth =
+                        columnWidthById[column.id] ?? `${100 / visibleColumns.length}%`;
+                      const rowCellStyle: any[] = [styles.tableCell, { width: columnWidth }];
+
+                      if (column.id === "description") {
+                        rowCellStyle.push(styles.tableCellDescription);
+                      }
+                      if (columnIndex < visibleColumns.length - 1) {
+                        rowCellStyle.push(styles.tableCellDivider);
+                      }
+                      if (isNumericColumn(column.id)) {
+                        rowCellStyle.push(styles.tableCellNumeric);
+                      }
+
+                      return (
+                        <Text
+                          key={`row-${chunkIndex}-${rowIndex}-${column.id}`}
+                          style={rowCellStyle}
+                        >
+                          {cellValueForColumn(column.id, row.item)}
+                        </Text>
+                      );
+                    })}
+                  </View>
                 );
               })}
             </View>
 
-            {renderableRows.map((row, rowIndex) => {
-              if (row.kind === "group") {
-                return (
-                  <View key={`group-${rowIndex}-${row.title}`} style={styles.tableGroupRow} wrap={false}>
-                    <Text style={styles.tableGroupCell}>{row.title}</Text>
+            {isLastPage && projectDetailsText ? (
+              <View style={styles.tableDetailsSection}>
+                <Text style={styles.tableDetailsLabel}>
+                  Projektbeschreibung / Zusatzdetails
+                </Text>
+                <Text style={styles.tableDetailsText}>{projectDetailsText}</Text>
+              </View>
+            ) : null}
+
+                {isLastPage ? (
+                  <>
+                    <View style={styles.totalsWrap}>
+                  <View style={styles.totalsBox}>
+                    <View style={styles.totalsRow}>
+                      <Text style={styles.totalsLabel}>Zwischensumme</Text>
+                      <Text style={styles.totalsValue}>{formatMoney(subtotal)} €</Text>
+                    </View>
+                    <View style={styles.totalsRow}>
+                      <Text
+                        style={styles.totalsLabel}
+                      >{`MwSt. (${vatRate.toFixed(vatRate % 1 === 0 ? 0 : 1)}%)`}</Text>
+                      <Text style={styles.totalsValue}>{formatMoney(vatAmount)} €</Text>
+                    </View>
+                    <View style={styles.totalsDivider} />
+                    <View style={[styles.totalsRow, styles.totalsRowLast]}>
+                      <Text style={styles.totalsGrandLabel}>Gesamtbetrag</Text>
+                      <Text style={styles.totalsGrandValue}>{formatMoney(totalAmount)} €</Text>
+                    </View>
                   </View>
-                );
-              }
+                  <Text style={styles.validityText}>
+                    {resolvedDocumentType === "invoice"
+                      ? invoicePaymentDueLabel
+                      : `Dieses Angebot ist gültig bis: ${validUntilDate}`}
+                  </Text>
+                    </View>
 
-              const visibleItemRowIndex =
-                renderableRows.slice(0, rowIndex + 1).filter((entry) => entry.kind === "item").length - 1;
-              const rowStyle =
-                visibleItemRowIndex % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow;
+                    {notesText ? (
+                      <View style={styles.notesSection}>
+                        <Text style={styles.noteTitle}>
+                          Zahlungsbedingungen / Hinweise
+                        </Text>
+                        <Text style={styles.noteText}>{notesText}</Text>
+                      </View>
+                    ) : null}
 
-              return (
-                <View key={`row-${rowIndex}-${row.item.position}`} style={rowStyle} wrap={false}>
-                  {visibleColumns.map((column, columnIndex) => {
-                    const columnWidth = columnWidthById[column.id] ?? `${100 / visibleColumns.length}%`;
-                    const rowCellStyle: any[] = [styles.tableCell, { width: columnWidth }];
-                    if (column.id === "description") {
-                      rowCellStyle.push(styles.tableCellDescription);
-                    }
-                    if (columnIndex < visibleColumns.length - 1) {
-                      rowCellStyle.push(styles.tableCellDivider);
-                    }
-                    if (isNumericColumn(column.id)) {
-                      rowCellStyle.push(styles.tableCellNumeric);
-                    }
+                    <View style={styles.closingSection}>
+                      {resolvedDocumentType === "invoice" ? (
+                        <Text style={styles.closingLine}>
+                          {`Bitte überweisen Sie den Gesamtbetrag ${buildInvoicePaymentDueSentence(resolvedPaymentDueDays)} unter Angabe der Rechnungs-Nr. ${quoteNumber}.`}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.closingLine}>Mit freundlichen Grüßen</Text>
+                      <Text style={styles.closingSignature}>{closingSignatureName}</Text>
+                    </View>
+                  </>
+                ) : null}
 
-                    return (
-                      <Text key={`row-${rowIndex}-${column.id}`} style={rowCellStyle}>
-                        {cellValueForColumn(column.id, row.item)}
-                      </Text>
-                    );
-                  })}
-                </View>
-              );
-            })}
-
-            <View style={styles.totalsBox}>
-              <View style={styles.totalsRow}>
-                <Text style={styles.totalsLabel}>Zwischensumme</Text>
-                <Text style={styles.totalsValue}>{formatMoney(subtotal)} EUR</Text>
-              </View>
-              <View style={styles.totalsRow}>
-                <Text style={styles.totalsLabel}>{`MwSt. (${vatRate.toFixed(vatRate % 1 === 0 ? 0 : 1)}%)`}</Text>
-                <Text style={styles.totalsValue}>{formatMoney(vatAmount)} EUR</Text>
-              </View>
-              <View style={styles.totalsDivider} />
-              <View style={[styles.totalsRow, styles.totalsRowLast]}>
-                <Text style={styles.totalsGrandLabel}>Gesamtbetrag</Text>
-                <Text style={styles.totalsGrandValue}>{formatMoney(totalAmount)} EUR</Text>
-              </View>
-            </View>
-            <Text style={styles.validityText}>{`Dieses Angebot ist gültig bis: ${validUntilDate}`}</Text>
-          </View>
-
-          <View style={styles.notePanel}>
-            <Text style={styles.panelHeader}>Hinweis / Bedingungen</Text>
-            {termsText ? <Text style={styles.noteText}>{termsText}</Text> : null}
-            <Text style={styles.noteSubHeader}>Anschreiben</Text>
-            <Text style={styles.noteText}>{offer.intro}</Text>
-            <Text style={styles.noteText}>{offer.closing}</Text>
-          </View>
-
-          <Text style={styles.footerHint}>Erstellt mit Visioro • Angebote für Handwerker</Text>
-        </View>
-      </Page>
+            <Text style={styles.pageFooter}>{`Seite ${chunkIndex + 1}/${pageCount}`}</Text>
+          </Page>
+        );
+      })}
     </Document>
   );
 }

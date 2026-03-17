@@ -7,7 +7,10 @@ export async function GET() {
     const settings = await readSettings();
     return NextResponse.json({ settings });
   } catch {
-    return NextResponse.json({ error: "Einstellungen konnten nicht geladen werden." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Einstellungen konnten nicht geladen werden." },
+      { status: 500 },
+    );
   }
 }
 
@@ -28,7 +31,14 @@ export async function POST(request: Request) {
       logoDataUrl: body.logoDataUrl?.trim() ?? "",
       vatRate: Number(body.vatRate),
       offerValidityDays: Number(body.offerValidityDays),
-      offerTermsText: body.offerTermsText?.trim() ?? ""
+      invoicePaymentDueDays: Number(body.invoicePaymentDueDays),
+      offerTermsText: body.offerTermsText?.trim() ?? "",
+      lastOfferNumber: body.lastOfferNumber?.trim() ?? "",
+      customServiceTypes: Array.isArray(body.customServiceTypes)
+        ? body.customServiceTypes
+            .map((item) => String(item).trim())
+            .filter(Boolean)
+        : [],
     };
 
     if (Array.isArray(body.pdfTableColumns)) {
@@ -42,6 +52,9 @@ export async function POST(request: Request) {
     const settings = await writeSettings(sanitized);
     return NextResponse.json({ settings });
   } catch {
-    return NextResponse.json({ error: "Einstellungen konnten nicht gespeichert werden." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Einstellungen konnten nicht gespeichert werden." },
+      { status: 500 },
+    );
   }
 }

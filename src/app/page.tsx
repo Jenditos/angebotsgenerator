@@ -1,9 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getSeedServices, hasServiceLabel, normalizeSearchValue, searchServices } from "@/lib/service-catalog";
-import { OfferPositionInput, ServiceCatalogItem } from "@/types/offer";
+import {
+  FormEvent,
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  getSeedServices,
+  hasServiceLabel,
+  normalizeSearchValue,
+  searchServices,
+} from "@/lib/service-catalog";
+import {
+  CustomerDraftGroup,
+  DocumentType,
+  OfferPositionInput,
+  ServiceCatalogItem,
+  StoredCustomerRecord,
+} from "@/types/offer";
 
 type OfferText = {
   subject: string;
@@ -18,6 +36,20 @@ type ApiResponse = {
   pdfBase64: string;
   emailStatus: "not_requested" | "sent" | "not_configured" | "failed";
   emailInfo: string;
+  customerNumber?: string;
+  documentType?: DocumentType;
+  documentNumber?: string;
+  offerNumber?: string;
+  invoiceNumber?: string;
+};
+
+type EmailDraftApiResponse =
+  | { ok: true; info: string; composeUrl: string; draftId?: string }
+  | { ok: false; reason: "not_connected" | "failed"; info: string };
+
+type CustomersApiResponse = {
+  customers?: StoredCustomerRecord[];
+  error?: string;
 };
 
 type ServicesApiResponse = {
@@ -26,6 +58,7 @@ type ServicesApiResponse = {
 };
 
 type ParsedVoiceFields = {
+  positions?: ParsedVoicePosition[];
   customerType?: "person" | "company";
   companyName?: string;
   salutation?: "herr" | "frau";
@@ -41,9 +74,19 @@ type ParsedVoiceFields = {
   materialCost?: number;
 };
 
+type ParsedVoicePosition = {
+  group?: string;
+  description?: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice?: number;
+};
+
 type VoiceParseResponse = {
   fields: ParsedVoiceFields;
   missingFields: string[];
+  missingFieldKeys?: string[];
+  shouldAutofillServiceDescription?: boolean;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error" | null;
 };
@@ -98,23 +141,43 @@ type OfferForm = {
   hours: string;
   hourlyRate: string;
   materialCost: string;
+  invoiceDate: string;
+  serviceDate: string;
+  paymentDueDays: string;
 };
 
-const initialForm: OfferForm = {
-  customerType: "person",
-  companyName: "",
-  salutation: "herr",
-  firstName: "",
-  lastName: "",
-  street: "",
-  postalCode: "",
-  city: "",
-  customerEmail: "",
-  serviceDescription: "",
-  hours: "",
-  hourlyRate: "",
-  materialCost: ""
-};
+type DocumentMode = DocumentType;
+
+function todayDateInputValue(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function createInitialForm(): OfferForm {
+  return {
+    customerType: "person",
+    companyName: "",
+    salutation: "herr",
+    firstName: "",
+    lastName: "",
+    street: "",
+    postalCode: "",
+    city: "",
+    customerEmail: "",
+    serviceDescription: "",
+    hours: "",
+    hourlyRate: "",
+    materialCost: "",
+    invoiceDate: todayDateInputValue(),
+    serviceDate: "",
+    paymentDueDays: "14",
+  };
+}
+
+const initialForm: OfferForm = createInitialForm();
 
 type StepProgress = {
   customerDataStarted: boolean;
@@ -125,7 +188,75 @@ type StepProgress = {
 const initialStepProgress: StepProgress = {
   customerDataStarted: false,
   pdfGenerationStarted: false,
-  mailDraftStarted: false
+  mailDraftStarted: false,
+};
+
+type ModeSnapshot = {
+  form: OfferForm;
+  selectedServices: SelectedServiceEntry[];
+  voiceTranscript: string;
+  voiceInfo: string;
+  voiceError: string;
+  voiceMissingFields: string[];
+  stepProgress: StepProgress;
+  error: string;
+  postActionInfo: string;
+  serviceSearch: string;
+  isServiceSearchOpen: boolean;
+  serviceInfo: string;
+  serviceError: string;
+  addressSuggestions: AddressSuggestion[];
+};
+
+function cloneSelectedServices(
+  services: SelectedServiceEntry[],
+): SelectedServiceEntry[] {
+  return services.map((service) => ({
+    ...service,
+    subitems: service.subitems.map((subitem) => ({ ...subitem })),
+  }));
+}
+
+function cloneStepProgress(progress: StepProgress): StepProgress {
+  return {
+    customerDataStarted: progress.customerDataStarted,
+    pdfGenerationStarted: progress.pdfGenerationStarted,
+    mailDraftStarted: progress.mailDraftStarted,
+  };
+}
+
+function createInitialModeSnapshot(): ModeSnapshot {
+  return {
+    form: createInitialForm(),
+    selectedServices: [],
+    voiceTranscript: "",
+    voiceInfo: "",
+    voiceError: "",
+    voiceMissingFields: [],
+    stepProgress: { ...initialStepProgress },
+    error: "",
+    postActionInfo: "",
+    serviceSearch: "",
+    isServiceSearchOpen: false,
+    serviceInfo: "",
+    serviceError: "",
+    addressSuggestions: [],
+  };
+}
+
+const VOICE_FIELD_LABELS: Record<string, string> = {
+  companyName: "Firma",
+  salutation: "Anrede",
+  firstName: "Vorname",
+  lastName: "Nachname",
+  street: "Straße",
+  postalCode: "PLZ",
+  city: "Ort",
+  customerEmail: "Kunden-E-Mail",
+  serviceDescription: "Leistung",
+  hours: "Stunden",
+  hourlyRate: "Stundensatz",
+  materialCost: "Materialkosten",
 };
 
 const UNIT_OPTIONS = [
@@ -136,40 +267,107 @@ const UNIT_OPTIONS = [
   "kg",
   "t",
   "l",
-  "Stunde",
+  "Std",
   "Tag",
-  "Pauschal"
+  "Pauschal",
 ];
 
-const MAIN_SERVICE_SUBITEM_SUGGESTIONS: Array<{ match: string; suggestions: string[] }> = [
-  { match: "betonarbeiten", suggestions: ["Beton liefern", "Schalung herstellen", "Bewehrung einbauen", "Abdichtung", "Entsorgung"] },
-  { match: "fliesen", suggestions: ["Untergrund vorbereiten", "Fliesen verlegen", "Fugen ausführen", "Sockelleisten setzen", "Material entsorgen"] },
-  { match: "elektro", suggestions: ["Kabel verlegen", "Steckdosen montieren", "Schalter montieren", "Leuchten anschließen", "Prüfung / Messung"] },
-  { match: "sanitär", suggestions: ["Leitungen verlegen", "Armaturen montieren", "Waschbecken montieren", "Dichtheitsprüfung", "Funktionsprüfung"] },
-  { match: "trockenbau", suggestions: ["Unterkonstruktion montieren", "Beplankung anbringen", "Dämmung einbringen", "Spachteln", "Schleifen"] },
-  { match: "maler", suggestions: ["Untergrund abdecken", "Spachtelarbeiten", "Grundierung", "Anstrich", "Nachreinigung"] }
-];
+const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
+
+function capitalizeEntryStart(value: string): string {
+  if (!value) {
+    return "";
+  }
+
+  const matchIndex = value.search(/[A-Za-zÄÖÜäöüß]/);
+  if (matchIndex < 0) {
+    return value;
+  }
+
+  return (
+    value.slice(0, matchIndex) +
+    value.charAt(matchIndex).toUpperCase() +
+    value.slice(matchIndex + 1)
+  );
+}
 
 function createSubitemEntry(description = ""): ServiceSubitemEntry {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    description,
+    description: capitalizeEntryStart(description),
     quantity: "",
     unit: UNIT_OPTIONS[0],
-    price: ""
+    price: "",
   };
 }
 
 function createSelectedServiceEntry(label: string): SelectedServiceEntry {
+  const normalizedLabel = capitalizeEntryStart(label);
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    label,
-    subitems: [createSubitemEntry()]
+    label: normalizedLabel,
+    subitems: [createSubitemEntry(normalizedLabel)],
   };
 }
 
 function selectedServiceToRequestValue(service: SelectedServiceEntry): string {
   return service.label.trim();
+}
+
+function selectedServicesToDraftPayload(
+  services: SelectedServiceEntry[],
+): CustomerDraftGroup[] {
+  return services.map((service) => ({
+    label: service.label.trim(),
+    subitems: service.subitems.map((subitem) => ({
+      description: subitem.description.trim(),
+      quantity: subitem.quantity.trim(),
+      unit: subitem.unit.trim(),
+      price: subitem.price.trim(),
+    })),
+  }));
+}
+
+function selectedServicesFromDraftPayload(
+  groups: CustomerDraftGroup[] | undefined,
+): SelectedServiceEntry[] {
+  if (!Array.isArray(groups) || groups.length === 0) {
+    return [];
+  }
+
+  return groups
+    .map((group) => {
+      const label = capitalizeEntryStart(group.label?.trim() || "");
+      const subitems = Array.isArray(group.subitems) ? group.subitems : [];
+      const normalizedSubitems = subitems
+        .map((subitem) => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          description: capitalizeEntryStart(subitem.description?.trim() || ""),
+          quantity: sanitizeQuantityInput(subitem.quantity?.trim() || ""),
+          unit: subitem.unit?.trim() || UNIT_OPTIONS[0],
+          price: sanitizePriceInput(subitem.price?.trim() || ""),
+        }))
+        .filter(
+          (subitem) =>
+            Boolean(subitem.description) ||
+            Boolean(subitem.quantity) ||
+            Boolean(subitem.price),
+        );
+
+      if (!label && normalizedSubitems.length === 0) {
+        return null;
+      }
+
+      return {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        label: label || DEFAULT_MANUAL_GROUP_LABEL,
+        subitems:
+          normalizedSubitems.length > 0
+            ? normalizedSubitems
+            : [createSubitemEntry()],
+      };
+    })
+    .filter((entry): entry is SelectedServiceEntry => Boolean(entry));
 }
 
 function getSubitemUnit(subitem: ServiceSubitemEntry): string {
@@ -186,11 +384,66 @@ function parseLocaleNumber(rawValue: string): number {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+function sanitizeQuantityInput(rawValue: string): string {
+  const normalized = rawValue.replace(/\s+/g, "").replace(/[^\d.,]/g, "");
+  let hasSeparator = false;
+  let sanitized = "";
+
+  for (const character of normalized) {
+    if (/\d/.test(character)) {
+      sanitized += character;
+      continue;
+    }
+
+    if (!hasSeparator && (character === "," || character === ".")) {
+      hasSeparator = true;
+      sanitized += character;
+    }
+  }
+
+  return sanitized;
+}
+
+function sanitizePriceInput(rawValue: string): string {
+  return sanitizeQuantityInput(rawValue);
+}
+
 function formatEuroValue(value: number): string {
   return new Intl.NumberFormat("de-DE", {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(value);
+}
+
+function hasVoiceFieldValue(key: string, form: OfferForm): boolean {
+  switch (key) {
+    case "companyName":
+      return form.companyName.trim().length > 0;
+    case "salutation":
+      return form.salutation === "herr" || form.salutation === "frau";
+    case "firstName":
+      return form.firstName.trim().length > 0;
+    case "lastName":
+      return form.lastName.trim().length > 0;
+    case "street":
+      return form.street.trim().length > 0;
+    case "postalCode":
+      return form.postalCode.trim().length > 0;
+    case "city":
+      return form.city.trim().length > 0;
+    case "customerEmail":
+      return form.customerEmail.trim().length > 0;
+    case "serviceDescription":
+      return form.serviceDescription.trim().length > 0;
+    case "hours":
+      return form.hours.trim().length > 0;
+    case "hourlyRate":
+      return form.hourlyRate.trim().length > 0;
+    case "materialCost":
+      return form.materialCost.trim().length > 0;
+    default:
+      return false;
+  }
 }
 
 function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
@@ -203,39 +456,9 @@ function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
   return quantity * price;
 }
 
-function subitemToPreviewText(subitem: ServiceSubitemEntry): string {
-  const description = subitem.description.trim();
-  if (!description) {
-    return "";
-  }
-
-  const quantity = parseLocaleNumber(subitem.quantity);
-  const unit = getSubitemUnit(subitem);
-  const price = parseLocaleNumber(subitem.price);
-  const total = Number.isFinite(quantity) && Number.isFinite(price) ? quantity * price : NaN;
-
-  if (Number.isFinite(quantity) && Number.isFinite(price)) {
-    return `${description} - ${quantity} ${unit} - ${formatEuroValue(price)} EUR - ${formatEuroValue(total)} EUR`;
-  }
-
-  if (Number.isFinite(quantity)) {
-    return `${description} - ${quantity} ${unit}`;
-  }
-
-  return description;
-}
-
-function getSubitemSuggestionsForService(serviceLabel: string): string[] {
-  const normalizedLabel = normalizeSearchValue(serviceLabel);
-  if (!normalizedLabel) {
-    return [];
-  }
-
-  const matched = MAIN_SERVICE_SUBITEM_SUGGESTIONS.find((entry) => normalizedLabel.includes(entry.match));
-  return matched?.suggestions ?? [];
-}
-
-function normalizeAddressSuggestion(item: NominatimItem): AddressSuggestion | null {
+function normalizeAddressSuggestion(
+  item: NominatimItem,
+): AddressSuggestion | null {
   const road = item.address?.road?.trim() ?? "";
   const houseNumber = item.address?.house_number?.trim() ?? "";
   const postalCode = item.address?.postcode?.trim() ?? "";
@@ -253,73 +476,77 @@ function normalizeAddressSuggestion(item: NominatimItem): AddressSuggestion | nu
   }
 
   const primary = street || item.display_name?.trim() || "Adresse auswählen";
-  const secondary = [postalCode, city].filter(Boolean).join(" ").trim() || item.display_name?.trim() || "";
+  const secondary =
+    [postalCode, city].filter(Boolean).join(" ").trim() ||
+    item.display_name?.trim() ||
+    "";
 
   return {
     street,
     postalCode,
     city,
     primary,
-    secondary
+    secondary,
   };
 }
 
 export default function HomePage() {
+  const [documentMode, setDocumentMode] = useState<DocumentMode>("offer");
+  const [modeAnimationKey, setModeAnimationKey] = useState(0);
   const [form, setForm] = useState<OfferForm>(initialForm);
-  const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState("");
   const [postActionInfo, setPostActionInfo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    AddressSuggestion[]
+  >([]);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeechPaused, setIsSpeechPaused] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
-  const [isHeroExpanded, setIsHeroExpanded] = useState(false);
-  const [stepProgress, setStepProgress] = useState<StepProgress>(initialStepProgress);
-  const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>(getSeedServices());
+  const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
+  const [stepProgress, setStepProgress] =
+    useState<StepProgress>(initialStepProgress);
+  const [serviceCatalog, setServiceCatalog] =
+    useState<ServiceCatalogItem[]>(getSeedServices());
   const [serviceSearch, setServiceSearch] = useState("");
-  const [selectedServices, setSelectedServices] = useState<SelectedServiceEntry[]>([]);
+  const [selectedServices, setSelectedServices] = useState<
+    SelectedServiceEntry[]
+  >([]);
   const [isServiceSearchOpen, setIsServiceSearchOpen] = useState(false);
   const [isServiceCatalogLoading, setIsServiceCatalogLoading] = useState(false);
   const [isAddingCustomService, setIsAddingCustomService] = useState(false);
   const [serviceInfo, setServiceInfo] = useState("");
   const [serviceError, setServiceError] = useState("");
+  const [storedCustomers, setStoredCustomers] = useState<StoredCustomerRecord[]>(
+    [],
+  );
+  const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
+  const [isCustomersLoading, setIsCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customersError, setCustomersError] = useState("");
   const recognitionRef = useRef<any>(null);
+  const modeSnapshotsRef = useRef<Record<DocumentMode, ModeSnapshot>>({
+    offer: createInitialModeSnapshot(),
+    invoice: createInitialModeSnapshot(),
+  });
+  const shouldAutoApplyVoiceRef = useRef(false);
+  const pauseRequestedRef = useRef(false);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
 
-  const personDisplayName = `${form.firstName} ${form.lastName}`.trim();
-  const customerDisplayName =
-    form.customerType === "company"
-      ? form.companyName.trim() || "Firmenname"
-      : personDisplayName || "Vorname Nachname";
-  const attentionLine =
-    form.customerType === "company" && personDisplayName
-      ? `z. Hd. ${form.salutation === "frau" ? "Frau" : "Herr"} ${personDisplayName}`
-      : "";
-  const hoursNumber = Number(form.hours || 0);
-  const hourlyRateNumber = Number(form.hourlyRate || 0);
-  const subitemsTotal = useMemo(
-    () =>
-      selectedServices.reduce((serviceSum, service) => {
-        const subitemsSum = service.subitems.reduce((sum, subitem) => sum + calculateSubitemTotal(subitem), 0);
-        return serviceSum + subitemsSum;
-      }, 0),
-    [selectedServices]
-  );
-  const laborTotal = hoursNumber * hourlyRateNumber;
-  const liveTotal = subitemsTotal > 0 ? subitemsTotal : laborTotal;
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
     () => searchServices(serviceCatalog, serviceSearchValue, 14),
-    [serviceCatalog, serviceSearchValue]
+    [serviceCatalog, serviceSearchValue],
   );
   const canCreateCustomService =
-    serviceSearchValue.length >= 2 && !hasServiceLabel(serviceCatalog, serviceSearchValue);
+    serviceSearchValue.length >= 2 &&
+    !hasServiceLabel(serviceCatalog, serviceSearchValue);
   const groupedServiceSuggestions = useMemo(() => {
     const grouped = new Map<string, ServiceCatalogItem[]>();
 
@@ -331,37 +558,111 @@ export default function HomePage() {
 
     return Array.from(grouped.entries());
   }, [serviceSuggestions]);
-  const serviceSummaryText = useMemo(() => {
-    const selectedText = selectedServices
-      .map((service) => {
-        const subitemsText = service.subitems
-          .map(subitemToPreviewText)
-          .filter(Boolean)
-          .join(", ");
-
-        if (subitemsText) {
-          return `${service.label}: ${subitemsText}`;
-        }
-
-        return selectedServiceToRequestValue(service);
-      })
-      .filter(Boolean)
-      .join(" • ");
-    const detailText = form.serviceDescription.trim();
-
-    if (selectedText && detailText) {
-      return `${selectedText} - ${detailText}`;
+  const filteredStoredCustomers = useMemo(() => {
+    const normalizedQuery = normalizeSearchValue(customerSearch);
+    if (!normalizedQuery) {
+      return storedCustomers;
     }
 
-    return selectedText || detailText || "";
-  }, [selectedServices, form.serviceDescription]);
+    return storedCustomers.filter((customer) => {
+      const searchableParts = [
+        customer.customerName,
+        customer.companyName,
+        customer.firstName,
+        customer.lastName,
+        customer.customerAddress,
+        customer.street,
+        customer.postalCode,
+        customer.city,
+        customer.customerEmail,
+        customer.customerNumber,
+      ];
+
+      return searchableParts.some((part) =>
+        normalizeSearchValue(part).includes(normalizedQuery),
+      );
+    });
+  }, [customerSearch, storedCustomers]);
+  const isInvoiceMode = documentMode === "invoice";
+  const modeTitle = isInvoiceMode
+    ? "Rechnungen für Handwerker"
+    : "Angebote für Handwerker";
+  const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
+
+  function applyModeSnapshot(snapshot: ModeSnapshot) {
+    setForm({ ...snapshot.form });
+    setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
+    setVoiceTranscript(snapshot.voiceTranscript);
+    setVoiceInfo(snapshot.voiceInfo);
+    setVoiceError(snapshot.voiceError);
+    setVoiceMissingFields([...snapshot.voiceMissingFields]);
+    setStepProgress(cloneStepProgress(snapshot.stepProgress));
+    setError(snapshot.error);
+    setPostActionInfo(snapshot.postActionInfo);
+    setServiceSearch(snapshot.serviceSearch);
+    setIsServiceSearchOpen(snapshot.isServiceSearchOpen);
+    setServiceInfo(snapshot.serviceInfo);
+    setServiceError(snapshot.serviceError);
+    setAddressSuggestions(
+      snapshot.addressSuggestions.map((suggestion) => ({ ...suggestion })),
+    );
+  }
+
+  function storeCurrentModeSnapshot(mode: DocumentMode) {
+    modeSnapshotsRef.current[mode] = {
+      form: { ...form },
+      selectedServices: cloneSelectedServices(selectedServices),
+      voiceTranscript,
+      voiceInfo,
+      voiceError,
+      voiceMissingFields: [...voiceMissingFields],
+      stepProgress: cloneStepProgress(stepProgress),
+      error,
+      postActionInfo,
+      serviceSearch,
+      isServiceSearchOpen,
+      serviceInfo,
+      serviceError,
+      addressSuggestions: addressSuggestions.map((suggestion) => ({ ...suggestion })),
+    };
+  }
+
+  function switchDocumentMode(nextMode: DocumentMode) {
+    if (nextMode === documentMode) {
+      return;
+    }
+
+    storeCurrentModeSnapshot(documentMode);
+    const nextSnapshot = modeSnapshotsRef.current[nextMode];
+    if (nextSnapshot) {
+      applyModeSnapshot(nextSnapshot);
+    } else {
+      applyModeSnapshot(createInitialModeSnapshot());
+    }
+
+    if (recognitionRef.current) {
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsListening(false);
+    }
+    setIsSpeechPaused(false);
+
+    setDocumentMode(nextMode);
+    setModeAnimationKey((value) => value + 1);
+  }
 
   useEffect(() => {
-    const speechCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechCtor =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     setSpeechSupported(Boolean(speechCtor));
 
     return () => {
       if (recognitionRef.current) {
+        shouldAutoApplyVoiceRef.current = false;
+        pauseRequestedRef.current = false;
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
@@ -380,7 +681,9 @@ export default function HomePage() {
         const data = (await response.json()) as ServicesApiResponse;
         if (!response.ok) {
           if (mounted) {
-            setServiceError(data.error ?? "Leistungen konnten nicht geladen werden.");
+            setServiceError(
+              data.error ?? "Leistungen konnten nicht geladen werden.",
+            );
           }
           return;
         }
@@ -438,7 +741,8 @@ export default function HomePage() {
       form.customerEmail,
       form.serviceDescription,
       form.hours,
-      form.hourlyRate
+      form.hourlyRate,
+      form.materialCost,
     ].some((value) => value.trim().length > 0);
 
     if (formTouched || selectedServices.length > 0) {
@@ -454,7 +758,9 @@ export default function HomePage() {
       return;
     }
 
-    const searchText = [street, form.postalCode.trim(), form.city.trim()].filter(Boolean).join(" ");
+    const searchText = [street, form.postalCode.trim(), form.city.trim()]
+      .filter(Boolean)
+      .join(" ");
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setIsAddressLoading(true);
@@ -465,15 +771,18 @@ export default function HomePage() {
           addressdetails: "1",
           limit: "5",
           countrycodes: "de,at,ch",
-          q: searchText
+          q: searchText,
         });
 
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-          signal: controller.signal,
-          headers: {
-            "Accept-Language": "de"
-          }
-        });
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+          {
+            signal: controller.signal,
+            headers: {
+              "Accept-Language": "de",
+            },
+          },
+        );
 
         if (!response.ok) {
           setAddressSuggestions([]);
@@ -491,8 +800,8 @@ export default function HomePage() {
                   entry.street === item.street &&
                   entry.postalCode === item.postalCode &&
                   entry.city === item.city &&
-                  entry.primary === item.primary
-              ) === index
+                  entry.primary === item.primary,
+              ) === index,
           );
 
         setAddressSuggestions(normalized);
@@ -514,11 +823,160 @@ export default function HomePage() {
   function applyAddressSuggestion(suggestion: AddressSuggestion) {
     setForm((prev) => ({
       ...prev,
-      street: suggestion.street || prev.street,
+      street: suggestion.street
+        ? capitalizeEntryStart(suggestion.street)
+        : prev.street,
       postalCode: suggestion.postalCode || prev.postalCode,
-      city: suggestion.city || prev.city
+      city: suggestion.city ? capitalizeEntryStart(suggestion.city) : prev.city,
     }));
     setAddressSuggestions([]);
+  }
+
+  async function loadStoredCustomers() {
+    setCustomersError("");
+    setIsCustomersLoading(true);
+
+    try {
+      const response = await fetch("/api/customers");
+      const data = (await response.json()) as CustomersApiResponse;
+      if (!response.ok) {
+        setCustomersError(
+          data.error ?? "Gespeicherte Kunden konnten nicht geladen werden.",
+        );
+        return;
+      }
+
+      setStoredCustomers(Array.isArray(data.customers) ? data.customers : []);
+    } catch {
+      setCustomersError("Gespeicherte Kunden konnten nicht geladen werden.");
+    } finally {
+      setIsCustomersLoading(false);
+    }
+  }
+
+  function toggleStoredCustomers() {
+    const nextOpen = !isCustomerPickerOpen;
+    setIsCustomerPickerOpen(nextOpen);
+    setCustomersError("");
+    if (!nextOpen) {
+      setCustomerSearch("");
+    }
+
+    if (nextOpen && !isCustomersLoading && storedCustomers.length === 0) {
+      void loadStoredCustomers();
+    }
+  }
+
+  function buildCustomerNameForStorage(currentForm: OfferForm): string {
+    const personName = [currentForm.firstName.trim(), currentForm.lastName.trim()]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    if (currentForm.customerType === "company") {
+      const company = currentForm.companyName.trim();
+      if (!company) {
+        return personName;
+      }
+
+      if (!personName) {
+        return company;
+      }
+
+      const salutationLabel = currentForm.salutation === "frau" ? "Frau" : "Herr";
+      return `${company} (z. Hd. ${salutationLabel} ${personName})`;
+    }
+
+    return personName;
+  }
+
+  function updateStoredCustomersRealtime(payload: ApiResponse) {
+    const customerNumber = payload.customerNumber?.trim();
+    if (!customerNumber) {
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const customerName = buildCustomerNameForStorage(form);
+    const customerAddress = `${form.street.trim()}, ${form.postalCode.trim()} ${form.city.trim()}`;
+
+    const optimisticCustomer: StoredCustomerRecord = {
+      customerNumber,
+      customerType: form.customerType,
+      companyName: form.companyName.trim(),
+      salutation: form.salutation,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      street: form.street.trim(),
+      postalCode: form.postalCode.trim(),
+      city: form.city.trim(),
+      customerEmail: form.customerEmail.trim(),
+      customerName,
+      customerAddress,
+      draftState: {
+        serviceDescription: form.serviceDescription.trim(),
+        hours: form.hours.trim(),
+        hourlyRate: form.hourlyRate.trim(),
+        materialCost: form.materialCost.trim(),
+        invoiceDate: form.invoiceDate.trim(),
+        serviceDate: form.serviceDate.trim(),
+        paymentDueDays: form.paymentDueDays.trim(),
+        positions: selectedServicesToDraftPayload(selectedServices),
+      },
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    setStoredCustomers((prev) => {
+      const existingIndex = prev.findIndex(
+        (customer) => customer.customerNumber === customerNumber,
+      );
+      if (existingIndex < 0) {
+        return [optimisticCustomer, ...prev];
+      }
+
+      const mergedCreatedAt = prev[existingIndex].createdAt || nowIso;
+      const next = [...prev];
+      next[existingIndex] = {
+        ...optimisticCustomer,
+        createdAt: mergedCreatedAt,
+      };
+      return next.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    });
+  }
+
+  function applyStoredCustomer(customer: StoredCustomerRecord) {
+    const draftState = customer.draftState;
+    const draftSelectedServices = selectedServicesFromDraftPayload(
+      draftState?.positions,
+    );
+
+    setForm((prev) => ({
+      ...prev,
+      customerType: customer.customerType,
+      companyName: capitalizeEntryStart(customer.companyName),
+      salutation: customer.salutation,
+      firstName: capitalizeEntryStart(customer.firstName),
+      lastName: capitalizeEntryStart(customer.lastName),
+      street: capitalizeEntryStart(customer.street),
+      postalCode: customer.postalCode,
+      city: capitalizeEntryStart(customer.city),
+      customerEmail: customer.customerEmail,
+      serviceDescription: draftState?.serviceDescription
+        ? capitalizeEntryStart(draftState.serviceDescription)
+        : "",
+      hours: draftState?.hours ?? "",
+      hourlyRate: draftState?.hourlyRate ?? "",
+      materialCost: draftState?.materialCost ?? "",
+      invoiceDate: draftState?.invoiceDate || todayDateInputValue(),
+      serviceDate: "",
+      paymentDueDays: draftState?.paymentDueDays || "14",
+    }));
+    setSelectedServices(draftSelectedServices);
+    setAddressSuggestions([]);
+    setIsCustomerPickerOpen(false);
+    setCustomerSearch("");
+    setCustomersError("");
   }
 
   function addSelectedService(serviceLabel: string) {
@@ -526,33 +984,62 @@ export default function HomePage() {
     if (!trimmed) {
       return;
     }
+    const normalizedLabel = capitalizeEntryStart(trimmed);
 
     setSelectedServices((prev) => {
-      const key = normalizeSearchValue(trimmed);
-      if (prev.some((service) => normalizeSearchValue(service.label) === key)) {
-        return prev;
+      const key = normalizeSearchValue(normalizedLabel);
+      const existingService = prev.find(
+        (service) => normalizeSearchValue(service.label) === key,
+      );
+
+      if (existingService) {
+        return prev.map((service) =>
+          service.id === existingService.id
+            ? {
+                ...service,
+                subitems: [
+                  ...service.subitems,
+                  createSubitemEntry(normalizedLabel),
+                ],
+              }
+            : service,
+        );
       }
 
-      return [...prev, createSelectedServiceEntry(trimmed)];
+      return [...prev, createSelectedServiceEntry(normalizedLabel)];
     });
     setForm((prev) => ({
       ...prev,
-      serviceDescription: prev.serviceDescription.trim() ? prev.serviceDescription : trimmed
+      serviceDescription: prev.serviceDescription.trim()
+        ? prev.serviceDescription
+        : normalizedLabel,
     }));
     setServiceSearch("");
     setIsServiceSearchOpen(false);
     setServiceError("");
   }
 
-  function removeSelectedService(serviceId: string) {
-    setSelectedServices((prev) => prev.filter((service) => service.id !== serviceId));
+  function addEmptyPositionRow() {
+    setSelectedServices((prev) => {
+      if (prev.length === 0) {
+        return [createSelectedServiceEntry(DEFAULT_MANUAL_GROUP_LABEL)];
+      }
+
+      const targetService = prev[prev.length - 1];
+      return prev.map((service) =>
+        service.id === targetService.id
+          ? {
+              ...service,
+              subitems: [...service.subitems, createSubitemEntry()],
+            }
+          : service,
+      );
+    });
   }
 
-  function addServiceSubitem(serviceId: string, description = "") {
+  function removeSelectedService(serviceId: string) {
     setSelectedServices((prev) =>
-      prev.map((service) =>
-        service.id === serviceId ? { ...service, subitems: [...service.subitems, createSubitemEntry(description)] } : service
-      )
+      prev.filter((service) => service.id !== serviceId),
     );
   }
 
@@ -560,7 +1047,7 @@ export default function HomePage() {
     serviceId: string,
     subitemId: string,
     field: "description" | "quantity" | "unit" | "price",
-    value: string
+    value: string,
   ) {
     setSelectedServices((prev) =>
       prev.map((service) => {
@@ -578,31 +1065,57 @@ export default function HomePage() {
             if (field === "unit") {
               return {
                 ...subitem,
-                unit: value
+                unit: value,
               };
             }
 
             if (field === "description") {
               return {
                 ...subitem,
-                description: value
+                description: capitalizeEntryStart(value),
               };
             }
 
             if (field === "quantity") {
               return {
                 ...subitem,
-                quantity: value
+                quantity: value,
               };
             }
 
             return {
               ...subitem,
-              price: value
+              price: value,
             };
-          })
+          }),
         };
-      })
+      }),
+    );
+  }
+
+  function updateQuantitySubitem(
+    serviceId: string,
+    subitemId: string,
+    rawValue: string,
+  ) {
+    updateServiceSubitem(
+      serviceId,
+      subitemId,
+      "quantity",
+      sanitizeQuantityInput(rawValue),
+    );
+  }
+
+  function updatePriceSubitem(
+    serviceId: string,
+    subitemId: string,
+    rawValue: string,
+  ) {
+    updateServiceSubitem(
+      serviceId,
+      subitemId,
+      "price",
+      sanitizePriceInput(rawValue),
     );
   }
 
@@ -613,48 +1126,15 @@ export default function HomePage() {
           return service;
         }
 
-        const nextSubitems = service.subitems.filter((subitem) => subitem.id !== subitemId);
-        return {
-          ...service,
-          subitems: nextSubitems.length > 0 ? nextSubitems : [createSubitemEntry()]
-        };
-      })
-    );
-  }
-
-  function addSuggestedSubitem(serviceId: string, suggestion: string) {
-    const normalizedSuggestion = normalizeSearchValue(suggestion);
-
-    setSelectedServices((prev) =>
-      prev.map((service) => {
-        if (service.id !== serviceId) {
-          return service;
-        }
-
-        const hasSuggestion = service.subitems.some(
-          (subitem) => normalizeSearchValue(subitem.description) === normalizedSuggestion
+        const nextSubitems = service.subitems.filter(
+          (subitem) => subitem.id !== subitemId,
         );
-        if (hasSuggestion) {
-          return service;
-        }
-
-        if (service.subitems.length === 1) {
-          const first = service.subitems[0];
-          const firstIsEmpty = !first.description.trim() && !first.quantity.trim() && !first.price.trim();
-
-          if (firstIsEmpty) {
-            return {
-              ...service,
-              subitems: [{ ...first, description: suggestion }]
-            };
-          }
-        }
-
         return {
           ...service,
-          subitems: [...service.subitems, createSubitemEntry(suggestion)]
+          subitems:
+            nextSubitems.length > 0 ? nextSubitems : [createSubitemEntry()],
         };
-      })
+      }),
     );
   }
 
@@ -673,14 +1153,16 @@ export default function HomePage() {
       const response = await fetch("/api/services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label })
+        body: JSON.stringify({ label }),
       });
       const data = (await response.json()) as ServicesApiResponse & {
         customService?: { label?: string };
       };
 
       if (!response.ok) {
-        setServiceError(data.error ?? "Eigene Leistung konnte nicht gespeichert werden.");
+        setServiceError(
+          data.error ?? "Eigene Leistung konnte nicht gespeichert werden.",
+        );
         return;
       }
 
@@ -702,14 +1184,26 @@ export default function HomePage() {
       return;
     }
 
-    const speechCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechCtor =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!speechCtor) {
-      setVoiceError("Spracherkennung wird auf diesem Gerät/Browser nicht unterstützt.");
+      setVoiceError(
+        "Spracherkennung wird auf diesem Gerät/Browser nicht unterstützt.",
+      );
       return;
     }
 
     setVoiceError("");
-    setVoiceInfo("Sprich jetzt. Du kannst frei alle Angebotsdaten diktieren.");
+    setVoiceMissingFields([]);
+    setVoiceInfo(
+      isSpeechPaused
+        ? "Aufnahme fortgesetzt. Sprich weiter, der Text wird angehängt."
+        : "Sprich jetzt. Du kannst frei alle Angebotsdaten diktieren.",
+    );
+    setIsSpeechPaused(false);
+    shouldAutoApplyVoiceRef.current = true;
+    pauseRequestedRef.current = false;
     finalTranscriptRef.current = voiceTranscript.trim();
 
     const recognition = new speechCtor();
@@ -722,31 +1216,80 @@ export default function HomePage() {
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const text = String(event.results[i][0]?.transcript ?? "");
         if (event.results[i].isFinal) {
-          finalTranscriptRef.current = `${finalTranscriptRef.current} ${text}`.trim();
+          finalTranscriptRef.current =
+            `${finalTranscriptRef.current} ${text}`.trim();
         } else {
           interimTranscript += text;
         }
       }
-      setVoiceTranscript(`${finalTranscriptRef.current} ${interimTranscript}`.trim());
+      setVoiceTranscript(
+        `${finalTranscriptRef.current} ${interimTranscript}`.trim(),
+      );
     };
 
     recognition.onerror = (event: any) => {
       const code = String(event.error ?? "");
+      if (pauseRequestedRef.current && code === "aborted") {
+        pauseRequestedRef.current = false;
+        recognitionRef.current = null;
+        setIsListening(false);
+        setIsSpeechPaused(true);
+        setVoiceError("");
+        setVoiceInfo(
+          'Aufnahme pausiert. Mit "Fortsetzen" kannst du weiter diktieren.',
+        );
+        return;
+      }
       if (code === "not-allowed" || code === "service-not-allowed") {
-        setVoiceError("Mikrofonzugriff wurde blockiert. Bitte Zugriff im Browser erlauben.");
+        setVoiceError(
+          "Mikrofonzugriff wurde blockiert. Bitte Zugriff im Browser erlauben.",
+        );
       } else if (code === "no-speech") {
         setVoiceError("Keine Sprache erkannt. Bitte erneut sprechen.");
       } else {
-        setVoiceError("Spracherkennung fehlgeschlagen. Bitte erneut versuchen.");
+        setVoiceError(
+          "Spracherkennung fehlgeschlagen. Bitte erneut versuchen.",
+        );
       }
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
       recognitionRef.current = null;
       setIsListening(false);
+      setIsSpeechPaused(false);
     };
 
     recognition.onend = () => {
+      const finalizedTranscript = finalTranscriptRef.current.trim();
+      const shouldAutoApply = shouldAutoApplyVoiceRef.current;
+      const wasPaused = pauseRequestedRef.current;
+
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
       recognitionRef.current = null;
       setIsListening(false);
-      setVoiceInfo("Aufnahme beendet. Klicke auf 'In Felder übernehmen'.");
+      setVoiceTranscript(finalizedTranscript);
+
+      if (wasPaused) {
+        setIsSpeechPaused(true);
+        setVoiceInfo(
+          'Aufnahme pausiert. Mit "Fortsetzen" weiter diktieren oder mit "Aufnahme stoppen" abschließen.',
+        );
+        return;
+      }
+
+      if (!shouldAutoApply) {
+        return;
+      }
+
+      if (finalizedTranscript.length < 8) {
+        setVoiceInfo(
+          "Aufnahme beendet. Sprich bitte etwas länger oder ergänze den Text manuell.",
+        );
+        return;
+      }
+
+      setVoiceInfo("Aufnahme beendet. Felder werden automatisch übernommen.");
+      void parseVoiceTranscript(finalizedTranscript, true);
     };
 
     recognitionRef.current = recognition;
@@ -754,19 +1297,55 @@ export default function HomePage() {
     try {
       recognition.start();
       setIsListening(true);
+      setIsSpeechPaused(false);
     } catch {
       recognitionRef.current = null;
       setIsListening(false);
-      setVoiceError("Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen.");
+      setIsSpeechPaused(false);
+      setVoiceError(
+        "Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen.",
+      );
       setVoiceInfo("");
     }
   }
 
+  function pauseSpeechInput() {
+    if (!recognitionRef.current || !isListening) {
+      return;
+    }
+
+    pauseRequestedRef.current = true;
+    shouldAutoApplyVoiceRef.current = false;
+    recognitionRef.current.stop();
+    setVoiceInfo("Aufnahme wird pausiert ...");
+  }
+
   function stopSpeechInput() {
     if (recognitionRef.current) {
+      pauseRequestedRef.current = false;
+      setIsSpeechPaused(false);
       recognitionRef.current.stop();
       setVoiceInfo("Aufnahme wird beendet ...");
+      return;
     }
+
+    if (!isSpeechPaused) {
+      return;
+    }
+
+    const finalizedTranscript = voiceTranscript.trim();
+    finalTranscriptRef.current = finalizedTranscript;
+    setIsSpeechPaused(false);
+
+    if (finalizedTranscript.length < 8) {
+      setVoiceInfo(
+        "Aufnahme beendet. Sprich bitte etwas länger oder ergänze den Text manuell.",
+      );
+      return;
+    }
+
+    setVoiceInfo("Aufnahme beendet. Felder werden automatisch übernommen.");
+    void parseVoiceTranscript(finalizedTranscript, true);
   }
 
   function numberToInput(value: number | undefined): string | undefined {
@@ -776,7 +1355,10 @@ export default function HomePage() {
     return String(value);
   }
 
-  function sanitizeServiceDescription(value: string | undefined, transcript: string): string | undefined {
+  function sanitizeServiceDescription(
+    value: string | undefined,
+    transcript: string,
+  ): string | undefined {
     if (!value) {
       return undefined;
     }
@@ -787,7 +1369,10 @@ export default function HomePage() {
     }
 
     const normalizedValue = cleaned.toLowerCase().replace(/\s+/g, " ").trim();
-    const normalizedTranscript = transcript.toLowerCase().replace(/\s+/g, " ").trim();
+    const normalizedTranscript = transcript
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
     if (!normalizedTranscript) {
       return cleaned;
     }
@@ -804,74 +1389,237 @@ export default function HomePage() {
     return cleaned;
   }
 
-  async function applyVoiceTranscript() {
-    if (isListening) {
-      stopSpeechInput();
+  function toDecimalInputValue(value: number): string {
+    const asString = Number.isInteger(value) ? String(value) : String(value);
+    return asString.replace(".", ",");
+  }
+
+  function normalizeVoiceUnit(rawUnit: string | undefined): string {
+    const normalized = normalizeSearchValue(rawUnit ?? "");
+    if (!normalized) {
+      return UNIT_OPTIONS[0];
+    }
+    if (normalized === "stuck" || normalized === "stk") {
+      return "Stück";
+    }
+    if (normalized === "m2" || normalized === "qm") {
+      return "m²";
+    }
+    if (normalized === "m3") {
+      return "m³";
+    }
+    if (
+      normalized === "stunde" ||
+      normalized === "stunden" ||
+      normalized === "std" ||
+      normalized === "h"
+    ) {
+      return "Std";
+    }
+    if (normalized === "psch" || normalized === "pauschale") {
+      return "Pauschal";
     }
 
-    const transcript = voiceTranscript.trim();
+    const mapped = UNIT_OPTIONS.find(
+      (option) => normalizeSearchValue(option) === normalized,
+    );
+    return mapped ?? UNIT_OPTIONS[0];
+  }
+
+  function toSelectedServicesFromVoicePositions(
+    positions: ParsedVoicePosition[] | undefined,
+  ): SelectedServiceEntry[] {
+    if (!Array.isArray(positions) || positions.length === 0) {
+      return [];
+    }
+
+    const grouped = new Map<string, SelectedServiceEntry>();
+
+    for (const item of positions) {
+      const description = capitalizeEntryStart(item.description ?? "");
+      const quantity =
+        typeof item.quantity === "number" && Number.isFinite(item.quantity) && item.quantity > 0
+          ? item.quantity
+          : NaN;
+      const unitPrice =
+        typeof item.unitPrice === "number" && Number.isFinite(item.unitPrice) && item.unitPrice >= 0
+          ? item.unitPrice
+          : NaN;
+
+      if (!description || !Number.isFinite(quantity) || !Number.isFinite(unitPrice)) {
+        continue;
+      }
+
+      const groupLabel =
+        capitalizeEntryStart(item.group ?? "") || DEFAULT_MANUAL_GROUP_LABEL;
+      const existing = grouped.get(groupLabel);
+      const subitem = createSubitemEntry(description);
+      subitem.quantity = sanitizeQuantityInput(toDecimalInputValue(quantity));
+      subitem.unit = normalizeVoiceUnit(item.unit);
+      subitem.price = sanitizePriceInput(toDecimalInputValue(unitPrice));
+
+      if (existing) {
+        existing.subitems.push(subitem);
+        continue;
+      }
+
+      grouped.set(groupLabel, {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        label: groupLabel,
+        subitems: [subitem],
+      });
+    }
+
+    return Array.from(grouped.values());
+  }
+
+  async function parseVoiceTranscript(
+    transcriptInput?: string,
+    autoTriggered = false,
+  ) {
+    const transcript = (transcriptInput ?? voiceTranscript).trim();
     if (transcript.length < 8) {
-      setVoiceError("Bitte etwas länger sprechen, damit die KI genug Daten hat.");
+      if (!autoTriggered) {
+        setVoiceError(
+          "Bitte etwas länger sprechen, damit die KI genug Daten hat.",
+        );
+      }
       return;
     }
 
     setIsParsingVoice(true);
     setVoiceError("");
+    setVoiceMissingFields([]);
 
     try {
       const response = await fetch("/api/parse-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript })
+        body: JSON.stringify({ transcript }),
       });
-      const data = (await response.json()) as VoiceParseResponse & { error?: string };
+      const data = (await response.json()) as VoiceParseResponse & {
+        error?: string;
+      };
       if (!response.ok) {
-        setVoiceError(data.error ?? "Sprachdaten konnten nicht verarbeitet werden.");
+        setVoiceError(
+          data.error ?? "Sprachdaten konnten nicht verarbeitet werden.",
+        );
         return;
       }
 
       const fields = data.fields;
-      const safeServiceDescription = sanitizeServiceDescription(fields.serviceDescription, transcript);
+      const safeServiceDescription = sanitizeServiceDescription(
+        fields.serviceDescription,
+        transcript,
+      );
+      const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+        fields.positions,
+      );
+      const shouldAutofillServiceDescription =
+        data.shouldAutofillServiceDescription === true;
       const applyConservativeFallback = data.usedFallback;
-      setForm((prev) => ({
-        ...prev,
-        customerType: fields.customerType ?? prev.customerType,
-        companyName: fields.companyName ?? prev.companyName,
-        salutation: fields.salutation ?? prev.salutation,
-        firstName: applyConservativeFallback ? prev.firstName : fields.firstName ?? prev.firstName,
-        lastName: applyConservativeFallback ? prev.lastName : fields.lastName ?? prev.lastName,
-        street: fields.street ?? prev.street,
-        postalCode: fields.postalCode ?? prev.postalCode,
-        city: fields.city ?? prev.city,
-        customerEmail: fields.customerEmail ?? prev.customerEmail,
-        serviceDescription: applyConservativeFallback ? prev.serviceDescription : safeServiceDescription ?? prev.serviceDescription,
-        hours: numberToInput(fields.hours) ?? prev.hours,
-        hourlyRate: numberToInput(fields.hourlyRate) ?? prev.hourlyRate,
-        materialCost: numberToInput(fields.materialCost) ?? prev.materialCost
-      }));
+      let remainingMissingLabels: string[] = [];
+
+      setForm((prev) => {
+        const nextForm = {
+          ...prev,
+          customerType: fields.customerType ?? prev.customerType,
+          companyName: fields.companyName
+            ? capitalizeEntryStart(fields.companyName)
+            : prev.companyName,
+          salutation: fields.salutation ?? prev.salutation,
+          firstName: applyConservativeFallback
+            ? prev.firstName
+            : (fields.firstName
+              ? capitalizeEntryStart(fields.firstName)
+              : prev.firstName),
+          lastName: applyConservativeFallback
+            ? prev.lastName
+            : (fields.lastName
+              ? capitalizeEntryStart(fields.lastName)
+              : prev.lastName),
+          street: fields.street
+            ? capitalizeEntryStart(fields.street)
+            : prev.street,
+          postalCode: fields.postalCode ?? prev.postalCode,
+          city: fields.city ? capitalizeEntryStart(fields.city) : prev.city,
+          customerEmail: fields.customerEmail ?? prev.customerEmail,
+          serviceDescription: applyConservativeFallback
+            ? prev.serviceDescription
+            : shouldAutofillServiceDescription
+              ? (safeServiceDescription
+                ? capitalizeEntryStart(safeServiceDescription)
+                : prev.serviceDescription)
+              : prev.serviceDescription,
+          hours: numberToInput(fields.hours) ?? prev.hours,
+          hourlyRate: numberToInput(fields.hourlyRate) ?? prev.hourlyRate,
+          materialCost: numberToInput(fields.materialCost) ?? prev.materialCost,
+        };
+
+        remainingMissingLabels = (data.missingFieldKeys ?? [])
+          .filter((key) => {
+            if (key === "companyName") {
+              return (
+                nextForm.customerType === "company" &&
+                !hasVoiceFieldValue(key, nextForm)
+              );
+            }
+
+            if (key === "salutation" || key === "firstName" || key === "lastName") {
+              return (
+                nextForm.customerType === "person" &&
+                !hasVoiceFieldValue(key, nextForm)
+              );
+            }
+
+            return !hasVoiceFieldValue(key, nextForm);
+          })
+          .map((key) => VOICE_FIELD_LABELS[key] ?? key);
+
+        return nextForm;
+      });
+
+      if (parsedServiceEntries.length > 0) {
+        setSelectedServices(parsedServiceEntries);
+        setServiceSearch("");
+        setIsServiceSearchOpen(false);
+      }
 
       const missingText =
-        data.missingFields.length > 0
-          ? ` Bitte noch ergänzen: ${data.missingFields.join(", ")}.`
+        remainingMissingLabels.length > 0
+          ? ` Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
           : " Alle Kernfelder wurden erkannt.";
-      const modeText = data.usedFallback ? "Sprachdaten übernommen." : "Sprachtext per KI übernommen.";
-      setVoiceInfo(`${modeText}${missingText}`);
+      const modeText = data.usedFallback
+        ? data.fallbackReason === "no_api_key"
+          ? "KI nicht aktiv: OPENAI_API_KEY fehlt. Basis-Erkennung wurde verwendet."
+          : "KI-Antwort fehlgeschlagen. Basis-Erkennung wurde verwendet."
+        : "Sprachtext per KI übernommen.";
+      const actionText = autoTriggered
+        ? " Die Felder wurden automatisch ergänzt."
+        : " Die Felder wurden ergänzt.";
+      const tableText =
+        parsedServiceEntries.length > 0
+          ? " Die Positionstabelle wurde automatisch befüllt."
+          : "";
+      setVoiceInfo(`${modeText}${actionText}${tableText}${missingText}`);
       setVoiceError("");
+      setVoiceMissingFields(remainingMissingLabels);
       setAddressSuggestions([]);
     } catch {
+      setVoiceMissingFields([]);
       setVoiceError("Netzwerkfehler bei der Sprachverarbeitung.");
     } finally {
       setIsParsingVoice(false);
     }
   }
 
-  function createPdfFile(pdfBase64: string) {
+  function createPdfFile(pdfBase64: string, filename: string) {
     const binary = atob(pdfBase64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) {
       bytes[i] = binary.charCodeAt(i);
     }
-    return new File([bytes], "angebot.pdf", { type: "application/pdf" });
+    return new File([bytes], filename, { type: "application/pdf" });
   }
 
   function downloadPdfFile(file: File) {
@@ -883,12 +1631,53 @@ export default function HomePage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  async function openMailDraftWithOffer(payload: ApiResponse) {
-    const mailText = payload.mailText;
-    const file = createPdfFile(payload.pdfBase64);
-    setStepProgress((prev) => (prev.mailDraftStarted ? prev : { ...prev, mailDraftStarted: true }));
+  async function openMailDraftWithDocument(
+    payload: ApiResponse,
+    mode: DocumentMode,
+  ) {
+    setStepProgress((prev) =>
+      prev.mailDraftStarted ? prev : { ...prev, mailDraftStarted: true },
+    );
+    const resolvedDocumentNumber =
+      payload.documentNumber?.trim() ||
+      payload.offerNumber?.trim() ||
+      payload.invoiceNumber?.trim() ||
+      (mode === "invoice" ? "RECHNUNG" : "ANGEBOT");
+    const fileName = `${resolvedDocumentNumber}.pdf`;
+    const documentLabel = mode === "invoice" ? "Rechnung" : "Angebot";
 
-    if (typeof navigator !== "undefined" && "canShare" in navigator && "share" in navigator) {
+    try {
+      const draftResponse = await fetch("/api/email/create-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: form.customerEmail.trim(),
+          subject: payload.offer.subject,
+          text: payload.mailText,
+          pdfBase64: payload.pdfBase64,
+          filename: fileName,
+        }),
+      });
+
+      const draftData = (await draftResponse.json()) as EmailDraftApiResponse;
+      if (draftResponse.ok && draftData.ok) {
+        window.location.href = draftData.composeUrl;
+        return `Mail-Entwurf mit ${documentLabel}-PDF-Anhang wurde geöffnet.`;
+      }
+
+      if (!draftData.ok && draftData.reason !== "not_connected") {
+        return draftData.info;
+      }
+    } catch {
+      // Wenn Draft-Flow fehlschlägt, wird auf Share/Download zurückgefallen.
+    }
+
+    const file = createPdfFile(payload.pdfBase64, fileName);
+    if (
+      typeof navigator !== "undefined" &&
+      "canShare" in navigator &&
+      "share" in navigator
+    ) {
       const nav = navigator as Navigator & {
         canShare?: (data?: ShareData) => boolean;
       };
@@ -896,27 +1685,24 @@ export default function HomePage() {
         try {
           await navigator.share({
             title: payload.offer.subject,
-            text: mailText,
-            files: [file]
+            text: payload.mailText,
+            files: [file],
           });
           return "Mail-Entwurf über den Teilen-Dialog geöffnet.";
         } catch {
-          // Ignore and fallback to mailto + download.
+          // Ignorieren und auf Download zurückfallen.
         }
       }
     }
 
-    const mailtoUrl =
-      `mailto:${encodeURIComponent(form.customerEmail)}` +
-      `?subject=${encodeURIComponent(payload.offer.subject)}` +
-      `&body=${encodeURIComponent(mailText)}`;
-
-    window.location.href = mailtoUrl;
     downloadPdfFile(file);
-    return "Mailfenster geöffnet. PDF wurde heruntergeladen und kann direkt angehängt werden.";
+    return `Kein verbundenes Postfach gefunden. ${documentLabel}-PDF wurde heruntergeladen; bitte im Mail-Programm anhängen.`;
   }
 
-  function buildValidatedPositions(services: SelectedServiceEntry[]): { positions: OfferPositionInput[]; errorMessage: string } {
+  function buildValidatedPositions(services: SelectedServiceEntry[]): {
+    positions: OfferPositionInput[];
+    errorMessage: string;
+  } {
     const positions: OfferPositionInput[] = [];
 
     for (const service of services) {
@@ -933,7 +1719,7 @@ export default function HomePage() {
         if (!description) {
           return {
             positions: [],
-            errorMessage: `Bitte Unterpunkt-Bezeichnung für "${service.label}" ausfüllen.`
+            errorMessage: `Bitte Unterpunkt-Bezeichnung für "${service.label}" ausfüllen.`,
           };
         }
 
@@ -941,14 +1727,14 @@ export default function HomePage() {
         if (!Number.isFinite(quantity) || quantity <= 0) {
           return {
             positions: [],
-            errorMessage: `Bitte eine gültige Menge für "${description}" eingeben.`
+            errorMessage: `Bitte eine gültige Menge für "${description}" eingeben.`,
           };
         }
 
         if (!priceRaw) {
           return {
             positions: [],
-            errorMessage: `EP / Preis EUR ist für "${description}" verpflichtend.`
+            errorMessage: `EP / Preis EUR ist für "${description}" verpflichtend.`,
           };
         }
 
@@ -956,16 +1742,16 @@ export default function HomePage() {
         if (!Number.isFinite(price) || price < 0) {
           return {
             positions: [],
-            errorMessage: `Bitte einen gültigen EP / Preis EUR für "${description}" eingeben.`
+            errorMessage: `Bitte einen gültigen EP / Preis EUR für "${description}" eingeben.`,
           };
         }
 
         positions.push({
           group: service.label.trim(),
-          description: `- ${description}`,
+          description,
           quantity: String(quantity),
           unit: getSubitemUnit(subitem),
-          unitPrice: String(price)
+          unitPrice: String(price),
         });
       }
     }
@@ -973,39 +1759,50 @@ export default function HomePage() {
     if (services.length > 0 && positions.length === 0) {
       return {
         positions: [],
-        errorMessage: "Bitte mindestens einen Unterpunkt mit Menge und EP / Preis EUR erfassen."
+        errorMessage:
+          "Bitte mindestens einen Unterpunkt mit Menge und EP / Preis EUR erfassen.",
       };
     }
 
     return {
       positions,
-      errorMessage: ""
+      errorMessage: "",
     };
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setResult(null);
     setPostActionInfo("");
 
     const selectedServicesPayload = selectedServices
       .map(selectedServiceToRequestValue)
       .filter((value) => value.length > 0);
-    const { positions: positionsPayload, errorMessage } = buildValidatedPositions(selectedServices);
+    const selectedServiceEntriesPayload =
+      selectedServicesToDraftPayload(selectedServices);
+    const { positions: positionsPayload, errorMessage } =
+      buildValidatedPositions(selectedServices);
 
     if (errorMessage) {
       setError(errorMessage);
       return;
     }
 
-    if (!form.serviceDescription.trim() && selectedServicesPayload.length === 0 && positionsPayload.length === 0) {
-      setError("Bitte mindestens eine Leistung auswählen oder eine Projektbeschreibung eingeben.");
+    if (
+      !form.serviceDescription.trim() &&
+      selectedServicesPayload.length === 0 &&
+      positionsPayload.length === 0
+    ) {
+      setError(
+        "Bitte mindestens eine Leistung auswählen oder eine Projektbeschreibung eingeben.",
+      );
       return;
     }
 
     setStepProgress((prev) =>
-      prev.pdfGenerationStarted ? prev : { ...prev, pdfGenerationStarted: true }
+      prev.pdfGenerationStarted
+        ? prev
+        : { ...prev, pdfGenerationStarted: true },
     );
     setIsSubmitting(true);
 
@@ -1015,10 +1812,12 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          documentType: documentMode,
           selectedServices: selectedServicesPayload,
+          selectedServiceEntries: selectedServiceEntriesPayload,
           positions: positionsPayload,
-          sendEmail: false
-        })
+          sendEmail: false,
+        }),
       });
 
       const data = await response.json();
@@ -1028,8 +1827,11 @@ export default function HomePage() {
       }
 
       const payload = data as ApiResponse;
-      setResult(payload);
-      const info = await openMailDraftWithOffer(payload);
+      updateStoredCustomersRealtime(payload);
+      void loadStoredCustomers();
+      const payloadMode =
+        payload.documentType === "invoice" ? "invoice" : documentMode;
+      const info = await openMailDraftWithDocument(payload, payloadMode);
       setPostActionInfo(info);
     } catch {
       setError("Netzwerkfehler. Bitte erneut versuchen.");
@@ -1043,87 +1845,201 @@ export default function HomePage() {
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
       <div className="container">
+        <div className="documentModeSwitchTop">
+          <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
+            <button
+              type="button"
+              className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
+              onClick={() => switchDocumentMode("offer")}
+            >
+              Angebote
+            </button>
+            <button
+              type="button"
+              className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
+              onClick={() => switchDocumentMode("invoice")}
+            >
+              Rechnungen
+            </button>
+          </div>
+        </div>
+
         <header className="topBar glassCard">
           <div className="topBarBrand">
-            <span className="pill">Visioro</span>
-            <strong>Angebote für Handwerker</strong>
+            <div className="topBarHeadingRow">
+              <span className="pill">Visioro</span>
+              <h1 className="topBarTitle">{modeTitle}</h1>
+            </div>
           </div>
           <Link href="/settings" className="ghostButton topBarButton">
             Einstellungen
           </Link>
         </header>
 
-        <div className="heroDisclosure">
-          <button
-            type="button"
-            className="heroQuestionButton"
-            aria-expanded={isHeroExpanded}
-            aria-controls="hero-info-panel"
-            onClick={() => setIsHeroExpanded((prev) => !prev)}
-            title="Info zur Angebots-Erstellung anzeigen"
-          >
-            ?
-          </button>
-
-          <section
-            id="hero-info-panel"
-            className={`hero glassCard heroExpandable ${isHeroExpanded ? "heroExpandableOpen" : ""}`}
-            aria-hidden={!isHeroExpanded}
-          >
-            <p className="heroEyebrow">Visioro</p>
-            <h1>Angebote in Sekunden statt in Stunden</h1>
-            <p className="heroText">
-              Du gibst Kundendaten und Leistung ein, Visioro erstellt den Text, baut ein sauberes PDF und öffnet
-              direkt deinen Mail-Entwurf.
-            </p>
-            <div className="stepRow">
-              <article className={`stepTile ${stepProgress.customerDataStarted ? "stepTileDone" : ""}`}>
-                <span>{stepProgress.customerDataStarted ? "✓" : "1"}</span>
-                <strong>Kundendaten erfassen</strong>
-              </article>
-              <article className={`stepTile ${stepProgress.pdfGenerationStarted ? "stepTileDone" : ""}`}>
-                <span>{stepProgress.pdfGenerationStarted ? "✓" : "2"}</span>
-                <strong>Text + PDF generieren</strong>
-              </article>
-              <article className={`stepTile ${stepProgress.mailDraftStarted ? "stepTileDone" : ""}`}>
-                <span>{stepProgress.mailDraftStarted ? "✓" : "3"}</span>
-                <strong>Mail-Entwurf absenden</strong>
-              </article>
-            </div>
+        <div key={`${documentMode}-${modeAnimationKey}`} className="documentModeContent">
+          <section className="hero glassCard compactHero">
+          <div className="stepRow">
+            <article
+              className={`stepTile ${stepProgress.customerDataStarted ? "stepTileDone" : ""}`}
+            >
+              <span>{stepProgress.customerDataStarted ? "✓" : "1"}</span>
+              <strong>Kundendaten erfassen</strong>
+            </article>
+            <article
+              className={`stepTile ${stepProgress.pdfGenerationStarted ? "stepTileDone" : ""}`}
+            >
+              <span>{stepProgress.pdfGenerationStarted ? "✓" : "2"}</span>
+              <strong>Text + PDF generieren</strong>
+            </article>
+            <article
+              className={`stepTile ${stepProgress.mailDraftStarted ? "stepTileDone" : ""}`}
+            >
+              <span>{stepProgress.mailDraftStarted ? "✓" : "3"}</span>
+              <strong>Mail-Entwurf absenden</strong>
+            </article>
+          </div>
           </section>
-        </div>
 
-        <section className="workspaceGrid">
+          <section className="workspaceGrid workspaceGridSingle">
           <article className="glassCard formCard">
             <header className="sectionHeader">
-              <h2>Daten für das Angebot</h2>
-              <p>Hier triffst du alle Angaben, die dein Kunde im Angebot sehen soll.</p>
+              <h2>{`Daten für ${singularDocumentLabel === "Angebot" ? "das Angebot" : "die Rechnung"}`}</h2>
+              <p>
+                {`Hier triffst du alle Angaben, die dein Kunde in ${singularDocumentLabel === "Angebot" ? "deinem Angebot" : "deiner Rechnung"} sehen soll.`}
+              </p>
             </header>
+
+            <div className="customerPickerPanel">
+              <button
+                type="button"
+                className="ghostButton customerPickerToggle"
+                onClick={toggleStoredCustomers}
+              >
+                {isCustomerPickerOpen
+                  ? "Gespeicherte Kunden schließen"
+                  : "Gespeicherte Kunden"}
+              </button>
+              {isCustomerPickerOpen ? (
+                <div className="customerPickerList">
+                  <input
+                    className="customerPickerSearch"
+                    type="search"
+                    value={customerSearch}
+                    onChange={(event) => setCustomerSearch(event.target.value)}
+                    placeholder="Kunde suchen (Name, Firma, Adresse)"
+                    aria-label="Gespeicherte Kunden suchen"
+                  />
+
+                  <div className="customerPickerResults" role="list">
+                    {isCustomersLoading ? (
+                      <p className="customerPickerHint">
+                        Gespeicherte Kunden werden geladen ...
+                      </p>
+                    ) : null}
+                    {!isCustomersLoading && customersError ? (
+                      <p className="voiceWarning" role="alert">
+                        {customersError}
+                      </p>
+                    ) : null}
+                    {!isCustomersLoading &&
+                    !customersError &&
+                    storedCustomers.length === 0 ? (
+                      <p className="customerPickerHint">
+                        Noch keine gespeicherten Kunden vorhanden.
+                      </p>
+                    ) : null}
+                    {!isCustomersLoading &&
+                    !customersError &&
+                    storedCustomers.length > 0 &&
+                    filteredStoredCustomers.length === 0 ? (
+                      <p className="customerPickerHint">
+                        Keine Kunden zur Suche gefunden.
+                      </p>
+                    ) : null}
+                    {!isCustomersLoading &&
+                    !customersError &&
+                    filteredStoredCustomers.length > 0
+                      ? filteredStoredCustomers.map((customer) => (
+                          <button
+                            key={customer.customerNumber}
+                            type="button"
+                            className="customerPickerItem"
+                            onClick={() => applyStoredCustomer(customer)}
+                            role="listitem"
+                          >
+                            <div className="customerPickerItemHeader">
+                              <strong>{customer.customerName}</strong>
+                              <span>{customer.customerNumber}</span>
+                            </div>
+                            <p>{customer.customerAddress}</p>
+                            <p>{customer.customerEmail}</p>
+                          </button>
+                        ))
+                      : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
             <form onSubmit={onSubmit} className="formGrid">
               <div className="voicePanel span2">
                 <div className="voicePanelHeader">
                   <strong>Per Sprache ausfüllen</strong>
-                  <p>Sprich frei alle Daten ein, danach werden die Felder automatisch befüllt.</p>
+                  <p>
+                    Sprich frei alle Daten ein, danach werden die Felder
+                    automatisch befüllt.
+                  </p>
                 </div>
 
                 <div className="voiceActions">
-                  <button
-                    type="button"
-                    className={`ghostButton voiceActionButton ${isListening ? "voiceActionButtonStop" : "voiceActionButtonStart"}`}
-                    onClick={isListening ? stopSpeechInput : startSpeechInput}
-                    disabled={!speechSupported || isParsingVoice}
-                  >
-                    {isListening ? "Aufnahme stoppen" : "Aufnahme starten"}
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton voiceActionButton"
-                    onClick={applyVoiceTranscript}
-                    disabled={isParsingVoice || !voiceTranscript.trim()}
-                  >
-                    {isParsingVoice ? "Übernehme Felder ..." : "In Felder übernehmen"}
-                  </button>
+                  {isListening ? (
+                    <>
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonPause"
+                        onClick={pauseSpeechInput}
+                        disabled={!speechSupported || isParsingVoice}
+                      >
+                        Pause
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonStop"
+                        onClick={stopSpeechInput}
+                        disabled={!speechSupported || isParsingVoice}
+                      >
+                        Aufnahme stoppen
+                      </button>
+                    </>
+                  ) : isSpeechPaused ? (
+                    <>
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonResume"
+                        onClick={startSpeechInput}
+                        disabled={!speechSupported || isParsingVoice}
+                      >
+                        Fortsetzen
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonStop"
+                        onClick={stopSpeechInput}
+                        disabled={!speechSupported || isParsingVoice}
+                      >
+                        Aufnahme stoppen
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="ghostButton voiceActionButton voiceActionButtonStart"
+                      onClick={startSpeechInput}
+                      disabled={!speechSupported || isParsingVoice}
+                    >
+                      Aufnahme starten
+                    </button>
+                  )}
                 </div>
 
                 <label className="field">
@@ -1131,12 +2047,19 @@ export default function HomePage() {
                   <textarea
                     rows={4}
                     value={voiceTranscript}
-                    onChange={(e) => setVoiceTranscript(e.target.value)}
+                    onChange={(e) => {
+                      setVoiceTranscript(e.target.value);
+                      setVoiceMissingFields([]);
+                    }}
                     placeholder="Beispiel: Firma Schmidt GmbH, Ansprechpartner Herr Müller, Musterstraße 5, 10115 Berlin, ..."
                   />
                 </label>
 
-                {!speechSupported ? <p className="voiceWarning">Spracherkennung wird auf diesem Browser nicht unterstützt.</p> : null}
+                {!speechSupported ? (
+                  <p className="voiceWarning">
+                    Spracherkennung wird auf diesem Browser nicht unterstützt.
+                  </p>
+                ) : null}
                 {voiceInfo ? (
                   <p className="voiceInfo" role="status" aria-live="polite">
                     {voiceInfo}
@@ -1147,22 +2070,44 @@ export default function HomePage() {
                     {voiceError}
                   </p>
                 ) : null}
+                {voiceMissingFields.length > 0 ? (
+                  <div className="voiceMissingPanel">
+                    <span className="voiceMissingLabel">
+                      Noch zu ergänzen
+                    </span>
+                    <div className="voiceMissingList">
+                      {voiceMissingFields.map((field) => (
+                        <span key={field} className="voiceMissingTag">
+                          {field}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
-              <div className="recipientType span2" role="group" aria-label="Kundenart">
+              <div
+                className="recipientType span2"
+                role="group"
+                aria-label="Kundenart"
+              >
                 <span>Kundenart</span>
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
                     className={`recipientTypeButton ${form.customerType === "person" ? "active" : ""}`}
-                    onClick={() => setForm((prev) => ({ ...prev, customerType: "person" }))}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, customerType: "person" }))
+                    }
                   >
                     Privatperson
                   </button>
                   <button
                     type="button"
                     className={`recipientTypeButton ${form.customerType === "company" ? "active" : ""}`}
-                    onClick={() => setForm((prev) => ({ ...prev, customerType: "company" }))}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, customerType: "company" }))
+                    }
                   >
                     Firma
                   </button>
@@ -1176,20 +2121,29 @@ export default function HomePage() {
                     required
                     autoComplete="organization"
                     value={form.companyName}
-                    onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        companyName: capitalizeEntryStart(e.target.value),
+                      }))
+                    }
                   />
                 </label>
               ) : null}
 
               <label className="field span2">
-                <span>{form.customerType === "company" ? "Anrede Ansprechpartner (optional)" : "Anrede"}</span>
+                <span>
+                  {form.customerType === "company"
+                    ? "Anrede Ansprechpartner (optional)"
+                    : "Anrede"}
+                </span>
                 <select
                   required={form.customerType === "person"}
                   value={form.salutation}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      salutation: e.target.value === "frau" ? "frau" : "herr"
+                      salutation: e.target.value === "frau" ? "frau" : "herr",
                     }))
                   }
                 >
@@ -1204,7 +2158,12 @@ export default function HomePage() {
                   required={form.customerType === "person"}
                   autoComplete="given-name"
                   value={form.firstName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      firstName: capitalizeEntryStart(e.target.value),
+                    }))
+                  }
                 />
               </label>
 
@@ -1214,7 +2173,12 @@ export default function HomePage() {
                   required={form.customerType === "person"}
                   autoComplete="family-name"
                   value={form.lastName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      lastName: capitalizeEntryStart(e.target.value),
+                    }))
+                  }
                 />
               </label>
 
@@ -1225,11 +2189,22 @@ export default function HomePage() {
                     required
                     autoComplete="address-line1"
                     value={form.street}
-                    onChange={(e) => setForm((prev) => ({ ...prev, street: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        street: capitalizeEntryStart(e.target.value),
+                      }))
+                    }
                   />
                   {(isAddressLoading || addressSuggestions.length > 0) && (
-                    <div className="addressSuggestions" role="listbox" aria-label="Adressvorschläge">
-                      {isAddressLoading ? <p className="addressHint">Suche Adressen ...</p> : null}
+                    <div
+                      className="addressSuggestions"
+                      role="listbox"
+                      aria-label="Adressvorschläge"
+                    >
+                      {isAddressLoading ? (
+                        <p className="addressHint">Suche Adressen ...</p>
+                      ) : null}
                       {addressSuggestions.map((suggestion, index) => (
                         <button
                           key={`${suggestion.primary}-${suggestion.secondary}-${index}`}
@@ -1238,7 +2213,9 @@ export default function HomePage() {
                           onClick={() => applyAddressSuggestion(suggestion)}
                         >
                           <strong>{suggestion.primary}</strong>
-                          {suggestion.secondary ? <span>{suggestion.secondary}</span> : null}
+                          {suggestion.secondary ? (
+                            <span>{suggestion.secondary}</span>
+                          ) : null}
                         </button>
                       ))}
                     </div>
@@ -1252,7 +2229,9 @@ export default function HomePage() {
                   required
                   autoComplete="postal-code"
                   value={form.postalCode}
-                  onChange={(e) => setForm((prev) => ({ ...prev, postalCode: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, postalCode: e.target.value }))
+                  }
                 />
               </label>
 
@@ -1262,7 +2241,12 @@ export default function HomePage() {
                   required
                   autoComplete="address-level2"
                   value={form.city}
-                  onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      city: capitalizeEntryStart(e.target.value),
+                    }))
+                  }
                 />
               </label>
 
@@ -1273,16 +2257,73 @@ export default function HomePage() {
                   type="email"
                   autoComplete="email"
                   value={form.customerEmail}
-                  onChange={(e) => setForm((prev) => ({ ...prev, customerEmail: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      customerEmail: e.target.value,
+                    }))
+                  }
                 />
               </label>
 
+              {isInvoiceMode ? (
+                <>
+                  <label className="field">
+                    <span>Rechnungsdatum</span>
+                    <input
+                      required
+                      type="date"
+                      value={form.invoiceDate}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          invoiceDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Leistungszeitraum</span>
+                    <input
+                      required
+                      type="text"
+                      placeholder="z. B. 01.03.2026 bis 05.03.2026"
+                      value={form.serviceDate}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          serviceDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Zahlungsziel (Tage)</span>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.paymentDueDays}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          paymentDueDays: event.target.value.replace(/[^\d]/g, ""),
+                        }))
+                      }
+                    />
+                  </label>
+                </>
+              ) : null}
+
               <div className="field span2">
-                <span>Leistungen auswählen</span>
+                <span>Leistung suchen</span>
                 <div className="servicePicker" ref={servicePickerRef}>
                   <input
                     value={serviceSearch}
-                    placeholder="Leistung suchen (z. B. Fliesenarbeiten, Erdarbeiten, Wartung)"
+                    placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
                     onFocus={() => setIsServiceSearchOpen(true)}
                     onChange={(event) => {
                       setServiceSearch(event.target.value);
@@ -1293,28 +2334,52 @@ export default function HomePage() {
                   />
 
                   {isServiceSearchOpen ? (
-                    <div className="serviceSuggestionList" role="listbox" aria-label="Leistungsvorschläge">
-                      {isServiceCatalogLoading ? <p className="serviceSuggestionHint">Leistungen werden geladen ...</p> : null}
+                    <div
+                      className="serviceSuggestionList"
+                      role="listbox"
+                      aria-label="Leistungsvorschläge"
+                    >
+                      {isServiceCatalogLoading ? (
+                        <p className="serviceSuggestionHint">
+                          Leistungen werden geladen ...
+                        </p>
+                      ) : null}
 
-                      {groupedServiceSuggestions.map(([category, suggestions]) => (
-                        <div key={category} className="serviceSuggestionGroup">
-                          <p className="serviceSuggestionGroupLabel">{category}</p>
-                          {suggestions.map((service) => (
-                            <button
-                              key={service.id}
-                              type="button"
-                              className="serviceSuggestionButton"
-                              onClick={() => addSelectedService(service.label)}
-                            >
-                              <strong>{service.label}</strong>
-                              {service.source === "custom" ? <span>Eigene Leistung</span> : <span>Standard</span>}
-                            </button>
-                          ))}
-                        </div>
-                      ))}
+                      {groupedServiceSuggestions.map(
+                        ([category, suggestions]) => (
+                          <div
+                            key={category}
+                            className="serviceSuggestionGroup"
+                          >
+                            <p className="serviceSuggestionGroupLabel">
+                              {category}
+                            </p>
+                            {suggestions.map((service) => (
+                              <button
+                                key={service.id}
+                                type="button"
+                                className="serviceSuggestionButton"
+                                onClick={() =>
+                                  addSelectedService(service.label)
+                                }
+                              >
+                                <strong>{service.label}</strong>
+                                {service.source === "custom" ? (
+                                  <span>Eigene Leistung</span>
+                                ) : (
+                                  <span>Standard</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ),
+                      )}
 
-                      {!isServiceCatalogLoading && groupedServiceSuggestions.length === 0 ? (
-                        <p className="serviceSuggestionHint">Keine passenden Leistungen gefunden.</p>
+                      {!isServiceCatalogLoading &&
+                      groupedServiceSuggestions.length === 0 ? (
+                        <p className="serviceSuggestionHint">
+                          Keine passenden Leistungen gefunden.
+                        </p>
                       ) : null}
 
                       {canCreateCustomService ? (
@@ -1333,145 +2398,218 @@ export default function HomePage() {
                   ) : null}
                 </div>
 
-                <div className="selectedServiceList">
-                  {selectedServices.length === 0 ? (
-                    <p className="selectedServiceHint">Noch keine Leistung ausgewählt.</p>
-                  ) : (
-                    selectedServices.map((service) => {
-                      const subitemSuggestions = getSubitemSuggestionsForService(service.label);
-
-                      return (
-                        <div key={service.id} className="selectedServiceCard">
-                          <div className="selectedServiceHeader">
-                            <strong className="selectedServiceLabel">{service.label}</strong>
-                            <button
-                              type="button"
-                              className="selectedServiceRemoveButton"
-                              onClick={() => removeSelectedService(service.id)}
-                              aria-label={`${service.label} entfernen`}
-                            >
-                              ×
-                            </button>
-                          </div>
-
-                          {subitemSuggestions.length > 0 ? (
-                            <div className="selectedServiceSuggestionRow">
-                              {subitemSuggestions.map((suggestion) => (
+                <div className="positionsInputWrap">
+                  <table className="positionsInputTable">
+                    <thead>
+                      <tr>
+                        <th>Bezeichnung / Unterpunkt</th>
+                        <th>Menge</th>
+                        <th>Einheit</th>
+                        <th>EP / Preis EUR</th>
+                        <th>Gesamtpreis EUR</th>
+                        <th aria-label="Aktion" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedServices.length === 0 ? (
+                        <tr>
+                          <td className="positionsInputEmpty" colSpan={6}>
+                            Noch keine Positionen. Wähle eine Leistung über die
+                            Suche oder füge manuell eine Position hinzu.
+                          </td>
+                        </tr>
+                      ) : (
+                        selectedServices.map((service) => (
+                          <Fragment key={service.id}>
+                            <tr className="positionsGroupRow">
+                              <td colSpan={5}>{service.label}</td>
+                              <td className="positionsGroupAction">
                                 <button
-                                  key={`${service.id}-${suggestion}`}
                                   type="button"
-                                  className="selectedServiceSuggestionButton"
-                                  onClick={() => addSuggestedSubitem(service.id, suggestion)}
+                                  className="positionsGroupDeleteButton"
+                                  onClick={() =>
+                                    removeSelectedService(service.id)
+                                  }
+                                  aria-label={`${service.label} Gruppe löschen`}
                                 >
-                                  + {suggestion}
+                                  Gruppe löschen
                                 </button>
-                              ))}
-                            </div>
-                          ) : null}
+                              </td>
+                            </tr>
+                            {service.subitems.map((subitem, index) => {
+                              const subitemTotal =
+                                calculateSubitemTotal(subitem);
 
-                          <div className="selectedSubitemTable">
-                            <div className="selectedSubitemTableHead" aria-hidden>
-                              <span>Unterpunkt</span>
-                              <span>Menge</span>
-                              <span>Einheit</span>
-                              <span>EP / Preis EUR*</span>
-                              <span>Gesamtpreis EUR</span>
-                              <span />
-                            </div>
-
-                            <div className="selectedSubitemList">
-                              {service.subitems.map((subitem, index) => {
-                                const subitemTotal = calculateSubitemTotal(subitem);
-
-                                return (
-                                  <div key={subitem.id} className="selectedSubitemRow">
-                                    <div className="selectedSubitemCell">
-                                      <input
-                                        className="selectedSubitemDescriptionInput"
-                                        value={subitem.description}
-                                        onChange={(event) =>
-                                          updateServiceSubitem(service.id, subitem.id, "description", event.target.value)
+                              return (
+                                <tr key={subitem.id}>
+                                  <td>
+                                    <input
+                                      className="positionDescriptionInput"
+                                      value={subitem.description}
+                                      onChange={(event) =>
+                                        updateServiceSubitem(
+                                          service.id,
+                                          subitem.id,
+                                          "description",
+                                          event.target.value,
+                                        )
+                                      }
+                                      placeholder={
+                                        index === 0
+                                          ? "Bezeichnung / Unterpunkt"
+                                          : "Weitere Position"
+                                      }
+                                      aria-label={`Bezeichnung für ${service.label}`}
+                                    />
+                                  </td>
+                                  <td className="positionNumericCell">
+                                    <input
+                                      className="positionQuantityInput"
+                                      value={subitem.quantity}
+                                      onChange={(event) =>
+                                        updateQuantitySubitem(
+                                          service.id,
+                                          subitem.id,
+                                          event.target.value,
+                                        )
+                                      }
+                                      onBeforeInput={(event) => {
+                                        const nativeEvent =
+                                          event.nativeEvent as InputEvent;
+                                        const insertedText =
+                                          nativeEvent.data ?? "";
+                                        if (
+                                          insertedText &&
+                                          /[^\d.,]/.test(insertedText)
+                                        ) {
+                                          event.preventDefault();
                                         }
-                                        placeholder={index === 0 ? "Unterpunkt (z. B. Beton liefern)" : "Weiterer Unterpunkt"}
-                                        aria-label={`Unterpunkt für ${service.label}`}
-                                      />
-                                    </div>
-                                    <div className="selectedSubitemCell">
-                                      <input
-                                        className="selectedSubitemQuantityInput"
-                                        value={subitem.quantity}
-                                        onChange={(event) =>
-                                          updateServiceSubitem(service.id, subitem.id, "quantity", event.target.value)
+                                      }}
+                                      onPaste={(event) => {
+                                        event.preventDefault();
+                                        const pastedText =
+                                          event.clipboardData.getData("text");
+                                        const input = event.currentTarget;
+                                        const selectionStart =
+                                          input.selectionStart ?? input.value.length;
+                                        const selectionEnd =
+                                          input.selectionEnd ?? input.value.length;
+                                        const nextValue = `${input.value.slice(0, selectionStart)}${pastedText}${input.value.slice(selectionEnd)}`;
+                                        updateQuantitySubitem(
+                                          service.id,
+                                          subitem.id,
+                                          nextValue,
+                                        );
+                                      }}
+                                      placeholder="0"
+                                      inputMode="decimal"
+                                      pattern="[0-9]+([.,][0-9]+)?"
+                                      aria-label={`Menge für ${service.label}`}
+                                    />
+                                  </td>
+                                  <td>
+                                    <select
+                                      className="positionUnitSelect"
+                                      value={subitem.unit}
+                                      onChange={(event) =>
+                                        updateServiceSubitem(
+                                          service.id,
+                                          subitem.id,
+                                          "unit",
+                                          event.target.value,
+                                        )
+                                      }
+                                      aria-label={`Einheit für ${service.label}`}
+                                    >
+                                      {UNIT_OPTIONS.map((unitOption) => (
+                                        <option
+                                          key={unitOption}
+                                          value={unitOption}
+                                        >
+                                          {unitOption}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td className="positionNumericCell">
+                                    <input
+                                      className="positionPriceInput"
+                                      value={subitem.price}
+                                      onChange={(event) =>
+                                        updatePriceSubitem(
+                                          service.id,
+                                          subitem.id,
+                                          event.target.value,
+                                        )
+                                      }
+                                      onBeforeInput={(event) => {
+                                        const nativeEvent =
+                                          event.nativeEvent as InputEvent;
+                                        const insertedText =
+                                          nativeEvent.data ?? "";
+                                        if (
+                                          insertedText &&
+                                          /[^\d.,]/.test(insertedText)
+                                        ) {
+                                          event.preventDefault();
                                         }
-                                        placeholder="0"
-                                        inputMode="decimal"
-                                        aria-label={`Menge für ${service.label}`}
-                                      />
-                                    </div>
-                                    <div className="selectedSubitemCell">
-                                      <select
-                                        className="selectedSubitemUnitSelect"
-                                        value={subitem.unit}
-                                        onChange={(event) =>
-                                          updateServiceSubitem(service.id, subitem.id, "unit", event.target.value)
-                                        }
-                                        aria-label={`Einheit für ${service.label}`}
-                                      >
-                                        {UNIT_OPTIONS.map((unitOption) => (
-                                          <option key={unitOption} value={unitOption}>
-                                            {unitOption}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div className="selectedSubitemCell">
-                                      <input
-                                        className="selectedSubitemPriceInput"
-                                        value={subitem.price}
-                                        onChange={(event) =>
-                                          updateServiceSubitem(service.id, subitem.id, "price", event.target.value)
-                                        }
-                                        placeholder="0,00"
-                                        inputMode="decimal"
-                                        aria-label={`EP / Preis EUR für ${service.label}`}
-                                      />
-                                    </div>
-                                    <div className="selectedSubitemCell">
-                                      <input
-                                        className="selectedSubitemTotalInput"
-                                        value={formatEuroValue(subitemTotal)}
-                                        readOnly
-                                        aria-label={`Gesamtpreis EUR für ${service.label}`}
-                                      />
-                                    </div>
-                                    <div className="selectedSubitemCell selectedSubitemCellAction">
-                                      <button
-                                        type="button"
-                                        className="selectedSubitemRemoveButton"
-                                        onClick={() => removeServiceSubitem(service.id, subitem.id)}
-                                        aria-label={`Unterpunkt ${index + 1} für ${service.label} löschen`}
-                                      >
-                                        Löschen
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            className="selectedServiceAddSubitemButton"
-                            onClick={() => addServiceSubitem(service.id)}
-                          >
-                            + Unterpunkt hinzufügen
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
+                                      }}
+                                      onPaste={(event) => {
+                                        event.preventDefault();
+                                        const pastedText =
+                                          event.clipboardData.getData("text");
+                                        const input = event.currentTarget;
+                                        const selectionStart =
+                                          input.selectionStart ?? input.value.length;
+                                        const selectionEnd =
+                                          input.selectionEnd ?? input.value.length;
+                                        const nextValue = `${input.value.slice(0, selectionStart)}${pastedText}${input.value.slice(selectionEnd)}`;
+                                        updatePriceSubitem(
+                                          service.id,
+                                          subitem.id,
+                                          nextValue,
+                                        );
+                                      }}
+                                      placeholder="0,00"
+                                      inputMode="decimal"
+                                      pattern="[0-9]+([.,][0-9]+)?"
+                                      aria-label={`EP / Preis EUR für ${service.label}`}
+                                    />
+                                  </td>
+                                  <td className="positionTotalCell">
+                                    {`${formatEuroValue(subitemTotal)} EUR`}
+                                  </td>
+                                  <td className="positionActionCell">
+                                    <button
+                                      type="button"
+                                      className="positionDeleteButton"
+                                      onClick={() =>
+                                        removeServiceSubitem(
+                                          service.id,
+                                          subitem.id,
+                                        )
+                                      }
+                                      aria-label={`Position ${index + 1} für ${service.label} löschen`}
+                                    >
+                                      Löschen
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </Fragment>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
+                <button
+                  type="button"
+                  className="ghostButton positionsAddRowButton"
+                  onClick={addEmptyPositionRow}
+                >
+                  + Position hinzufügen
+                </button>
 
                 {serviceInfo ? (
                   <p className="voiceInfo" role="status" aria-live="polite">
@@ -1484,14 +2622,18 @@ export default function HomePage() {
                   </p>
                 ) : null}
               </div>
-
               <label className="field span2">
                 <span>Projektbeschreibung / Zusatzdetails (frei)</span>
                 <textarea
                   rows={4}
                   placeholder="z. B. inkl. Verlegung von 60x60 Feinsteinzeugfliesen"
                   value={form.serviceDescription}
-                  onChange={(e) => setForm((prev) => ({ ...prev, serviceDescription: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      serviceDescription: capitalizeEntryStart(e.target.value),
+                    }))
+                  }
                 />
               </label>
 
@@ -1503,7 +2645,9 @@ export default function HomePage() {
                   min="0"
                   step="0.5"
                   value={form.hours}
-                  onChange={(e) => setForm((prev) => ({ ...prev, hours: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, hours: e.target.value }))
+                  }
                 />
               </label>
 
@@ -1515,12 +2659,20 @@ export default function HomePage() {
                   min="0"
                   step="0.01"
                   value={form.hourlyRate}
-                  onChange={(e) => setForm((prev) => ({ ...prev, hourlyRate: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, hourlyRate: e.target.value }))
+                  }
                 />
               </label>
 
-              <button className="primaryButton submitButton" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Angebot wird erstellt..." : "Angebot erstellen"}
+              <button
+                className="primaryButton submitButton"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? `${singularDocumentLabel} wird erstellt...`
+                  : `${singularDocumentLabel} erstellen`}
               </button>
 
               <p className="formHint span2">
@@ -1533,79 +2685,14 @@ export default function HomePage() {
             </form>
 
             {error ? <p className="error">{error}</p> : null}
+            {!error && postActionInfo ? (
+              <p className="voiceInfo" role="status" aria-live="polite">
+                {postActionInfo}
+              </p>
+            ) : null}
           </article>
-
-          <aside className="glassCard previewPanel">
-            <header className="sectionHeader">
-              <h2>Vorschau für deinen Kunden</h2>
-              <p>So sieht die Angebots-E-Mail in etwa aus.</p>
-            </header>
-
-            <div className="previewAddress">
-              <strong>{customerDisplayName}</strong>
-              {attentionLine ? <span>{attentionLine}</span> : null}
-              <span>{form.street || "Straße 1"}</span>
-              <span>{`${form.postalCode || "12345"} ${form.city || "Stadt"}`}</span>
-            </div>
-
-            <div className="previewContact">
-              <span>E-Mail</span>
-              <strong>{form.customerEmail || "kunde@example.com"}</strong>
-            </div>
-
-            <div className="quoteSheet">
-              <div className="quoteHeader">
-                <span>Leistungsübersicht</span>
-                <strong>{serviceSummaryText || "Leistung noch nicht angegeben"}</strong>
-              </div>
-
-              <div className="quoteRow">
-                <span>Unterpunkte gesamt</span>
-                <span>{formatEuroValue(subitemsTotal)} EUR</span>
-              </div>
-              {subitemsTotal <= 0 ? (
-                <div className="quoteRow">
-                  <span>Arbeitszeit (Fallback)</span>
-                  <span>
-                    {hoursNumber || 0} Std. x {hourlyRateNumber || 0} EUR
-                  </span>
-                </div>
-              ) : null}
-              <div className="quoteTotal">
-                <span>Gesamtsumme</span>
-                <strong>{`${formatEuroValue(Number.isFinite(liveTotal) ? liveTotal : 0)} EUR`}</strong>
-              </div>
-
-              <p className="quoteHint">Bei Klick auf den Button öffnet sich dein Mail-Entwurf zum finalen Senden.</p>
-            </div>
-          </aside>
         </section>
-
-        {result ? (
-          <section className="glassCard resultCard">
-            <header className="sectionHeader">
-              <h2>Ergebnis</h2>
-              <p>Angebot wurde erstellt und als PDF bereitgestellt.</p>
-            </header>
-
-            <p>{postActionInfo || result.emailInfo}</p>
-
-            <a
-              className="primaryButton"
-              href={`data:application/pdf;base64,${result.pdfBase64}`}
-              download="angebot.pdf"
-            >
-              PDF herunterladen
-            </a>
-
-            <div className="offerText">
-              <h3>Generierter Angebotstext</h3>
-              <p>{result.offer.intro}</p>
-              <p>{result.offer.details}</p>
-              <p>{result.offer.closing}</p>
-            </div>
-          </section>
-        ) : null}
+        </div>
       </div>
     </main>
   );

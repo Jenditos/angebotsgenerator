@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  FormEvent,
+  PointerEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
 
@@ -20,25 +28,48 @@ const emptySettings: CompanySettings = {
   customServices: [],
   vatRate: 19,
   offerValidityDays: 30,
+  invoicePaymentDueDays: 14,
   offerTermsText:
-    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten."
+    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
+  lastOfferNumber: "",
+  customServiceTypes: [],
 };
 
-function sortPdfColumns(columns: PdfTableColumnConfig[]): PdfTableColumnConfig[] {
+function sortPdfColumns(
+  columns: PdfTableColumnConfig[],
+): PdfTableColumnConfig[] {
   return [...columns].sort((a, b) => a.order - b.order);
 }
 
-function reindexPdfColumns(columns: PdfTableColumnConfig[]): PdfTableColumnConfig[] {
-  return sortPdfColumns(columns).map((column, index) => ({
-    ...column,
-    order: index
-  }));
+type InvoiceDuePreset = "immediate" | "seven" | "fourteen" | "custom";
+
+function toInvoiceDuePreset(days: number): InvoiceDuePreset {
+  if (days === 0) {
+    return "immediate";
+  }
+  if (days === 7) {
+    return "seven";
+  }
+  if (days === 14) {
+    return "fourteen";
+  }
+  return "custom";
 }
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
+  const [invoiceDuePreset, setInvoiceDuePreset] =
+    useState<InvoiceDuePreset>("fourteen");
+  const [customInvoiceDueDays, setCustomInvoiceDueDays] = useState("");
+  const [invoiceDueInitialized, setInvoiceDueInitialized] = useState(false);
+  const [draggingPdfColumnId, setDraggingPdfColumnId] = useState<
+    PdfTableColumnConfig["id"] | null
+  >(null);
+  const [dragOverPdfColumnId, setDragOverPdfColumnId] = useState<
+    PdfTableColumnConfig["id"] | null
+  >(null);
 
   useEffect(() => {
     let mounted = true;
@@ -64,65 +95,203 @@ export default function SettingsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (invoiceDueInitialized) {
+      return;
+    }
+
+    const normalizedDays = Number.isFinite(settings.invoicePaymentDueDays)
+      ? Math.max(0, Math.floor(settings.invoicePaymentDueDays))
+      : 14;
+    const preset = toInvoiceDuePreset(normalizedDays);
+    setInvoiceDuePreset(preset);
+    setCustomInvoiceDueDays(preset === "custom" ? String(normalizedDays) : "");
+    setInvoiceDueInitialized(true);
+  }, [invoiceDueInitialized, settings.invoicePaymentDueDays]);
+
   const orderedPdfColumns = useMemo(
     () => sortPdfColumns(settings.pdfTableColumns),
-    [settings.pdfTableColumns]
+    [settings.pdfTableColumns],
   );
 
-  function updatePdfColumns(updater: (columns: PdfTableColumnConfig[]) => PdfTableColumnConfig[]) {
+  function updatePdfColumns(
+    updater: (columns: PdfTableColumnConfig[]) => PdfTableColumnConfig[],
+  ) {
     setSettings((prev) => ({
       ...prev,
-      pdfTableColumns: updater(prev.pdfTableColumns)
+      pdfTableColumns: updater(prev.pdfTableColumns),
     }));
   }
 
-  function togglePdfColumnVisibility(columnId: PdfTableColumnConfig["id"], visible: boolean) {
+  function togglePdfColumnVisibility(
+    columnId: PdfTableColumnConfig["id"],
+    visible: boolean,
+  ) {
     updatePdfColumns((columns) =>
-      columns.map((column) => (column.id === columnId ? { ...column, visible } : column))
+      columns.map((column) =>
+        column.id === columnId ? { ...column, visible } : column,
+      ),
     );
   }
 
-  function updatePdfColumnLabel(columnId: PdfTableColumnConfig["id"], label: string) {
+  function updatePdfColumnLabel(
+    columnId: PdfTableColumnConfig["id"],
+    label: string,
+  ) {
     updatePdfColumns((columns) =>
-      columns.map((column) => (column.id === columnId ? { ...column, label } : column))
+      columns.map((column) =>
+        column.id === columnId ? { ...column, label } : column,
+      ),
     );
   }
 
-  function movePdfColumn(columnId: PdfTableColumnConfig["id"], direction: "up" | "down") {
+  function reorderPdfColumnsByDrag(
+    sourceId: PdfTableColumnConfig["id"],
+    targetId: PdfTableColumnConfig["id"],
+  ) {
+    if (sourceId === targetId) {
+      return;
+    }
+
     updatePdfColumns((columns) => {
       const sorted = sortPdfColumns(columns);
-      const currentIndex = sorted.findIndex((column) => column.id === columnId);
-      if (currentIndex < 0) {
+      const sourceIndex = sorted.findIndex((column) => column.id === sourceId);
+      const targetIndex = sorted.findIndex((column) => column.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) {
         return columns;
       }
 
-      const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-      if (targetIndex < 0 || targetIndex >= sorted.length) {
-        return columns;
-      }
+      const nextSorted = [...sorted];
+      const [movedColumn] = nextSorted.splice(sourceIndex, 1);
+      nextSorted.splice(targetIndex, 0, movedColumn);
 
-      const currentColumn = sorted[currentIndex];
-      const targetColumn = sorted[targetIndex];
-
-      return reindexPdfColumns(
-        columns.map((column) => {
-          if (column.id === currentColumn.id) {
-            return { ...column, order: targetColumn.order };
-          }
-          if (column.id === targetColumn.id) {
-            return { ...column, order: currentColumn.order };
-          }
-          return column;
-        })
-      );
+      return nextSorted.map((column, index) => ({
+        ...column,
+        order: index,
+      }));
     });
+  }
+
+  function handlePdfColumnDragStart(
+    event: DragEvent<HTMLButtonElement>,
+    columnId: PdfTableColumnConfig["id"],
+  ) {
+    setDraggingPdfColumnId(columnId);
+    setDragOverPdfColumnId(columnId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", columnId);
+  }
+
+  function handlePdfColumnDragOver(
+    event: DragEvent<HTMLDivElement>,
+    targetId: PdfTableColumnConfig["id"],
+  ) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragOverPdfColumnId(targetId);
+  }
+
+  function handlePdfColumnDrop(
+    event: DragEvent<HTMLDivElement>,
+    targetId: PdfTableColumnConfig["id"],
+  ) {
+    event.preventDefault();
+    if (!draggingPdfColumnId) {
+      return;
+    }
+    reorderPdfColumnsByDrag(draggingPdfColumnId, targetId);
+    setDraggingPdfColumnId(null);
+    setDragOverPdfColumnId(null);
+  }
+
+  function handlePdfColumnTouchStart(
+    event: PointerEvent<HTMLButtonElement>,
+    columnId: PdfTableColumnConfig["id"],
+  ) {
+    if (event.pointerType !== "touch") {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingPdfColumnId(columnId);
+    setDragOverPdfColumnId(columnId);
+  }
+
+  function handlePdfColumnTouchMove(event: PointerEvent<HTMLButtonElement>) {
+    if (event.pointerType !== "touch" || !draggingPdfColumnId) {
+      return;
+    }
+
+    const hoveredElement = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-pdf-column-id]");
+    const targetId = hoveredElement?.dataset.pdfColumnId as
+      | PdfTableColumnConfig["id"]
+      | undefined;
+    if (!targetId || targetId === draggingPdfColumnId) {
+      return;
+    }
+
+    reorderPdfColumnsByDrag(draggingPdfColumnId, targetId);
+    setDraggingPdfColumnId(targetId);
+    setDragOverPdfColumnId(targetId);
+  }
+
+  function handlePdfColumnTouchEnd(event: PointerEvent<HTMLButtonElement>) {
+    if (event.pointerType !== "touch") {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDraggingPdfColumnId(null);
+    setDragOverPdfColumnId(null);
   }
 
   function resetPdfColumns() {
     setSettings((prev) => ({
       ...prev,
-      pdfTableColumns: getDefaultPdfTableColumns()
+      pdfTableColumns: getDefaultPdfTableColumns(),
     }));
+  }
+
+  function applyInvoiceDuePreset(preset: InvoiceDuePreset) {
+    setInvoiceDuePreset(preset);
+    if (preset === "immediate") {
+      setCustomInvoiceDueDays("");
+      setSettings((prev) => ({ ...prev, invoicePaymentDueDays: 0 }));
+      return;
+    }
+    if (preset === "seven") {
+      setCustomInvoiceDueDays("");
+      setSettings((prev) => ({ ...prev, invoicePaymentDueDays: 7 }));
+      return;
+    }
+    if (preset === "fourteen") {
+      setCustomInvoiceDueDays("");
+      setSettings((prev) => ({ ...prev, invoicePaymentDueDays: 14 }));
+      return;
+    }
+  }
+
+  function handleCustomInvoiceDueDaysInput(rawValue: string) {
+    const sanitized = rawValue.replace(/[^\d]/g, "");
+    setCustomInvoiceDueDays(sanitized);
+
+    if (!sanitized) {
+      setInvoiceDuePreset("fourteen");
+      setSettings((prev) => ({ ...prev, invoicePaymentDueDays: 14 }));
+      return;
+    }
+
+    setInvoiceDuePreset("custom");
+    const parsed = Number(sanitized);
+    const normalized = Number.isFinite(parsed)
+      ? Math.min(365, Math.max(0, Math.floor(parsed)))
+      : 14;
+    setSettings((prev) => ({ ...prev, invoicePaymentDueDays: normalized }));
   }
 
   async function onLogoUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -134,7 +303,8 @@ export default function SettingsPage() {
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Datei konnte nicht gelesen werden."));
+      reader.onerror = () =>
+        reject(new Error("Datei konnte nicht gelesen werden."));
       reader.readAsDataURL(file);
     });
 
@@ -150,7 +320,7 @@ export default function SettingsPage() {
       const response = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settings),
       });
 
       const data = await response.json();
@@ -172,9 +342,11 @@ export default function SettingsPage() {
       <div className="ambient ambientB" aria-hidden />
       <div className="container">
         <header className="topBar glassCard">
-          <div className="topBarBrand">
-            <span className="pill">Visioro</span>
-            <strong>Firmeneinstellungen</strong>
+          <div className="topBarBrand settingsTopBarBrand">
+            <span className="pill settingsLogoPill" aria-label="Visioro">
+              V
+            </span>
+            <strong className="settingsTopBarTitle">Firmeneinstellungen</strong>
           </div>
           <Link href="/" className="ghostButton topBarButton">
             Zur Angebotserstellung
@@ -185,7 +357,8 @@ export default function SettingsPage() {
           <p className="heroEyebrow">Einmal einrichten</p>
           <h1>Diese Daten erscheinen auf jedem Angebot</h1>
           <p className="heroText">
-            Dein Logo sowie deine Kontakt- und Firmendaten werden automatisch in PDF und Mail-Entwurf übernommen.
+            Dein Logo sowie deine Kontakt- und Firmendaten werden automatisch in
+            PDF und Mail-Entwurf übernommen.
           </p>
         </section>
 
@@ -196,7 +369,12 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyName}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyName: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyName: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -205,7 +383,12 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.ownerName}
-                onChange={(e) => setSettings((prev) => ({ ...prev, ownerName: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    ownerName: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -214,7 +397,12 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyStreet}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyStreet: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyStreet: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -223,7 +411,12 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyPostalCode}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyPostalCode: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyPostalCode: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -232,7 +425,12 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyCity}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyCity: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyCity: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -242,7 +440,12 @@ export default function SettingsPage() {
                 required
                 type="email"
                 value={settings.companyEmail}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyEmail: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyEmail: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -250,7 +453,12 @@ export default function SettingsPage() {
               <span>Telefon</span>
               <input
                 value={settings.companyPhone}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyPhone: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyPhone: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -258,7 +466,12 @@ export default function SettingsPage() {
               <span>Website</span>
               <input
                 value={settings.companyWebsite}
-                onChange={(e) => setSettings((prev) => ({ ...prev, companyWebsite: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyWebsite: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -267,7 +480,12 @@ export default function SettingsPage() {
               <input
                 type="email"
                 value={settings.senderCopyEmail}
-                onChange={(e) => setSettings((prev) => ({ ...prev, senderCopyEmail: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    senderCopyEmail: e.target.value,
+                  }))
+                }
               />
             </label>
 
@@ -279,7 +497,12 @@ export default function SettingsPage() {
                 max="100"
                 step="0.1"
                 value={settings.vatRate}
-                onChange={(e) => setSettings((prev) => ({ ...prev, vatRate: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    vatRate: Number(e.target.value),
+                  }))
+                }
               />
             </label>
 
@@ -291,7 +514,81 @@ export default function SettingsPage() {
                 max="365"
                 step="1"
                 value={settings.offerValidityDays}
-                onChange={(e) => setSettings((prev) => ({ ...prev, offerValidityDays: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    offerValidityDays: Number(e.target.value),
+                  }))
+                }
+              />
+            </label>
+
+            <div className="field span2 settingsInvoiceDueField">
+              <span>Zahlungsfrist für Rechnungen</span>
+              <div className="settingsInvoiceDuePanel">
+                <p className="settingsInvoiceDueHint">
+                  Lege fest, welches Zahlungsziel standardmäßig in Rechnungen
+                  verwendet wird.
+                </p>
+                <div className="settingsInvoiceDueOptions" role="radiogroup" aria-label="Zahlungsfrist auswählen">
+                  <label className="settingsInvoiceDueOption">
+                    <input
+                      type="radio"
+                      name="invoiceDuePreset"
+                      checked={invoiceDuePreset === "immediate"}
+                      onChange={() => applyInvoiceDuePreset("immediate")}
+                    />
+                    <span>Sofort fällig</span>
+                  </label>
+                  <label className="settingsInvoiceDueOption">
+                    <input
+                      type="radio"
+                      name="invoiceDuePreset"
+                      checked={invoiceDuePreset === "seven"}
+                      onChange={() => applyInvoiceDuePreset("seven")}
+                    />
+                    <span>7 Tage</span>
+                  </label>
+                  <label className="settingsInvoiceDueOption">
+                    <input
+                      type="radio"
+                      name="invoiceDuePreset"
+                      checked={invoiceDuePreset === "fourteen"}
+                      onChange={() => applyInvoiceDuePreset("fourteen")}
+                    />
+                    <span>14 Tage</span>
+                  </label>
+                </div>
+                <label className="settingsInvoiceDueCustom">
+                  <span>Eigene Frist</span>
+                  <div className="settingsInvoiceDueCustomInputWrap">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={customInvoiceDueDays}
+                      onChange={(event) =>
+                        handleCustomInvoiceDueDaysInput(event.target.value)
+                      }
+                      placeholder="z. B. 30"
+                    />
+                    <em>Tage</em>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <label className="field">
+              <span>Letzte Angebotsnummer</span>
+              <input
+                value={settings.lastOfferNumber}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    lastOfferNumber: e.target.value,
+                  }))
+                }
+                placeholder="z. B. ANG-2026-025"
               />
             </label>
 
@@ -300,7 +597,12 @@ export default function SettingsPage() {
               <textarea
                 rows={4}
                 value={settings.offerTermsText}
-                onChange={(e) => setSettings((prev) => ({ ...prev, offerTermsText: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    offerTermsText: e.target.value,
+                  }))
+                }
                 placeholder="z. B. Zahlungsbedingungen oder Angebotsbedingungen"
               />
             </label>
@@ -309,56 +611,80 @@ export default function SettingsPage() {
               <span>PDF-Tabellenspalten</span>
               <div className="settingsPdfColumnsPanel">
                 <p className="settingsPdfColumnsHint">
-                  Lege fest, welche Spalten im Angebots-PDF sichtbar sind und in welcher Reihenfolge sie erscheinen.
+                  Lege fest, welche Spalten im Angebots-PDF sichtbar sind und in
+                  welcher Reihenfolge sie erscheinen.
                 </p>
                 <div className="settingsPdfColumnsList">
-                  {orderedPdfColumns.map((column, index) => {
-                    const isFirst = index === 0;
-                    const isLast = index === orderedPdfColumns.length - 1;
+                  {orderedPdfColumns.map((column) => {
+                    const isDragTarget =
+                      draggingPdfColumnId !== null &&
+                      dragOverPdfColumnId === column.id;
 
                     return (
-                      <div key={column.id} className="settingsPdfColumnsRow">
+                      <div
+                        key={column.id}
+                        className={`settingsPdfColumnsRow ${isDragTarget ? "settingsPdfColumnsRowDragTarget" : ""}`}
+                        data-pdf-column-id={column.id}
+                        onDragOver={(event) =>
+                          handlePdfColumnDragOver(event, column.id)
+                        }
+                        onDrop={(event) =>
+                          handlePdfColumnDrop(event, column.id)
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="settingsPdfColumnsDragHandle"
+                          draggable
+                          onDragStart={(event) =>
+                            handlePdfColumnDragStart(event, column.id)
+                          }
+                          onDragEnd={() => {
+                            setDraggingPdfColumnId(null);
+                            setDragOverPdfColumnId(null);
+                          }}
+                          onPointerDown={(event) =>
+                            handlePdfColumnTouchStart(event, column.id)
+                          }
+                          onPointerMove={handlePdfColumnTouchMove}
+                          onPointerUp={handlePdfColumnTouchEnd}
+                          onPointerCancel={handlePdfColumnTouchEnd}
+                          aria-label={`${column.label} per Drag-and-Drop verschieben`}
+                        >
+                          ⋮⋮
+                        </button>
+
                         <label className="settingsPdfColumnsToggle">
                           <input
                             type="checkbox"
                             checked={column.visible}
-                            onChange={(event) => togglePdfColumnVisibility(column.id, event.target.checked)}
+                            onChange={(event) =>
+                              togglePdfColumnVisibility(
+                                column.id,
+                                event.target.checked,
+                              )
+                            }
                           />
                           <span>Sichtbar</span>
                         </label>
 
                         <input
                           value={column.label}
-                          onChange={(event) => updatePdfColumnLabel(column.id, event.target.value)}
+                          onChange={(event) =>
+                            updatePdfColumnLabel(column.id, event.target.value)
+                          }
                           placeholder="Spaltenname"
                         />
-
-                        <div className="settingsPdfColumnsActions">
-                          <button
-                            type="button"
-                            className="settingsPdfColumnsOrderButton"
-                            disabled={isFirst}
-                            onClick={() => movePdfColumn(column.id, "up")}
-                            aria-label={`${column.label} nach oben`}
-                          >
-                            ↑
-                          </button>
-                          <button
-                            type="button"
-                            className="settingsPdfColumnsOrderButton"
-                            disabled={isLast}
-                            onClick={() => movePdfColumn(column.id, "down")}
-                            aria-label={`${column.label} nach unten`}
-                          >
-                            ↓
-                          </button>
-                        </div>
                       </div>
                     );
                   })}
                 </div>
 
-                <button type="button" className="ghostButton settingsPdfColumnsReset" onClick={resetPdfColumns}>
+                <button
+                  type="button"
+                  className="ghostButton settingsPdfColumnsReset"
+                  onClick={resetPdfColumns}
+                >
                   Standardspalten wiederherstellen
                 </button>
               </div>
@@ -371,7 +697,11 @@ export default function SettingsPage() {
 
             {settings.logoDataUrl ? (
               <div className="logoFrame span2">
-                <img src={settings.logoDataUrl} alt="Logo Vorschau" className="logoPreview" />
+                <img
+                  src={settings.logoDataUrl}
+                  alt="Logo Vorschau"
+                  className="logoPreview"
+                />
               </div>
             ) : null}
 

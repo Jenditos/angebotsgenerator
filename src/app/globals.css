@@ -99,20 +99,87 @@ a {
 }
 
 .topBarBrand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  gap: 11px;
+  align-items: flex-start;
   font-size: 1rem;
   letter-spacing: 0.02em;
+}
+
+.topBarHeadingRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.documentModeSwitchTop {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.documentModeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid rgba(72, 116, 195, 0.26);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.84);
+  width: min(760px, 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(34, 76, 147, 0.14);
+}
+
+.documentModeSwitchButton {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 13px 18px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #2b4675;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.documentModeSwitchButton.active {
+  border-color: rgba(57, 121, 245, 0.92);
+  background: rgba(234, 243, 255, 0.98);
+  box-shadow:
+    inset 0 0 0 1px rgba(70, 130, 250, 0.34),
+    0 5px 14px rgba(56, 111, 216, 0.2);
+}
+
+.documentModeSwitchButton:not(.active):hover {
+  background: rgba(231, 242, 255, 0.64);
+}
+
+.documentModeContent {
+  animation: documentModeFade 180ms ease-out;
+}
+
+.topBarTitle {
+  margin: 0;
+  font-size: clamp(1.36rem, 2.4vw, 1.95rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: #132a52;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  padding: 5px 12px;
+  padding: 8px 20px;
   border-radius: 999px;
-  font-size: 0.74rem;
-  letter-spacing: 0.12em;
+  font-size: 0.92rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: #30558e;
   background: rgba(103, 153, 255, 0.14);
@@ -123,72 +190,40 @@ a {
   white-space: nowrap;
 }
 
+.settingsTopBarBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settingsLogoPill {
+  width: 54px;
+  height: 54px;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 54px;
+  border-radius: 50%;
+  padding: 0;
+  justify-content: center;
+  font-size: 1.22rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.settingsTopBarTitle {
+  font-size: 1.28rem;
+  line-height: 1.1;
+  color: #132a52;
+}
+
 .hero {
   padding: 30px;
   display: grid;
   gap: 14px;
 }
 
-.heroDisclosure {
-  display: grid;
-  gap: 10px;
-}
-
-.heroQuestionButton {
-  width: 34px;
-  height: 34px;
-  justify-self: end;
-  border-radius: 999px;
-  border: 1px solid rgba(74, 118, 196, 0.34);
-  background: rgba(255, 255, 255, 0.8);
-  color: #204479;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.heroQuestionButton:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.94);
-  border-color: rgba(74, 118, 196, 0.56);
-}
-
-.heroExpandable {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  padding-top: 0;
-  padding-bottom: 0;
-  transition:
-    max-height 0.32s ease,
-    opacity 0.26s ease,
-    transform 0.26s ease,
-    padding-top 0.26s ease,
-    padding-bottom 0.26s ease;
-}
-
-.heroExpandableOpen {
-  max-height: 980px;
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  padding-top: 30px;
-  padding-bottom: 30px;
-}
-
 .compactHero {
   padding: 24px;
-}
-
-.heroEyebrow {
-  margin: 0;
-  color: #4f70a6;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 0.74rem;
 }
 
 h1 {
@@ -196,14 +231,6 @@ h1 {
   font-size: clamp(1.85rem, 3.4vw, 3.2rem);
   line-height: 1.04;
   letter-spacing: -0.02em;
-}
-
-.heroText {
-  margin: 0;
-  max-width: 760px;
-  color: var(--muted);
-  font-size: 1.04rem;
-  line-height: 1.55;
 }
 
 .stepRow {
@@ -219,7 +246,10 @@ h1 {
   padding: 14px 16px;
   border: 1px solid rgba(70, 111, 196, 0.2);
   background: rgba(255, 255, 255, 0.58);
-  transition: transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease;
 }
 
 .stepTile span {
@@ -266,6 +296,10 @@ h1 {
   gap: 16px;
 }
 
+.workspaceGridSingle {
+  grid-template-columns: 1fr;
+}
+
 .formCard,
 .previewPanel,
 .resultCard {
@@ -282,6 +316,88 @@ h1 {
   display: grid;
   gap: 6px;
   margin-bottom: 16px;
+}
+
+.customerPickerPanel {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.customerPickerToggle {
+  width: auto;
+}
+
+.customerPickerList {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(72, 118, 197, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 10px;
+}
+
+.customerPickerSearch {
+  width: 100%;
+  border: 1px solid rgba(79, 115, 190, 0.24);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 0.86rem;
+  color: #1b3259;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.customerPickerResults {
+  display: grid;
+  gap: 8px;
+  max-height: 236px;
+  overflow: auto;
+}
+
+.customerPickerHint {
+  font-size: 0.84rem;
+  color: #4e6995;
+}
+
+.customerPickerItem {
+  border: 1px solid rgba(72, 118, 197, 0.2);
+  border-radius: 12px;
+  background: rgba(241, 247, 255, 0.9);
+  padding: 10px 11px;
+  text-align: left;
+  display: grid;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.customerPickerItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.customerPickerItemHeader strong {
+  color: #1d365f;
+  font-size: 0.91rem;
+}
+
+.customerPickerItemHeader span {
+  color: #355685;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.customerPickerItem p {
+  margin: 0;
+  color: #4e6894;
+  font-size: 0.82rem;
+}
+
+.customerPickerItem:hover {
+  background: rgba(231, 241, 255, 0.94);
+  border-color: rgba(72, 118, 197, 0.34);
 }
 
 h2 {
@@ -311,7 +427,11 @@ p {
   border: 1px solid rgba(67, 123, 214, 0.26);
   border-radius: 16px;
   padding: 12px;
-  background: linear-gradient(145deg, rgba(245, 250, 255, 0.94), rgba(232, 244, 255, 0.84));
+  background: linear-gradient(
+    145deg,
+    rgba(245, 250, 255, 0.94),
+    rgba(232, 244, 255, 0.84)
+  );
 }
 
 .voicePanelHeader {
@@ -357,9 +477,31 @@ p {
 
 .voiceActionButtonStop {
   border-color: rgba(198, 38, 64, 0.58);
-  background: linear-gradient(135deg, rgba(255, 225, 233, 0.95), rgba(255, 241, 245, 0.95));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 225, 233, 0.95),
+    rgba(255, 241, 245, 0.95)
+  );
   color: #7c1f33;
   box-shadow: 0 10px 20px rgba(173, 33, 59, 0.24);
+}
+
+.voiceActionButtonPause {
+  border-color: rgba(192, 141, 43, 0.52);
+  background: rgba(255, 246, 223, 0.95);
+  color: #7a5510;
+  box-shadow:
+    0 0 0 1px rgba(196, 145, 45, 0.24),
+    0 0 16px rgba(205, 158, 67, 0.22);
+}
+
+.voiceActionButtonResume {
+  border-color: rgba(40, 152, 102, 0.48);
+  background: rgba(231, 252, 242, 0.94);
+  color: #176847;
+  box-shadow:
+    0 0 0 1px rgba(40, 152, 102, 0.22),
+    0 0 18px rgba(41, 156, 105, 0.2);
 }
 
 .voiceInfo,
@@ -379,6 +521,39 @@ p {
   color: #933a4f;
   border: 1px solid rgba(219, 95, 130, 0.28);
   background: rgba(255, 241, 245, 0.92);
+}
+
+.voiceMissingPanel {
+  display: grid;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 10px 11px;
+  border: 1px solid rgba(84, 126, 200, 0.22);
+  background: rgba(244, 248, 255, 0.88);
+}
+
+.voiceMissingLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #496792;
+}
+
+.voiceMissingList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.voiceMissingTag {
+  border-radius: 999px;
+  padding: 5px 10px;
+  border: 1px solid rgba(80, 123, 200, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  color: #294d86;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .recipientType {
@@ -411,7 +586,10 @@ p {
   font-weight: 700;
   padding: 9px 10px;
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .recipientTypeButton.active {
@@ -568,6 +746,130 @@ p {
   cursor: not-allowed;
 }
 
+.positionsInputWrap {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(66, 113, 199, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.positionsInputTable {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.positionsInputTable thead th {
+  text-align: left;
+  padding: 10px 11px;
+  color: #4c648d;
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(66, 113, 199, 0.24);
+  border-right: 1px solid rgba(66, 113, 199, 0.16);
+  background: rgba(233, 243, 255, 0.78);
+}
+
+.positionsInputTable thead th:last-child {
+  border-right: 0;
+}
+
+.positionsInputTable tbody td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(66, 113, 199, 0.16);
+  border-right: 1px solid rgba(66, 113, 199, 0.16);
+  vertical-align: middle;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.positionsInputTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.positionsInputTable tbody td:last-child {
+  border-right: 0;
+}
+
+.positionsGroupRow td {
+  padding: 9px 11px;
+  background: rgba(232, 242, 255, 0.86) !important;
+  font-weight: 700;
+  color: #244a84;
+}
+
+.positionsGroupAction {
+  text-align: right;
+}
+
+.positionsGroupDeleteButton {
+  border: 1px solid rgba(68, 116, 196, 0.28);
+  background: rgba(255, 255, 255, 0.92);
+  color: #355f9f;
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.positionDescriptionInput,
+.positionQuantityInput,
+.positionUnitSelect,
+.positionPriceInput {
+  width: 100%;
+  min-width: 0;
+}
+
+.positionNumericCell {
+  text-align: right;
+}
+
+.positionQuantityInput,
+.positionPriceInput {
+  text-align: right;
+}
+
+.positionTotalCell {
+  text-align: right;
+  font-weight: 700;
+  color: #1c3660;
+  white-space: nowrap;
+  background: rgba(234, 243, 255, 0.74) !important;
+}
+
+.positionActionCell {
+  text-align: center;
+}
+
+.positionDeleteButton {
+  border: 1px solid rgba(229, 72, 102, 0.36);
+  color: var(--danger);
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.positionsInputEmpty {
+  padding: 13px 11px !important;
+  font-size: 0.84rem;
+  color: #4f6892;
+  text-align: left;
+}
+
+.positionsAddRowButton {
+  margin-top: 9px;
+  width: auto;
+}
+
 .selectedServiceList {
   display: grid;
   gap: 10px;
@@ -631,7 +933,10 @@ p {
 .selectedSubitemTableHead,
 .selectedSubitemRow {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 0.8fr) minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr);
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 0.8fr) minmax(
+      0,
+      0.9fr
+    ) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr);
   align-items: stretch;
   width: 100%;
 }
@@ -785,7 +1090,10 @@ textarea {
   font: inherit;
   color: #10203a;
   background: rgba(255, 255, 255, 0.86);
-  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 textarea {
@@ -816,7 +1124,10 @@ textarea:focus {
   width: fit-content;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: transform 0.18s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .primaryButton {
@@ -889,7 +1200,11 @@ textarea:focus {
   padding: 15px;
   display: grid;
   gap: 8px;
-  background: linear-gradient(145deg, rgba(146, 197, 255, 0.24), rgba(134, 235, 255, 0.2));
+  background: linear-gradient(
+    145deg,
+    rgba(146, 197, 255, 0.24),
+    rgba(134, 235, 255, 0.2)
+  );
   border: 1px solid rgba(82, 151, 255, 0.3);
 }
 
@@ -962,6 +1277,79 @@ textarea:focus {
   margin-bottom: 6px;
 }
 
+.settingsInvoiceDueField > span {
+  margin-bottom: 6px;
+}
+
+.settingsInvoiceDuePanel {
+  border: 1px solid rgba(74, 118, 196, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 10px 11px;
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.settingsInvoiceDueHint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #3d5f90;
+}
+
+.settingsInvoiceDueOptions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+
+.settingsInvoiceDueOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(72, 117, 195, 0.24);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 7px 10px;
+  font-size: 0.79rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: #264678;
+}
+
+.settingsInvoiceDueOption input {
+  margin: 0;
+}
+
+.settingsInvoiceDueCustom {
+  display: grid;
+  gap: 4px;
+  color: #2b4a78;
+  font-size: 0.8rem;
+}
+
+.settingsInvoiceDueCustomInputWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settingsInvoiceDueCustomInputWrap input {
+  width: 100px;
+}
+
+.settingsInvoiceDueCustomInputWrap em {
+  font-style: normal;
+  font-size: 0.78rem;
+  color: #4d6792;
+}
+
 .settingsPdfColumnsPanel {
   border: 1px solid rgba(74, 118, 196, 0.24);
   border-radius: 14px;
@@ -982,7 +1370,7 @@ textarea:focus {
 
 .settingsPdfColumnsRow {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto minmax(0, 1fr);
   gap: 8px;
   align-items: center;
 }
@@ -995,25 +1383,33 @@ textarea:focus {
   font-size: 0.82rem;
 }
 
-.settingsPdfColumnsActions {
-  display: inline-flex;
-  gap: 6px;
+.settingsPdfColumnsRowDragTarget {
+  border-radius: 10px;
+  background: rgba(228, 241, 255, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(64, 127, 235, 0.3);
 }
 
-.settingsPdfColumnsOrderButton {
-  width: 30px;
-  height: 30px;
+.settingsPdfColumnsDragHandle {
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   border: 1px solid rgba(74, 118, 196, 0.34);
   background: rgba(255, 255, 255, 0.86);
   color: #244377;
-  font-size: 0.94rem;
+  font-size: 1.05rem;
+  line-height: 1;
+  letter-spacing: -0.12em;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: none;
 }
 
-.settingsPdfColumnsOrderButton:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.settingsPdfColumnsDragHandle:active {
+  background: rgba(229, 240, 255, 0.95);
+  border-color: rgba(66, 126, 238, 0.45);
 }
 
 .settingsPdfColumnsReset {
@@ -1057,6 +1453,17 @@ textarea:focus {
   }
 }
 
+@keyframes documentModeFade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 960px) {
   .workspaceGrid {
     grid-template-columns: 1fr;
@@ -1073,6 +1480,37 @@ textarea:focus {
     align-items: flex-start;
   }
 
+  .topBarHeadingRow {
+    width: 100%;
+  }
+
+  .settingsTopBarBrand {
+    gap: 10px;
+  }
+
+  .settingsLogoPill {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    font-size: 1.08rem;
+  }
+
+  .settingsTopBarTitle {
+    font-size: 1.15rem;
+  }
+
+  .documentModeSwitch {
+    width: 100%;
+    max-width: none;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .documentModeSwitchButton {
+    padding: 12px 14px;
+    font-size: 0.98rem;
+  }
+
   .hero,
   .formCard,
   .previewPanel,
@@ -1087,12 +1525,20 @@ textarea:focus {
   }
 
   .settingsPdfColumnsRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
     justify-items: stretch;
   }
 
-  .settingsPdfColumnsActions {
-    justify-content: flex-end;
+  .settingsInvoiceDueOptions {
+    gap: 5px;
+  }
+
+  .settingsInvoiceDuePanel {
+    max-width: none;
+  }
+
+  .settingsPdfColumnsRow input:not([type="checkbox"]) {
+    grid-column: 1 / -1;
   }
 
   .selectedSubitemTableHead {
@@ -1121,6 +1567,14 @@ textarea:focus {
     width: 100%;
   }
 
+  .positionsInputTable {
+    min-width: 680px;
+  }
+
+  .positionsAddRowButton {
+    width: 100%;
+  }
+
   .span2 {
     grid-column: span 1;
   }
@@ -1139,5 +1593,181 @@ textarea:focus {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+.positionsCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(72, 117, 198, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 14px;
+}
+
+.positionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.positionsAddButton {
+  padding: 8px 14px;
+  font-size: 0.84rem;
+}
+
+.positionsTableWrap {
+  overflow-x: auto;
+}
+
+.positionsTable {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.positionsTable thead th {
+  text-align: left;
+  padding: 8px;
+  color: #51698f;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(72, 117, 198, 0.2);
+}
+
+.positionsTable tbody td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(72, 117, 198, 0.14);
+  vertical-align: top;
+}
+
+.positionsTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.positionsTypeahead {
+  position: relative;
+  min-width: 250px;
+}
+
+.positionsTypeaheadList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid rgba(79, 115, 190, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 15px 28px rgba(31, 63, 112, 0.18);
+}
+
+.positionsTypeaheadList button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #1d365f;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.positionsTypeaheadList button:hover {
+  background: rgba(231, 241, 255, 0.62);
+}
+
+.positionsTypeaheadEmpty {
+  padding: 8px 10px;
+  color: #6178a0;
+  font-size: 0.82rem;
+}
+
+.positionsPrice {
+  font-weight: 700;
+  color: #1c3660;
+  white-space: nowrap;
+}
+
+.positionsDeleteButton {
+  border: 1px solid rgba(229, 72, 102, 0.38);
+  color: var(--danger);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.positionsDeleteButton:hover {
+  background: rgba(229, 72, 102, 0.08);
+}
+
+.positionsCustomCard {
+  border: 1px solid rgba(67, 123, 214, 0.24);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(240, 247, 255, 0.7);
+  display: grid;
+  gap: 8px;
+}
+
+.positionsCustomCard p {
+  font-size: 0.85rem;
+  color: #2f4e81;
+}
+
+.positionsCustomRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.positionsCustomRow .primaryButton {
+  padding: 9px 16px;
+}
+
+.positionsTotals {
+  margin-left: auto;
+  width: min(100%, 360px);
+  border: 1px solid rgba(67, 123, 214, 0.18);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 7px;
+}
+
+.positionsTotals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.positionsTotals span {
+  color: #4b638d;
+}
+
+.positionsGrandTotal {
+  border-top: 1px solid rgba(72, 117, 198, 0.2);
+  padding-top: 7px;
+  font-size: 0.98rem !important;
+}
+
+@media (max-width: 900px) {
+  .positionsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .positionsTotals {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .positionsCustomRow {
+    grid-template-columns: 1fr;
   }
 }

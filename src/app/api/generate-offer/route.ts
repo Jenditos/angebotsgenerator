@@ -3,9 +3,19 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
-import { readSettings } from "@/lib/settings-store";
+import { readSettings, writeSettings } from "@/lib/settings-store";
 import { sendViaConnectedMailbox } from "@/lib/email-sender";
-import { GenerateOfferRequest, OfferPdfLineItem, OfferPositionInput } from "@/types/offer";
+import {
+  CustomerDraftGroup,
+  CustomerDraftState,
+  CustomerDraftSubitem,
+  DocumentType,
+  GenerateOfferRequest,
+  OfferPdfLineItem,
+  OfferPositionInput,
+} from "@/types/offer";
+import { createStoredOfferRecord } from "@/server/services/offer-store-service";
+import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 
@@ -18,9 +28,202 @@ function toNonNegativeNumber(value: number): number {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
+function resolveDocumentType(value: unknown): DocumentType {
+  return value === "invoice" ? "invoice" : "offer";
+}
+
+function toDateInputValue(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function parsePaymentDueDays(value: number | string | undefined): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 14;
+  }
+
+  const rounded = Math.floor(parsed);
+  if (rounded < 0) {
+    return 0;
+  }
+  if (rounded > 365) {
+    return 365;
+  }
+
+  return rounded;
+}
+
+function buildPaymentDueText(days: number): string {
+  if (days <= 0) {
+    return "sofort ohne Abzug";
+  }
+
+  return `innerhalb von ${days} Tagen ohne Abzug`;
+}
+
+function normalizeInputValue(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function sanitizeSelectedServiceEntries(
+  entries: GenerateOfferRequest["selectedServiceEntries"],
+): CustomerDraftGroup[] {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  const normalizedGroups: CustomerDraftGroup[] = [];
+
+  for (const entry of entries) {
+    const label = normalizeInputValue(entry?.label);
+    const subitemsSource = Array.isArray(entry?.subitems) ? entry.subitems : [];
+    const subitems: CustomerDraftSubitem[] = [];
+
+    for (const subitem of subitemsSource) {
+      const description = normalizeInputValue(subitem?.description);
+      const quantity = normalizeInputValue(subitem?.quantity);
+      const unit = normalizeInputValue(subitem?.unit);
+      const price = normalizeInputValue(subitem?.price);
+
+      if (!description && !quantity && !price) {
+        continue;
+      }
+
+      subitems.push({
+        description,
+        quantity,
+        unit,
+        price,
+      });
+    }
+
+    if (!label && subitems.length === 0) {
+      continue;
+    }
+
+    normalizedGroups.push({
+      label,
+      subitems,
+    });
+  }
+
+  return normalizedGroups;
+}
+
+function toDecimalInputValue(value: number): string {
+  const asString = Number.isInteger(value) ? String(value) : String(value);
+  return asString.replace(".", ",");
+}
+
+function buildDraftGroupsFromLineItems(
+  lineItems: OfferPdfLineItem[],
+): CustomerDraftGroup[] {
+  const groups = new Map<string, CustomerDraftGroup>();
+
+  for (const item of lineItems) {
+    const groupLabel = normalizeInputValue(item.group) || "Weitere Positionen";
+    const description = normalizeInputValue(item.description);
+    const quantity =
+      Number.isFinite(item.quantity) && item.quantity > 0
+        ? toDecimalInputValue(item.quantity)
+        : "";
+    const price =
+      Number.isFinite(item.unitPrice) && item.unitPrice >= 0
+        ? toDecimalInputValue(item.unitPrice)
+        : "";
+    const unit = normalizeInputValue(item.unit) || "Pauschal";
+
+    if (!description && !quantity && !price) {
+      continue;
+    }
+
+    const group =
+      groups.get(groupLabel) ??
+      {
+        label: groupLabel,
+        subitems: [],
+      };
+
+    group.subitems.push({
+      description,
+      quantity,
+      unit,
+      price,
+    });
+    groups.set(groupLabel, group);
+  }
+
+  return Array.from(groups.values());
+}
+
+function buildInvoiceText(input: {
+  customerType: "person" | "company";
+  salutation: "herr" | "frau";
+  firstName: string;
+  lastName: string;
+  customerName: string;
+  paymentDueDays: number;
+}): {
+  subject: string;
+  intro: string;
+  details: string;
+  closing: string;
+} {
+  const personName = [input.firstName.trim(), input.lastName.trim()]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const greeting =
+    input.customerType === "person" || personName
+      ? input.salutation === "frau"
+        ? `Sehr geehrte Frau ${personName || input.customerName},`
+        : `Sehr geehrter Herr ${personName || input.customerName},`
+      : "Sehr geehrte Damen und Herren,";
+
+  return {
+    subject: `Rechnung für ${input.customerName || "Kunde"}`,
+    intro: [
+      greeting,
+      "",
+      "für die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.",
+      "Die einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+    ].join("\n"),
+    details:
+      "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+    closing: `Bitte begleichen Sie den Gesamtbetrag ${buildPaymentDueText(input.paymentDueDays)} unter Angabe der Rechnungsnummer.`,
+  };
+}
+
 function normalizePositionInput(
-  positions: OfferPositionInput[] | undefined
-): Array<{ group?: string; description: string; quantity: number; unit: string; unitPrice: number }> {
+  positions: OfferPositionInput[] | undefined,
+): Array<{
+  group?: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+}> {
   if (!Array.isArray(positions)) {
     return [];
   }
@@ -31,17 +234,23 @@ function normalizePositionInput(
       description: position.description?.trim() ?? "",
       quantity: toNonNegativeNumber(toNumber(position.quantity ?? 0)),
       unit: position.unit?.trim() || "",
-      unitPrice: toNonNegativeNumber(toNumber(position.unitPrice ?? 0))
+      unitPrice: toNonNegativeNumber(toNumber(position.unitPrice ?? 0)),
     }))
     .filter(
       (position) =>
-        Boolean(position.description) || position.quantity > 0 || position.unitPrice > 0 || Boolean(position.unit)
+        Boolean(position.description) ||
+        position.quantity > 0 ||
+        position.unitPrice > 0 ||
+        Boolean(position.unit),
     );
 
   return normalized;
 }
 
-function parseGroupedServiceEntry(value: string): { group?: string; description: string } {
+function parseGroupedServiceEntry(value: string): {
+  group?: string;
+  description: string;
+} {
   const trimmed = value.trim();
   if (!trimmed) {
     return { description: "" };
@@ -49,11 +258,14 @@ function parseGroupedServiceEntry(value: string): { group?: string; description:
 
   const separators = ["::", " > ", "|"];
   for (const separator of separators) {
-    const parts = trimmed.split(separator).map((part) => part.trim()).filter(Boolean);
+    const parts = trimmed
+      .split(separator)
+      .map((part) => part.trim())
+      .filter(Boolean);
     if (parts.length >= 2) {
       return {
         group: parts[0],
-        description: parts.slice(1).join(" - ")
+        description: parts.slice(1).join(" - "),
       };
     }
   }
@@ -61,7 +273,9 @@ function parseGroupedServiceEntry(value: string): { group?: string; description:
   return { description: trimmed };
 }
 
-function normalizeSelectedServices(selectedServices: string[] | undefined): string[] {
+function normalizeSelectedServices(
+  selectedServices: string[] | undefined,
+): string[] {
   if (!Array.isArray(selectedServices)) {
     return [];
   }
@@ -95,11 +309,17 @@ function normalizeSelectedServices(selectedServices: string[] | undefined): stri
   return normalized;
 }
 
-function composeServiceDescription(selectedServices: string[], freeText: string): string {
+function composeServiceDescription(
+  selectedServices: string[],
+  freeText: string,
+): string {
   const serviceListText =
     selectedServices.length > 0
       ? selectedServices
-          .map((service) => parseGroupedServiceEntry(service).description || service)
+          .map(
+            (service) =>
+              parseGroupedServiceEntry(service).description || service,
+          )
           .filter(Boolean)
           .join(", ")
       : "";
@@ -129,7 +349,7 @@ function buildPdfLineItems(input: {
       description: position.description || `Position ${index + 1}`,
       unit: position.unit,
       unitPrice: position.unitPrice,
-      totalPrice: position.quantity * position.unitPrice
+      totalPrice: position.quantity * position.unitPrice,
     }));
   }
 
@@ -144,7 +364,7 @@ function buildPdfLineItems(input: {
         description: parsedService.description || service,
         unit: "Psch.",
         unitPrice: 0,
-        totalPrice: 0
+        totalPrice: 0,
       });
     });
   }
@@ -154,10 +374,13 @@ function buildPdfLineItems(input: {
     fallbackItems.push({
       position: fallbackItems.length + 1,
       quantity,
-      description: input.selectedServices.length > 0 ? "Arbeitszeit" : input.serviceDescription || "Arbeitsleistung",
+      description:
+        input.selectedServices.length > 0
+          ? "Arbeitszeit"
+          : input.serviceDescription || "Arbeitsleistung",
       unit: "Std.",
       unitPrice: input.hourlyRate,
-      totalPrice: quantity * input.hourlyRate
+      totalPrice: quantity * input.hourlyRate,
     });
   }
 
@@ -168,7 +391,7 @@ function buildPdfLineItems(input: {
       description: "Material",
       unit: "Psch.",
       unitPrice: input.materialCost,
-      totalPrice: input.materialCost
+      totalPrice: input.materialCost,
     });
   }
 
@@ -176,10 +399,11 @@ function buildPdfLineItems(input: {
     fallbackItems.push({
       position: 1,
       quantity: 1,
-      description: input.serviceDescription || input.selectedServices[0] || "Leistung",
+      description:
+        input.serviceDescription || input.selectedServices[0] || "Leistung",
       unit: "Psch.",
       unitPrice: 0,
-      totalPrice: 0
+      totalPrice: 0,
     });
   }
 
@@ -188,42 +412,94 @@ function buildPdfLineItems(input: {
 
 type EmailStatus = "not_requested" | "sent" | "not_configured" | "failed";
 
-function buildOfferEmailText(input: {
+function buildEmailText(input: {
+  documentType: DocumentType;
   customerType: "person" | "company";
   salutation: "herr" | "frau";
   firstName: string;
   lastName: string;
-  serviceDescription: string;
   senderName: string;
+  paymentDueDays: number;
 }): string {
-  const serviceLine = input.serviceDescription.trim() || "angefragten Leistungen";
-  const personName = [input.firstName.trim(), input.lastName.trim()].filter(Boolean).join(" ").trim();
+  const personName = [input.firstName.trim(), input.lastName.trim()]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
   let greeting = "Sehr geehrte Damen und Herren,";
   if (input.customerType === "person") {
-    greeting = input.salutation === "frau" ? `Sehr geehrte Frau ${personName},` : `Sehr geehrter Herr ${personName},`;
+    greeting =
+      input.salutation === "frau"
+        ? `Sehr geehrte Frau ${personName},`
+        : `Sehr geehrter Herr ${personName},`;
   } else if (personName) {
-    greeting = input.salutation === "frau" ? `Sehr geehrte Frau ${personName},` : `Sehr geehrter Herr ${personName},`;
+    greeting =
+      input.salutation === "frau"
+        ? `Sehr geehrte Frau ${personName},`
+        : `Sehr geehrter Herr ${personName},`;
   }
 
-  return [
+  const offerLines = [
     greeting,
     "",
     "vielen Dank für Ihre Anfrage.",
     "",
-    `Anbei erhalten Sie unser Angebot für die ${serviceLine}.`,
+    "Anbei erhalten Sie unser Angebot.",
     "Bitte entnehmen Sie alle Details dem beigefügten Angebot im Anhang.",
     "",
     "Bei Fragen stehen wir Ihnen jederzeit gerne zur Verfügung.",
     "",
     "Mit freundlichen Grüßen",
-    input.senderName
-  ].join("\n");
+    "",
+    input.senderName,
+  ];
+  const invoiceLines = [
+    greeting,
+    "",
+    "Anbei erhalten Sie unsere Rechnung.",
+    `Bitte begleichen Sie den Rechnungsbetrag ${buildPaymentDueText(input.paymentDueDays)}.`,
+    "",
+    "Für Rückfragen stehen wir Ihnen gerne zur Verfügung.",
+    "",
+    "Mit freundlichen Grüßen",
+    "",
+    input.senderName,
+  ];
+
+  return (input.documentType === "invoice" ? invoiceLines : offerLines).join(
+    "\n",
+  );
+}
+
+function adaptTextForDocumentType(
+  input: {
+    text: {
+      subject: string;
+      intro: string;
+      details: string;
+      closing: string;
+    };
+    documentType: DocumentType;
+    customerName: string;
+  },
+) {
+  if (input.documentType === "offer") {
+    return input.text;
+  }
+
+  const fallbackSubject = `Rechnung für ${input.customerName || "Kunde"}`;
+  const nextSubject = (input.text.subject || "").trim() || fallbackSubject;
+
+  return {
+    ...input.text,
+    subject: nextSubject,
+  };
 }
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerateOfferRequest;
+    const documentType = resolveDocumentType(body.documentType);
 
     const customerType = body.customerType === "company" ? "company" : "person";
     const companyName = body.companyName?.trim() ?? "";
@@ -236,23 +512,46 @@ export async function POST(request: Request) {
     const customerEmail = body.customerEmail?.trim() ?? "";
     const serviceDescription = body.serviceDescription?.trim() ?? "";
     const selectedServices = normalizeSelectedServices(body.selectedServices);
-    const composedServiceDescription = composeServiceDescription(selectedServices, serviceDescription);
+    const composedServiceDescription = composeServiceDescription(
+      selectedServices,
+      serviceDescription,
+    );
     const sendEmailRequested = Boolean(body.sendEmail);
+    const requestedPaymentDueDays = parsePaymentDueDays(body.paymentDueDays);
+    const resolvedInvoiceDate =
+      parseDateInput(typeof body.invoiceDate === "string" ? body.invoiceDate : "") ??
+      new Date();
+    const servicePeriod = normalizeInputValue(body.serviceDate);
 
     const hours = toNonNegativeNumber(toNumber(body.hours));
     const hourlyRate = toNonNegativeNumber(toNumber(body.hourlyRate));
     const materialCost = toNonNegativeNumber(toNumber(body.materialCost));
 
-    if (!street || !postalCode || !city || !customerEmail || !composedServiceDescription) {
-      return NextResponse.json({ error: "Bitte alle Pflichtfelder ausfüllen." }, { status: 400 });
+    if (
+      !street ||
+      !postalCode ||
+      !city ||
+      !customerEmail ||
+      !composedServiceDescription
+    ) {
+      return NextResponse.json(
+        { error: "Bitte alle Pflichtfelder ausfüllen." },
+        { status: 400 },
+      );
     }
 
     if (customerType === "person" && (!firstName || !lastName)) {
-      return NextResponse.json({ error: "Für Privatpersonen bitte Vor- und Nachname ausfüllen." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Für Privatpersonen bitte Vor- und Nachname ausfüllen." },
+        { status: 400 },
+      );
     }
 
     if (customerType === "company" && !companyName) {
-      return NextResponse.json({ error: "Für Firmenangebote bitte einen Firmennamen eintragen." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Für Firmenangebote bitte einen Firmennamen eintragen." },
+        { status: 400 },
+      );
     }
 
     const personName = [firstName, lastName].filter(Boolean).join(" ").trim();
@@ -263,69 +562,174 @@ export async function POST(request: Request) {
           : companyName
         : personName;
     const customerAddress = `${street}, ${postalCode} ${city}`;
-
     const settings = await readSettings();
+    const configuredPaymentDueDays = parsePaymentDueDays(
+      settings.invoicePaymentDueDays,
+    );
+    const paymentDueDays =
+      documentType === "invoice"
+        ? configuredPaymentDueDays
+        : requestedPaymentDueDays;
+    const selectedServiceEntries = sanitizeSelectedServiceEntries(
+      body.selectedServiceEntries,
+    );
     const lineItems = buildPdfLineItems({
       positions: body.positions,
       serviceDescription: composedServiceDescription,
       selectedServices,
       hours,
       hourlyRate,
-      materialCost
+      materialCost,
+    });
+    const draftState: CustomerDraftState = {
+      serviceDescription,
+      hours: String(body.hours ?? "").trim(),
+      hourlyRate: String(body.hourlyRate ?? "").trim(),
+      materialCost: String(body.materialCost ?? "").trim(),
+      invoiceDate: toDateInputValue(resolvedInvoiceDate),
+      serviceDate: servicePeriod,
+      paymentDueDays: String(paymentDueDays),
+      positions:
+        selectedServiceEntries.length > 0
+          ? selectedServiceEntries
+          : buildDraftGroupsFromLineItems(lineItems),
+    };
+    const storedCustomerRecord = await upsertStoredCustomer({
+      customerType,
+      companyName,
+      salutation,
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
+      customerEmail,
+      customerName,
+      customerAddress,
+      draftState,
     });
     const safeSettings = {
       ...settings,
       logoDataUrl:
-        typeof settings.logoDataUrl === "string" && settings.logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH
+        typeof settings.logoDataUrl === "string" &&
+        settings.logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH
           ? settings.logoDataUrl
-          : ""
+          : "",
     };
-    const senderName = settings.ownerName?.trim() || settings.companyName?.trim() || "Ihr Handwerksbetrieb";
-    const mailText = buildOfferEmailText({
+    const senderName =
+      settings.companyName?.trim() ||
+      settings.ownerName?.trim() ||
+      "Ihr Handwerksbetrieb";
+    const mailText = buildEmailText({
+      documentType,
       customerType,
       salutation,
       firstName,
       lastName,
-      serviceDescription: composedServiceDescription,
-      senderName
+      senderName,
+      paymentDueDays,
     });
 
-    const offer = await generateOfferText({
+    const generatedText =
+      documentType === "invoice"
+        ? buildInvoiceText({
+            customerType,
+            salutation,
+            firstName,
+            lastName,
+            customerName,
+            paymentDueDays,
+          })
+        : await generateOfferText({
+            customerName,
+            customerAddress,
+            serviceDescription: composedServiceDescription,
+            hours,
+            hourlyRate,
+            materialCost,
+          });
+    const offer = adaptTextForDocumentType({
+      text: generatedText,
+      documentType,
+      customerName,
+    });
+    const storedOfferRecord = await createStoredOfferRecord({
+      documentType,
+      customerNumber: storedCustomerRecord.customerNumber,
       customerName,
       customerAddress,
+      customerEmail,
       serviceDescription: composedServiceDescription,
-      hours,
-      hourlyRate,
-      materialCost
+      lineItems,
+      offer,
+      configuredLastOfferNumber:
+        documentType === "offer" ? settings.lastOfferNumber : undefined,
     });
+    const pdfFilename = `${storedOfferRecord.offerNumber}.pdf`;
+    if (
+      documentType === "offer" &&
+      settings.lastOfferNumber !== storedOfferRecord.offerNumber
+    ) {
+      await writeSettings({
+        lastOfferNumber: storedOfferRecord.offerNumber,
+      }).catch(() => undefined);
+    }
 
     let pdfBuffer: Buffer;
     try {
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
           offer,
+          offerNumber: storedOfferRecord.offerNumber,
+          documentType,
+          customerNumber: storedCustomerRecord.customerNumber,
+          createdAt: storedOfferRecord.createdAt,
+          invoiceDate:
+            documentType === "invoice"
+              ? toDateInputValue(resolvedInvoiceDate)
+              : undefined,
+          serviceDate:
+            documentType === "invoice"
+              ? servicePeriod
+              : undefined,
+          paymentDueDays: documentType === "invoice" ? paymentDueDays : undefined,
           customerName,
           customerAddress,
           customerEmail,
           serviceDescription: composedServiceDescription,
+          projectDetails: serviceDescription,
           lineItems,
-          settings: safeSettings
-        })
+          settings: safeSettings,
+        }),
       );
     } catch {
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
           offer,
+          offerNumber: storedOfferRecord.offerNumber,
+          documentType,
+          customerNumber: storedCustomerRecord.customerNumber,
+          createdAt: storedOfferRecord.createdAt,
+          invoiceDate:
+            documentType === "invoice"
+              ? toDateInputValue(resolvedInvoiceDate)
+              : undefined,
+          serviceDate:
+            documentType === "invoice"
+              ? servicePeriod
+              : undefined,
+          paymentDueDays: documentType === "invoice" ? paymentDueDays : undefined,
           customerName,
           customerAddress,
           customerEmail,
           serviceDescription: composedServiceDescription,
+          projectDetails: serviceDescription,
           lineItems,
           settings: {
             ...safeSettings,
-            logoDataUrl: ""
-          }
-        })
+            logoDataUrl: "",
+          },
+        }),
       );
     }
 
@@ -342,7 +746,7 @@ export async function POST(request: Request) {
         subject: offer.subject,
         text: mailText,
         pdfBase64,
-        filename: "angebot.pdf"
+        filename: pdfFilename,
       });
 
       if (mailboxResult.ok) {
@@ -354,7 +758,9 @@ export async function POST(request: Request) {
       } else if (resendApiKey && resendFromEmail) {
         try {
           const resend = new Resend(resendApiKey);
-          const recipients = [customerEmail, settings.senderCopyEmail].filter(Boolean);
+          const recipients = [customerEmail, settings.senderCopyEmail].filter(
+            Boolean,
+          );
 
           await resend.emails.send({
             from: resendFromEmail,
@@ -363,21 +769,23 @@ export async function POST(request: Request) {
             text: mailText,
             attachments: [
               {
-                filename: "angebot.pdf",
-                content: pdfBase64
-              }
-            ]
+                filename: pdfFilename,
+                content: pdfBase64,
+              },
+            ],
           });
 
           emailStatus = "sent";
           emailInfo = `E-Mail über Resend an ${customerEmail} gesendet.`;
         } catch {
           emailStatus = "failed";
-          emailInfo = "Versand fehlgeschlagen. Bitte OAuth-Verbindung oder Resend-Konfiguration prüfen.";
+          emailInfo =
+            "Versand fehlgeschlagen. Bitte OAuth-Verbindung oder Resend-Konfiguration prüfen.";
         }
       } else {
         emailStatus = "not_configured";
-        emailInfo = "Kein verbundenes Postfach und keine Resend-Konfiguration gefunden.";
+        emailInfo =
+          "Kein verbundenes Postfach und keine Resend-Konfiguration gefunden.";
       }
     }
 
@@ -386,10 +794,21 @@ export async function POST(request: Request) {
       mailText,
       pdfBase64,
       emailStatus,
-      emailInfo
+      emailInfo,
+      customerNumber: storedCustomerRecord.customerNumber,
+      documentType,
+      documentNumber: storedOfferRecord.offerNumber,
+      offerNumber: storedOfferRecord.offerNumber,
+      invoiceNumber:
+        documentType === "invoice" ? storedOfferRecord.offerNumber : undefined,
+      createdAt: storedOfferRecord.createdAt,
+      created_at: storedOfferRecord.created_at,
     });
   } catch (error) {
     console.error("generate-offer failed", error);
-    return NextResponse.json({ error: "Fehler 500 bei der Angebotserstellung" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Fehler 500 bei der Angebotserstellung" },
+      { status: 500 },
+    );
   }
 }

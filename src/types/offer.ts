@@ -5,6 +5,8 @@ export type OfferText = {
   closing: string;
 };
 
+export type DocumentType = "offer" | "invoice";
+
 export type PdfTableColumnId =
   | "position"
   | "quantity"
@@ -77,7 +79,10 @@ export type CompanySettings = {
   customServices: CustomService[];
   vatRate: number;
   offerValidityDays: number;
+  invoicePaymentDueDays: number;
   offerTermsText: string;
+  lastOfferNumber: string;
+  customServiceTypes: string[];
 };
 
 export type OfferPositionInput = {
@@ -88,7 +93,31 @@ export type OfferPositionInput = {
   unitPrice?: number | string;
 };
 
+export type CustomerDraftSubitem = {
+  description: string;
+  quantity: string;
+  unit: string;
+  price: string;
+};
+
+export type CustomerDraftGroup = {
+  label: string;
+  subitems: CustomerDraftSubitem[];
+};
+
+export type CustomerDraftState = {
+  serviceDescription: string;
+  hours: string;
+  hourlyRate: string;
+  materialCost: string;
+  invoiceDate: string;
+  serviceDate: string;
+  paymentDueDays: string;
+  positions: CustomerDraftGroup[];
+};
+
 export type GenerateOfferRequest = {
+  documentType?: DocumentType;
   customerType: "person" | "company";
   salutation?: "herr" | "frau";
   companyName?: string;
@@ -100,9 +129,53 @@ export type GenerateOfferRequest = {
   customerEmail: string;
   serviceDescription: string;
   selectedServices?: string[];
+  selectedServiceEntries?: Array<{
+    label?: string;
+    subitems?: Array<{
+      description?: string;
+      quantity?: string;
+      unit?: string;
+      price?: string;
+    }>;
+  }>;
   positions?: OfferPositionInput[];
   hours: number | string;
   hourlyRate: number | string;
   materialCost: number | string;
+  invoiceDate?: string;
+  serviceDate?: string;
+  paymentDueDays?: number | string;
   sendEmail?: boolean;
+};
+
+export type StoredCustomerRecord = {
+  customerNumber: string;
+  customerType: "person" | "company";
+  companyName: string;
+  salutation: "herr" | "frau";
+  firstName: string;
+  lastName: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  customerEmail: string;
+  customerName: string;
+  customerAddress: string;
+  draftState?: CustomerDraftState;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StoredOfferRecord = {
+  documentType?: DocumentType;
+  offerNumber: string;
+  customerNumber?: string;
+  createdAt: string;
+  created_at: string;
+  customerName: string;
+  customerAddress: string;
+  customerEmail: string;
+  serviceDescription: string;
+  lineItems: OfferPdfLineItem[];
+  offer: OfferText;
 };

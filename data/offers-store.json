@@ -1,0 +1,1965 @@
+{
+  "lastOfferNumber": "ANG-2026-024",
+  "offers": [
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-001",
+      "createdAt": "2026-03-14T23:41:54.959Z",
+      "created_at": "2026-03-14T23:41:54.959Z",
+      "customerName": "aereve vevreve",
+      "customerAddress": "vervrevre, 43443 ffrefrere",
+      "customerEmail": "bekteshilorent7@gmail.com",
+      "serviceDescription": "An- und Abfahrt\n\nDetails: An- und Abfahrt",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "An- und Abfahrt",
+          "quantity": 33,
+          "description": "An- und Abfahrt",
+          "unit": "Stück",
+          "unitPrice": 33,
+          "totalPrice": 1089
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für aereve vevreve",
+        "intro": "Sehr geehrte/r aereve vevreve,\n\nvielen Dank für Ihre Anfrage. Gern unterbreiten wir Ihnen folgendes Angebot.",
+        "details": "Leistung: An- und Abfahrt\n\nDetails: An- und Abfahrt\nArbeitszeit: 33 x 33.00 EUR = 1089.00 EUR\nMaterialkosten: 0.00 EUR\nGesamtpreis: 1089.00 EUR (zzgl. MwSt.)",
+        "closing": "Dieses Angebot ist 14 Tage gültig."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-002",
+      "createdAt": "2026-03-15T13:21:48.530Z",
+      "created_at": "2026-03-15T13:21:48.530Z",
+      "customerName": "Stefan Vucic",
+      "customerAddress": "Musterstrasse 1, 11111 Muster",
+      "customerEmail": "mustermail@gmail.com",
+      "serviceDescription": "Sonstige Positionen, Betonarbeiten\n\nDetails: inkl. ....",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Sonstige Positionen",
+          "quantity": 33,
+          "description": "Sonstige Positionen",
+          "unit": "Stück",
+          "unitPrice": 22,
+          "totalPrice": 726
+        },
+        {
+          "position": 2,
+          "group": "Betonarbeiten",
+          "quantity": 22,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 10,
+          "totalPrice": 220
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Stefan Vucic",
+        "intro": "Sehr geehrte/r Stefan Vucic,\n\nvielen Dank für Ihre Anfrage. Gern unterbreiten wir Ihnen folgendes Angebot.",
+        "details": "Leistung: Sonstige Positionen, Betonarbeiten\n\nDetails: inkl. ....\nArbeitszeit: 22 x 22.00 EUR = 484.00 EUR\nMaterialkosten: 0.00 EUR\nGesamtpreis: 484.00 EUR (zzgl. MwSt.)",
+        "closing": "Dieses Angebot ist 14 Tage gültig."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-003",
+      "createdAt": "2026-03-15T13:44:01.304Z",
+      "created_at": "2026-03-15T13:44:01.304Z",
+      "customerName": "Stefan Vucic",
+      "customerAddress": "Musterstrasse 1, 11111 Muster",
+      "customerEmail": "stefanvuviv@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 30,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 22,
+          "totalPrice": 660
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Stefan Vucic",
+        "intro": "Sehr geehrte/r Stefan Vucic,\n\nvielen Dank für Ihre Anfrage. Gern unterbreiten wir Ihnen folgendes Angebot.",
+        "details": "Leistung: Betonarbeiten\n\nDetails: Betonarbeiten\nArbeitszeit: 22 x 22.00 EUR = 484.00 EUR\nMaterialkosten: 0.00 EUR\nGesamtpreis: 484.00 EUR (zzgl. MwSt.)",
+        "closing": "Dieses Angebot ist 14 Tage gültig."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-004",
+      "createdAt": "2026-03-15T14:24:39.125Z",
+      "created_at": "2026-03-15T14:24:39.125Z",
+      "customerName": "sfsgdg sdgfdgd",
+      "customerAddress": "sdgdsgdsg, 564664 dgdgd",
+      "customerEmail": "bekteshilorent7@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 45,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 454,
+          "totalPrice": 20430
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für sfsgdg sdgfdgd",
+        "intro": "Sehr geehrte/r sfsgdg sdgfdgd,\n\nvielen Dank für Ihre Anfrage. Gern unterbreiten wir Ihnen folgendes Angebot.",
+        "details": "Leistung: Betonarbeiten\n\nDetails: Betonarbeiten\nArbeitszeit: 454 x 454.00 EUR = 206116.00 EUR\nMaterialkosten: 0.00 EUR\nGesamtpreis: 206116.00 EUR (zzgl. MwSt.)",
+        "closing": "Dieses Angebot ist 14 Tage gültig."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-005",
+      "createdAt": "2026-03-15T15:00:54.177Z",
+      "created_at": "2026-03-15T15:00:54.177Z",
+      "customerName": "ghsta agrgeag",
+      "customerAddress": "gareagae, 46646 gdfsgesg",
+      "customerEmail": "bekteshilorent7@gmail.com",
+      "serviceDescription": "Sonstige Positionen",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Sonstige Positionen",
+          "quantity": 436,
+          "description": "Sonstige Positionen",
+          "unit": "Stück",
+          "unitPrice": 35,
+          "totalPrice": 15260
+        },
+        {
+          "position": 2,
+          "group": "Sonstige Positionen",
+          "quantity": 35,
+          "description": "gdfgd",
+          "unit": "Stück",
+          "unitPrice": 353,
+          "totalPrice": 12355
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für ghsta agrgeag",
+        "intro": "Sehr geehrte/r ghsta agrgeag,\n\nvielen Dank für Ihre Anfrage. Gern unterbreiten wir Ihnen folgendes Angebot.",
+        "details": "Leistung: Sonstige Positionen\nArbeitszeit: 353 x 353.00 EUR = 124609.00 EUR\nMaterialkosten: 0.00 EUR\nGesamtpreis: 124609.00 EUR (zzgl. MwSt.)",
+        "closing": "Dieses Angebot ist 14 Tage gültig."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-006",
+      "createdAt": "2026-03-16T10:42:13.463Z",
+      "created_at": "2026-03-16T10:42:13.463Z",
+      "customerName": "Max Müller",
+      "customerAddress": "am bermeshof 5, 40231 Düsseldorf",
+      "customerEmail": "maxmueller@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 22,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 22,
+          "totalPrice": 484
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Max Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Betonarbeiten an Ihrer Adresse am Bermeshof 5, 40231 Düsseldorf.",
+        "details": "Leistung: Betonarbeiten\n\nArbeitszeit: 20 Stunden\nStundensatz: 35 EUR\nMaterialkosten: 38 EUR\n\nKalkulation:\nArbeitskosten: 20 Stunden x 35 EUR = 700 EUR\nMaterialkosten: 38 EUR\n\nGesamtkosten: 738 EUR (inkl. MwSt.)",
+        "closing": "Wir hoffen, dass unser Angebot Ihren Vorstellungen entspricht und stehen Ihnen bei Rückfragen jederzeit gerne zur Verfügung. \n\nMit freundlichen Grüßen,\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-007",
+      "createdAt": "2026-03-16T11:36:42.267Z",
+      "created_at": "2026-03-16T11:36:42.267Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Am Bermeshau 5, 40231 Düsseldorf",
+      "customerEmail": "max.punkt.mueller@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Leistung über 20 Stunden",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 22,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 22,
+          "totalPrice": 484
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen unser Angebot für die gewünschten Betonarbeiten an Ihrer Adresse in Düsseldorf.",
+        "details": "Die Leistung umfasst insgesamt 20 Stunden Arbeit zum Stundensatz von 23 EUR, was einen Arbeitskostenbetrag von 460 EUR ergibt. Zusätzlich fallen Materialkosten in Höhe von 50 EUR an. Somit belaufen sich die Gesamtkosten auf 510 EUR.",
+        "closing": "Wir freuen uns auf Ihre Rückmeldung und stehen Ihnen für Rückfragen jederzeit zur Verfügung.\n\nMit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-008",
+      "createdAt": "2026-03-16T11:56:42.290Z",
+      "created_at": "2026-03-16T11:56:42.290Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Am Bermeshau 5, 40231 Düsseldorf",
+      "customerEmail": "bekteshilorent7@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 11,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 11,
+          "totalPrice": 121
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die von Ihnen gewünschten Betonarbeiten an Ihrer Adresse Am Bermeshau 5, 40231 Düsseldorf.",
+        "details": "Leistung: Betonarbeiten\n\nArbeitsstunden: 11 Stunden x 11,00 EUR = 121,00 EUR\nMaterialkosten: 11,00 EUR\n\nGesamtkosten: 132,00 EUR",
+        "closing": "Wir freuen uns auf Ihre Rückmeldung und stehen Ihnen bei Rückfragen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen,\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-009",
+      "customerNumber": "KDN-000001",
+      "createdAt": "2026-03-16T13:03:55.235Z",
+      "created_at": "2026-03-16T13:03:55.235Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstr. 1, 40231 Düsseldorf",
+      "customerEmail": "bekteshilorent7@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 10,
+          "description": "Betonstahl",
+          "unit": "kg",
+          "unitPrice": 10,
+          "totalPrice": 100
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die von Ihnen gewünschten Betonarbeiten an Ihrer Adresse in der Musterstr. 1, 40231 Düsseldorf.",
+        "details": "Leistungsumfang: Betonarbeiten\n\nArbeitszeit: 11 Stunden\nStundensatz: 22 EUR\nMaterialkosten: 25 EUR\n\nGesamtkosten Arbeitszeit: 11 x 22 EUR = 242 EUR\nGesamtkosten Material: 25 EUR\n\nGesamtsumme: 267 EUR",
+        "closing": "Wir hoffen, dass unser Angebot Ihren Vorstellungen entspricht und stehen für Rückfragen oder weitere Informationen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-010",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-16T13:37:54.192Z",
+      "created_at": "2026-03-16T13:37:54.192Z",
+      "customerName": "Max Müller",
+      "customerAddress": "musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "serviceDescription": "Beton Stahl",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Beton Stahl",
+          "quantity": 5,
+          "description": "Betonarbeiten",
+          "unit": "kg",
+          "unitPrice": 30,
+          "totalPrice": 150
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonstahl-Arbeiten",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die von Ihnen gewünschten Betonstahl-Arbeiten.",
+        "details": "Leistung: Betonstahl\nArbeitszeit: 25 Stunden\nStundensatz: 20 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten Arbeitszeit: 25 x 20 EUR = 500 EUR\nGesamtkosten Material: 0 EUR\n\nGesamtbetrag: 500 EUR",
+        "closing": "Bei Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung. Wir freuen uns auf Ihre Rückmeldung und verbleiben\n\nmit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-011",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-16T14:08:47.223Z",
+      "created_at": "2026-03-16T14:08:47.223Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max-mueller@gmail.com",
+      "serviceDescription": "Weitere Positionen",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Weitere Positionen",
+          "quantity": 30,
+          "description": "Beton Stahl",
+          "unit": "kg",
+          "unitPrice": 60,
+          "totalPrice": 1800
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für weitere Positionen",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die von Ihnen gewünschten Arbeiten.",
+        "details": "Leistungsbeschreibung: Weitere Positionen\n\nArbeitszeit: 20 Stunden\nStundensatz: 40,00 €\nMaterialkosten: 0,00 €\n\nGesamtkosten für Arbeitszeit: 20 x 40,00 € = 800,00 €\nGesamtkosten Material: 0,00 €\n\nGesamtsumme: 800,00 €",
+        "closing": "Wir freuen uns auf Ihre Rückmeldung und stehen für Rückfragen jederzeit gern zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-012",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-16T14:17:50.836Z",
+      "created_at": "2026-03-16T14:17:50.836Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "serviceDescription": "Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 30,
+          "description": "Beton Stahl",
+          "unit": "kg",
+          "unitPrice": 20,
+          "totalPrice": 600
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die von Ihnen gewünschten Betonarbeiten.",
+        "details": "Leistung: Betonarbeiten\nStunden: 20\nStundensatz: 14,00 EUR\nMaterialkosten: 0,00 EUR\n\nArbeitskosten: 20 x 14,00 EUR = 280,00 EUR\nMaterialkosten: 0,00 EUR\n\nGesamtkosten: 280,00 EUR",
+        "closing": "Wir hoffen, dass unser Angebot Ihren Vorstellungen entspricht und freuen uns auf Ihre Rückmeldung. Bei Fragen stehen wir Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-013",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-16T14:18:27.961Z",
+      "created_at": "2026-03-16T14:18:27.961Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "serviceDescription": "Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 30,
+          "description": "Beton Stahl",
+          "unit": "kg",
+          "unitPrice": 20,
+          "totalPrice": 600
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die von Ihnen gewünschten Betonarbeiten.",
+        "details": "Leistung: Betonarbeiten\nArbeitszeit: 20 Stunden\nStundensatz: 14,00 EUR\nMaterialkosten: 0,00 EUR\n\nGesamtkosten Arbeitszeit: 280,00 EUR\nGesamtkosten Material: 0,00 EUR\n\nGesamtbetrag: 280,00 EUR",
+        "closing": "Wir freuen uns auf Ihre Rückmeldung und stehen für Rückfragen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-014",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-17T10:04:54.718Z",
+      "created_at": "2026-03-17T10:04:54.718Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "serviceDescription": "Verlegung\n\nDetails: Inkl. Blowi",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Verlegung",
+          "quantity": 60,
+          "description": "60 X 60 Feinsteinzeug Fliese",
+          "unit": "Stück",
+          "unitPrice": 0,
+          "totalPrice": 0
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Verlegung bei Herrn Max Müller",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die Verlegung in Ihrem Objekt in der Musterstraße 1, 40231 Düsseldorf.",
+        "details": "Leistung: Verlegung (inkl. Blowi)\nArbeitszeit: 30 Stunden\nStundensatz: 12 €\nArbeitskosten: 360 €\nMaterialkosten: 0 €\n\nGesamtkosten (netto): 360 €",
+        "closing": "Wir freuen uns auf Ihre Rückmeldung und stehen für Rückfragen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-001",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-17T10:45:34.127Z",
+      "created_at": "2026-03-17T10:45:34.127Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 33,
+          "description": "Betonarbeiten",
+          "unit": "Stück",
+          "unitPrice": 33,
+          "totalPrice": 1089
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Max Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Rechnung für die gewünschten Betonarbeiten an Ihrer Adresse Musterstraße 1, 40231 Düsseldorf.",
+        "details": "Leistung: Betonarbeiten\n\n- Arbeitsstunden: 223 Stunden\n- Stundensatz: 33,00 EUR\n- Arbeitskosten: 223 x 33,00 EUR = 7.359,00 EUR\n- Materialkosten: 0,00 EUR\n\nGesamtkosten: 7.359,00 EUR",
+        "closing": "Wir freuen uns auf eine erfolgreiche Zusammenarbeit. Bei Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen,\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-015",
+      "customerNumber": "KDN-000002",
+      "createdAt": "2026-03-17T11:09:51.857Z",
+      "created_at": "2026-03-17T11:09:51.857Z",
+      "customerName": "Max Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max.mueller@gmail.com",
+      "serviceDescription": "Dachabdichtung\n\nDetails: Dachabdichtung",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Dachabdichtung",
+          "quantity": 42,
+          "description": "Dachabdichtung",
+          "unit": "Stück",
+          "unitPrice": 23,
+          "totalPrice": 966
+        }
+      ],
+      "offer": {
+        "subject": "Angebot zur Dachabdichtung für Herrn Max Müller",
+        "intro": "Sehr geehrter Herr Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die Dachabdichtung an Ihrem Objekt in der Musterstraße 1, 40231 Düsseldorf.",
+        "details": "Leistung: Dachabdichtung\nArbeitszeit: 23 Stunden\nStundensatz: 233 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten:\nArbeitskosten: 23 Stunden x 233 EUR = 5.359 EUR\nMaterialkosten: 0 EUR\n\nGesamtsumme: 5.359 EUR (netto)",
+        "closing": "Wir hoffen, Ihnen mit diesem Angebot weiterhelfen zu können und stehen für Rückfragen jederzeit gerne zur Verfügung. Bitte geben Sie uns eine kurze Rückmeldung, ob Sie dieses Angebot annehmen möchten.\n\nMit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-016",
+      "customerNumber": "KDN-000003",
+      "createdAt": "2026-03-17T11:10:50.492Z",
+      "created_at": "2026-03-17T11:10:50.492Z",
+      "customerName": "Lorent Müller",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "lorent.mueller@gmail.com",
+      "serviceDescription": "Anstricharbeiten\n\nDetails: Dachabdichtung",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Anstricharbeiten",
+          "quantity": 232,
+          "description": "Anstricharbeiten",
+          "unit": "Stück",
+          "unitPrice": 232,
+          "totalPrice": 53824
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Anstricharbeiten - Dachabdichtung",
+        "intro": "Sehr geehrter Herr Lorent Müller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Anstricharbeiten an der Dachabdichtung.",
+        "details": "Leistung: Anstricharbeiten - Dachabdichtung\nArbeitsstunden: 23 Stunden\nStundensatz: 233 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten Arbeitszeit: 23 x 233 EUR = 5.359 EUR\nGesamtkosten Material: 0 EUR\n\nGesamtbetrag: 5.359 EUR (netto, zuzüglich gesetzlicher Mehrwertsteuer)",
+        "closing": "Wir hoffen, dass unser Angebot Ihren Vorstellungen entspricht und stehen Ihnen für Rückfragen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-017",
+      "customerNumber": "KDN-000004",
+      "createdAt": "2026-03-17T11:13:00.148Z",
+      "created_at": "2026-03-17T11:13:00.148Z",
+      "customerName": "Thomas Meißner",
+      "customerAddress": "Missgeburtstrasse 5, 11111 Missgeburt",
+      "customerEmail": "thomas.meissner@gmail.com",
+      "serviceDescription": "Abbrucharbeiten\n\nDetails: Abbrucharbeiten inkls",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Abbrucharbeiten",
+          "quantity": 223,
+          "description": "Abbrucharbeiten",
+          "unit": "Stück",
+          "unitPrice": 232,
+          "totalPrice": 51736
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Abbrucharbeiten",
+        "intro": "Sehr geehrter Herr Meißner,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Abbrucharbeiten an Ihrer Adresse in der Missgeburtstrasse 5, 11111 Missgeburt.",
+        "details": "Leistung: Abbrucharbeiten inklusive\nArbeitsstunden: 2.332 Stunden\nStundensatz: 232 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten der Arbeitszeit: 2.332 x 232 EUR = 540.224 EUR\nGesamtkosten Material: 0 EUR\n\nGesamtangebot: 540.224 EUR (zzgl. gesetzlicher Mehrwertsteuer)",
+        "closing": "Wir hoffen, Ihnen mit diesem Angebot weitergeholfen zu haben und stehen für Rückfragen jederzeit gerne zur Verfügung. Über eine positive Rückmeldung würden wir uns sehr freuen.\n\nMit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-002",
+      "customerNumber": "KDN-000004",
+      "createdAt": "2026-03-17T11:15:54.750Z",
+      "created_at": "2026-03-17T11:15:54.750Z",
+      "customerName": "Thomas Meißner",
+      "customerAddress": "Missgeburtstrasse 5, 11111 Missgeburt",
+      "customerEmail": "thomas.meissner@gmail.com",
+      "serviceDescription": "Abbrucharbeiten\n\nDetails: Abbrucharbeiten inkls",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Abbrucharbeiten",
+          "quantity": 223,
+          "description": "Abbrucharbeiten",
+          "unit": "Stück",
+          "unitPrice": 232,
+          "totalPrice": 51736
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Thomas Meißner",
+        "intro": "Sehr geehrter Herr Thomas Meißner,\n\nfür die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.\nDie einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+        "details": "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+        "closing": "Bitte begleichen Sie den Gesamtbetrag innerhalb von 14 Tagen unter Angabe der Rechnungsnummer."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-018",
+      "customerNumber": "KDN-000005",
+      "createdAt": "2026-03-17T11:41:48.939Z",
+      "created_at": "2026-03-17T11:41:48.939Z",
+      "customerName": "Maxi Kingi",
+      "customerAddress": "Kingistr. 1, 11111 Kingi",
+      "customerEmail": "maxi.kinig@gmail.com",
+      "serviceDescription": "Außenputz\n\nDetails: Inkl. BlowJob",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Außenputz",
+          "quantity": 2312,
+          "description": "Außenputz",
+          "unit": "Stück",
+          "unitPrice": 331,
+          "totalPrice": 765272
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Außenputzarbeiten bei Herrn Maxi Kingi",
+        "intro": "Sehr geehrter Herr Kingi,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Außenputzarbeiten an Ihrer Immobilie in der Kingistr. 1, 11111 Kingi.",
+        "details": "Leistungsbeschreibung:\n- Außenputzarbeiten\n\nArbeitszeit: 12 Stunden\nStundensatz: 22,00 EUR\nMaterialkosten: 0,00 EUR\n\nGesamtkosten: 264,00 EUR",
+        "closing": "Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung. Wir freuen uns auf Ihre Rückmeldung und verbleiben\n\nmit freundlichen Grüßen\n\nIhr Team"
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-003",
+      "customerNumber": "KDN-000005",
+      "createdAt": "2026-03-17T11:42:56.415Z",
+      "created_at": "2026-03-17T11:42:56.415Z",
+      "customerName": "Maxi Kingi",
+      "customerAddress": "Kingistr. 1, 11111 Kingi",
+      "customerEmail": "maxi.kinig@gmail.com",
+      "serviceDescription": "Außenputz\n\nDetails: Inkl. BlowJob",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Außenputz",
+          "quantity": 2312,
+          "description": "Außenputz",
+          "unit": "Stück",
+          "unitPrice": 331,
+          "totalPrice": 765272
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Maxi Kingi",
+        "intro": "Sehr geehrter Herr Maxi Kingi,\n\nfür die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.\nDie einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+        "details": "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+        "closing": "Bitte begleichen Sie den Gesamtbetrag innerhalb von 14 Tagen ohne Abzug unter Angabe der Rechnungsnummer."
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-004",
+      "customerNumber": "KDN-000005",
+      "createdAt": "2026-03-17T12:15:07.906Z",
+      "created_at": "2026-03-17T12:15:07.906Z",
+      "customerName": "Maxi Kingi",
+      "customerAddress": "Kingistr. 1, 11111 Kingi",
+      "customerEmail": "maxi.kinig@gmail.com",
+      "serviceDescription": "Außenputz\n\nDetails: Inkl. BlowJob",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Außenputz",
+          "quantity": 2312,
+          "description": "Außenputz",
+          "unit": "Stück",
+          "unitPrice": 331,
+          "totalPrice": 765272
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Maxi Kingi",
+        "intro": "Sehr geehrter Herr Maxi Kingi,\n\nfür die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.\nDie einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+        "details": "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+        "closing": "Bitte begleichen Sie den Gesamtbetrag innerhalb von 14 Tagen ohne Abzug unter Angabe der Rechnungsnummer."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-019",
+      "customerNumber": "KDN-000005",
+      "createdAt": "2026-03-17T13:10:37.513Z",
+      "created_at": "2026-03-17T13:10:37.513Z",
+      "customerName": "Maxi Kingi",
+      "customerAddress": "Kingistr. 1, 11111 Kingi",
+      "customerEmail": "maxi.kinig@gmail.com",
+      "serviceDescription": "Außenputz\n\nDetails: Inkl. BlowJob",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Außenputz",
+          "quantity": 2312,
+          "description": "Außenputz",
+          "unit": "Stück",
+          "unitPrice": 331,
+          "totalPrice": 765272
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Außenputzarbeiten",
+        "intro": "Sehr geehrter Herr Kingi,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Außenputzarbeiten an Ihrer Immobilie in der Kingistr. 1, 11111 Kingi.",
+        "details": "Leistung: Außenputz\nArbeitszeit: 12 Stunden\nStundensatz: 22 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten: 264 EUR\n\nWir verwenden ausschließlich hochwertige Materialien und führen die Arbeiten fachgerecht und termingerecht aus.",
+        "closing": "Für Rückfragen stehen wir Ihnen jederzeit gern zur Verfügung. Wir freuen uns auf Ihre Rückmeldung und verbleiben mit freundlichen Grüßen."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-020",
+      "customerNumber": "KDN-000005",
+      "createdAt": "2026-03-17T13:11:48.785Z",
+      "created_at": "2026-03-17T13:11:48.785Z",
+      "customerName": "Maxi Kingi",
+      "customerAddress": "Kingistr. 1, 11111 Kingi",
+      "customerEmail": "maxi.kinig@gmail.com",
+      "serviceDescription": "Außenputz\n\nDetails: Inkl. BlowJob",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Außenputz",
+          "quantity": 2312,
+          "description": "Außenputz",
+          "unit": "Stück",
+          "unitPrice": 331,
+          "totalPrice": 765272
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Außenputzarbeiten bei Herrn Maxi Kingi",
+        "intro": "Sehr geehrter Herr Kingi,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Außenputzarbeiten an Ihrem Objekt in der Kingistr. 1, 11111 Kingi.",
+        "details": "Beschreibung der Leistung: Außenputzarbeiten\nArbeitszeit: 12 Stunden\nStundensatz: 22 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten Arbeitszeit: 12 h x 22 EUR = 264 EUR\nGesamtkosten Material: 0 EUR\n\nGesamtpreis: 264 EUR",
+        "closing": "Wir hoffen, dass unser Angebot Ihren Vorstellungen entspricht und freuen uns auf Ihre Rückmeldung. Bei Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-021",
+      "customerNumber": "KDN-000006",
+      "createdAt": "2026-03-17T13:28:47.021Z",
+      "created_at": "2026-03-17T13:28:47.021Z",
+      "customerName": "Max Muster",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max@example.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Testposition",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Beton liefern",
+          "unit": "m²",
+          "unitPrice": 55,
+          "totalPrice": 110
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Max Muster,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Betonarbeiten an Ihrer Adresse Musterstraße 1, 40231 Düsseldorf.",
+        "details": "Leistung: Betonarbeiten\n\nDetails: Testposition\n\nStunden: 2\nStundensatz: 55 EUR\nMaterialkosten: 0 EUR\n\nGesamtkosten: 110 EUR",
+        "closing": "Wir hoffen, Ihnen mit diesem Angebot weitergeholfen zu haben und stehen für Rückfragen jederzeit gern zur Verfügung.\n\nMit freundlichen Grüßen,\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-022",
+      "customerNumber": "KDN-000006",
+      "createdAt": "2026-03-17T13:29:46.538Z",
+      "created_at": "2026-03-17T13:29:46.538Z",
+      "customerName": "Max Muster",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max@example.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Testposition",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Beton liefern",
+          "unit": "m²",
+          "unitPrice": 55,
+          "totalPrice": 110
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten",
+        "intro": "Sehr geehrter Herr Max Muster,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Betonarbeiten an Ihrer Adresse in der Musterstraße 1, 40231 Düsseldorf.",
+        "details": "Leistung: Betonarbeiten\n\nPosition: Testposition\nArbeitszeit: 2 Stunden\nStundensatz: 55 €\nMaterialkosten: 0 €\n\nGesamtkosten: 110 €",
+        "closing": "Wir freuen uns über Ihre Rückmeldung und stehen für Rückfragen jederzeit zur Verfügung.\n\nMit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-005",
+      "customerNumber": "KDN-000006",
+      "createdAt": "2026-03-17T13:29:46.655Z",
+      "created_at": "2026-03-17T13:29:46.655Z",
+      "customerName": "Max Muster",
+      "customerAddress": "Musterstraße 1, 40231 Düsseldorf",
+      "customerEmail": "max@example.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Rechnungsposition",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Beton liefern",
+          "unit": "m²",
+          "unitPrice": 60,
+          "totalPrice": 180
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Max Muster",
+        "intro": "Sehr geehrter Herr Max Muster,\n\nfür die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.\nDie einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+        "details": "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+        "closing": "Bitte begleichen Sie den Gesamtbetrag innerhalb von 14 Tagen ohne Abzug unter Angabe der Rechnungsnummer."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-023",
+      "customerNumber": "KDN-000007",
+      "createdAt": "2026-03-17T13:41:02.362Z",
+      "created_at": "2026-03-17T13:41:02.362Z",
+      "customerName": "Max Mueller",
+      "customerAddress": "Musterstrasse 5, 40231 Duesseldorf",
+      "customerEmail": "max.mueller@example.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten im Innenbereich",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Beton liefern",
+          "unit": "m²",
+          "unitPrice": 50,
+          "totalPrice": 100
+        },
+        {
+          "position": 2,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Schalung herstellen",
+          "unit": "Pauschal",
+          "unitPrice": 120,
+          "totalPrice": 120
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Betonarbeiten im Innenbereich",
+        "intro": "Sehr geehrter Herr Mueller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot für die gewünschten Betonarbeiten im Innenbereich.",
+        "details": "Leistung: Betonarbeiten im Innenbereich\n\nArbeitszeit: 8 Stunden\nStundensatz: 55 EUR\nArbeitskosten: 8 x 55 EUR = 440 EUR\nMaterialkosten: 30 EUR\n\nGesamtkosten: 470 EUR",
+        "closing": "Wir freuen uns auf Ihre Rückmeldung und stehen für Rückfragen jederzeit gerne zur Verfügung.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-006",
+      "customerNumber": "KDN-000007",
+      "createdAt": "2026-03-17T13:41:02.496Z",
+      "created_at": "2026-03-17T13:41:02.496Z",
+      "customerName": "Max Mueller",
+      "customerAddress": "Musterstrasse 5, 40231 Duesseldorf",
+      "customerEmail": "max.mueller@example.com",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Leistungsort: Musterstrasse 5, 40231 Duesseldorf",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Beton liefern",
+          "unit": "m²",
+          "unitPrice": 50,
+          "totalPrice": 100
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Max Mueller",
+        "intro": "Sehr geehrter Herr Max Mueller,\n\nfür die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.\nDie einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+        "details": "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+        "closing": "Bitte begleichen Sie den Gesamtbetrag innerhalb von 14 Tagen ohne Abzug unter Angabe der Rechnungsnummer."
+      }
+    },
+    {
+      "documentType": "offer",
+      "offerNumber": "ANG-2026-024",
+      "customerNumber": "KDN-000007",
+      "createdAt": "2026-03-17T13:44:04.290Z",
+      "created_at": "2026-03-17T13:44:04.290Z",
+      "customerName": "Max Mueller",
+      "customerAddress": "Musterstrasse 5, 40231 Duesseldorf",
+      "customerEmail": "max.mueller@example.com",
+      "serviceDescription": "Betonarbeiten, Fliesenarbeiten\n\nDetails: Großprojekt mit vielen Positionen",
+      "lineItems": [
+        {
+          "position": 1,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 1",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 22
+        },
+        {
+          "position": 2,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 2",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 36
+        },
+        {
+          "position": 3,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 3",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 52
+        },
+        {
+          "position": 4,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 4",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 70
+        },
+        {
+          "position": 5,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 5",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 15
+        },
+        {
+          "position": 6,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 6",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 32
+        },
+        {
+          "position": 7,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 7",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 51
+        },
+        {
+          "position": 8,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 8",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 72
+        },
+        {
+          "position": 9,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 9",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 95
+        },
+        {
+          "position": 10,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 10",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 20
+        },
+        {
+          "position": 11,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 11",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 42
+        },
+        {
+          "position": 12,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 12",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 66
+        },
+        {
+          "position": 13,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 13",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 92
+        },
+        {
+          "position": 14,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 14",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 120
+        },
+        {
+          "position": 15,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 15",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 25
+        },
+        {
+          "position": 16,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 16",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 52
+        },
+        {
+          "position": 17,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 17",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 30
+        },
+        {
+          "position": 18,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 18",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 44
+        },
+        {
+          "position": 19,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 19",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 60
+        },
+        {
+          "position": 20,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 20",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 13
+        },
+        {
+          "position": 21,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 21",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 28
+        },
+        {
+          "position": 22,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 22",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 45
+        },
+        {
+          "position": 23,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 23",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 64
+        },
+        {
+          "position": 24,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 24",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 85
+        },
+        {
+          "position": 25,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 25",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 18
+        },
+        {
+          "position": 26,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 26",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 38
+        },
+        {
+          "position": 27,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 27",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 60
+        },
+        {
+          "position": 28,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 28",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 84
+        },
+        {
+          "position": 29,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 29",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 110
+        },
+        {
+          "position": 30,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 30",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 23
+        },
+        {
+          "position": 31,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 31",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 48
+        },
+        {
+          "position": 32,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 32",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 75
+        },
+        {
+          "position": 33,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 33",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 104
+        },
+        {
+          "position": 34,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 34",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 50
+        },
+        {
+          "position": 35,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 35",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 11
+        },
+        {
+          "position": 36,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 36",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 24
+        },
+        {
+          "position": 37,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 37",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 39
+        },
+        {
+          "position": 38,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 38",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 56
+        },
+        {
+          "position": 39,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 39",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 75
+        },
+        {
+          "position": 40,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 40",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 16
+        },
+        {
+          "position": 41,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 41",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 34
+        },
+        {
+          "position": 42,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 42",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 54
+        },
+        {
+          "position": 43,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 43",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 76
+        },
+        {
+          "position": 44,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 44",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 100
+        },
+        {
+          "position": 45,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 45",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 21
+        },
+        {
+          "position": 46,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 46",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 44
+        },
+        {
+          "position": 47,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 47",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 69
+        },
+        {
+          "position": 48,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 48",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 96
+        },
+        {
+          "position": 49,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 49",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 125
+        },
+        {
+          "position": 50,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 50",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 26
+        },
+        {
+          "position": 51,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 51",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 20
+        },
+        {
+          "position": 52,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 52",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 33
+        },
+        {
+          "position": 53,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 53",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 48
+        },
+        {
+          "position": 54,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 54",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 65
+        },
+        {
+          "position": 55,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 55",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 14
+        },
+        {
+          "position": 56,
+          "group": "Betonarbeiten",
+          "quantity": 2,
+          "description": "Position 56",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 30
+        },
+        {
+          "position": 57,
+          "group": "Betonarbeiten",
+          "quantity": 3,
+          "description": "Position 57",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 48
+        },
+        {
+          "position": 58,
+          "group": "Betonarbeiten",
+          "quantity": 4,
+          "description": "Position 58",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 68
+        },
+        {
+          "position": 59,
+          "group": "Betonarbeiten",
+          "quantity": 5,
+          "description": "Position 59",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 90
+        },
+        {
+          "position": 60,
+          "group": "Betonarbeiten",
+          "quantity": 1,
+          "description": "Position 60",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 19
+        },
+        {
+          "position": 61,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 61",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 40
+        },
+        {
+          "position": 62,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 62",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 63
+        },
+        {
+          "position": 63,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 63",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 88
+        },
+        {
+          "position": 64,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 64",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 115
+        },
+        {
+          "position": 65,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 65",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 24
+        },
+        {
+          "position": 66,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 66",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 50
+        },
+        {
+          "position": 67,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 67",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 78
+        },
+        {
+          "position": 68,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 68",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 40
+        },
+        {
+          "position": 69,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 69",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 55
+        },
+        {
+          "position": 70,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 70",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 12
+        },
+        {
+          "position": 71,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 71",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 26
+        },
+        {
+          "position": 72,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 72",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 42
+        },
+        {
+          "position": 73,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 73",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 60
+        },
+        {
+          "position": 74,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 74",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 80
+        },
+        {
+          "position": 75,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 75",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 17
+        },
+        {
+          "position": 76,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 76",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 36
+        },
+        {
+          "position": 77,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 77",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 57
+        },
+        {
+          "position": 78,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 78",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 80
+        },
+        {
+          "position": 79,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 79",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 105
+        },
+        {
+          "position": 80,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 80",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 22
+        },
+        {
+          "position": 81,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 81",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 46
+        },
+        {
+          "position": 82,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 82",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 72
+        },
+        {
+          "position": 83,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 83",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 100
+        },
+        {
+          "position": 84,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 84",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 130
+        },
+        {
+          "position": 85,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 85",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 10
+        },
+        {
+          "position": 86,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 86",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 22
+        },
+        {
+          "position": 87,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 87",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 36
+        },
+        {
+          "position": 88,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 88",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 52
+        },
+        {
+          "position": 89,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 89",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 70
+        },
+        {
+          "position": 90,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 90",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 15
+        },
+        {
+          "position": 91,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 91",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 32
+        },
+        {
+          "position": 92,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 92",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 51
+        },
+        {
+          "position": 93,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 93",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 72
+        },
+        {
+          "position": 94,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 94",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 95
+        },
+        {
+          "position": 95,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 95",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 20
+        },
+        {
+          "position": 96,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 96",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 42
+        },
+        {
+          "position": 97,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 97",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 66
+        },
+        {
+          "position": 98,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 98",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 92
+        },
+        {
+          "position": 99,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 99",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 120
+        },
+        {
+          "position": 100,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 100",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 25
+        },
+        {
+          "position": 101,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 101",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 52
+        },
+        {
+          "position": 102,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 102",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 30
+        },
+        {
+          "position": 103,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 103",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 44
+        },
+        {
+          "position": 104,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 104",
+          "unit": "m²",
+          "unitPrice": 12,
+          "totalPrice": 60
+        },
+        {
+          "position": 105,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 105",
+          "unit": "m²",
+          "unitPrice": 13,
+          "totalPrice": 13
+        },
+        {
+          "position": 106,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 106",
+          "unit": "m²",
+          "unitPrice": 14,
+          "totalPrice": 28
+        },
+        {
+          "position": 107,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 107",
+          "unit": "m²",
+          "unitPrice": 15,
+          "totalPrice": 45
+        },
+        {
+          "position": 108,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 108",
+          "unit": "m²",
+          "unitPrice": 16,
+          "totalPrice": 64
+        },
+        {
+          "position": 109,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 109",
+          "unit": "m²",
+          "unitPrice": 17,
+          "totalPrice": 85
+        },
+        {
+          "position": 110,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 110",
+          "unit": "m²",
+          "unitPrice": 18,
+          "totalPrice": 18
+        },
+        {
+          "position": 111,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 111",
+          "unit": "m²",
+          "unitPrice": 19,
+          "totalPrice": 38
+        },
+        {
+          "position": 112,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 112",
+          "unit": "m²",
+          "unitPrice": 20,
+          "totalPrice": 60
+        },
+        {
+          "position": 113,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 113",
+          "unit": "m²",
+          "unitPrice": 21,
+          "totalPrice": 84
+        },
+        {
+          "position": 114,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 114",
+          "unit": "m²",
+          "unitPrice": 22,
+          "totalPrice": 110
+        },
+        {
+          "position": 115,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 115",
+          "unit": "m²",
+          "unitPrice": 23,
+          "totalPrice": 23
+        },
+        {
+          "position": 116,
+          "group": "Fliesenarbeiten",
+          "quantity": 2,
+          "description": "Position 116",
+          "unit": "m²",
+          "unitPrice": 24,
+          "totalPrice": 48
+        },
+        {
+          "position": 117,
+          "group": "Fliesenarbeiten",
+          "quantity": 3,
+          "description": "Position 117",
+          "unit": "m²",
+          "unitPrice": 25,
+          "totalPrice": 75
+        },
+        {
+          "position": 118,
+          "group": "Fliesenarbeiten",
+          "quantity": 4,
+          "description": "Position 118",
+          "unit": "m²",
+          "unitPrice": 26,
+          "totalPrice": 104
+        },
+        {
+          "position": 119,
+          "group": "Fliesenarbeiten",
+          "quantity": 5,
+          "description": "Position 119",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 50
+        },
+        {
+          "position": 120,
+          "group": "Fliesenarbeiten",
+          "quantity": 1,
+          "description": "Position 120",
+          "unit": "m²",
+          "unitPrice": 11,
+          "totalPrice": 11
+        }
+      ],
+      "offer": {
+        "subject": "Angebot für Beton- und Fliesenarbeiten – Großprojekt",
+        "intro": "Sehr geehrter Herr Mueller,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen das folgende Angebot für die Durchführung der Beton- und Fliesenarbeiten im Rahmen Ihres Großprojekts in Düsseldorf.",
+        "details": "Im Rahmen dieses Projekts umfasst unser Leistungspaket umfangreiche Beton- und Fliesenarbeiten mit zahlreichen einzelnen Positionen. Da es sich um ein Großprojekt handelt, bitten wir um Verständnis, dass die genauen Stunden und Materialkosten im Verlauf der Detailplanung festgelegt werden. Eine erste Pauschale oder individuelle Kalkulation erarbeiten wir gern nach einem gemeinsamen Vor-Ort-Termin.",
+        "closing": "Für Rückfragen stehen wir Ihnen jederzeit zur Verfügung und freuen uns auf eine erfolgreiche Zusammenarbeit.\n\nMit freundlichen Grüßen\n\nIhr Handwerksbetrieb"
+      }
+    },
+    {
+      "documentType": "invoice",
+      "offerNumber": "RE-2026-007",
+      "customerNumber": "KDN-000007",
+      "createdAt": "2026-03-17T13:44:53.304Z",
+      "created_at": "2026-03-17T13:44:53.304Z",
+      "customerName": "Max Mueller",
+      "customerAddress": "Musterstrasse 5, 40231 Duesseldorf",
+      "customerEmail": "not-an-email",
+      "serviceDescription": "Betonarbeiten\n\nDetails: Betonarbeiten",
+      "lineItems": [
+        {
+          "position": 1,
+          "quantity": 1,
+          "description": "Beton liefern",
+          "unit": "m²",
+          "unitPrice": 10,
+          "totalPrice": 10
+        }
+      ],
+      "offer": {
+        "subject": "Rechnung für Max Mueller",
+        "intro": "Sehr geehrter Herr Max Mueller,\n\nfür die erbrachten Leistungen stellen wir Ihnen hiermit die folgende Rechnung.\nDie einzelnen Positionen und Beträge entnehmen Sie bitte der untenstehenden Aufstellung.",
+        "details": "Die aufgeführten Leistungen wurden gemäß Auftrag ausgeführt. Die Abrechnung erfolgt auf Basis der dokumentierten Positionen.",
+        "closing": "Bitte begleichen Sie den Gesamtbetrag innerhalb von 14 Tagen ohne Abzug unter Angabe der Rechnungsnummer."
+      }
+    }
+  ],
+  "nextOfferNumber": 25,
+  "lastInvoiceNumber": "RE-2026-007",
+  "nextInvoiceNumber": 8
+}

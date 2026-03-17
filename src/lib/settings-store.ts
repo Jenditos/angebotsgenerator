@@ -1,6 +1,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { getDefaultPdfTableColumns, sanitizePdfTableColumns } from "@/lib/pdf-table-config";
+import {
+  getDefaultPdfTableColumns,
+  sanitizePdfTableColumns,
+} from "@/lib/pdf-table-config";
 import { sanitizeCustomServices } from "@/lib/service-catalog";
 import { CompanySettings } from "@/types/offer";
 
@@ -9,6 +12,8 @@ const settingsPath = path.join(dataDir, "company-settings.json");
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 const MIN_OFFER_VALIDITY_DAYS = 1;
 const MAX_OFFER_VALIDITY_DAYS = 365;
+const MIN_INVOICE_PAYMENT_DUE_DAYS = 0;
+const MAX_INVOICE_PAYMENT_DUE_DAYS = 365;
 const MIN_VAT_RATE = 0;
 const MAX_VAT_RATE = 100;
 const MAX_TERMS_TEXT_LENGTH = 3000;
@@ -28,25 +33,44 @@ const defaultSettings: CompanySettings = {
   customServices: [],
   vatRate: 19,
   offerValidityDays: 30,
+  invoicePaymentDueDays: 14,
   offerTermsText:
-    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten."
+    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
+  lastOfferNumber: "",
+  customServiceTypes: [],
 };
 
 function asTrimmedString(value: unknown, fallback = ""): string {
   if (typeof value !== "string") {
     return fallback;
   }
+
   const trimmed = value.trim();
   return trimmed || fallback;
 }
 
-function asNumberInRange(value: unknown, fallback: number, min: number, max: number): number {
+function asNumberInRange(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
 
   return Math.min(max, Math.max(min, parsed));
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(value.map((item) => asTrimmedString(item)).filter(Boolean)),
+  );
 }
 
 export function getDefaultSettings(): CompanySettings {
@@ -61,41 +85,92 @@ export async function readSettings(): Promise<CompanySettings> {
       customServices?: unknown;
     };
 
-    const [legacyPostalCode, ...legacyCityParts] = (parsed.companyPostalCity ?? "").trim().split(/\s+/);
+    const [legacyPostalCode, ...legacyCityParts] = (
+      parsed.companyPostalCity ?? ""
+    )
+      .trim()
+      .split(/\s+/);
     const legacyCity = legacyCityParts.join(" ").trim();
 
     return {
-      companyName: asTrimmedString(parsed.companyName, defaultSettings.companyName),
+      companyName: asTrimmedString(
+        parsed.companyName,
+        defaultSettings.companyName,
+      ),
       ownerName: asTrimmedString(parsed.ownerName, defaultSettings.ownerName),
-      companyStreet: asTrimmedString(parsed.companyStreet, defaultSettings.companyStreet),
+      companyStreet: asTrimmedString(
+        parsed.companyStreet,
+        defaultSettings.companyStreet,
+      ),
       companyPostalCode:
-        asTrimmedString(parsed.companyPostalCode) || legacyPostalCode || defaultSettings.companyPostalCode,
-      companyCity: asTrimmedString(parsed.companyCity) || legacyCity || defaultSettings.companyCity,
-      companyEmail: asTrimmedString(parsed.companyEmail, defaultSettings.companyEmail),
-      companyPhone: asTrimmedString(parsed.companyPhone, defaultSettings.companyPhone),
-      companyWebsite: asTrimmedString(parsed.companyWebsite, defaultSettings.companyWebsite),
-      senderCopyEmail: asTrimmedString(parsed.senderCopyEmail, defaultSettings.senderCopyEmail),
+        asTrimmedString(parsed.companyPostalCode) ||
+        legacyPostalCode ||
+        defaultSettings.companyPostalCode,
+      companyCity:
+        asTrimmedString(parsed.companyCity) ||
+        legacyCity ||
+        defaultSettings.companyCity,
+      companyEmail: asTrimmedString(
+        parsed.companyEmail,
+        defaultSettings.companyEmail,
+      ),
+      companyPhone: asTrimmedString(
+        parsed.companyPhone,
+        defaultSettings.companyPhone,
+      ),
+      companyWebsite: asTrimmedString(
+        parsed.companyWebsite,
+        defaultSettings.companyWebsite,
+      ),
+      senderCopyEmail: asTrimmedString(
+        parsed.senderCopyEmail,
+        defaultSettings.senderCopyEmail,
+      ),
+      lastOfferNumber: asTrimmedString(
+        parsed.lastOfferNumber,
+        defaultSettings.lastOfferNumber,
+      ),
+      customServiceTypes: asStringArray(parsed.customServiceTypes),
       logoDataUrl: (() => {
-        const logo = asTrimmedString(parsed.logoDataUrl, defaultSettings.logoDataUrl);
+        const logo = asTrimmedString(
+          parsed.logoDataUrl,
+          defaultSettings.logoDataUrl,
+        );
         return logo.length <= MAX_LOGO_DATA_URL_LENGTH ? logo : "";
       })(),
       pdfTableColumns: sanitizePdfTableColumns(parsed.pdfTableColumns),
       customServices: sanitizeCustomServices(parsed.customServices),
-      vatRate: asNumberInRange(parsed.vatRate, defaultSettings.vatRate, MIN_VAT_RATE, MAX_VAT_RATE),
+      vatRate: asNumberInRange(
+        parsed.vatRate,
+        defaultSettings.vatRate,
+        MIN_VAT_RATE,
+        MAX_VAT_RATE,
+      ),
       offerValidityDays: asNumberInRange(
         parsed.offerValidityDays,
         defaultSettings.offerValidityDays,
         MIN_OFFER_VALIDITY_DAYS,
-        MAX_OFFER_VALIDITY_DAYS
+        MAX_OFFER_VALIDITY_DAYS,
       ),
-      offerTermsText: asTrimmedString(parsed.offerTermsText, defaultSettings.offerTermsText).slice(0, MAX_TERMS_TEXT_LENGTH)
+      invoicePaymentDueDays: asNumberInRange(
+        parsed.invoicePaymentDueDays,
+        defaultSettings.invoicePaymentDueDays,
+        MIN_INVOICE_PAYMENT_DUE_DAYS,
+        MAX_INVOICE_PAYMENT_DUE_DAYS,
+      ),
+      offerTermsText: asTrimmedString(
+        parsed.offerTermsText,
+        defaultSettings.offerTermsText,
+      ).slice(0, MAX_TERMS_TEXT_LENGTH),
     };
   } catch {
     return defaultSettings;
   }
 }
 
-export async function writeSettings(payload: Partial<CompanySettings>): Promise<CompanySettings> {
+export async function writeSettings(
+  payload: Partial<CompanySettings>,
+): Promise<CompanySettings> {
   const current = await readSettings();
   const payloadLogo = asTrimmedString(payload.logoDataUrl, current.logoDataUrl);
   const payloadPdfTableColumns =
@@ -106,27 +181,48 @@ export async function writeSettings(payload: Partial<CompanySettings>): Promise<
     typeof payload.customServices === "undefined"
       ? current.customServices
       : sanitizeCustomServices(payload.customServices);
-  const payloadVatRate = asNumberInRange(payload.vatRate, current.vatRate, MIN_VAT_RATE, MAX_VAT_RATE);
+  const payloadVatRate = asNumberInRange(
+    payload.vatRate,
+    current.vatRate,
+    MIN_VAT_RATE,
+    MAX_VAT_RATE,
+  );
   const payloadOfferValidityDays = asNumberInRange(
     payload.offerValidityDays,
     current.offerValidityDays,
     MIN_OFFER_VALIDITY_DAYS,
-    MAX_OFFER_VALIDITY_DAYS
+    MAX_OFFER_VALIDITY_DAYS,
   );
-  const payloadOfferTermsText = asTrimmedString(payload.offerTermsText, current.offerTermsText).slice(
-    0,
-    MAX_TERMS_TEXT_LENGTH
+  const payloadInvoicePaymentDueDays = asNumberInRange(
+    payload.invoicePaymentDueDays,
+    current.invoicePaymentDueDays,
+    MIN_INVOICE_PAYMENT_DUE_DAYS,
+    MAX_INVOICE_PAYMENT_DUE_DAYS,
   );
+  const payloadOfferTermsText = asTrimmedString(
+    payload.offerTermsText,
+    current.offerTermsText,
+  ).slice(0, MAX_TERMS_TEXT_LENGTH);
+
   const next = {
     ...current,
     ...payload,
-    logoDataUrl: payloadLogo.length <= MAX_LOGO_DATA_URL_LENGTH ? payloadLogo : "",
+    lastOfferNumber: asTrimmedString(
+      payload.lastOfferNumber,
+      current.lastOfferNumber,
+    ),
+    customServiceTypes: payload.customServiceTypes
+      ? asStringArray(payload.customServiceTypes)
+      : current.customServiceTypes,
+    logoDataUrl:
+      payloadLogo.length <= MAX_LOGO_DATA_URL_LENGTH ? payloadLogo : "",
     pdfTableColumns: payloadPdfTableColumns,
     customServices: payloadCustomServices,
     vatRate: payloadVatRate,
     offerValidityDays: payloadOfferValidityDays,
+    invoicePaymentDueDays: payloadInvoicePaymentDueDays,
     offerTermsText: payloadOfferTermsText,
-    companyPostalCity: undefined
+    companyPostalCity: undefined,
   };
 
   await mkdir(dataDir, { recursive: true });
