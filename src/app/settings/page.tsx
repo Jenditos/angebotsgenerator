@@ -391,8 +391,8 @@ export default function SettingsPage() {
       <div className="container">
         <header className="topBar glassCard">
           <div className="topBarBrand settingsTopBarBrand">
-            <span className="pill settingsLogoPill" aria-label="Visioro">
-              V
+            <span className="pill" aria-label="Visioro">
+              Visioro
             </span>
             <strong className="settingsTopBarTitle">Firmeneinstellungen</strong>
           </div>
