@@ -19,13 +19,37 @@ const fieldLabels: Record<string, string> = {
 const EXPLICIT_SERVICE_DESCRIPTION_PATTERN =
   /\b(projektbeschreibung|leistungsbeschreibung|zusatzdetails?|zusatzinfo(?:s)?|beschreibung|details?|hinweise?|bemerkung(?:en)?|notiz(?:en)?)\b/i;
 
+function normalizeCraftCompounds(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed
+    .replace(/\bbeton\s+stahl\b/gi, "Betonstahl")
+    .replace(/\bbeton\s+arbeit(en)?\b/gi, (_match, plural: string | undefined) => `Betonarbeit${plural ?? ""}`)
+    .replace(/\btrocken\s+bau(?:\s+arbeiten)?\b/gi, (match) =>
+      /arbeiten$/i.test(match) ? "Trockenbauarbeiten" : "Trockenbau"
+    )
+    .replace(/\belektro\s+installation\b/gi, "Elektroinstallation")
+    .replace(/\bkabel\s+verlegung\b/gi, "Kabelverlegung")
+    .replace(/\bfliesen\s+arbeit(en)?\b/gi, (_match, plural: string | undefined) => `Fliesenarbeit${plural ?? ""}`)
+    .replace(/\b(?:waerme|wärme)\s+(?:daemmung|dämmung)\b/gi, "Wärmedämmung")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function sanitizeServiceDescription(value: string | undefined, transcript: string): string | undefined {
   if (!value) {
     return undefined;
   }
 
-  const cleaned = value.trim();
-  if (cleaned.length < 3 || cleaned.length > 140) {
+  const cleaned = normalizeCraftCompounds(value) ?? value.trim();
+  if (cleaned.length < 3 || cleaned.length > 280) {
     return undefined;
   }
 
@@ -205,6 +229,12 @@ export async function POST(request: Request) {
     const customerType = parsed.fields.customerType ?? "person";
     const serviceDescriptionExplicitlyMentioned =
       shouldAutofillServiceDescription(transcript);
+    const normalizedPositions = parsed.fields.positions?.map((position) => ({
+      ...position,
+      group: normalizeCraftCompounds(position.group) ?? position.group,
+      description:
+        normalizeCraftCompounds(position.description) ?? position.description,
+    }));
     const normalizedEmail = normalizeCustomerEmail({
       transcript,
       parsedEmail: parsed.fields.customerEmail,
@@ -213,9 +243,13 @@ export async function POST(request: Request) {
     });
     const normalizedFields = {
       ...parsed.fields,
+      positions: normalizedPositions,
       customerEmail: normalizedEmail ?? parsed.fields.customerEmail,
       serviceDescription: serviceDescriptionExplicitlyMentioned
-        ? sanitizeServiceDescription(parsed.fields.serviceDescription, transcript)
+        ? sanitizeServiceDescription(
+            normalizeCraftCompounds(parsed.fields.serviceDescription),
+            transcript,
+          )
         : undefined,
     };
     const hasPositions = Array.isArray(normalizedFields.positions) && normalizedFields.positions.length > 0;

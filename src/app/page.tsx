@@ -179,18 +179,6 @@ function createInitialForm(): OfferForm {
 
 const initialForm: OfferForm = createInitialForm();
 
-type StepProgress = {
-  customerDataStarted: boolean;
-  pdfGenerationStarted: boolean;
-  mailDraftStarted: boolean;
-};
-
-const initialStepProgress: StepProgress = {
-  customerDataStarted: false,
-  pdfGenerationStarted: false,
-  mailDraftStarted: false,
-};
-
 type ModeSnapshot = {
   form: OfferForm;
   selectedServices: SelectedServiceEntry[];
@@ -198,7 +186,6 @@ type ModeSnapshot = {
   voiceInfo: string;
   voiceError: string;
   voiceMissingFields: string[];
-  stepProgress: StepProgress;
   error: string;
   postActionInfo: string;
   serviceSearch: string;
@@ -217,14 +204,6 @@ function cloneSelectedServices(
   }));
 }
 
-function cloneStepProgress(progress: StepProgress): StepProgress {
-  return {
-    customerDataStarted: progress.customerDataStarted,
-    pdfGenerationStarted: progress.pdfGenerationStarted,
-    mailDraftStarted: progress.mailDraftStarted,
-  };
-}
-
 function createInitialModeSnapshot(): ModeSnapshot {
   return {
     form: createInitialForm(),
@@ -233,7 +212,6 @@ function createInitialModeSnapshot(): ModeSnapshot {
     voiceInfo: "",
     voiceError: "",
     voiceMissingFields: [],
-    stepProgress: { ...initialStepProgress },
     error: "",
     postActionInfo: "",
     serviceSearch: "",
@@ -509,8 +487,6 @@ export default function HomePage() {
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
-  const [stepProgress, setStepProgress] =
-    useState<StepProgress>(initialStepProgress);
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
   const [serviceSearch, setServiceSearch] = useState("");
@@ -588,33 +564,6 @@ export default function HomePage() {
     ? "Rechnungen für Handwerker"
     : "Angebote für Handwerker";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
-  const progressSteps = [
-    {
-      id: "customer",
-      label: "Kundendaten erfassen",
-      done: stepProgress.customerDataStarted,
-    },
-    {
-      id: "pdf",
-      label: "Text + PDF generieren",
-      done: stepProgress.pdfGenerationStarted,
-    },
-    {
-      id: "mail",
-      label: "Mailentwurf absenden",
-      done: stepProgress.mailDraftStarted,
-    },
-  ] as const;
-  const completedProgressSteps = progressSteps.filter((step) => step.done).length;
-  const progressPercent = Math.round(
-    (completedProgressSteps / progressSteps.length) * 100,
-  );
-  const progressToneClass =
-    completedProgressSteps === 0
-      ? "stepProgressFillStart"
-      : completedProgressSteps === progressSteps.length
-        ? "stepProgressFillDone"
-        : "stepProgressFillMiddle";
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
@@ -623,7 +572,6 @@ export default function HomePage() {
     setVoiceInfo(snapshot.voiceInfo);
     setVoiceError(snapshot.voiceError);
     setVoiceMissingFields([...snapshot.voiceMissingFields]);
-    setStepProgress(cloneStepProgress(snapshot.stepProgress));
     setError(snapshot.error);
     setPostActionInfo(snapshot.postActionInfo);
     setServiceSearch(snapshot.serviceSearch);
@@ -643,7 +591,6 @@ export default function HomePage() {
       voiceInfo,
       voiceError,
       voiceMissingFields: [...voiceMissingFields],
-      stepProgress: cloneStepProgress(stepProgress),
       error,
       postActionInfo,
       serviceSearch,
@@ -752,30 +699,6 @@ export default function HomePage() {
     document.addEventListener("mousedown", closeServiceSearch);
     return () => document.removeEventListener("mousedown", closeServiceSearch);
   }, []);
-
-  useEffect(() => {
-    if (stepProgress.customerDataStarted) {
-      return;
-    }
-
-    const formTouched = [
-      form.companyName,
-      form.firstName,
-      form.lastName,
-      form.street,
-      form.postalCode,
-      form.city,
-      form.customerEmail,
-      form.serviceDescription,
-      form.hours,
-      form.hourlyRate,
-      form.materialCost,
-    ].some((value) => value.trim().length > 0);
-
-    if (formTouched || selectedServices.length > 0) {
-      setStepProgress((prev) => ({ ...prev, customerDataStarted: true }));
-    }
-  }, [form, selectedServices.length, stepProgress.customerDataStarted]);
 
   useEffect(() => {
     const street = form.street.trim();
@@ -1391,7 +1314,7 @@ export default function HomePage() {
     }
 
     const cleaned = value.trim();
-    if (cleaned.length < 3 || cleaned.length > 140) {
+    if (cleaned.length < 3 || cleaned.length > 280) {
       return undefined;
     }
 
@@ -1662,9 +1585,6 @@ export default function HomePage() {
     payload: ApiResponse,
     mode: DocumentMode,
   ) {
-    setStepProgress((prev) =>
-      prev.mailDraftStarted ? prev : { ...prev, mailDraftStarted: true },
-    );
     const resolvedDocumentNumber =
       payload.documentNumber?.trim() ||
       payload.offerNumber?.trim() ||
@@ -1826,11 +1746,6 @@ export default function HomePage() {
       return;
     }
 
-    setStepProgress((prev) =>
-      prev.pdfGenerationStarted
-        ? prev
-        : { ...prev, pdfGenerationStarted: true },
-    );
     setIsSubmitting(true);
 
     try {
@@ -1904,30 +1819,6 @@ export default function HomePage() {
         </header>
 
         <div key={`${documentMode}-${modeAnimationKey}`} className="documentModeContent">
-          <section className="hero glassCard compactHero">
-            <div className="stepProgressCompact" role="status" aria-live="polite">
-              <div className="stepProgressTrack" aria-hidden>
-                <div
-                  className={`stepProgressFill ${progressToneClass}`}
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-              <div className="stepRow">
-                {progressSteps.map((step, index) => {
-                  return (
-                    <article
-                      key={step.id}
-                      className={`stepTile ${step.done ? "stepTileDone" : ""}`}
-                    >
-                      <span>{step.done ? "✓" : String(index + 1)}</span>
-                      <strong>{step.label}</strong>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
           <section className="workspaceGrid workspaceGridSingle">
           <article className="glassCard formCard">
             <header className="sectionHeader">

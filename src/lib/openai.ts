@@ -54,6 +54,7 @@ const POSITION_DESCRIPTION_BLOCKLIST = new Set([
   "stundensatz",
   "strasse",
 ]);
+const MAX_PARSED_POSITIONS = 60;
 const UNIT_TOKEN_PATTERN =
   "(?:stück|stk|m²|m2|m³|m3|m|kg|t|l|std|stunde|stunden|tag|pauschal|psch\\.?)";
 const NUMBER_WORDS: Record<string, number> = {
@@ -449,7 +450,7 @@ function normalizeParsedPositions(input: unknown): ParsedIntakePosition[] {
     });
   }
 
-  return positions.slice(0, 30);
+  return positions.slice(0, MAX_PARSED_POSITIONS);
 }
 
 
@@ -475,6 +476,27 @@ function capitalizeEntryStart(value: string): string {
   );
 }
 
+function normalizeCraftCompounds(value: string): string {
+  return value
+    .replace(/\bbeton\s+stahl\b/gi, "Betonstahl")
+    .replace(
+      /\bbeton\s+arbeit(en)?\b/gi,
+      (_match, plural: string | undefined) => `Betonarbeit${plural ?? ""}`,
+    )
+    .replace(/\btrocken\s+bau(?:\s+arbeiten)?\b/gi, (match) =>
+      /arbeiten$/i.test(match) ? "Trockenbauarbeiten" : "Trockenbau",
+    )
+    .replace(/\belektro\s+installation\b/gi, "Elektroinstallation")
+    .replace(/\bkabel\s+verlegung\b/gi, "Kabelverlegung")
+    .replace(
+      /\bfliesen\s+arbeit(en)?\b/gi,
+      (_match, plural: string | undefined) => `Fliesenarbeit${plural ?? ""}`,
+    )
+    .replace(/\b(?:waerme|wärme)\s+(?:daemmung|dämmung)\b/gi, "Wärmedämmung")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function formatPositionText(value: string): string {
   const cleaned = value
     .split(/\s+/)
@@ -483,7 +505,7 @@ function formatPositionText(value: string): string {
     .join(" ")
     .trim();
 
-  return capitalizeEntryStart(cleaned);
+  return capitalizeEntryStart(normalizeCraftCompounds(cleaned));
 }
 
 function formatLooseText(value: string): string {
@@ -732,7 +754,7 @@ function extractPositionsFromTranscript(transcript: string): ParsedIntakePositio
         });
       }
 
-      if (positions.length >= 30) {
+      if (positions.length >= MAX_PARSED_POSITIONS) {
         return positions;
       }
 
@@ -990,7 +1012,7 @@ export async function parseOfferIntake(transcript: string): Promise<IntakeParseR
         {
           role: "system",
           content:
-            "Extrahiere aus deutschem Spracheingabe-Text strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Erkenne mehrere Positionen zuverlässig und trenne sie sauber in positions (description, quantity, unit, unitPrice). Gib serviceDescription nur als kurze Projektbeschreibung aus (maximal 80 Zeichen) und nur, wenn der Text explizit Projektbeschreibung/Zusatzdetails erwähnt. Reine Positionslisten dürfen nicht in serviceDescription landen. Gib customerEmail technisch verwertbar im Format local@domain aus und normalisiere gesprochene Varianten wie 'at'/'punkt'."
+            "Extrahiere aus deutschem Spracheingabe-Text strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Erkenne mehrere Positionen zuverlässig und trenne sie sauber in positions (description, quantity, unit, unitPrice). Korrigiere offensichtliche Rechtschreibfehler bei deutschen Bau-/Handwerks-Komposita (z. B. Betonarbeit, Betonstahl), ohne Inhalte umzuformulieren. Gib serviceDescription nur als kurze Projektbeschreibung aus (maximal 160 Zeichen) und nur, wenn der Text explizit Projektbeschreibung/Zusatzdetails erwähnt. Reine Positionslisten dürfen nicht in serviceDescription landen. Gib customerEmail technisch verwertbar im Format local@domain aus und normalisiere gesprochene Varianten wie 'at'/'punkt'."
         },
         {
           role: "user",
