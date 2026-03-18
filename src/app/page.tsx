@@ -609,11 +609,6 @@ export default function HomePage() {
   const progressPercent = Math.round(
     (completedProgressSteps / progressSteps.length) * 100,
   );
-  const activeProgressIndex =
-    completedProgressSteps === 0 ||
-    completedProgressSteps === progressSteps.length
-      ? -1
-      : progressSteps.findIndex((step) => !step.done);
   const progressToneClass =
     completedProgressSteps === 0
       ? "stepProgressFillStart"
@@ -1919,14 +1914,11 @@ export default function HomePage() {
               </div>
               <div className="stepRow">
                 {progressSteps.map((step, index) => {
-                  const stepStateClass = step.done
-                    ? "stepTileDone"
-                    : index === activeProgressIndex
-                      ? "stepTileActive"
-                      : "stepTilePending";
-
                   return (
-                    <article key={step.id} className={`stepTile ${stepStateClass}`}>
+                    <article
+                      key={step.id}
+                      className={`stepTile ${step.done ? "stepTileDone" : ""}`}
+                    >
                       <span>{step.done ? "✓" : String(index + 1)}</span>
                       <strong>{step.label}</strong>
                     </article>

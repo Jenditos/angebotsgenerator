@@ -299,8 +299,9 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e8f1ff;
-  color: #3f6398;
+  border: 1px solid rgba(80, 118, 185, 0.3);
+  background: rgba(255, 255, 255, 0.96);
+  color: #3f5f92;
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -317,45 +318,18 @@ h1 {
 }
 
 .stepTileDone {
-  border-color: rgba(49, 153, 105, 0.45);
-  background: rgba(236, 255, 246, 0.92);
+  border-color: rgba(70, 111, 196, 0.24);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .stepTileDone span {
-  background: #2a9f70;
+  border-color: rgba(31, 157, 102, 0.62);
+  background: #1f9d66;
   color: #ffffff;
 }
 
 .stepTileDone strong {
-  color: #1f6247;
-}
-
-.stepTilePending {
-  border-color: rgba(223, 91, 110, 0.42);
-  background: rgba(255, 238, 241, 0.9);
-}
-
-.stepTilePending span {
-  background: #e54866;
-  color: #ffffff;
-}
-
-.stepTilePending strong {
-  color: #7a2436;
-}
-
-.stepTileActive {
-  border-color: rgba(212, 160, 31, 0.5);
-  background: rgba(255, 246, 226, 0.94);
-}
-
-.stepTileActive span {
-  background: #e4b12d;
-  color: #6e4a00;
-}
-
-.stepTileActive strong {
-  color: #725208;
+  color: #1a3158;
 }
 
 .workspaceGrid {
