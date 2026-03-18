@@ -369,6 +369,7 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyName}
+                autoCapitalize="words"
                 onChange={(e) =>
                   setSettings((prev) => ({
                     ...prev,
@@ -383,6 +384,7 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.ownerName}
+                autoCapitalize="words"
                 onChange={(e) =>
                   setSettings((prev) => ({
                     ...prev,
@@ -397,6 +399,7 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyStreet}
+                autoCapitalize="words"
                 onChange={(e) =>
                   setSettings((prev) => ({
                     ...prev,
@@ -411,6 +414,8 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyPostalCode}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 onChange={(e) =>
                   setSettings((prev) => ({
                     ...prev,
@@ -425,6 +430,7 @@ export default function SettingsPage() {
               <input
                 required
                 value={settings.companyCity}
+                autoCapitalize="words"
                 onChange={(e) =>
                   setSettings((prev) => ({
                     ...prev,
@@ -439,6 +445,8 @@ export default function SettingsPage() {
               <input
                 required
                 type="email"
+                autoCapitalize="none"
+                autoCorrect="off"
                 value={settings.companyEmail}
                 onChange={(e) =>
                   setSettings((prev) => ({
@@ -452,6 +460,8 @@ export default function SettingsPage() {
             <label className="field">
               <span>Telefon</span>
               <input
+                type="tel"
+                autoComplete="tel"
                 value={settings.companyPhone}
                 onChange={(e) =>
                   setSettings((prev) => ({
@@ -465,6 +475,9 @@ export default function SettingsPage() {
             <label className="field">
               <span>Website</span>
               <input
+                type="url"
+                autoCapitalize="none"
+                autoCorrect="off"
                 value={settings.companyWebsite}
                 onChange={(e) =>
                   setSettings((prev) => ({
@@ -479,6 +492,8 @@ export default function SettingsPage() {
               <span>Interne Kopie per E-Mail (optional)</span>
               <input
                 type="email"
+                autoCapitalize="none"
+                autoCorrect="off"
                 value={settings.senderCopyEmail}
                 onChange={(e) =>
                   setSettings((prev) => ({

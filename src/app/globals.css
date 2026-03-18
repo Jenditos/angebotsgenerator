@@ -13,6 +13,7 @@
   --success: #1f9d66;
   --radius-lg: 28px;
   --radius-md: 18px;
+  --touch-target: 46px;
 }
 
 * {
@@ -32,10 +33,14 @@ body {
     radial-gradient(1200px 600px at 12% -10%, #d8e8ff 0%, transparent 58%),
     radial-gradient(1000px 520px at 88% -15%, #d2f0ff 0%, transparent 55%),
     linear-gradient(155deg, var(--bg0), var(--bg1) 52%, var(--bg2));
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
   color: inherit;
+  touch-action: manipulation;
 }
 
 .page {
@@ -73,6 +78,7 @@ a {
 
 .container {
   max-width: 1180px;
+  width: min(1180px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 18px;
@@ -88,6 +94,7 @@ a {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     0 22px 55px rgba(57, 97, 164, 0.16);
+  min-width: 0;
 }
 
 .topBar {
@@ -294,6 +301,7 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
   gap: 16px;
+  min-width: 0;
 }
 
 .workspaceGridSingle {
@@ -304,6 +312,7 @@ h1 {
 .previewPanel,
 .resultCard {
   padding: 24px;
+  min-width: 0;
 }
 
 .previewPanel {
@@ -393,6 +402,7 @@ h1 {
   margin: 0;
   color: #4e6894;
   font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
 
 .customerPickerItem:hover {
@@ -419,6 +429,10 @@ p {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px;
+}
+
+.formGrid > * {
+  min-width: 0;
 }
 
 .voicePanel {
@@ -751,6 +765,9 @@ p {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   border: 1px solid rgba(66, 113, 199, 0.24);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.86);
@@ -758,7 +775,7 @@ p {
 
 .positionsInputTable {
   width: 100%;
-  min-width: 820px;
+  min-width: 760px;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -770,6 +787,7 @@ p {
   font-size: 0.76rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+  white-space: nowrap;
   border-bottom: 1px solid rgba(66, 113, 199, 0.24);
   border-right: 1px solid rgba(66, 113, 199, 0.16);
   background: rgba(233, 243, 255, 0.78);
@@ -823,6 +841,7 @@ p {
 .positionPriceInput {
   width: 100%;
   min-width: 0;
+  min-height: 42px;
 }
 
 .positionNumericCell {
@@ -1085,8 +1104,9 @@ textarea {
   width: 100%;
   border: 1px solid rgba(79, 115, 190, 0.25);
   border-radius: 14px;
-  padding: 11px 13px;
+  padding: 12px 13px;
   font-size: 0.95rem;
+  line-height: 1.3;
   font: inherit;
   color: #10203a;
   background: rgba(255, 255, 255, 0.86);
@@ -1118,10 +1138,11 @@ textarea:focus {
 .primaryButton,
 .ghostButton {
   border-radius: 999px;
-  padding: 11px 18px;
+  padding: 12px 18px;
   text-decoration: none;
   font-weight: 700;
   width: fit-content;
+  min-height: var(--touch-target);
   cursor: pointer;
   border: 1px solid transparent;
   transition:
@@ -1390,8 +1411,8 @@ textarea:focus {
 }
 
 .settingsPdfColumnsDragHandle {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   border: 1px solid rgba(74, 118, 196, 0.34);
   background: rgba(255, 255, 255, 0.86);
@@ -1465,6 +1486,14 @@ textarea:focus {
 }
 
 @media (max-width: 960px) {
+  .page {
+    padding: 20px 12px 40px;
+  }
+
+  .container {
+    gap: 14px;
+  }
+
   .workspaceGrid {
     grid-template-columns: 1fr;
   }
@@ -1475,13 +1504,40 @@ textarea:focus {
 }
 
 @media (max-width: 760px) {
+  .page {
+    padding:
+      max(12px, env(safe-area-inset-top))
+      10px
+      calc(26px + env(safe-area-inset-bottom));
+  }
+
+  .container {
+    gap: 12px;
+  }
+
+  .glassCard {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 12px 30px rgba(57, 97, 164, 0.14);
+  }
+
+  .documentModeSwitchTop {
+    position: sticky;
+    top: calc(8px + env(safe-area-inset-top));
+    z-index: 60;
+  }
+
   .topBar {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
   }
 
   .topBarHeadingRow {
     width: 100%;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   .settingsTopBarBrand {
@@ -1504,11 +1560,14 @@ textarea:focus {
     max-width: none;
     gap: 6px;
     padding: 6px;
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
   }
 
   .documentModeSwitchButton {
-    padding: 12px 14px;
-    font-size: 0.98rem;
+    min-height: 52px;
+    padding: 13px 12px;
+    font-size: 1rem;
   }
 
   .hero,
@@ -1524,6 +1583,70 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .sectionHeader {
+    margin-bottom: 12px;
+  }
+
+  .field {
+    gap: 8px;
+  }
+
+  .field span {
+    font-size: 0.84rem;
+  }
+
+  input:not([type="checkbox"]),
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 16px;
+    padding: 12px 13px;
+  }
+
+  textarea {
+    min-height: 104px;
+  }
+
+  .customerPickerSearch {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .customerPickerResults {
+    max-height: 212px;
+    gap: 10px;
+  }
+
+  .customerPickerItem {
+    padding: 12px;
+    min-height: 70px;
+  }
+
+  .voicePanel {
+    padding: 13px;
+    gap: 11px;
+  }
+
+  .voiceActions {
+    gap: 10px;
+  }
+
+  .voiceActionButton {
+    min-height: 46px;
+    flex: 1 1 48%;
+    justify-content: center;
+    font-size: 0.94rem;
+  }
+
+  .recipientType {
+    padding: 12px;
+  }
+
+  .recipientTypeButton {
+    min-height: 46px;
+    font-size: 0.9rem;
+  }
+
   .settingsPdfColumnsRow {
     grid-template-columns: auto 1fr;
     justify-items: stretch;
@@ -1535,6 +1658,17 @@ textarea:focus {
 
   .settingsInvoiceDuePanel {
     max-width: none;
+  }
+
+  .settingsInvoiceDueOption {
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+  }
+
+  .settingsPdfColumnsDragHandle {
+    width: 44px;
+    height: 44px;
   }
 
   .settingsPdfColumnsRow input:not([type="checkbox"]) {
@@ -1568,11 +1702,27 @@ textarea:focus {
   }
 
   .positionsInputTable {
-    min-width: 680px;
+    min-width: 620px;
+  }
+
+  .positionsInputTable thead th {
+    padding: 9px 9px;
+    font-size: 0.72rem;
+  }
+
+  .positionsInputTable tbody td {
+    padding: 7px;
   }
 
   .positionsAddRowButton {
     width: 100%;
+    min-height: 48px;
+  }
+
+  .positionsGroupDeleteButton,
+  .positionDeleteButton {
+    min-height: 38px;
+    padding: 7px 10px;
   }
 
   .span2 {
@@ -1585,6 +1735,31 @@ textarea:focus {
     width: 100%;
     justify-content: center;
     text-align: center;
+  }
+
+  .submitButton {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 40;
+  }
+
+  .formHint {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 430px) {
+  .topBarTitle {
+    font-size: clamp(1.12rem, 5.4vw, 1.4rem);
+  }
+
+  .pill {
+    padding: 7px 14px;
+    font-size: 0.78rem;
+  }
+
+  .documentModeSwitchButton {
+    font-size: 0.94rem;
   }
 }
 

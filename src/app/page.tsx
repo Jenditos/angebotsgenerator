@@ -2120,6 +2120,7 @@ export default function HomePage() {
                   <input
                     required
                     autoComplete="organization"
+                    autoCapitalize="words"
                     value={form.companyName}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -2157,6 +2158,7 @@ export default function HomePage() {
                 <input
                   required={form.customerType === "person"}
                   autoComplete="given-name"
+                  autoCapitalize="words"
                   value={form.firstName}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -2172,6 +2174,7 @@ export default function HomePage() {
                 <input
                   required={form.customerType === "person"}
                   autoComplete="family-name"
+                  autoCapitalize="words"
                   value={form.lastName}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -2188,6 +2191,7 @@ export default function HomePage() {
                   <input
                     required
                     autoComplete="address-line1"
+                    autoCapitalize="words"
                     value={form.street}
                     onChange={(e) =>
                       setForm((prev) => ({
@@ -2228,6 +2232,8 @@ export default function HomePage() {
                 <input
                   required
                   autoComplete="postal-code"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={form.postalCode}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, postalCode: e.target.value }))
@@ -2240,6 +2246,7 @@ export default function HomePage() {
                 <input
                   required
                   autoComplete="address-level2"
+                  autoCapitalize="words"
                   value={form.city}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -2256,6 +2263,8 @@ export default function HomePage() {
                   required
                   type="email"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   value={form.customerEmail}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -2324,6 +2333,7 @@ export default function HomePage() {
                   <input
                     value={serviceSearch}
                     placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
+                    autoCapitalize="words"
                     onFocus={() => setIsServiceSearchOpen(true)}
                     onChange={(event) => {
                       setServiceSearch(event.target.value);
@@ -2445,6 +2455,7 @@ export default function HomePage() {
                                   <td>
                                     <input
                                       className="positionDescriptionInput"
+                                      autoCapitalize="sentences"
                                       value={subitem.description}
                                       onChange={(event) =>
                                         updateServiceSubitem(
@@ -2627,6 +2638,7 @@ export default function HomePage() {
                 <textarea
                   rows={4}
                   placeholder="z. B. inkl. Verlegung von 60x60 Feinsteinzeugfliesen"
+                  autoCapitalize="sentences"
                   value={form.serviceDescription}
                   onChange={(e) =>
                     setForm((prev) => ({
