@@ -42,6 +42,7 @@ function sortPdfColumns(
 }
 
 type InvoiceDuePreset = "immediate" | "seven" | "fourteen" | "custom";
+type PdfColumnDropPosition = "before" | "after";
 
 function toInvoiceDuePreset(days: number): InvoiceDuePreset {
   if (days === 0) {
@@ -70,6 +71,8 @@ export default function SettingsPage() {
   const [dragOverPdfColumnId, setDragOverPdfColumnId] = useState<
     PdfTableColumnConfig["id"] | null
   >(null);
+  const [dragOverPdfColumnPosition, setDragOverPdfColumnPosition] =
+    useState<PdfColumnDropPosition>("after");
 
   useEffect(() => {
     let mounted = true;
@@ -148,6 +151,7 @@ export default function SettingsPage() {
   function reorderPdfColumnsByDrag(
     sourceId: PdfTableColumnConfig["id"],
     targetId: PdfTableColumnConfig["id"],
+    position: PdfColumnDropPosition = "after",
   ) {
     if (sourceId === targetId) {
       return;
@@ -163,7 +167,15 @@ export default function SettingsPage() {
 
       const nextSorted = [...sorted];
       const [movedColumn] = nextSorted.splice(sourceIndex, 1);
-      nextSorted.splice(targetIndex, 0, movedColumn);
+      let insertIndex = position === "before" ? targetIndex : targetIndex + 1;
+      if (sourceIndex < insertIndex) {
+        insertIndex -= 1;
+      }
+      const boundedInsertIndex = Math.max(
+        0,
+        Math.min(nextSorted.length, insertIndex),
+      );
+      nextSorted.splice(boundedInsertIndex, 0, movedColumn);
 
       return nextSorted.map((column, index) => ({
         ...column,
@@ -172,12 +184,22 @@ export default function SettingsPage() {
     });
   }
 
+  function resolveDropPosition(
+    clientY: number,
+    targetRect: DOMRect,
+  ): PdfColumnDropPosition {
+    return clientY <= targetRect.top + targetRect.height / 2
+      ? "before"
+      : "after";
+  }
+
   function handlePdfColumnDragStart(
     event: DragEvent<HTMLButtonElement>,
     columnId: PdfTableColumnConfig["id"],
   ) {
     setDraggingPdfColumnId(columnId);
     setDragOverPdfColumnId(columnId);
+    setDragOverPdfColumnPosition("after");
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", columnId);
   }
@@ -188,7 +210,12 @@ export default function SettingsPage() {
   ) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+    const dropPosition = resolveDropPosition(
+      event.clientY,
+      event.currentTarget.getBoundingClientRect(),
+    );
     setDragOverPdfColumnId(targetId);
+    setDragOverPdfColumnPosition(dropPosition);
   }
 
   function handlePdfColumnDrop(
@@ -199,9 +226,14 @@ export default function SettingsPage() {
     if (!draggingPdfColumnId) {
       return;
     }
-    reorderPdfColumnsByDrag(draggingPdfColumnId, targetId);
+    reorderPdfColumnsByDrag(
+      draggingPdfColumnId,
+      targetId,
+      dragOverPdfColumnPosition,
+    );
     setDraggingPdfColumnId(null);
     setDragOverPdfColumnId(null);
+    setDragOverPdfColumnPosition("after");
   }
 
   function handlePdfColumnTouchStart(
@@ -216,6 +248,7 @@ export default function SettingsPage() {
     event.currentTarget.setPointerCapture(event.pointerId);
     setDraggingPdfColumnId(columnId);
     setDragOverPdfColumnId(columnId);
+    setDragOverPdfColumnPosition("after");
   }
 
   function handlePdfColumnTouchMove(event: PointerEvent<HTMLButtonElement>) {
@@ -229,13 +262,16 @@ export default function SettingsPage() {
     const targetId = hoveredElement?.dataset.pdfColumnId as
       | PdfTableColumnConfig["id"]
       | undefined;
-    if (!targetId || targetId === draggingPdfColumnId) {
+    if (!hoveredElement || !targetId) {
       return;
     }
 
-    reorderPdfColumnsByDrag(draggingPdfColumnId, targetId);
-    setDraggingPdfColumnId(targetId);
+    const dropPosition = resolveDropPosition(
+      event.clientY,
+      hoveredElement.getBoundingClientRect(),
+    );
     setDragOverPdfColumnId(targetId);
+    setDragOverPdfColumnPosition(dropPosition);
   }
 
   function handlePdfColumnTouchEnd(event: PointerEvent<HTMLButtonElement>) {
@@ -246,8 +282,20 @@ export default function SettingsPage() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+    if (
+      draggingPdfColumnId &&
+      dragOverPdfColumnId &&
+      draggingPdfColumnId !== dragOverPdfColumnId
+    ) {
+      reorderPdfColumnsByDrag(
+        draggingPdfColumnId,
+        dragOverPdfColumnId,
+        dragOverPdfColumnPosition,
+      );
+    }
     setDraggingPdfColumnId(null);
     setDragOverPdfColumnId(null);
+    setDragOverPdfColumnPosition("after");
   }
 
   function resetPdfColumns() {
@@ -631,14 +679,20 @@ export default function SettingsPage() {
                 </p>
                 <div className="settingsPdfColumnsList">
                   {orderedPdfColumns.map((column) => {
+                    const isDraggingRow = draggingPdfColumnId === column.id;
                     const isDragTarget =
                       draggingPdfColumnId !== null &&
-                      dragOverPdfColumnId === column.id;
+                      dragOverPdfColumnId === column.id &&
+                      !isDraggingRow;
+                    const isDropBefore =
+                      isDragTarget && dragOverPdfColumnPosition === "before";
+                    const isDropAfter =
+                      isDragTarget && dragOverPdfColumnPosition === "after";
 
                     return (
                       <div
                         key={column.id}
-                        className={`settingsPdfColumnsRow ${isDragTarget ? "settingsPdfColumnsRowDragTarget" : ""}`}
+                        className={`settingsPdfColumnsRow ${isDraggingRow ? "settingsPdfColumnsRowDragging" : ""} ${isDragTarget ? "settingsPdfColumnsRowDragTarget" : ""} ${isDropBefore ? "settingsPdfColumnsRowDropBefore" : ""} ${isDropAfter ? "settingsPdfColumnsRowDropAfter" : ""}`}
                         data-pdf-column-id={column.id}
                         onDragOver={(event) =>
                           handlePdfColumnDragOver(event, column.id)
@@ -649,7 +703,7 @@ export default function SettingsPage() {
                       >
                         <button
                           type="button"
-                          className="settingsPdfColumnsDragHandle"
+                          className={`settingsPdfColumnsDragHandle ${isDraggingRow ? "settingsPdfColumnsDragHandleDragging" : ""}`}
                           draggable
                           onDragStart={(event) =>
                             handlePdfColumnDragStart(event, column.id)
@@ -657,6 +711,7 @@ export default function SettingsPage() {
                           onDragEnd={() => {
                             setDraggingPdfColumnId(null);
                             setDragOverPdfColumnId(null);
+                            setDragOverPdfColumnPosition("after");
                           }}
                           onPointerDown={(event) =>
                             handlePdfColumnTouchStart(event, column.id)

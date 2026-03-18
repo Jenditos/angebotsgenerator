@@ -588,6 +588,38 @@ export default function HomePage() {
     ? "Rechnungen für Handwerker"
     : "Angebote für Handwerker";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
+  const progressSteps = [
+    {
+      id: "customer",
+      label: "Kundendaten erfassen",
+      done: stepProgress.customerDataStarted,
+    },
+    {
+      id: "pdf",
+      label: "Text + PDF generieren",
+      done: stepProgress.pdfGenerationStarted,
+    },
+    {
+      id: "mail",
+      label: "Mailentwurf absenden",
+      done: stepProgress.mailDraftStarted,
+    },
+  ] as const;
+  const completedProgressSteps = progressSteps.filter((step) => step.done).length;
+  const progressPercent = Math.round(
+    (completedProgressSteps / progressSteps.length) * 100,
+  );
+  const activeProgressIndex =
+    completedProgressSteps === 0 ||
+    completedProgressSteps === progressSteps.length
+      ? -1
+      : progressSteps.findIndex((step) => !step.done);
+  const progressToneClass =
+    completedProgressSteps === 0
+      ? "stepProgressFillStart"
+      : completedProgressSteps === progressSteps.length
+        ? "stepProgressFillDone"
+        : "stepProgressFillMiddle";
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
@@ -1878,26 +1910,30 @@ export default function HomePage() {
 
         <div key={`${documentMode}-${modeAnimationKey}`} className="documentModeContent">
           <section className="hero glassCard compactHero">
-          <div className="stepRow">
-            <article
-              className={`stepTile ${stepProgress.customerDataStarted ? "stepTileDone" : ""}`}
-            >
-              <span>{stepProgress.customerDataStarted ? "✓" : "1"}</span>
-              <strong>Kundendaten erfassen</strong>
-            </article>
-            <article
-              className={`stepTile ${stepProgress.pdfGenerationStarted ? "stepTileDone" : ""}`}
-            >
-              <span>{stepProgress.pdfGenerationStarted ? "✓" : "2"}</span>
-              <strong>Text + PDF generieren</strong>
-            </article>
-            <article
-              className={`stepTile ${stepProgress.mailDraftStarted ? "stepTileDone" : ""}`}
-            >
-              <span>{stepProgress.mailDraftStarted ? "✓" : "3"}</span>
-              <strong>Mail-Entwurf absenden</strong>
-            </article>
-          </div>
+            <div className="stepProgressCompact" role="status" aria-live="polite">
+              <div className="stepProgressTrack" aria-hidden>
+                <div
+                  className={`stepProgressFill ${progressToneClass}`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <div className="stepRow">
+                {progressSteps.map((step, index) => {
+                  const stepStateClass = step.done
+                    ? "stepTileDone"
+                    : index === activeProgressIndex
+                      ? "stepTileActive"
+                      : "stepTilePending";
+
+                  return (
+                    <article key={step.id} className={`stepTile ${stepStateClass}`}>
+                      <span>{step.done ? "✓" : String(index + 1)}</span>
+                      <strong>{step.label}</strong>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
           </section>
 
           <section className="workspaceGrid workspaceGridSingle">
