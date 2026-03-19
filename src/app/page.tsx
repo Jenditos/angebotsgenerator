@@ -99,6 +99,10 @@ type VoiceParseResponse = {
   fields: ParsedVoiceFields;
   missingFields: string[];
   missingFieldKeys?: string[];
+  detectedInputLanguage?: string;
+  shouldAskFollowUp?: boolean;
+  followUpQuestion?: string | null;
+  followUpSpeechLocale?: string;
   shouldAutofillServiceDescription?: boolean;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error" | null;
@@ -270,6 +274,29 @@ const UNIT_OPTIONS = [
 
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
+
+function resolveSpeechLocale(value?: string): string {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return "de-DE";
+  }
+  if (normalized.startsWith("de")) {
+    return "de-DE";
+  }
+  if (normalized.startsWith("en")) {
+    return "en-US";
+  }
+  if (normalized.startsWith("tr")) {
+    return "tr-TR";
+  }
+  if (normalized.startsWith("pl")) {
+    return "pl-PL";
+  }
+  if (normalized.startsWith("ar")) {
+    return "ar-SA";
+  }
+  return "de-DE";
+}
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -664,6 +691,7 @@ export default function HomePage() {
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
+  const [isAiAskingFollowUp, setIsAiAskingFollowUp] = useState(false);
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
@@ -697,6 +725,11 @@ export default function HomePage() {
   });
   const shouldAutoApplyVoiceRef = useRef(false);
   const pauseRequestedRef = useRef(false);
+  const isListeningRef = useRef(false);
+  const isParsingVoiceRef = useRef(false);
+  const speechLanguageHintRef = useRef("de-DE");
+  const followUpRoundRef = useRef(0);
+  const followUpSpeechTimeoutRef = useRef<number | null>(null);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsNavTimeoutRef = useRef<number | null>(null);
@@ -809,10 +842,44 @@ export default function HomePage() {
       recognitionRef.current = null;
       setIsListening(false);
     }
+    cancelFollowUpSpeech();
     setIsSpeechPaused(false);
 
     setDocumentMode(nextMode);
     setModeAnimationKey((value) => value + 1);
+  }
+
+  function resetCurrentInputs() {
+    const confirmed = window.confirm(
+      `Möchtest du wirklich alle Eingaben im aktuellen ${singularDocumentLabel.toLowerCase()} löschen?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    if (recognitionRef.current) {
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    cancelFollowUpSpeech();
+
+    finalTranscriptRef.current = "";
+    followUpRoundRef.current = 0;
+    setIsListening(false);
+    setIsSpeechPaused(false);
+    setIsAddressLoading(false);
+    setIsCustomerPickerOpen(false);
+    setCustomerSearch("");
+    setCustomersError("");
+    setDeletingCustomerNumber(null);
+    setError("");
+    setPostActionInfo("");
+
+    const resetSnapshot = createInitialModeSnapshot();
+    modeSnapshotsRef.current[documentMode] = resetSnapshot;
+    applyModeSnapshot(resetSnapshot);
   }
 
   function openSettingsWithAnimation(event: ReactMouseEvent<HTMLAnchorElement>) {
@@ -869,6 +936,12 @@ export default function HomePage() {
       if (settingsNavTimeoutRef.current !== null) {
         window.clearTimeout(settingsNavTimeoutRef.current);
       }
+      if (followUpSpeechTimeoutRef.current !== null) {
+        window.clearTimeout(followUpSpeechTimeoutRef.current);
+      }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
       if (recognitionRef.current) {
         shouldAutoApplyVoiceRef.current = false;
         pauseRequestedRef.current = false;
@@ -877,6 +950,14 @@ export default function HomePage() {
       }
     };
   }, [router]);
+
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  useEffect(() => {
+    isParsingVoiceRef.current = isParsingVoice;
+  }, [isParsingVoice]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1166,6 +1247,71 @@ export default function HomePage() {
 
     input.focus();
     input.click();
+  }
+
+  function cancelFollowUpSpeech() {
+    if (followUpSpeechTimeoutRef.current !== null) {
+      window.clearTimeout(followUpSpeechTimeoutRef.current);
+      followUpSpeechTimeoutRef.current = null;
+    }
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsAiAskingFollowUp(false);
+  }
+
+  function speakVoiceFollowUp(question: string, languageHint?: string): boolean {
+    const text = question.trim();
+    if (!text || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return false;
+    }
+
+    const synthesis = window.speechSynthesis;
+    const locale = resolveSpeechLocale(languageHint);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = locale;
+    utterance.rate = 0.98;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    const localePrefix = locale.split("-")[0].toLowerCase();
+    const matchingVoice = synthesis
+      .getVoices()
+      .find((voice) => voice.lang.toLowerCase().startsWith(localePrefix));
+    if (matchingVoice) {
+      utterance.voice = matchingVoice;
+    }
+
+    utterance.onstart = () => {
+      setIsAiAskingFollowUp(true);
+    };
+
+    utterance.onerror = () => {
+      setIsAiAskingFollowUp(false);
+    };
+
+    utterance.onend = () => {
+      setIsAiAskingFollowUp(false);
+      if (followUpSpeechTimeoutRef.current !== null) {
+        window.clearTimeout(followUpSpeechTimeoutRef.current);
+      }
+      followUpSpeechTimeoutRef.current = window.setTimeout(() => {
+        followUpSpeechTimeoutRef.current = null;
+        if (
+          !recognitionRef.current &&
+          !isListeningRef.current &&
+          !isParsingVoiceRef.current
+        ) {
+          startSpeechInput();
+        }
+      }, 180);
+    };
+
+    synthesis.cancel();
+    synthesis.speak(utterance);
+    return true;
   }
 
   async function deleteStoredCustomer(customer: StoredCustomerRecord) {
@@ -1533,6 +1679,7 @@ export default function HomePage() {
 
     setVoiceError("");
     setVoiceMissingFields([]);
+    cancelFollowUpSpeech();
     setVoiceInfo(
       isSpeechPaused
         ? "Aufnahme fortgesetzt. Sprich weiter, der Text wird angehängt."
@@ -1544,7 +1691,14 @@ export default function HomePage() {
     finalTranscriptRef.current = voiceTranscript.trim();
 
     const recognition = new speechCtor();
-    recognition.lang = "de-DE";
+    const browserSpeechLanguage =
+      (Array.isArray(window.navigator.languages) &&
+      window.navigator.languages.length > 0
+        ? window.navigator.languages[0]
+        : window.navigator.language) || "de-DE";
+    const normalizedSpeechLanguage = resolveSpeechLocale(browserSpeechLanguage);
+    speechLanguageHintRef.current = normalizedSpeechLanguage;
+    recognition.lang = normalizedSpeechLanguage;
     recognition.continuous = true;
     recognition.interimResults = true;
 
@@ -1832,7 +1986,10 @@ export default function HomePage() {
       const response = await fetch("/api/parse-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({
+          transcript,
+          speechLanguageHint: speechLanguageHintRef.current,
+        }),
       });
       const data = (await response.json()) as VoiceParseResponse & {
         error?: string;
@@ -1938,7 +2095,32 @@ export default function HomePage() {
         parsedServiceEntries.length > 0
           ? " Die Positionstabelle wurde automatisch befüllt."
           : "";
-      setVoiceInfo(`${modeText}${actionText}${tableText}${missingText}`);
+      const baseInfoText = `${modeText}${actionText}${tableText}${missingText}`;
+      const followUpQuestionText =
+        typeof data.followUpQuestion === "string"
+          ? data.followUpQuestion.trim()
+          : "";
+      const shouldSpeakFollowUp =
+        autoTriggered &&
+        data.shouldAskFollowUp === true &&
+        followUpQuestionText.length > 0 &&
+        remainingMissingLabels.length > 0 &&
+        followUpRoundRef.current < 3;
+
+      if (remainingMissingLabels.length === 0) {
+        followUpRoundRef.current = 0;
+      }
+
+      if (shouldSpeakFollowUp) {
+        followUpRoundRef.current += 1;
+        speakVoiceFollowUp(
+          followUpQuestionText,
+          data.followUpSpeechLocale ?? data.detectedInputLanguage,
+        );
+        setVoiceInfo(`${baseInfoText} Rückfrage: ${followUpQuestionText}`);
+      } else {
+        setVoiceInfo(baseInfoText);
+      }
       setVoiceError("");
       setVoiceMissingFields(remainingMissingLabels);
       setAddressSuggestions([]);
@@ -2394,6 +2576,12 @@ export default function HomePage() {
                     </button>
                   )}
                 </div>
+
+                {isAiAskingFollowUp ? (
+                  <p className="voiceAssistantIndicator" role="status" aria-live="polite">
+                    KI fragt nach ...
+                  </p>
+                ) : null}
 
                 <label className="field">
                   <span>Gesprochener Text</span>
@@ -3060,6 +3248,15 @@ export default function HomePage() {
                   }
                 />
               </label>
+
+              <button
+                type="button"
+                className="ghostButton resetAllButton span2"
+                onClick={resetCurrentInputs}
+                disabled={isSubmitting}
+              >
+                Alles löschen
+              </button>
 
               <button
                 className="primaryButton submitButton"

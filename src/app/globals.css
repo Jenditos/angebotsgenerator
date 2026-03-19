@@ -595,6 +595,15 @@ p {
   background: rgba(237, 252, 245, 0.88);
 }
 
+.voiceAssistantIndicator {
+  border-radius: 12px;
+  padding: 8px 11px;
+  font-size: 0.81rem;
+  color: #1f4f8b;
+  border: 1px solid rgba(72, 124, 201, 0.24);
+  background: rgba(238, 246, 255, 0.9);
+}
+
 .voiceWarning {
   color: #933a4f;
   border: 1px solid rgba(219, 95, 130, 0.28);
@@ -1296,6 +1305,12 @@ textarea:focus {
   -webkit-appearance: none;
   overflow: hidden;
   background-clip: padding-box;
+}
+
+.resetAllButton {
+  width: 100%;
+  justify-content: center;
+  min-height: 50px;
 }
 
 .submitButton.primaryButton {
@@ -2846,7 +2861,6 @@ button.recipientTypeButton.active {
 
 .invoiceMetaField {
   justify-self: stretch;
-  overflow: visible;
 }
 
 .invoiceMetaInput[type="date"] {
@@ -2856,19 +2870,20 @@ button.recipientTypeButton.active {
 .dateInputWithIcon {
   position: relative;
   min-width: 0;
-  max-width: 100%;
   width: 100%;
-  overflow: visible;
 }
 
 .dateInputWithIcon .invoiceMetaInput[type="date"] {
-  display: block;
   width: 100%;
-  max-width: 100%;
-  padding-left: 13px;
+  padding-left: 12px;
   padding-right: 44px;
-  line-height: 1.35;
+  text-align: left;
   font-variant-numeric: tabular-nums;
+}
+
+.dateInputWithIcon
+  .invoiceMetaInput[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
 }
 
 .dateInputWithIcon .invoiceMetaInput[type="date"]::-webkit-datetime-edit {
@@ -2916,10 +2931,16 @@ button.dateInputIconButton:active {
 }
 
 .formHintMiniWrap {
+  min-height: 42px;
   z-index: 45;
 }
 
 .formHintMiniButton {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 12px;
   position: relative;
   z-index: 46;
   pointer-events: auto;
