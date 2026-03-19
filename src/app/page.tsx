@@ -1784,6 +1784,18 @@ export default function HomePage() {
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
       <div className="container">
+        <header className="topHeaderMinimal">
+          <span className="pill topHeaderLogo">Visioro</span>
+          <Link
+            href="/settings"
+            className="topHeaderSettingsButton"
+            aria-label="Einstellungen"
+            title="Einstellungen"
+          >
+            <span aria-hidden>⚙️</span>
+          </Link>
+        </header>
+
         <div className="documentModeSwitchTop">
           <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
             <button
@@ -1802,22 +1814,6 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-
-        <header className="topBar topBarWithSettingsIcon glassCard">
-          <div className="topBarBrand">
-            <div className="topBarHeadingRow">
-              <span className="pill">Visioro</span>
-            </div>
-          </div>
-          <Link
-            href="/settings"
-            className="ghostButton topBarButton topBarIconButton"
-            aria-label="Einstellungen"
-            title="Einstellungen"
-          >
-            <span aria-hidden>⚙️</span>
-          </Link>
-        </header>
 
         <div key={`${documentMode}-${modeAnimationKey}`} className="documentModeContent">
           <section className="workspaceGrid workspaceGridSingle">
