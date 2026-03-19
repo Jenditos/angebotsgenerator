@@ -560,9 +560,6 @@ export default function HomePage() {
     });
   }, [customerSearch, storedCustomers]);
   const isInvoiceMode = documentMode === "invoice";
-  const modeTitle = isInvoiceMode
-    ? "Rechnungen für Handwerker"
-    : "Angebote für Handwerker";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
@@ -1810,7 +1807,6 @@ export default function HomePage() {
           <div className="topBarBrand">
             <div className="topBarHeadingRow">
               <span className="pill">Visioro</span>
-              <h1 className="topBarTitle">{modeTitle}</h1>
             </div>
           </div>
           <Link
