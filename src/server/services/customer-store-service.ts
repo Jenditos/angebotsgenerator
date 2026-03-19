@@ -356,6 +356,40 @@ export async function listStoredCustomers(
   });
 }
 
+export async function removeStoredCustomer(
+  customerNumber: string,
+  overrides?: Partial<CustomerStorePaths>,
+): Promise<boolean> {
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
+  const normalizedSequence = parseCustomerNumber(customerNumber);
+  if (!normalizedSequence) {
+    return false;
+  }
+
+  const normalizedCustomerNumber = formatCustomerNumber(normalizedSequence);
+  const releaseLock = await acquireStoreLock(paths.lockPath);
+
+  try {
+    const store = await readStoreUnsafe(paths.storePath);
+    const nextCustomers = store.customers.filter(
+      (customer) => customer.customerNumber !== normalizedCustomerNumber,
+    );
+    if (nextCustomers.length === store.customers.length) {
+      return false;
+    }
+
+    await writeStoreUnsafe(paths.storePath, {
+      ...store,
+      customers: nextCustomers,
+    });
+    return true;
+  } finally {
+    await releaseLock();
+  }
+}
+
 export async function upsertStoredCustomer(
   input: UpsertStoredCustomerInput,
   overrides?: Partial<CustomerStorePaths>,

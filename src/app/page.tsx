@@ -55,6 +55,11 @@ type CustomersApiResponse = {
   error?: string;
 };
 
+type DeleteCustomerApiResponse = {
+  ok?: boolean;
+  error?: string;
+};
+
 type ServicesApiResponse = {
   services?: ServiceCatalogItem[];
   error?: string;
@@ -676,6 +681,9 @@ export default function HomePage() {
   );
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const [isCustomersLoading, setIsCustomersLoading] = useState(false);
+  const [deletingCustomerNumber, setDeletingCustomerNumber] = useState<
+    string | null
+  >(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customersError, setCustomersError] = useState("");
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
@@ -692,6 +700,7 @@ export default function HomePage() {
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsNavTimeoutRef = useRef<number | null>(null);
+  const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -1133,6 +1142,65 @@ export default function HomePage() {
 
     if (nextOpen && !isCustomersLoading && storedCustomers.length === 0) {
       void loadStoredCustomers();
+    }
+  }
+
+  function openInvoiceDatePicker() {
+    const input = invoiceDateInputRef.current;
+    if (!input) {
+      return;
+    }
+
+    const pickerInput = input as HTMLInputElement & {
+      showPicker?: () => void;
+    };
+
+    try {
+      if (typeof pickerInput.showPicker === "function") {
+        pickerInput.showPicker();
+        return;
+      }
+    } catch {
+      // Fallback auf native Öffnung per Fokus/Klick.
+    }
+
+    input.focus();
+    input.click();
+  }
+
+  async function deleteStoredCustomer(customer: StoredCustomerRecord) {
+    const confirmed = window.confirm(
+      `${customer.customerName} wirklich löschen?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setCustomersError("");
+    setDeletingCustomerNumber(customer.customerNumber);
+
+    try {
+      const response = await fetch(
+        `/api/customers?customerNumber=${encodeURIComponent(customer.customerNumber)}`,
+        { method: "DELETE" },
+      );
+      const data = (await response.json()) as DeleteCustomerApiResponse;
+      if (!response.ok || !data.ok) {
+        setCustomersError(data.error ?? "Kunde konnte nicht gelöscht werden.");
+        return;
+      }
+
+      setStoredCustomers((prev) =>
+        prev.filter(
+          (entry) => entry.customerNumber !== customer.customerNumber,
+        ),
+      );
+    } catch {
+      setCustomersError("Gespeicherter Kunde konnte nicht gelöscht werden.");
+    } finally {
+      setDeletingCustomerNumber((prev) =>
+        prev === customer.customerNumber ? null : prev,
+      );
     }
   }
 
@@ -2214,20 +2282,48 @@ export default function HomePage() {
                     !customersError &&
                     filteredStoredCustomers.length > 0
                       ? filteredStoredCustomers.map((customer) => (
-                          <button
+                          <div
                             key={customer.customerNumber}
-                            type="button"
-                            className="customerPickerItem"
-                            onClick={() => applyStoredCustomer(customer)}
+                            className="customerPickerItemRow"
                             role="listitem"
                           >
-                            <div className="customerPickerItemHeader">
-                              <strong>{customer.customerName}</strong>
-                              <span>{customer.customerNumber}</span>
-                            </div>
-                            <p>{customer.customerAddress}</p>
-                            <p>{customer.customerEmail}</p>
-                          </button>
+                            <button
+                              type="button"
+                              className="customerPickerItem customerPickerApplyButton"
+                              onClick={() => applyStoredCustomer(customer)}
+                            >
+                              <div className="customerPickerItemHeader">
+                                <strong>{customer.customerName}</strong>
+                                <span>{customer.customerNumber}</span>
+                              </div>
+                              <p>{customer.customerAddress}</p>
+                              <p>{customer.customerEmail}</p>
+                            </button>
+                            <button
+                              type="button"
+                              className="customerPickerDeleteButton"
+                              aria-label={`${customer.customerName} löschen`}
+                              title="Kunde löschen"
+                              disabled={deletingCustomerNumber === customer.customerNumber}
+                              onClick={() => void deleteStoredCustomer(customer)}
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="customerPickerDeleteIcon"
+                                aria-hidden="true"
+                                focusable="false"
+                              >
+                                <path
+                                  d="M9 4.5h6m-8 3h10m-8 0-.5 11h5l.5-11m-3.5 0V6.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
                         ))
                       : null}
                   </div>
@@ -2533,24 +2629,52 @@ export default function HomePage() {
 
               {isInvoiceMode ? (
                 <>
-                  <label className="field">
+                  <label className="field invoiceMetaField">
                     <span>Rechnungsdatum</span>
-                    <input
-                      required
-                      type="date"
-                      value={form.invoiceDate}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          invoiceDate: event.target.value,
-                        }))
-                      }
-                    />
+                    <div className="dateInputWithIcon">
+                      <input
+                        ref={invoiceDateInputRef}
+                        className="invoiceMetaInput"
+                        required
+                        type="date"
+                        value={form.invoiceDate}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            invoiceDate: event.target.value,
+                          }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="dateInputIconButton"
+                        aria-label="Kalender öffnen"
+                        title="Kalender öffnen"
+                        onClick={openInvoiceDatePicker}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="dateInputIcon"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path
+                            d="M7 4.5v2.2m10-2.2v2.2M5.5 9h13m-12 10h11.2a1 1 0 0 0 1-1V7.3a1 1 0 0 0-1-1H6.7a1 1 0 0 0-1 1V18a1 1 0 0 0 1 1Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </label>
 
-                  <label className="field">
+                  <label className="field invoiceMetaField">
                     <span>Leistungszeitraum</span>
                     <input
+                      className="invoiceMetaInput"
                       required
                       type="text"
                       placeholder="z. B. 01.03.2026 bis 05.03.2026"
@@ -2564,9 +2688,10 @@ export default function HomePage() {
                     />
                   </label>
 
-                  <label className="field">
+                  <label className="field invoiceMetaField">
                     <span>Zahlungsziel (Tage)</span>
                     <input
+                      className="invoiceMetaInput"
                       required
                       type="number"
                       min="1"
