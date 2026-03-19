@@ -1806,15 +1806,20 @@ export default function HomePage() {
           </div>
         </div>
 
-        <header className="topBar glassCard">
+        <header className="topBar topBarWithSettingsIcon glassCard">
           <div className="topBarBrand">
             <div className="topBarHeadingRow">
               <span className="pill">Visioro</span>
               <h1 className="topBarTitle">{modeTitle}</h1>
             </div>
           </div>
-          <Link href="/settings" className="ghostButton topBarButton">
-            Einstellungen
+          <Link
+            href="/settings"
+            className="ghostButton topBarButton topBarIconButton"
+            aria-label="Einstellungen"
+            title="Einstellungen"
+          >
+            <span aria-hidden>⚙️</span>
           </Link>
         </header>
 

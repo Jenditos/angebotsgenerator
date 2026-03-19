@@ -11,6 +11,7 @@
   --primary-b: #62c7ff;
   --danger: #e54866;
   --success: #1f9d66;
+  --button-radius: 12px;
   --radius-lg: 28px;
   --radius-md: 18px;
   --touch-target: 46px;
@@ -195,6 +196,34 @@ a {
 
 .topBarButton {
   white-space: nowrap;
+}
+
+.topBarWithSettingsIcon {
+  position: relative;
+}
+
+.topBarWithSettingsIcon .topBarHeadingRow {
+  padding-right: 56px;
+}
+
+.topBarIconButton {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.08rem;
+  line-height: 1;
+}
+
+.topBarIconButton span {
+  line-height: 1;
 }
 
 .settingsTopBarBrand {
@@ -428,6 +457,7 @@ p {
 }
 
 .voiceActionButtonStart {
+  border-radius: 999px;
   border-color: rgba(210, 48, 73, 0.42);
   background: rgba(255, 232, 237, 0.92);
   color: #892339;
@@ -1092,7 +1122,7 @@ textarea:focus {
 
 .primaryButton,
 .ghostButton {
-  border-radius: 999px;
+  border-radius: var(--button-radius);
   padding: 12px 18px;
   text-decoration: none;
   font-weight: 700;
@@ -1828,6 +1858,19 @@ textarea:focus {
     width: 100%;
     justify-content: center;
     text-align: center;
+  }
+
+  .topBarWithSettingsIcon .topBarHeadingRow {
+    padding-right: 52px;
+  }
+
+  .topBarIconButton {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    right: 14px;
+    top: 14px;
   }
 
   .submitButton {
