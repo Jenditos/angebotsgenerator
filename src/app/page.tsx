@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  MouseEvent as ReactMouseEvent,
   FormEvent,
   Fragment,
   useEffect,
@@ -469,6 +471,7 @@ function normalizeAddressSuggestion(
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [documentMode, setDocumentMode] = useState<DocumentMode>("offer");
   const [modeAnimationKey, setModeAnimationKey] = useState(0);
   const [form, setForm] = useState<OfferForm>(initialForm);
@@ -505,6 +508,7 @@ export default function HomePage() {
   const [isCustomersLoading, setIsCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customersError, setCustomersError] = useState("");
+  const [isOpeningSettings, setIsOpeningSettings] = useState(false);
   const recognitionRef = useRef<any>(null);
   const modeSnapshotsRef = useRef<Record<DocumentMode, ModeSnapshot>>({
     offer: createInitialModeSnapshot(),
@@ -514,6 +518,7 @@ export default function HomePage() {
   const pauseRequestedRef = useRef(false);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
+  const settingsNavTimeoutRef = useRef<number | null>(null);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -624,6 +629,32 @@ export default function HomePage() {
     setModeAnimationKey((value) => value + 1);
   }
 
+  function openSettingsWithAnimation(event: ReactMouseEvent<HTMLAnchorElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    if (isOpeningSettings) {
+      return;
+    }
+
+    setIsOpeningSettings(true);
+    if (settingsNavTimeoutRef.current !== null) {
+      window.clearTimeout(settingsNavTimeoutRef.current);
+    }
+    settingsNavTimeoutRef.current = window.setTimeout(() => {
+      router.push("/settings");
+    }, 110);
+  }
+
   useEffect(() => {
     const speechCtor =
       (window as any).SpeechRecognition ||
@@ -631,6 +662,9 @@ export default function HomePage() {
     setSpeechSupported(Boolean(speechCtor));
 
     return () => {
+      if (settingsNavTimeoutRef.current !== null) {
+        window.clearTimeout(settingsNavTimeoutRef.current);
+      }
       if (recognitionRef.current) {
         shouldAutoApplyVoiceRef.current = false;
         pauseRequestedRef.current = false;
@@ -638,7 +672,7 @@ export default function HomePage() {
         recognitionRef.current = null;
       }
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     let mounted = true;
@@ -1788,9 +1822,10 @@ export default function HomePage() {
           <span className="pill topHeaderLogo">Visioro</span>
           <Link
             href="/settings"
-            className="topHeaderSettingsButton"
+            className={`topHeaderSettingsButton ${isOpeningSettings ? "isNavigating" : ""}`}
             aria-label="Einstellungen"
             title="Einstellungen"
+            onClick={openSettingsWithAnimation}
           >
             <span aria-hidden>⚙️</span>
           </Link>
@@ -1895,8 +1930,8 @@ export default function HomePage() {
                 <div className="voicePanelHeader">
                   <strong>Per Sprache ausfüllen</strong>
                   <p>
-                    Sprich frei alle Angebotsdaten ein - alle relevanten
-                    Angaben werden automatisch erkannt und in die Felder
+                    Sprich alle Angebotsdaten frei ein - relevante Angaben
+                    werden automatisch erkannt und direkt in die Felder
                     übernommen.
                   </p>
                 </div>
@@ -1955,13 +1990,14 @@ export default function HomePage() {
                 <label className="field">
                   <span>Gesprochener Text</span>
                   <textarea
-                    rows={4}
+                    className="voiceTranscriptTextarea"
+                    rows={3}
                     value={voiceTranscript}
                     onChange={(e) => {
                       setVoiceTranscript(e.target.value);
                       setVoiceMissingFields([]);
                     }}
-                    placeholder="Beispiel: Firma Schmidt GmbH, Ansprechpartner Herr Müller, Musterstraße 5, 10115 Berlin, ..."
+                    placeholder="z. B. Max Müller, Musterstraße 5, Düsseldorf, Betonarbeiten 2 Stück à 120 Euro"
                   />
                 </label>
 
@@ -2546,8 +2582,9 @@ export default function HomePage() {
               <label className="field span2">
                 <span>Projektbeschreibung / Zusatzdetails (frei)</span>
                 <textarea
-                  rows={4}
-                  placeholder="z. B. inkl. Verlegung von 60x60 Feinsteinzeugfliesen"
+                  className="projectDescriptionTextarea"
+                  rows={3}
+                  placeholder="z. B. Verlegung von 60x60 Feinsteinzeugfliesen inkl. Fugenmaterial"
                   autoCapitalize="sentences"
                   value={form.serviceDescription}
                   onChange={(e) =>
@@ -2598,11 +2635,11 @@ export default function HomePage() {
               </button>
 
               <p className="formHint span2">
-                Tipp: Die Spalten der PDF-Tabelle kannst du in den{" "}
+                Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
                 <Link href="/settings" className="formHintLink">
                   Einstellungen
                 </Link>{" "}
-                unter „PDF-Tabellenspalten“ anpassen.
+                oder nutze dafür das Zahnradsymbol oben rechts.
               </p>
             </form>
 

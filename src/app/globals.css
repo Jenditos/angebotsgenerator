@@ -253,6 +253,11 @@ a {
   line-height: 1;
 }
 
+.topHeaderSettingsButton.isNavigating {
+  animation: settingsOpenTap 170ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  pointer-events: none;
+}
+
 .settingsTopBarBrand {
   display: inline-flex;
   align-items: center;
@@ -448,10 +453,10 @@ p {
 
 .voicePanel {
   display: grid;
-  gap: 10px;
+  gap: 9px;
   border: 1px solid rgba(67, 123, 214, 0.26);
   border-radius: 16px;
-  padding: 12px;
+  padding: 11px 12px 10px;
   background: linear-gradient(
     145deg,
     rgba(245, 250, 255, 0.94),
@@ -1133,6 +1138,11 @@ textarea {
   min-height: 92px;
 }
 
+.voiceTranscriptTextarea,
+.projectDescriptionTextarea {
+  min-height: 88px;
+}
+
 input:not([type="checkbox"]):not([type="radio"])::placeholder,
 textarea::placeholder {
   color: #7a8ead;
@@ -1579,6 +1589,21 @@ textarea:focus {
   }
 }
 
+@keyframes settingsOpenTap {
+  0% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  70% {
+    opacity: 0.86;
+    transform: translateY(-50%) scale(0.93);
+  }
+  100% {
+    opacity: 0.96;
+    transform: translateY(-50%) scale(0.97);
+  }
+}
+
 @media (max-width: 960px) {
   .page {
     padding: 20px 12px 40px;
@@ -1748,12 +1773,17 @@ textarea:focus {
   }
 
   .voicePanel {
-    padding: 13px;
-    gap: 11px;
+    padding: 11px 11px 9px;
+    gap: 10px;
   }
 
   .voiceActions {
     gap: 10px;
+  }
+
+  .voiceTranscriptTextarea,
+  .projectDescriptionTextarea {
+    min-height: 86px;
   }
 
   .voiceActionButton {
