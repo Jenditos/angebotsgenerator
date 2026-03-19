@@ -1022,6 +1022,34 @@ export default function HomePage() {
   ]);
 
   useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    if (!isCustomerArchiveOpen) {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlOverscroll = documentElement.style.overscrollBehavior;
+
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    documentElement.style.overflow = "hidden";
+    documentElement.style.overscrollBehavior = "none";
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+    };
+  }, [isCustomerArchiveOpen]);
+
+  useEffect(() => {
     let mounted = true;
 
     async function loadSettingsStatus() {
@@ -1791,9 +1819,7 @@ export default function HomePage() {
       }
 
       if (finalizedTranscript.length < 8) {
-        setVoiceInfo(
-          "Aufnahme beendet. Sprich bitte etwas länger oder ergänze den Text manuell.",
-        );
+        setVoiceInfo("Keine Sprache erkannt. Felder blieben unverändert.");
         return;
       }
 
@@ -1847,9 +1873,7 @@ export default function HomePage() {
     setIsSpeechPaused(false);
 
     if (finalizedTranscript.length < 8) {
-      setVoiceInfo(
-        "Aufnahme beendet. Sprich bitte etwas länger oder ergänze den Text manuell.",
-      );
+      setVoiceInfo("Keine Sprache erkannt. Felder blieben unverändert.");
       return;
     }
 
@@ -1859,6 +1883,9 @@ export default function HomePage() {
 
   function numberToInput(value: number | undefined): string | undefined {
     if (typeof value !== "number" || !Number.isFinite(value)) {
+      return undefined;
+    }
+    if (value <= 0) {
       return undefined;
     }
     return String(value);
@@ -2027,6 +2054,32 @@ export default function HomePage() {
       const shouldAutofillServiceDescription =
         data.shouldAutofillServiceDescription === true;
       const applyConservativeFallback = data.usedFallback;
+      const hasRecognizedStructuredContent =
+        parsedServiceEntries.length > 0 ||
+        Boolean(fields.companyName?.trim()) ||
+        Boolean(fields.firstName?.trim()) ||
+        Boolean(fields.lastName?.trim()) ||
+        Boolean(fields.street?.trim()) ||
+        Boolean(fields.postalCode?.trim()) ||
+        Boolean(fields.city?.trim()) ||
+        Boolean(fields.customerEmail?.trim()) ||
+        Boolean(safeServiceDescription?.trim()) ||
+        (typeof fields.hours === "number" &&
+          Number.isFinite(fields.hours) &&
+          fields.hours > 0) ||
+        (typeof fields.hourlyRate === "number" &&
+          Number.isFinite(fields.hourlyRate) &&
+          fields.hourlyRate > 0) ||
+        (typeof fields.materialCost === "number" &&
+          Number.isFinite(fields.materialCost) &&
+          fields.materialCost > 0);
+
+      if (!hasRecognizedStructuredContent) {
+        setVoiceInfo("Keine Sprache erkannt. Felder blieben unverändert.");
+        setVoiceError("");
+        setVoiceMissingFields([]);
+        return;
+      }
       let remainingMissingLabels: string[] = [];
 
       setForm((prev) => {
@@ -2588,8 +2641,23 @@ export default function HomePage() {
                                               target="_blank"
                                               rel="noreferrer"
                                             >
-                                              <strong>{document.documentNumber}</strong>
-                                              <span>{formatArchiveDate(document.createdAt)}</span>
+                                              <div className="customerArchiveDocumentMeta">
+                                                <strong>{document.documentNumber}</strong>
+                                                <span>
+                                                  Angebot •{" "}
+                                                  {formatArchiveDate(document.createdAt)}
+                                                </span>
+                                              </div>
+                                              <div
+                                                className="customerArchiveDocumentPreview"
+                                                aria-hidden="true"
+                                              >
+                                                <span className="customerArchivePreviewLabel">
+                                                  Vorschau
+                                                </span>
+                                                <span className="customerArchivePreviewLine" />
+                                                <span className="customerArchivePreviewLine short" />
+                                              </div>
                                             </a>
                                           ))}
                                         </div>
@@ -2628,8 +2696,23 @@ export default function HomePage() {
                                               target="_blank"
                                               rel="noreferrer"
                                             >
-                                              <strong>{document.documentNumber}</strong>
-                                              <span>{formatArchiveDate(document.createdAt)}</span>
+                                              <div className="customerArchiveDocumentMeta">
+                                                <strong>{document.documentNumber}</strong>
+                                                <span>
+                                                  Rechnung •{" "}
+                                                  {formatArchiveDate(document.createdAt)}
+                                                </span>
+                                              </div>
+                                              <div
+                                                className="customerArchiveDocumentPreview"
+                                                aria-hidden="true"
+                                              >
+                                                <span className="customerArchivePreviewLabel">
+                                                  Vorschau
+                                                </span>
+                                                <span className="customerArchivePreviewLine" />
+                                                <span className="customerArchivePreviewLine short" />
+                                              </div>
                                             </a>
                                           ))}
                                         </div>
@@ -2833,6 +2916,14 @@ export default function HomePage() {
                       Aufnahme starten
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className="ghostButton voiceActionButton voiceActionButtonClear"
+                    onClick={resetCurrentInputs}
+                    disabled={isSubmitting}
+                  >
+                    Felder leeren
+                  </button>
                 </div>
 
                 <label className="field">
@@ -3500,15 +3591,6 @@ export default function HomePage() {
                   }
                 />
               </label>
-
-              <button
-                type="button"
-                className="ghostButton resetAllButton span2"
-                onClick={resetCurrentInputs}
-                disabled={isSubmitting}
-              >
-                Alles löschen
-              </button>
 
               <button
                 className="primaryButton submitButton"

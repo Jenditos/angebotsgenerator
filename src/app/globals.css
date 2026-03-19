@@ -528,11 +528,17 @@ p {
 .voiceActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 
 .voiceActionButton {
   padding-inline: 14px;
+}
+
+.voiceActionButtonClear {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .voiceActionButtonStart {
@@ -1919,6 +1925,10 @@ textarea:focus {
     font-size: 0.94rem;
   }
 
+  .voiceActionButtonClear {
+    flex: 0 0 auto;
+  }
+
   .recipientType {
     padding: 12px;
   }
@@ -3014,6 +3024,7 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   background: rgba(12, 31, 58, 0.28);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  overscroll-behavior: contain;
   animation: customerArchiveBackdropIn 170ms ease-out;
 }
 
@@ -3068,6 +3079,8 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   min-height: 0;
   max-height: min(68vh, 690px);
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 10px;
   display: grid;
   gap: 8px;
@@ -3224,22 +3237,66 @@ button.customerArchiveSectionToggle {
   padding: 9px 10px;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
 }
 
-.customerArchiveDocumentItem strong {
+.customerArchiveDocumentMeta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.customerArchiveDocumentMeta strong {
   color: #1d365f;
   font-size: 0.9rem;
 }
 
-.customerArchiveDocumentItem span {
+.customerArchiveDocumentMeta span {
   color: #516b95;
   font-size: 0.78rem;
-  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.customerArchiveDocumentPreview {
+  width: 86px;
+  min-width: 86px;
+  border: 1px solid rgba(72, 118, 197, 0.18);
+  border-radius: 9px;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(238, 246, 255, 0.9)
+  );
+  padding: 6px 7px;
+  display: grid;
+  gap: 4px;
+}
+
+.customerArchivePreviewLabel {
+  font-size: 0.63rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4f6d98;
+  font-weight: 700;
+}
+
+.customerArchivePreviewLine {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(119, 161, 222, 0.36);
+}
+
+.customerArchivePreviewLine.short {
+  width: 74%;
 }
 
 .customerArchiveDocumentLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   text-decoration: none;
   transition:
     border-color 0.2s ease,
@@ -3344,5 +3401,15 @@ button.customerArchiveSectionToggle {
   .customerArchiveDocumentItem {
     min-height: 44px;
     padding: 10px;
+  }
+
+  .customerArchiveDocumentPreview {
+    width: 74px;
+    min-width: 74px;
+    padding: 5px 6px;
+  }
+
+  .customerArchivePreviewLabel {
+    font-size: 0.6rem;
   }
 }
