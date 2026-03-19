@@ -389,15 +389,26 @@ export default function SettingsPage() {
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
       <div className="container">
-        <header className="topBar glassCard">
-          <div className="topBarBrand settingsTopBarBrand">
-            <span className="pill" aria-label="Visioro">
-              Visioro
-            </span>
-            <strong className="settingsTopBarTitle">Firmeneinstellungen</strong>
-          </div>
-          <Link href="/" className="ghostButton topBarButton">
-            Zur Angebotserstellung
+        <header className="topHeaderMinimal">
+          <span className="pill topHeaderLogo" aria-label="Visioro">
+            Visioro
+          </span>
+          <Link href="/" className="topHeaderSettingsButton topHeaderBackButton" aria-label="Zurück" title="Zurück">
+            <svg
+              viewBox="0 0 24 24"
+              className="topHeaderIcon"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M15.5 5.5 8.5 12l7 6.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </Link>
         </header>
 

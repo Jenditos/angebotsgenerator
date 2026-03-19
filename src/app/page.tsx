@@ -18,6 +18,7 @@ import {
   searchServices,
 } from "@/lib/service-catalog";
 import {
+  CompanySettings,
   CustomerDraftGroup,
   DocumentType,
   OfferPositionInput,
@@ -56,6 +57,11 @@ type CustomersApiResponse = {
 
 type ServicesApiResponse = {
   services?: ServiceCatalogItem[];
+  error?: string;
+};
+
+type SettingsApiResponse = {
+  settings?: CompanySettings;
   error?: string;
 };
 
@@ -197,6 +203,11 @@ type ModeSnapshot = {
   addressSuggestions: AddressSuggestion[];
 };
 
+type PersistedHomeState = {
+  documentMode: DocumentMode;
+  modeSnapshots: Record<DocumentMode, ModeSnapshot>;
+};
+
 function cloneSelectedServices(
   services: SelectedServiceEntry[],
 ): SelectedServiceEntry[] {
@@ -253,6 +264,165 @@ const UNIT_OPTIONS = [
 ];
 
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
+const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function hydrateOfferForm(value: unknown): OfferForm {
+  const initial = createInitialForm();
+  if (!isObjectRecord(value)) {
+    return initial;
+  }
+
+  return {
+    customerType: value.customerType === "company" ? "company" : "person",
+    companyName: asString(value.companyName),
+    salutation: value.salutation === "frau" ? "frau" : "herr",
+    firstName: asString(value.firstName),
+    lastName: asString(value.lastName),
+    street: asString(value.street),
+    postalCode: asString(value.postalCode),
+    city: asString(value.city),
+    customerEmail: asString(value.customerEmail),
+    serviceDescription: asString(value.serviceDescription),
+    hours: asString(value.hours),
+    hourlyRate: asString(value.hourlyRate),
+    materialCost: asString(value.materialCost),
+    invoiceDate: asString(value.invoiceDate) || initial.invoiceDate,
+    serviceDate: asString(value.serviceDate),
+    paymentDueDays: asString(value.paymentDueDays) || initial.paymentDueDays,
+  };
+}
+
+function hydrateSelectedServices(value: unknown): SelectedServiceEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!isObjectRecord(entry)) {
+        return null;
+      }
+
+      const label =
+        capitalizeEntryStart(asString(entry.label)) || DEFAULT_MANUAL_GROUP_LABEL;
+      const subitemsRaw = Array.isArray(entry.subitems) ? entry.subitems : [];
+      const subitems = subitemsRaw
+        .map((subitem) => {
+          if (!isObjectRecord(subitem)) {
+            return null;
+          }
+          return {
+            id: asString(subitem.id) || createSubitemEntry().id,
+            description: capitalizeEntryStart(asString(subitem.description)),
+            quantity: sanitizeQuantityInput(asString(subitem.quantity)),
+            unit: asString(subitem.unit) || UNIT_OPTIONS[0],
+            price: sanitizePriceInput(asString(subitem.price)),
+          };
+        })
+        .filter((subitem): subitem is ServiceSubitemEntry => Boolean(subitem));
+
+      return {
+        id: asString(entry.id) || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        label,
+        subitems: subitems.length > 0 ? subitems : [createSubitemEntry(label)],
+      };
+    })
+    .filter((entry): entry is SelectedServiceEntry => Boolean(entry));
+}
+
+function hydrateAddressSuggestions(value: unknown): AddressSuggestion[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!isObjectRecord(entry)) {
+        return null;
+      }
+      const street = asString(entry.street);
+      const postalCode = asString(entry.postalCode);
+      const city = asString(entry.city);
+      const primary = asString(entry.primary);
+      const secondary = asString(entry.secondary);
+      if (!street && !postalCode && !city && !primary && !secondary) {
+        return null;
+      }
+      return {
+        street,
+        postalCode,
+        city,
+        primary,
+        secondary,
+      };
+    })
+    .filter((entry): entry is AddressSuggestion => Boolean(entry));
+}
+
+function hydrateModeSnapshot(value: unknown): ModeSnapshot {
+  const initial = createInitialModeSnapshot();
+  if (!isObjectRecord(value)) {
+    return initial;
+  }
+
+  return {
+    form: hydrateOfferForm(value.form),
+    selectedServices: hydrateSelectedServices(value.selectedServices),
+    voiceTranscript: asString(value.voiceTranscript),
+    voiceInfo: asString(value.voiceInfo),
+    voiceError: asString(value.voiceError),
+    voiceMissingFields: Array.isArray(value.voiceMissingFields)
+      ? value.voiceMissingFields.map((entry) => asString(entry)).filter(Boolean)
+      : [],
+    error: asString(value.error),
+    postActionInfo: asString(value.postActionInfo),
+    serviceSearch: asString(value.serviceSearch),
+    isServiceSearchOpen: value.isServiceSearchOpen === true,
+    serviceInfo: asString(value.serviceInfo),
+    serviceError: asString(value.serviceError),
+    addressSuggestions: hydrateAddressSuggestions(value.addressSuggestions),
+  };
+}
+
+function hydratePersistedHomeState(value: unknown): PersistedHomeState | null {
+  if (!isObjectRecord(value) || !isObjectRecord(value.modeSnapshots)) {
+    return null;
+  }
+
+  return {
+    documentMode: value.documentMode === "invoice" ? "invoice" : "offer",
+    modeSnapshots: {
+      offer: hydrateModeSnapshot(value.modeSnapshots.offer),
+      invoice: hydrateModeSnapshot(value.modeSnapshots.invoice),
+    },
+  };
+}
+
+function hasCompletedCompanySettings(settings: CompanySettings | undefined): boolean {
+  if (!settings) {
+    return false;
+  }
+
+  const requiredValues = [
+    settings.companyName,
+    settings.ownerName,
+    settings.companyStreet,
+    settings.companyPostalCode,
+    settings.companyCity,
+    settings.companyEmail,
+    settings.companyPhone,
+  ];
+
+  return requiredValues.every((value) => value.trim().length > 0);
+}
 
 function capitalizeEntryStart(value: string): string {
   if (!value) {
@@ -508,7 +678,10 @@ export default function HomePage() {
   const [isCustomersLoading, setIsCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customersError, setCustomersError] = useState("");
+  const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
+  const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [isOpeningSettings, setIsOpeningSettings] = useState(false);
+  const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
   const recognitionRef = useRef<any>(null);
   const modeSnapshotsRef = useRef<Record<DocumentMode, ModeSnapshot>>({
     offer: createInitialModeSnapshot(),
@@ -585,8 +758,8 @@ export default function HomePage() {
     );
   }
 
-  function storeCurrentModeSnapshot(mode: DocumentMode) {
-    modeSnapshotsRef.current[mode] = {
+  function createCurrentModeSnapshot(): ModeSnapshot {
+    return {
       form: { ...form },
       selectedServices: cloneSelectedServices(selectedServices),
       voiceTranscript,
@@ -601,6 +774,10 @@ export default function HomePage() {
       serviceError,
       addressSuggestions: addressSuggestions.map((suggestion) => ({ ...suggestion })),
     };
+  }
+
+  function storeCurrentModeSnapshot(mode: DocumentMode) {
+    modeSnapshotsRef.current[mode] = createCurrentModeSnapshot();
   }
 
   function switchDocumentMode(nextMode: DocumentMode) {
@@ -646,6 +823,24 @@ export default function HomePage() {
       return;
     }
 
+    try {
+      const snapshots: Record<DocumentMode, ModeSnapshot> = {
+        ...modeSnapshotsRef.current,
+        [documentMode]: createCurrentModeSnapshot(),
+      };
+      modeSnapshotsRef.current = snapshots;
+      const payload: PersistedHomeState = {
+        documentMode,
+        modeSnapshots: snapshots,
+      };
+      window.sessionStorage.setItem(
+        HOME_STATE_STORAGE_KEY,
+        JSON.stringify(payload),
+      );
+    } catch {
+      // Navigationswechsel darf nicht blockiert werden.
+    }
+
     setIsOpeningSettings(true);
     if (settingsNavTimeoutRef.current !== null) {
       window.clearTimeout(settingsNavTimeoutRef.current);
@@ -673,6 +868,99 @@ export default function HomePage() {
       }
     };
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const rawState = window.sessionStorage.getItem(HOME_STATE_STORAGE_KEY);
+      if (rawState) {
+        const persisted = hydratePersistedHomeState(JSON.parse(rawState));
+        if (persisted) {
+          modeSnapshotsRef.current = persisted.modeSnapshots;
+          setDocumentMode(persisted.documentMode);
+          applyModeSnapshot(persisted.modeSnapshots[persisted.documentMode]);
+        }
+      }
+    } catch {
+      // Ignorieren und mit initialem State starten.
+    } finally {
+      setIsHomeStateHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isHomeStateHydrated || typeof window === "undefined") {
+      return;
+    }
+
+    const snapshots: Record<DocumentMode, ModeSnapshot> = {
+      ...modeSnapshotsRef.current,
+      [documentMode]: createCurrentModeSnapshot(),
+    };
+    modeSnapshotsRef.current = snapshots;
+
+    const payload: PersistedHomeState = {
+      documentMode,
+      modeSnapshots: snapshots,
+    };
+
+    try {
+      window.sessionStorage.setItem(
+        HOME_STATE_STORAGE_KEY,
+        JSON.stringify(payload),
+      );
+    } catch {
+      // Storage kann in einzelnen Browsern deaktiviert sein.
+    }
+  }, [
+    addressSuggestions,
+    documentMode,
+    error,
+    form,
+    isServiceSearchOpen,
+    postActionInfo,
+    selectedServices,
+    serviceError,
+    serviceInfo,
+    serviceSearch,
+    voiceError,
+    voiceInfo,
+    voiceMissingFields,
+    voiceTranscript,
+    isHomeStateHydrated,
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSettingsStatus() {
+      try {
+        const response = await fetch("/api/settings");
+        const data = (await response.json()) as SettingsApiResponse;
+        if (!response.ok) {
+          return;
+        }
+        if (mounted) {
+          const isComplete = hasCompletedCompanySettings(data.settings);
+          setIsCompanySetupComplete(isComplete);
+          if (!isComplete) {
+            setIsSetupHintOpen(false);
+          }
+        }
+      } catch {
+        // Nur UI-Hinweis; Fehler hier blockiert die Seite nicht.
+      }
+    }
+
+    void loadSettingsStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -1827,7 +2115,29 @@ export default function HomePage() {
             title="Einstellungen"
             onClick={openSettingsWithAnimation}
           >
-            <span aria-hidden>⚙️</span>
+            <svg
+              viewBox="0 0 24 24"
+              className="topHeaderIcon"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M9.6 3.5h4.8l.44 2.1a6.88 6.88 0 0 1 1.5.87l2.03-.75 2.4 4.15-1.6 1.45c.06.45.06.91 0 1.36l1.6 1.45-2.4 4.15-2.03-.75c-.47.35-.98.64-1.5.87l-.44 2.1H9.6l-.44-2.1a6.88 6.88 0 0 1-1.5-.87l-2.03.75-2.4-4.15 1.6-1.45a5.5 5.5 0 0 1 0-1.36l-1.6-1.45 2.4-4.15 2.03.75c.47-.35.98-.64 1.5-.87L9.6 3.5Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="2.7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              />
+            </svg>
           </Link>
         </header>
 
@@ -2634,13 +2944,59 @@ export default function HomePage() {
                   : `${singularDocumentLabel} erstellen`}
               </button>
 
-              <p className="formHint span2">
-                Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
-                <Link href="/settings" className="formHintLink">
-                  Einstellungen
-                </Link>{" "}
-                oder nutze dafür das Zahnradsymbol oben rechts.
-              </p>
+              {!isCompanySetupComplete ? (
+                <p className="formHint span2">
+                  Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
+                  <Link href="/settings" className="formHintLink">
+                    Einstellungen
+                  </Link>{" "}
+                  oder nutze dafür das Zahnradsymbol oben rechts.
+                </p>
+              ) : (
+                <div className="formHintMiniWrap span2">
+                  <button
+                    type="button"
+                    className="formHintMiniButton"
+                    aria-label="Tipp anzeigen"
+                    aria-expanded={isSetupHintOpen}
+                    onClick={() => setIsSetupHintOpen((prev) => !prev)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="formHintMiniIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <path
+                        d="M12 10.2v5.1"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                    </svg>
+                  </button>
+                  {isSetupHintOpen ? (
+                    <p className="formHintMiniPopover">
+                      Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie in
+                      den{" "}
+                      <Link href="/settings" className="formHintLink">
+                        Einstellungen
+                      </Link>{" "}
+                      oder über das Zahnradsymbol oben rechts bearbeiten.
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </form>
 
             {error ? <p className="error">{error}</p> : null}
