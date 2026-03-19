@@ -1219,6 +1219,10 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.88);
 }
 
+.ghostButton.voiceActionButtonStart {
+  border-radius: 999px;
+}
+
 .previewAddress {
   display: grid;
   gap: 4px;
