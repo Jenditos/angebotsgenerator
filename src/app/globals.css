@@ -3061,23 +3061,28 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   color: #274a7c;
 }
 
-.customerArchiveLayout {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(240px, 0.34fr) minmax(0, 0.66fr);
-  gap: 11px;
-}
-
-.customerArchiveCustomers,
-.customerArchiveDocuments {
+.customerArchiveTree {
   border: 1px solid rgba(72, 118, 197, 0.2);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.76);
   min-height: 0;
+  max-height: min(68vh, 690px);
   overflow: auto;
-  padding: 11px;
+  padding: 10px;
   display: grid;
   gap: 8px;
+}
+
+.customerArchiveNode {
+  border: 1px solid rgba(72, 118, 197, 0.18);
+  border-radius: 14px;
+  background: rgba(246, 250, 255, 0.8);
+  overflow: hidden;
+}
+
+.customerArchiveNode.expanded {
+  border-color: rgba(70, 130, 250, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(70, 130, 250, 0.15);
 }
 
 .customerArchiveTitle {
@@ -3096,21 +3101,21 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   margin-top: 2px;
 }
 
-.customerArchiveCustomerButton {
+button.customerArchiveCustomerButton {
   width: 100%;
-  border: 1px solid rgba(72, 118, 197, 0.2);
-  border-radius: 12px;
+  border: 0;
+  border-radius: 0;
   padding: 10px;
   text-align: left;
   display: grid;
-  gap: 3px;
+  gap: 6px;
   cursor: pointer;
+  background: rgba(245, 250, 255, 0.8);
+  box-shadow: none;
 }
 
-.customerArchiveCustomerButton.active {
-  border-color: rgba(70, 130, 250, 0.9);
-  background: rgba(233, 243, 255, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(70, 130, 250, 0.3);
+button.customerArchiveCustomerButton.active {
+  background: rgba(236, 246, 255, 0.96);
 }
 
 .customerArchiveCustomerHead {
@@ -3139,6 +3144,36 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   overflow-wrap: anywhere;
 }
 
+.customerArchiveCustomerMeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.customerArchiveExpandIcon {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  color: #3f5f8c;
+  margin-top: 1px;
+  transition: transform 0.18s ease;
+}
+
+.customerArchiveExpandIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.customerArchiveChildren {
+  border-top: 1px solid rgba(72, 118, 197, 0.16);
+  padding: 10px 10px 10px 16px;
+  margin-left: 10px;
+  border-left: 2px solid rgba(72, 118, 197, 0.18);
+  display: grid;
+  gap: 8px;
+  animation: customerArchiveChildrenIn 170ms ease-out;
+}
+
 .customerArchiveDocumentGroups {
   display: grid;
   gap: 11px;
@@ -3149,12 +3184,37 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   gap: 7px;
 }
 
+button.customerArchiveSectionToggle {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(72, 118, 197, 0.24);
+  border-radius: 11px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: none;
+}
+
+.customerArchiveSectionMeta {
+  color: #3c5f91;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .customerArchiveGroupLabel {
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #43638f;
+}
+
+.customerArchiveDocumentList {
+  display: grid;
+  gap: 7px;
 }
 
 .customerArchiveDocumentItem {
@@ -3179,6 +3239,25 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   white-space: nowrap;
 }
 
+.customerArchiveDocumentLink {
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.18s ease,
+    box-shadow 0.2s ease;
+}
+
+.customerArchiveDocumentLink:hover {
+  border-color: rgba(72, 118, 197, 0.36);
+  background: rgba(235, 245, 255, 0.94);
+  transform: translateX(1px);
+}
+
+.customerArchiveDocumentLink:active {
+  transform: translateX(0);
+}
+
 @keyframes customerArchiveBackdropIn {
   from {
     opacity: 0;
@@ -3198,6 +3277,18 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes customerArchiveChildrenIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -3225,16 +3316,33 @@ button.voiceActionButtonStart:hover:not(:disabled) {
     font-size: 0.96rem;
   }
 
-  .customerArchiveLayout {
-    grid-template-columns: 1fr;
-    gap: 10px;
+  .customerArchiveTree {
+    max-height: calc(100vh - 190px - env(safe-area-inset-top));
+    gap: 7px;
+    padding: 8px;
   }
 
-  .customerArchiveCustomers {
-    max-height: 34vh;
+  .customerArchiveNode {
+    border-radius: 12px;
   }
 
-  .customerArchiveDocuments {
-    max-height: 44vh;
+  .customerArchiveCustomerButton {
+    padding: 10px 9px;
+  }
+
+  .customerArchiveChildren {
+    margin-left: 8px;
+    padding: 9px 8px 9px 12px;
+    gap: 7px;
+  }
+
+  .customerArchiveSectionToggle {
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .customerArchiveDocumentItem {
+    min-height: 44px;
+    padding: 10px;
   }
 }

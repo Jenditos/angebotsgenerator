@@ -525,3 +525,20 @@ export async function listStoredOfferRecords(
     return right.offerNumber.localeCompare(left.offerNumber);
   });
 }
+
+export async function findStoredOfferRecordByNumber(
+  offerNumber: string,
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord | null> {
+  const normalizedOfferNumber = offerNumber.trim().toUpperCase();
+  if (!normalizedOfferNumber) {
+    return null;
+  }
+
+  const records = await listStoredOfferRecords(overrides);
+  return (
+    records.find(
+      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+    ) ?? null
+  );
+}

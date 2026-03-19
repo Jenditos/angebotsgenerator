@@ -721,6 +721,8 @@ export default function HomePage() {
     useState(false);
   const [selectedArchiveCustomerNumber, setSelectedArchiveCustomerNumber] =
     useState("");
+  const [isArchiveOffersOpen, setIsArchiveOffersOpen] = useState(true);
+  const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(true);
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [isOpeningSettings, setIsOpeningSettings] = useState(false);
@@ -736,6 +738,7 @@ export default function HomePage() {
   const finalTranscriptRef = useRef("");
   const settingsNavTimeoutRef = useRef<number | null>(null);
   const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
+  const archiveLoadRequestRef = useRef(0);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -781,13 +784,6 @@ export default function HomePage() {
       );
     });
   }, [customerSearch, storedCustomers]);
-  const selectedArchiveCustomer = useMemo(
-    () =>
-      storedCustomers.find(
-        (customer) => customer.customerNumber === selectedArchiveCustomerNumber,
-      ) ?? null,
-    [selectedArchiveCustomerNumber, storedCustomers],
-  );
   const archiveOfferDocuments = useMemo(
     () =>
       archiveDocuments.filter((document) => document.documentType !== "invoice"),
@@ -1233,15 +1229,21 @@ export default function HomePage() {
       setArchiveDocuments([]);
       return;
     }
+    const currentLoadRequest = archiveLoadRequestRef.current + 1;
+    archiveLoadRequestRef.current = currentLoadRequest;
 
     setArchiveError("");
     setIsArchiveDocumentsLoading(true);
+    setArchiveDocuments([]);
 
     try {
       const response = await fetch(
         `/api/customer-documents?customerNumber=${encodeURIComponent(customerNumber)}`,
       );
       const data = (await response.json()) as CustomerDocumentsApiResponse;
+      if (archiveLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
       if (!response.ok) {
         setArchiveError(data.error ?? "Dokumente konnten nicht geladen werden.");
         return;
@@ -1269,8 +1271,14 @@ export default function HomePage() {
           }),
       );
     } catch {
+      if (archiveLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
       setArchiveError("Dokumente konnten nicht geladen werden.");
     } finally {
+      if (archiveLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
       setIsArchiveDocumentsLoading(false);
     }
   }
@@ -1289,7 +1297,17 @@ export default function HomePage() {
   }
 
   function selectArchiveCustomer(customer: StoredCustomerRecord) {
+    if (selectedArchiveCustomerNumber === customer.customerNumber) {
+      setSelectedArchiveCustomerNumber("");
+      setArchiveDocuments([]);
+      setArchiveError("");
+      setIsArchiveDocumentsLoading(false);
+      return;
+    }
+
     setSelectedArchiveCustomerNumber(customer.customerNumber);
+    setIsArchiveOffersOpen(true);
+    setIsArchiveInvoicesOpen(true);
     void loadCustomerDocuments(customer.customerNumber);
   }
 
@@ -1346,6 +1364,8 @@ export default function HomePage() {
       if (selectedArchiveCustomerNumber === customer.customerNumber) {
         setSelectedArchiveCustomerNumber("");
         setArchiveDocuments([]);
+        setArchiveError("");
+        setIsArchiveDocumentsLoading(false);
       }
     } catch {
       setCustomersError("Gespeicherter Kunde konnte nicht gelöscht werden.");
@@ -2450,122 +2470,180 @@ export default function HomePage() {
                 </button>
               </div>
 
-              <div className="customerArchiveLayout">
-                <div className="customerArchiveCustomers" role="list">
-                  {isCustomersLoading ? (
-                    <p className="customerArchiveHint">
-                      Gespeicherte Kunden werden geladen ...
-                    </p>
-                  ) : null}
-                  {!isCustomersLoading && customersError ? (
-                    <p className="voiceWarning" role="alert">
-                      {customersError}
-                    </p>
-                  ) : null}
-                  {!isCustomersLoading &&
-                  !customersError &&
-                  storedCustomers.length === 0 ? (
-                    <p className="customerArchiveHint">
-                      Noch keine gespeicherten Kunden vorhanden.
-                    </p>
-                  ) : null}
-                  {!isCustomersLoading &&
-                  !customersError &&
-                  storedCustomers.length > 0
-                    ? storedCustomers.map((customer) => (
-                        <button
+              <div className="customerArchiveTree" role="list">
+                {isCustomersLoading ? (
+                  <p className="customerArchiveHint">
+                    Gespeicherte Kunden werden geladen ...
+                  </p>
+                ) : null}
+                {!isCustomersLoading && customersError ? (
+                  <p className="voiceWarning" role="alert">
+                    {customersError}
+                  </p>
+                ) : null}
+                {!isCustomersLoading && !customersError && storedCustomers.length === 0 ? (
+                  <p className="customerArchiveHint">
+                    Noch keine gespeicherten Kunden vorhanden.
+                  </p>
+                ) : null}
+
+                {!isCustomersLoading &&
+                !customersError &&
+                storedCustomers.length > 0
+                  ? storedCustomers.map((customer) => {
+                      const isExpanded =
+                        selectedArchiveCustomerNumber === customer.customerNumber;
+                      return (
+                        <div
                           key={customer.customerNumber}
-                          type="button"
-                          className={`customerArchiveCustomerButton ${selectedArchiveCustomerNumber === customer.customerNumber ? "active" : ""}`}
-                          onClick={() => selectArchiveCustomer(customer)}
+                          className={`customerArchiveNode ${isExpanded ? "expanded" : ""}`}
                           role="listitem"
                         >
-                          <div className="customerArchiveCustomerHead">
-                            <strong>{customer.customerName}</strong>
-                            <span>{customer.customerNumber}</span>
-                          </div>
-                          <p>{customer.customerAddress}</p>
-                        </button>
-                      ))
-                    : null}
-                </div>
-
-                <div className="customerArchiveDocuments">
-                  {selectedArchiveCustomer ? (
-                    <p className="customerArchiveTitle">
-                      Dokumente für {selectedArchiveCustomer.customerName}
-                    </p>
-                  ) : (
-                    <p className="customerArchiveHint">
-                      Wähle einen Kunden aus, um Angebote und Rechnungen zu sehen.
-                    </p>
-                  )}
-
-                  {selectedArchiveCustomer && isArchiveDocumentsLoading ? (
-                    <p className="customerArchiveHint">
-                      Dokumente werden geladen ...
-                    </p>
-                  ) : null}
-                  {selectedArchiveCustomer && !isArchiveDocumentsLoading && archiveError ? (
-                    <p className="voiceWarning" role="alert">
-                      {archiveError}
-                    </p>
-                  ) : null}
-
-                  {selectedArchiveCustomer &&
-                  !isArchiveDocumentsLoading &&
-                  !archiveError &&
-                  archiveDocuments.length === 0 ? (
-                    <p className="customerArchiveHint">
-                      Für diesen Kunden sind noch keine Dokumente gespeichert.
-                    </p>
-                  ) : null}
-
-                  {selectedArchiveCustomer &&
-                  !isArchiveDocumentsLoading &&
-                  !archiveError &&
-                  archiveDocuments.length > 0 ? (
-                    <div className="customerArchiveDocumentGroups">
-                      <div className="customerArchiveDocumentGroup">
-                        <p className="customerArchiveGroupLabel">Angebote</p>
-                        {archiveOfferDocuments.length === 0 ? (
-                          <p className="customerArchiveHint customerArchiveHintCompact">
-                            Keine Angebote vorhanden.
-                          </p>
-                        ) : (
-                          archiveOfferDocuments.map((document) => (
-                            <div
-                              key={document.documentNumber}
-                              className="customerArchiveDocumentItem"
-                            >
-                              <strong>{document.documentNumber}</strong>
-                              <span>{formatArchiveDate(document.createdAt)}</span>
+                          <button
+                            type="button"
+                            className={`customerArchiveCustomerButton ${isExpanded ? "active" : ""}`}
+                            onClick={() => selectArchiveCustomer(customer)}
+                            aria-expanded={isExpanded}
+                          >
+                            <div className="customerArchiveCustomerHead">
+                              <strong>{customer.customerName}</strong>
+                              <span>{customer.customerNumber}</span>
                             </div>
-                          ))
-                        )}
-                      </div>
-
-                      <div className="customerArchiveDocumentGroup">
-                        <p className="customerArchiveGroupLabel">Rechnungen</p>
-                        {archiveInvoiceDocuments.length === 0 ? (
-                          <p className="customerArchiveHint customerArchiveHintCompact">
-                            Keine Rechnungen vorhanden.
-                          </p>
-                        ) : (
-                          archiveInvoiceDocuments.map((document) => (
-                            <div
-                              key={document.documentNumber}
-                              className="customerArchiveDocumentItem"
-                            >
-                              <strong>{document.documentNumber}</strong>
-                              <span>{formatArchiveDate(document.createdAt)}</span>
+                            <div className="customerArchiveCustomerMeta">
+                              <p>{customer.customerAddress}</p>
+                              <svg
+                                viewBox="0 0 24 24"
+                                className={`customerArchiveExpandIcon ${isExpanded ? "expanded" : ""}`}
+                                aria-hidden="true"
+                                focusable="false"
+                              >
+                                <path
+                                  d="m8 10 4 4 4-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
                             </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+                          </button>
+
+                          {isExpanded ? (
+                            <div className="customerArchiveChildren">
+                              <p className="customerArchiveTitle">
+                                Dokumente für {customer.customerName}
+                              </p>
+
+                              {isArchiveDocumentsLoading ? (
+                                <p className="customerArchiveHint">
+                                  Dokumente werden geladen ...
+                                </p>
+                              ) : null}
+                              {!isArchiveDocumentsLoading && archiveError ? (
+                                <p className="voiceWarning" role="alert">
+                                  {archiveError}
+                                </p>
+                              ) : null}
+                              {!isArchiveDocumentsLoading &&
+                              !archiveError &&
+                              archiveDocuments.length === 0 ? (
+                                <p className="customerArchiveHint">
+                                  Für diesen Kunden sind noch keine Dokumente gespeichert.
+                                </p>
+                              ) : null}
+
+                              {!isArchiveDocumentsLoading &&
+                              !archiveError &&
+                              archiveDocuments.length > 0 ? (
+                                <div className="customerArchiveDocumentGroups">
+                                  <div className="customerArchiveDocumentGroup">
+                                    <button
+                                      type="button"
+                                      className="customerArchiveSectionToggle"
+                                      aria-expanded={isArchiveOffersOpen}
+                                      onClick={() =>
+                                        setIsArchiveOffersOpen((value) => !value)
+                                      }
+                                    >
+                                      <span className="customerArchiveGroupLabel">
+                                        Angebote
+                                      </span>
+                                      <span className="customerArchiveSectionMeta">
+                                        {archiveOfferDocuments.length}
+                                      </span>
+                                    </button>
+                                    {isArchiveOffersOpen ? (
+                                      archiveOfferDocuments.length === 0 ? (
+                                        <p className="customerArchiveHint customerArchiveHintCompact">
+                                          Keine Angebote vorhanden.
+                                        </p>
+                                      ) : (
+                                        <div className="customerArchiveDocumentList">
+                                          {archiveOfferDocuments.map((document) => (
+                                            <a
+                                              key={document.documentNumber}
+                                              className="customerArchiveDocumentItem customerArchiveDocumentLink"
+                                              href={`/api/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                            >
+                                              <strong>{document.documentNumber}</strong>
+                                              <span>{formatArchiveDate(document.createdAt)}</span>
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )
+                                    ) : null}
+                                  </div>
+
+                                  <div className="customerArchiveDocumentGroup">
+                                    <button
+                                      type="button"
+                                      className="customerArchiveSectionToggle"
+                                      aria-expanded={isArchiveInvoicesOpen}
+                                      onClick={() =>
+                                        setIsArchiveInvoicesOpen((value) => !value)
+                                      }
+                                    >
+                                      <span className="customerArchiveGroupLabel">
+                                        Rechnungen
+                                      </span>
+                                      <span className="customerArchiveSectionMeta">
+                                        {archiveInvoiceDocuments.length}
+                                      </span>
+                                    </button>
+                                    {isArchiveInvoicesOpen ? (
+                                      archiveInvoiceDocuments.length === 0 ? (
+                                        <p className="customerArchiveHint customerArchiveHintCompact">
+                                          Keine Rechnungen vorhanden.
+                                        </p>
+                                      ) : (
+                                        <div className="customerArchiveDocumentList">
+                                          {archiveInvoiceDocuments.map((document) => (
+                                            <a
+                                              key={document.documentNumber}
+                                              className="customerArchiveDocumentItem customerArchiveDocumentLink"
+                                              href={`/api/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                            >
+                                              <strong>{document.documentNumber}</strong>
+                                              <span>{formatArchiveDate(document.createdAt)}</span>
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  : null}
               </div>
             </section>
           </div>
