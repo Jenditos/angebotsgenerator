@@ -2214,6 +2214,7 @@ export default function HomePage() {
             <button
               type="button"
               className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
+              aria-pressed={documentMode === "offer"}
               onClick={() => switchDocumentMode("offer")}
             >
               Angebote
@@ -2221,6 +2222,7 @@ export default function HomePage() {
             <button
               type="button"
               className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
+              aria-pressed={documentMode === "invoice"}
               onClick={() => switchDocumentMode("invoice")}
             >
               Rechnungen
