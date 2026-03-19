@@ -275,6 +275,25 @@ const UNIT_OPTIONS = [
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 
+type ConversationLanguage =
+  | "de"
+  | "en"
+  | "tr"
+  | "pl"
+  | "ar"
+  | "sq"
+  | "bs"
+  | "hr"
+  | "sr"
+  | "mk";
+
+type AssistantSpeechKey =
+  | "listening"
+  | "processing"
+  | "completed"
+  | "partial"
+  | "error";
+
 function resolveSpeechLocale(value?: string): string {
   const normalized = (value ?? "").trim().toLowerCase();
   if (!normalized) {
@@ -295,7 +314,144 @@ function resolveSpeechLocale(value?: string): string {
   if (normalized.startsWith("ar")) {
     return "ar-SA";
   }
+  if (normalized.startsWith("sq") || normalized.startsWith("al")) {
+    return "sq-AL";
+  }
+  if (normalized.startsWith("bs")) {
+    return "bs-BA";
+  }
+  if (normalized.startsWith("hr")) {
+    return "hr-HR";
+  }
+  if (normalized.startsWith("sr")) {
+    return "sr-RS";
+  }
+  if (normalized.startsWith("mk")) {
+    return "mk-MK";
+  }
   return "de-DE";
+}
+
+function resolveConversationLanguage(value?: string): ConversationLanguage {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized) {
+    return "de";
+  }
+  if (normalized.startsWith("de")) {
+    return "de";
+  }
+  if (normalized.startsWith("en")) {
+    return "en";
+  }
+  if (normalized.startsWith("tr")) {
+    return "tr";
+  }
+  if (normalized.startsWith("pl")) {
+    return "pl";
+  }
+  if (normalized.startsWith("ar")) {
+    return "ar";
+  }
+  if (normalized.startsWith("sq") || normalized.startsWith("al")) {
+    return "sq";
+  }
+  if (normalized.startsWith("bs")) {
+    return "bs";
+  }
+  if (normalized.startsWith("hr")) {
+    return "hr";
+  }
+  if (normalized.startsWith("sr")) {
+    return "sr";
+  }
+  if (normalized.startsWith("mk")) {
+    return "mk";
+  }
+  return "de";
+}
+
+const ASSISTANT_SPEECH_TEXT: Record<
+  ConversationLanguage,
+  Record<AssistantSpeechKey, string>
+> = {
+  de: {
+    listening: "Alles klar. Ich höre zu.",
+    processing: "Einen Moment, ich prüfe deine Angaben.",
+    completed: "Verstanden. Ich habe die Felder aktualisiert.",
+    partial: "Ich habe schon einiges übernommen. Bitte ergänze noch die fehlenden Angaben.",
+    error: "Entschuldige, das habe ich nicht sauber verstanden. Bitte wiederhole es kurz.",
+  },
+  en: {
+    listening: "Great, I am listening.",
+    processing: "One moment, I am checking your details.",
+    completed: "Understood. I have updated the fields.",
+    partial: "I have filled in a lot already. Please add the missing details.",
+    error: "Sorry, I could not process that clearly. Please repeat briefly.",
+  },
+  tr: {
+    listening: "Tamam, seni dinliyorum.",
+    processing: "Bir an, bilgileri kontrol ediyorum.",
+    completed: "Anladim. Alanlari guncelledim.",
+    partial: "Bir cogu tamamlandi. Lutfen eksik bilgileri de soyle.",
+    error: "Uzgunum, bunu net anlayamadim. Lutfen kisaca tekrar et.",
+  },
+  pl: {
+    listening: "Dobrze, slucham.",
+    processing: "Moment, sprawdzam podane dane.",
+    completed: "Zrozumialam. Pola zostaly zaktualizowane.",
+    partial: "Sporo danych juz uzupelnilam. Prosze dopowiedz brakujace informacje.",
+    error: "Przepraszam, nie zrozumialam tego wyraznie. Powtorz prosze krotko.",
+  },
+  ar: {
+    listening: "حسنًا، أنا أستمع الآن.",
+    processing: "لحظة من فضلك، أتحقق من البيانات.",
+    completed: "تم الفهم. لقد قمت بتحديث الحقول.",
+    partial: "أضفت جزءًا كبيرًا من البيانات. من فضلك أكمل المعلومات الناقصة.",
+    error: "عذرًا، لم أفهم ذلك بشكل واضح. من فضلك أعده باختصار.",
+  },
+  sq: {
+    listening: "Ne rregull, po te degjoj.",
+    processing: "Nje moment, po kontrolloj te dhenat.",
+    completed: "U kuptua. I perditesova fushat.",
+    partial: "Kam plotesuar nje pjese te madhe. Ju lutem shto te dhenat qe mungojne.",
+    error: "Me fal, nuk e kuptova qarte. Te lutem perserite shkurt.",
+  },
+  bs: {
+    listening: "U redu, slusam.",
+    processing: "Samo trenutak, provjeravam podatke.",
+    completed: "Razumijem. Polja su azurirana.",
+    partial: "Dobar dio je vec popunjen. Molim dopuni preostale podatke.",
+    error: "Izvini, nisam to jasno razumjela. Molim ponovi ukratko.",
+  },
+  hr: {
+    listening: "U redu, slusam.",
+    processing: "Trenutak, provjeravam podatke.",
+    completed: "Razumijem. Polja su azurirana.",
+    partial: "Dobar dio je vec popunjen. Molim te dopuni preostale podatke.",
+    error: "Oprosti, to nisam jasno razumjela. Molim ponovi ukratko.",
+  },
+  sr: {
+    listening: "U redu, slusam.",
+    processing: "Samo trenutak, proveravam podatke.",
+    completed: "Razumem. Polja su azurirana.",
+    partial: "Dobar deo je vec popunjen. Molim dopuni preostale podatke.",
+    error: "Izvini, nisam to jasno razumela. Molim ponovi ukratko.",
+  },
+  mk: {
+    listening: "Vo red, te slusam.",
+    processing: "Eden moment, gi proveruvam podatocite.",
+    completed: "Razbrav. Polinjata se azurirani.",
+    partial: "Dobar del e veke popolnet. Te molam dopolni gi preostanatite podatoci.",
+    error: "Izvini, ova ne go razbrav jasno. Te molam povtori nakratko.",
+  },
+};
+
+function assistantSpeechText(
+  key: AssistantSpeechKey,
+  languageHint?: string,
+): string {
+  const language = resolveConversationLanguage(languageHint);
+  return ASSISTANT_SPEECH_TEXT[language][key] ?? ASSISTANT_SPEECH_TEXT.de[key];
 }
 
 function asString(value: unknown): string {
@@ -730,6 +886,8 @@ export default function HomePage() {
   const speechLanguageHintRef = useRef("de-DE");
   const followUpRoundRef = useRef(0);
   const followUpSpeechTimeoutRef = useRef<number | null>(null);
+  const skipStartAnnouncementRef = useRef(false);
+  const speechSessionIdRef = useRef(0);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsNavTimeoutRef = useRef<number | null>(null);
@@ -843,6 +1001,8 @@ export default function HomePage() {
       setIsListening(false);
     }
     cancelFollowUpSpeech();
+    speechLanguageHintRef.current = "de-DE";
+    followUpRoundRef.current = 0;
     setIsSpeechPaused(false);
 
     setDocumentMode(nextMode);
@@ -866,6 +1026,8 @@ export default function HomePage() {
     cancelFollowUpSpeech();
 
     finalTranscriptRef.current = "";
+    speechLanguageHintRef.current = "de-DE";
+    skipStartAnnouncementRef.current = false;
     followUpRoundRef.current = 0;
     setIsListening(false);
     setIsSpeechPaused(false);
@@ -936,6 +1098,7 @@ export default function HomePage() {
       if (settingsNavTimeoutRef.current !== null) {
         window.clearTimeout(settingsNavTimeoutRef.current);
       }
+      speechSessionIdRef.current += 1;
       if (followUpSpeechTimeoutRef.current !== null) {
         window.clearTimeout(followUpSpeechTimeoutRef.current);
       }
@@ -1250,6 +1413,8 @@ export default function HomePage() {
   }
 
   function cancelFollowUpSpeech() {
+    speechSessionIdRef.current += 1;
+
     if (followUpSpeechTimeoutRef.current !== null) {
       window.clearTimeout(followUpSpeechTimeoutRef.current);
       followUpSpeechTimeoutRef.current = null;
@@ -1262,48 +1427,88 @@ export default function HomePage() {
     setIsAiAskingFollowUp(false);
   }
 
-  function speakVoiceFollowUp(question: string, languageHint?: string): boolean {
-    const text = question.trim();
+  function speakAssistant(
+    textInput: string,
+    options?: {
+      languageHint?: string;
+      autoResumeListening?: boolean;
+      onEnd?: () => void;
+    },
+  ): boolean {
+    const text = textInput.trim();
     if (!text || typeof window === "undefined" || !("speechSynthesis" in window)) {
       return false;
     }
 
+    const autoResumeListening = options?.autoResumeListening === true;
     const synthesis = window.speechSynthesis;
-    const locale = resolveSpeechLocale(languageHint);
+    const locale = resolveSpeechLocale(options?.languageHint);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = locale;
-    utterance.rate = 0.98;
-    utterance.pitch = 1;
+    utterance.rate = 0.94;
+    utterance.pitch = 1.03;
     utterance.volume = 1;
 
+    const sessionId = speechSessionIdRef.current + 1;
+    speechSessionIdRef.current = sessionId;
+
     const localePrefix = locale.split("-")[0].toLowerCase();
-    const matchingVoice = synthesis
+    const matchingVoices = synthesis
       .getVoices()
-      .find((voice) => voice.lang.toLowerCase().startsWith(localePrefix));
-    if (matchingVoice) {
-      utterance.voice = matchingVoice;
+      .filter((voice) => voice.lang.toLowerCase().startsWith(localePrefix));
+    const femaleVoiceHints =
+      /(female|woman|samantha|victoria|zira|aria|emma|sofia|anna|maria|helena|serena|siri|google.*female|nora|eva|lisa)/i;
+    const maleVoiceHints =
+      /(male|man|david|thomas|mark|alex|daniel|jorge|filip|nikola|pavel)/i;
+    const preferredVoice =
+      matchingVoices.find(
+        (voice) =>
+          femaleVoiceHints.test(voice.name) && !maleVoiceHints.test(voice.name),
+      ) ?? matchingVoices[0];
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
     }
 
     utterance.onstart = () => {
+      if (sessionId !== speechSessionIdRef.current) {
+        return;
+      }
       setIsAiAskingFollowUp(true);
     };
 
     utterance.onerror = () => {
+      if (sessionId !== speechSessionIdRef.current) {
+        return;
+      }
       setIsAiAskingFollowUp(false);
+      options?.onEnd?.();
     };
 
     utterance.onend = () => {
+      if (sessionId !== speechSessionIdRef.current) {
+        return;
+      }
       setIsAiAskingFollowUp(false);
+      options?.onEnd?.();
+
+      if (!autoResumeListening) {
+        return;
+      }
+
       if (followUpSpeechTimeoutRef.current !== null) {
         window.clearTimeout(followUpSpeechTimeoutRef.current);
       }
       followUpSpeechTimeoutRef.current = window.setTimeout(() => {
+        if (sessionId !== speechSessionIdRef.current) {
+          return;
+        }
         followUpSpeechTimeoutRef.current = null;
         if (
           !recognitionRef.current &&
           !isListeningRef.current &&
           !isParsingVoiceRef.current
         ) {
+          skipStartAnnouncementRef.current = true;
           startSpeechInput();
         }
       }, 180);
@@ -1680,6 +1885,8 @@ export default function HomePage() {
     setVoiceError("");
     setVoiceMissingFields([]);
     cancelFollowUpSpeech();
+    const shouldAnnounceStart = !skipStartAnnouncementRef.current;
+    skipStartAnnouncementRef.current = false;
     setVoiceInfo(
       isSpeechPaused
         ? "Aufnahme fortgesetzt. Sprich weiter, der Text wird angehängt."
@@ -1742,6 +1949,12 @@ export default function HomePage() {
           "Spracherkennung fehlgeschlagen. Bitte erneut versuchen.",
         );
       }
+      void speakAssistant(
+        assistantSpeechText("error", speechLanguageHintRef.current),
+        {
+          languageHint: speechLanguageHintRef.current,
+        },
+      );
       shouldAutoApplyVoiceRef.current = false;
       pauseRequestedRef.current = false;
       recognitionRef.current = null;
@@ -1785,19 +1998,37 @@ export default function HomePage() {
 
     recognitionRef.current = recognition;
 
-    try {
-      recognition.start();
-      setIsListening(true);
-      setIsSpeechPaused(false);
-    } catch {
-      recognitionRef.current = null;
-      setIsListening(false);
-      setIsSpeechPaused(false);
-      setVoiceError(
-        "Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen.",
+    const beginRecognition = () => {
+      try {
+        recognition.start();
+        setIsListening(true);
+        setIsSpeechPaused(false);
+      } catch {
+        recognitionRef.current = null;
+        setIsListening(false);
+        setIsSpeechPaused(false);
+        setVoiceError(
+          "Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen.",
+        );
+        setVoiceInfo("");
+      }
+    };
+
+    if (shouldAnnounceStart) {
+      const announced = speakAssistant(
+        assistantSpeechText("listening", normalizedSpeechLanguage),
+        {
+          languageHint: normalizedSpeechLanguage,
+          onEnd: beginRecognition,
+        },
       );
-      setVoiceInfo("");
+      if (!announced) {
+        beginRecognition();
+      }
+      return;
     }
+
+    beginRecognition();
   }
 
   function pauseSpeechInput() {
@@ -1981,6 +2212,12 @@ export default function HomePage() {
     setIsParsingVoice(true);
     setVoiceError("");
     setVoiceMissingFields([]);
+    if (autoTriggered) {
+      speakAssistant(
+        assistantSpeechText("processing", speechLanguageHintRef.current),
+        { languageHint: speechLanguageHintRef.current },
+      );
+    }
 
     try {
       const response = await fetch("/api/parse-intake", {
@@ -1998,8 +2235,19 @@ export default function HomePage() {
         setVoiceError(
           data.error ?? "Sprachdaten konnten nicht verarbeitet werden.",
         );
+        speakAssistant(
+          assistantSpeechText("error", speechLanguageHintRef.current),
+          { languageHint: speechLanguageHintRef.current },
+        );
         return;
       }
+
+      const detectedConversationLocale = resolveSpeechLocale(
+        data.followUpSpeechLocale ??
+          data.detectedInputLanguage ??
+          speechLanguageHintRef.current,
+      );
+      speechLanguageHintRef.current = detectedConversationLocale;
 
       const fields = data.fields;
       const safeServiceDescription = sanitizeServiceDescription(
@@ -2113,13 +2361,31 @@ export default function HomePage() {
 
       if (shouldSpeakFollowUp) {
         followUpRoundRef.current += 1;
-        speakVoiceFollowUp(
+        const didSpeakFollowUp = speakAssistant(
           followUpQuestionText,
-          data.followUpSpeechLocale ?? data.detectedInputLanguage,
+          {
+            languageHint: speechLanguageHintRef.current,
+            autoResumeListening: true,
+          },
         );
+        if (!didSpeakFollowUp) {
+          skipStartAnnouncementRef.current = true;
+          startSpeechInput();
+        }
         setVoiceInfo(`${baseInfoText} Rückfrage: ${followUpQuestionText}`);
       } else {
         setVoiceInfo(baseInfoText);
+        if (autoTriggered) {
+          const assistantSummaryKey =
+            remainingMissingLabels.length > 0 ? "partial" : "completed";
+          speakAssistant(
+            assistantSpeechText(
+              assistantSummaryKey,
+              speechLanguageHintRef.current,
+            ),
+            { languageHint: speechLanguageHintRef.current },
+          );
+        }
       }
       setVoiceError("");
       setVoiceMissingFields(remainingMissingLabels);
@@ -2127,6 +2393,9 @@ export default function HomePage() {
     } catch {
       setVoiceMissingFields([]);
       setVoiceError("Netzwerkfehler bei der Sprachverarbeitung.");
+      speakAssistant(assistantSpeechText("error", speechLanguageHintRef.current), {
+        languageHint: speechLanguageHintRef.current,
+      });
     } finally {
       setIsParsingVoice(false);
     }

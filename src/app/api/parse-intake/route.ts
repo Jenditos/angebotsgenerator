@@ -16,7 +16,17 @@ const fieldLabels: Record<string, string> = {
   materialCost: "Materialkosten"
 };
 
-type SupportedConversationLanguage = "de" | "en" | "tr" | "pl" | "ar";
+type SupportedConversationLanguage =
+  | "de"
+  | "en"
+  | "tr"
+  | "pl"
+  | "ar"
+  | "sq"
+  | "bs"
+  | "hr"
+  | "sr"
+  | "mk";
 
 const followUpPriority: string[] = [
   "companyName",
@@ -38,6 +48,11 @@ const followUpSpeechLocales: Record<SupportedConversationLanguage, string> = {
   tr: "tr-TR",
   pl: "pl-PL",
   ar: "ar-SA",
+  sq: "sq-AL",
+  bs: "bs-BA",
+  hr: "hr-HR",
+  sr: "sr-RS",
+  mk: "mk-MK",
 };
 
 const followUpPrompts: Record<
@@ -109,6 +124,71 @@ const followUpPrompts: Record<
     hours: "كم عدد الساعات المطلوبة؟",
     hourlyRate: "ما هو سعر الساعة باليورو؟",
     serviceDescription: "هل تريد إضافة وصف قصير للمشروع؟",
+  },
+  sq: {
+    companyName: "Cili eshte emri i kompanise?",
+    salutation: "A duhet te perdor Zoteri apo Zonja?",
+    firstName: "Cili eshte emri?",
+    lastName: "Cili eshte mbiemri?",
+    street: "Cila eshte rruga dhe numri?",
+    postalCode: "Cili eshte kodi postar?",
+    city: "Cili eshte qyteti?",
+    customerEmail: "Cila eshte adresa e e-mailit?",
+    hours: "Sa ore duhet te llogaris?",
+    hourlyRate: "Sa eshte cmimi per ore ne euro?",
+    serviceDescription: "Deshiron te shtosh nje pershkrim te shkurter projekti?",
+  },
+  bs: {
+    companyName: "Koji je naziv firme?",
+    salutation: "Da li da koristim gospodin ili gospodja?",
+    firstName: "Koje je ime?",
+    lastName: "Koje je prezime?",
+    street: "Koja je ulica i broj?",
+    postalCode: "Koji je postanski broj?",
+    city: "Koji je grad?",
+    customerEmail: "Koja je e-mail adresa?",
+    hours: "Koliko sati da obracunam?",
+    hourlyRate: "Kolika je satnica u eurima?",
+    serviceDescription: "Zelite li dodati kratak opis projekta?",
+  },
+  hr: {
+    companyName: "Koji je naziv tvrtke?",
+    salutation: "Trebam li koristiti gospodin ili gospodja?",
+    firstName: "Koje je ime?",
+    lastName: "Koje je prezime?",
+    street: "Koja je ulica i kucni broj?",
+    postalCode: "Koji je postanski broj?",
+    city: "Koji je grad?",
+    customerEmail: "Koja je e-mail adresa?",
+    hours: "Koliko sati trebam upisati?",
+    hourlyRate: "Koja je satnica u eurima?",
+    serviceDescription: "Zelite li dodati kratak opis projekta?",
+  },
+  sr: {
+    companyName: "Koji je naziv firme?",
+    salutation: "Da li da koristim gospodin ili gospodja?",
+    firstName: "Kako glasi ime?",
+    lastName: "Kako glasi prezime?",
+    street: "Koja je ulica i broj?",
+    postalCode: "Koji je postanski broj?",
+    city: "Koji je grad?",
+    customerEmail: "Koja je e-mail adresa?",
+    hours: "Koliko sati da obracunam?",
+    hourlyRate: "Kolika je satnica u evrima?",
+    serviceDescription: "Da li zelite da dodate kratak opis projekta?",
+  },
+  mk: {
+    companyName: "Koe e imeto na firmata?",
+    salutation: "Da koristam gospodin ili gospoja?",
+    firstName: "Koe e imeto?",
+    lastName: "Koe e prezimeto?",
+    street: "Koja e ulicata i brojot?",
+    postalCode: "Koj e postenskiot kod?",
+    city: "Koj e gradot?",
+    customerEmail: "Koj e e-mail adresata?",
+    hours: "Kolku casa da presmetam?",
+    hourlyRate: "Koja e satnicata vo evra?",
+    serviceDescription: "Sakate li da dodadete kratok opis na proektot?",
   },
 };
 
@@ -334,6 +414,21 @@ function normalizeLanguageHint(
   if (normalized.startsWith("ar")) {
     return "ar";
   }
+  if (normalized.startsWith("sq") || normalized.startsWith("al")) {
+    return "sq";
+  }
+  if (normalized.startsWith("bs")) {
+    return "bs";
+  }
+  if (normalized.startsWith("hr")) {
+    return "hr";
+  }
+  if (normalized.startsWith("sr")) {
+    return "sr";
+  }
+  if (normalized.startsWith("mk")) {
+    return "mk";
+  }
   return undefined;
 }
 
@@ -344,6 +439,15 @@ function detectConversationLanguage(
   if (/[\u0600-\u06FF]/.test(transcript)) {
     return "ar";
   }
+  if (/[\u0400-\u04FF]/.test(transcript)) {
+    const lowerCyrillic = transcript.toLowerCase();
+    if (
+      /\b(фактура|понуда|часа|цена|улица|град|пошта)\b/u.test(lowerCyrillic)
+    ) {
+      return "mk";
+    }
+    return "sr";
+  }
 
   const lower = transcript.toLowerCase();
   const scoreByLanguage: Record<SupportedConversationLanguage, number> = {
@@ -352,6 +456,11 @@ function detectConversationLanguage(
     tr: 0,
     pl: 0,
     ar: 0,
+    sq: 0,
+    bs: 0,
+    hr: 0,
+    sr: 0,
+    mk: 0,
   };
 
   const languagePatterns: Record<SupportedConversationLanguage, RegExp[]> = {
@@ -370,6 +479,26 @@ function detectConversationLanguage(
     pl: [
       /\b(oferta|faktura|adres|godzin|stawka|prosz[ęe]|mail)\b/gi,
       /\b(i|oraz|dla|z)\b/gi,
+    ],
+    sq: [
+      /\b(pershendetje|ju lutem|ofert[ëe]|fatur[ëe]|adrese|rruge|qytet|ore|cmim|email)\b/gi,
+      /\b(dhe|per|me)\b/gi,
+    ],
+    bs: [
+      /\b(ponuda|racun|adresa|ulica|grad|sati|satnica|cijena|molim|firma)\b/gi,
+      /\b(i|za|sa|u)\b/gi,
+    ],
+    hr: [
+      /\b(ponuda|racun|adresa|ulica|grad|sati|satnica|cijena|molim|tvrtka)\b/gi,
+      /\b(i|za|s|u)\b/gi,
+    ],
+    sr: [
+      /\b(ponuda|racun|adresa|ulica|grad|sati|satnica|cena|molim|firma)\b/gi,
+      /\b(i|za|sa|u)\b/gi,
+    ],
+    mk: [
+      /\b(ponuda|faktura|adresa|ulica|grad|casa|cena|molam|firma)\b/gi,
+      /\b(i|za|so|vo)\b/gi,
     ],
     ar: [],
   };
