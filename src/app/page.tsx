@@ -1826,13 +1826,6 @@ export default function HomePage() {
         <div key={`${documentMode}-${modeAnimationKey}`} className="documentModeContent">
           <section className="workspaceGrid workspaceGridSingle">
           <article className="glassCard formCard">
-            <header className="sectionHeader">
-              <h2>{`Daten für ${singularDocumentLabel === "Angebot" ? "das Angebot" : "die Rechnung"}`}</h2>
-              <p>
-                {`Hier triffst du alle Angaben, die dein Kunde in ${singularDocumentLabel === "Angebot" ? "deinem Angebot" : "deiner Rechnung"} sehen soll.`}
-              </p>
-            </header>
-
             <div className="customerPickerPanel">
               <button
                 type="button"
@@ -1910,8 +1903,9 @@ export default function HomePage() {
                 <div className="voicePanelHeader">
                   <strong>Per Sprache ausfüllen</strong>
                   <p>
-                    Sprich frei alle Daten ein, danach werden die Felder
-                    automatisch befüllt.
+                    Sprich frei alle Angebotsdaten ein - alle relevanten
+                    Angaben werden automatisch erkannt und in die Felder
+                    übernommen.
                   </p>
                 </div>
 
