@@ -904,6 +904,7 @@ p {
 .positionsAddRowButton {
   margin-top: 9px;
   width: auto;
+  font-size: 0.84rem;
 }
 
 .selectedServiceList {
@@ -1897,6 +1898,7 @@ textarea:focus {
   .positionsAddRowButton {
     width: 100%;
     min-height: 48px;
+    font-size: 0.9rem;
   }
 
   .positionsGroupDeleteButton,
