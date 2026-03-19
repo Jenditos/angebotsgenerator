@@ -70,6 +70,19 @@ type SettingsApiResponse = {
   error?: string;
 };
 
+type CustomerArchiveDocument = {
+  documentNumber: string;
+  documentType: DocumentType;
+  customerNumber?: string | null;
+  customerName: string;
+  createdAt: string;
+};
+
+type CustomerDocumentsApiResponse = {
+  documents?: CustomerArchiveDocument[];
+  error?: string;
+};
+
 type ParsedVoiceFields = {
   positions?: ParsedVoicePosition[];
   customerType?: "person" | "company";
@@ -99,10 +112,6 @@ type VoiceParseResponse = {
   fields: ParsedVoiceFields;
   missingFields: string[];
   missingFieldKeys?: string[];
-  detectedInputLanguage?: string;
-  shouldAskFollowUp?: boolean;
-  followUpQuestion?: string | null;
-  followUpSpeechLocale?: string;
   shouldAutofillServiceDescription?: boolean;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error" | null;
@@ -274,185 +283,6 @@ const UNIT_OPTIONS = [
 
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
-
-type ConversationLanguage =
-  | "de"
-  | "en"
-  | "tr"
-  | "pl"
-  | "ar"
-  | "sq"
-  | "bs"
-  | "hr"
-  | "sr"
-  | "mk";
-
-type AssistantSpeechKey =
-  | "listening"
-  | "processing"
-  | "completed"
-  | "partial"
-  | "error";
-
-function resolveSpeechLocale(value?: string): string {
-  const normalized = (value ?? "").trim().toLowerCase();
-  if (!normalized) {
-    return "de-DE";
-  }
-  if (normalized.startsWith("de")) {
-    return "de-DE";
-  }
-  if (normalized.startsWith("en")) {
-    return "en-US";
-  }
-  if (normalized.startsWith("tr")) {
-    return "tr-TR";
-  }
-  if (normalized.startsWith("pl")) {
-    return "pl-PL";
-  }
-  if (normalized.startsWith("ar")) {
-    return "ar-SA";
-  }
-  if (normalized.startsWith("sq") || normalized.startsWith("al")) {
-    return "sq-AL";
-  }
-  if (normalized.startsWith("bs")) {
-    return "bs-BA";
-  }
-  if (normalized.startsWith("hr")) {
-    return "hr-HR";
-  }
-  if (normalized.startsWith("sr")) {
-    return "sr-RS";
-  }
-  if (normalized.startsWith("mk")) {
-    return "mk-MK";
-  }
-  return "de-DE";
-}
-
-function resolveConversationLanguage(value?: string): ConversationLanguage {
-  const normalized = (value ?? "").trim().toLowerCase();
-  if (!normalized) {
-    return "de";
-  }
-  if (normalized.startsWith("de")) {
-    return "de";
-  }
-  if (normalized.startsWith("en")) {
-    return "en";
-  }
-  if (normalized.startsWith("tr")) {
-    return "tr";
-  }
-  if (normalized.startsWith("pl")) {
-    return "pl";
-  }
-  if (normalized.startsWith("ar")) {
-    return "ar";
-  }
-  if (normalized.startsWith("sq") || normalized.startsWith("al")) {
-    return "sq";
-  }
-  if (normalized.startsWith("bs")) {
-    return "bs";
-  }
-  if (normalized.startsWith("hr")) {
-    return "hr";
-  }
-  if (normalized.startsWith("sr")) {
-    return "sr";
-  }
-  if (normalized.startsWith("mk")) {
-    return "mk";
-  }
-  return "de";
-}
-
-const ASSISTANT_SPEECH_TEXT: Record<
-  ConversationLanguage,
-  Record<AssistantSpeechKey, string>
-> = {
-  de: {
-    listening: "Alles klar. Ich höre zu.",
-    processing: "Einen Moment, ich prüfe deine Angaben.",
-    completed: "Verstanden. Ich habe die Felder aktualisiert.",
-    partial: "Ich habe schon einiges übernommen. Bitte ergänze noch die fehlenden Angaben.",
-    error: "Entschuldige, das habe ich nicht sauber verstanden. Bitte wiederhole es kurz.",
-  },
-  en: {
-    listening: "Great, I am listening.",
-    processing: "One moment, I am checking your details.",
-    completed: "Understood. I have updated the fields.",
-    partial: "I have filled in a lot already. Please add the missing details.",
-    error: "Sorry, I could not process that clearly. Please repeat briefly.",
-  },
-  tr: {
-    listening: "Tamam, seni dinliyorum.",
-    processing: "Bir an, bilgileri kontrol ediyorum.",
-    completed: "Anladim. Alanlari guncelledim.",
-    partial: "Bir cogu tamamlandi. Lutfen eksik bilgileri de soyle.",
-    error: "Uzgunum, bunu net anlayamadim. Lutfen kisaca tekrar et.",
-  },
-  pl: {
-    listening: "Dobrze, slucham.",
-    processing: "Moment, sprawdzam podane dane.",
-    completed: "Zrozumialam. Pola zostaly zaktualizowane.",
-    partial: "Sporo danych juz uzupelnilam. Prosze dopowiedz brakujace informacje.",
-    error: "Przepraszam, nie zrozumialam tego wyraznie. Powtorz prosze krotko.",
-  },
-  ar: {
-    listening: "حسنًا، أنا أستمع الآن.",
-    processing: "لحظة من فضلك، أتحقق من البيانات.",
-    completed: "تم الفهم. لقد قمت بتحديث الحقول.",
-    partial: "أضفت جزءًا كبيرًا من البيانات. من فضلك أكمل المعلومات الناقصة.",
-    error: "عذرًا، لم أفهم ذلك بشكل واضح. من فضلك أعده باختصار.",
-  },
-  sq: {
-    listening: "Ne rregull, po te degjoj.",
-    processing: "Nje moment, po kontrolloj te dhenat.",
-    completed: "U kuptua. I perditesova fushat.",
-    partial: "Kam plotesuar nje pjese te madhe. Ju lutem shto te dhenat qe mungojne.",
-    error: "Me fal, nuk e kuptova qarte. Te lutem perserite shkurt.",
-  },
-  bs: {
-    listening: "U redu, slusam.",
-    processing: "Samo trenutak, provjeravam podatke.",
-    completed: "Razumijem. Polja su azurirana.",
-    partial: "Dobar dio je vec popunjen. Molim dopuni preostale podatke.",
-    error: "Izvini, nisam to jasno razumjela. Molim ponovi ukratko.",
-  },
-  hr: {
-    listening: "U redu, slusam.",
-    processing: "Trenutak, provjeravam podatke.",
-    completed: "Razumijem. Polja su azurirana.",
-    partial: "Dobar dio je vec popunjen. Molim te dopuni preostale podatke.",
-    error: "Oprosti, to nisam jasno razumjela. Molim ponovi ukratko.",
-  },
-  sr: {
-    listening: "U redu, slusam.",
-    processing: "Samo trenutak, proveravam podatke.",
-    completed: "Razumem. Polja su azurirana.",
-    partial: "Dobar deo je vec popunjen. Molim dopuni preostale podatke.",
-    error: "Izvini, nisam to jasno razumela. Molim ponovi ukratko.",
-  },
-  mk: {
-    listening: "Vo red, te slusam.",
-    processing: "Eden moment, gi proveruvam podatocite.",
-    completed: "Razbrav. Polinjata se azurirani.",
-    partial: "Dobar del e veke popolnet. Te molam dopolni gi preostanatite podatoci.",
-    error: "Izvini, ova ne go razbrav jasno. Te molam povtori nakratko.",
-  },
-};
-
-function assistantSpeechText(
-  key: AssistantSpeechKey,
-  languageHint?: string,
-): string {
-  const language = resolveConversationLanguage(languageHint);
-  return ASSISTANT_SPEECH_TEXT[language][key] ?? ASSISTANT_SPEECH_TEXT.de[key];
-}
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -753,6 +583,19 @@ function formatEuroValue(value: number): string {
   }).format(value);
 }
 
+function formatArchiveDate(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
 function hasVoiceFieldValue(key: string, form: OfferForm): boolean {
   switch (key) {
     case "companyName":
@@ -847,7 +690,6 @@ export default function HomePage() {
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
-  const [isAiAskingFollowUp, setIsAiAskingFollowUp] = useState(false);
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
@@ -870,6 +712,15 @@ export default function HomePage() {
   >(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customersError, setCustomersError] = useState("");
+  const [isCustomerArchiveOpen, setIsCustomerArchiveOpen] = useState(false);
+  const [archiveDocuments, setArchiveDocuments] = useState<
+    CustomerArchiveDocument[]
+  >([]);
+  const [archiveError, setArchiveError] = useState("");
+  const [isArchiveDocumentsLoading, setIsArchiveDocumentsLoading] =
+    useState(false);
+  const [selectedArchiveCustomerNumber, setSelectedArchiveCustomerNumber] =
+    useState("");
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [isOpeningSettings, setIsOpeningSettings] = useState(false);
@@ -881,13 +732,6 @@ export default function HomePage() {
   });
   const shouldAutoApplyVoiceRef = useRef(false);
   const pauseRequestedRef = useRef(false);
-  const isListeningRef = useRef(false);
-  const isParsingVoiceRef = useRef(false);
-  const speechLanguageHintRef = useRef("de-DE");
-  const followUpRoundRef = useRef(0);
-  const followUpSpeechTimeoutRef = useRef<number | null>(null);
-  const skipStartAnnouncementRef = useRef(false);
-  const speechSessionIdRef = useRef(0);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsNavTimeoutRef = useRef<number | null>(null);
@@ -937,6 +781,23 @@ export default function HomePage() {
       );
     });
   }, [customerSearch, storedCustomers]);
+  const selectedArchiveCustomer = useMemo(
+    () =>
+      storedCustomers.find(
+        (customer) => customer.customerNumber === selectedArchiveCustomerNumber,
+      ) ?? null,
+    [selectedArchiveCustomerNumber, storedCustomers],
+  );
+  const archiveOfferDocuments = useMemo(
+    () =>
+      archiveDocuments.filter((document) => document.documentType !== "invoice"),
+    [archiveDocuments],
+  );
+  const archiveInvoiceDocuments = useMemo(
+    () =>
+      archiveDocuments.filter((document) => document.documentType === "invoice"),
+    [archiveDocuments],
+  );
   const isInvoiceMode = documentMode === "invoice";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
 
@@ -1000,9 +861,6 @@ export default function HomePage() {
       recognitionRef.current = null;
       setIsListening(false);
     }
-    cancelFollowUpSpeech();
-    speechLanguageHintRef.current = "de-DE";
-    followUpRoundRef.current = 0;
     setIsSpeechPaused(false);
 
     setDocumentMode(nextMode);
@@ -1023,12 +881,8 @@ export default function HomePage() {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
-    cancelFollowUpSpeech();
 
     finalTranscriptRef.current = "";
-    speechLanguageHintRef.current = "de-DE";
-    skipStartAnnouncementRef.current = false;
-    followUpRoundRef.current = 0;
     setIsListening(false);
     setIsSpeechPaused(false);
     setIsAddressLoading(false);
@@ -1098,13 +952,6 @@ export default function HomePage() {
       if (settingsNavTimeoutRef.current !== null) {
         window.clearTimeout(settingsNavTimeoutRef.current);
       }
-      speechSessionIdRef.current += 1;
-      if (followUpSpeechTimeoutRef.current !== null) {
-        window.clearTimeout(followUpSpeechTimeoutRef.current);
-      }
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
       if (recognitionRef.current) {
         shouldAutoApplyVoiceRef.current = false;
         pauseRequestedRef.current = false;
@@ -1113,14 +960,6 @@ export default function HomePage() {
       }
     };
   }, [router]);
-
-  useEffect(() => {
-    isListeningRef.current = isListening;
-  }, [isListening]);
-
-  useEffect(() => {
-    isParsingVoiceRef.current = isParsingVoice;
-  }, [isParsingVoice]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1389,6 +1228,71 @@ export default function HomePage() {
     }
   }
 
+  async function loadCustomerDocuments(customerNumber: string) {
+    if (!customerNumber) {
+      setArchiveDocuments([]);
+      return;
+    }
+
+    setArchiveError("");
+    setIsArchiveDocumentsLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/customer-documents?customerNumber=${encodeURIComponent(customerNumber)}`,
+      );
+      const data = (await response.json()) as CustomerDocumentsApiResponse;
+      if (!response.ok) {
+        setArchiveError(data.error ?? "Dokumente konnten nicht geladen werden.");
+        return;
+      }
+
+      const documents = Array.isArray(data.documents) ? data.documents : [];
+      setArchiveDocuments(
+        documents
+          .map((document): CustomerArchiveDocument => ({
+            ...document,
+            documentType: document.documentType === "invoice" ? "invoice" : "offer",
+          }))
+          .sort((left, right) => {
+            const rightTs = Date.parse(right.createdAt);
+            const leftTs = Date.parse(left.createdAt);
+            if (
+              Number.isFinite(rightTs) &&
+              Number.isFinite(leftTs) &&
+              rightTs !== leftTs
+            ) {
+              return rightTs - leftTs;
+            }
+
+            return right.documentNumber.localeCompare(left.documentNumber);
+          }),
+      );
+    } catch {
+      setArchiveError("Dokumente konnten nicht geladen werden.");
+    } finally {
+      setIsArchiveDocumentsLoading(false);
+    }
+  }
+
+  function openCustomerArchive() {
+    setIsCustomerArchiveOpen(true);
+    setArchiveError("");
+
+    if (!isCustomersLoading && storedCustomers.length === 0) {
+      void loadStoredCustomers();
+    }
+  }
+
+  function closeCustomerArchive() {
+    setIsCustomerArchiveOpen(false);
+  }
+
+  function selectArchiveCustomer(customer: StoredCustomerRecord) {
+    setSelectedArchiveCustomerNumber(customer.customerNumber);
+    void loadCustomerDocuments(customer.customerNumber);
+  }
+
   function openInvoiceDatePicker() {
     const input = invoiceDateInputRef.current;
     if (!input) {
@@ -1410,113 +1314,6 @@ export default function HomePage() {
 
     input.focus();
     input.click();
-  }
-
-  function cancelFollowUpSpeech() {
-    speechSessionIdRef.current += 1;
-
-    if (followUpSpeechTimeoutRef.current !== null) {
-      window.clearTimeout(followUpSpeechTimeoutRef.current);
-      followUpSpeechTimeoutRef.current = null;
-    }
-
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    setIsAiAskingFollowUp(false);
-  }
-
-  function speakAssistant(
-    textInput: string,
-    options?: {
-      languageHint?: string;
-      autoResumeListening?: boolean;
-      onEnd?: () => void;
-    },
-  ): boolean {
-    const text = textInput.trim();
-    if (!text || typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return false;
-    }
-
-    const autoResumeListening = options?.autoResumeListening === true;
-    const synthesis = window.speechSynthesis;
-    const locale = resolveSpeechLocale(options?.languageHint);
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = locale;
-    utterance.rate = 0.94;
-    utterance.pitch = 1.03;
-    utterance.volume = 1;
-
-    const sessionId = speechSessionIdRef.current + 1;
-    speechSessionIdRef.current = sessionId;
-
-    const localePrefix = locale.split("-")[0].toLowerCase();
-    const matchingVoices = synthesis
-      .getVoices()
-      .filter((voice) => voice.lang.toLowerCase().startsWith(localePrefix));
-    const femaleVoiceHints =
-      /(female|woman|samantha|victoria|zira|aria|emma|sofia|anna|maria|helena|serena|siri|google.*female|nora|eva|lisa)/i;
-    const maleVoiceHints =
-      /(male|man|david|thomas|mark|alex|daniel|jorge|filip|nikola|pavel)/i;
-    const preferredVoice =
-      matchingVoices.find(
-        (voice) =>
-          femaleVoiceHints.test(voice.name) && !maleVoiceHints.test(voice.name),
-      ) ?? matchingVoices[0];
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    }
-
-    utterance.onstart = () => {
-      if (sessionId !== speechSessionIdRef.current) {
-        return;
-      }
-      setIsAiAskingFollowUp(true);
-    };
-
-    utterance.onerror = () => {
-      if (sessionId !== speechSessionIdRef.current) {
-        return;
-      }
-      setIsAiAskingFollowUp(false);
-      options?.onEnd?.();
-    };
-
-    utterance.onend = () => {
-      if (sessionId !== speechSessionIdRef.current) {
-        return;
-      }
-      setIsAiAskingFollowUp(false);
-      options?.onEnd?.();
-
-      if (!autoResumeListening) {
-        return;
-      }
-
-      if (followUpSpeechTimeoutRef.current !== null) {
-        window.clearTimeout(followUpSpeechTimeoutRef.current);
-      }
-      followUpSpeechTimeoutRef.current = window.setTimeout(() => {
-        if (sessionId !== speechSessionIdRef.current) {
-          return;
-        }
-        followUpSpeechTimeoutRef.current = null;
-        if (
-          !recognitionRef.current &&
-          !isListeningRef.current &&
-          !isParsingVoiceRef.current
-        ) {
-          skipStartAnnouncementRef.current = true;
-          startSpeechInput();
-        }
-      }, 180);
-    };
-
-    synthesis.cancel();
-    synthesis.speak(utterance);
-    return true;
   }
 
   async function deleteStoredCustomer(customer: StoredCustomerRecord) {
@@ -1546,6 +1343,10 @@ export default function HomePage() {
           (entry) => entry.customerNumber !== customer.customerNumber,
         ),
       );
+      if (selectedArchiveCustomerNumber === customer.customerNumber) {
+        setSelectedArchiveCustomerNumber("");
+        setArchiveDocuments([]);
+      }
     } catch {
       setCustomersError("Gespeicherter Kunde konnte nicht gelöscht werden.");
     } finally {
@@ -1884,9 +1685,6 @@ export default function HomePage() {
 
     setVoiceError("");
     setVoiceMissingFields([]);
-    cancelFollowUpSpeech();
-    const shouldAnnounceStart = !skipStartAnnouncementRef.current;
-    skipStartAnnouncementRef.current = false;
     setVoiceInfo(
       isSpeechPaused
         ? "Aufnahme fortgesetzt. Sprich weiter, der Text wird angehängt."
@@ -1898,14 +1696,7 @@ export default function HomePage() {
     finalTranscriptRef.current = voiceTranscript.trim();
 
     const recognition = new speechCtor();
-    const browserSpeechLanguage =
-      (Array.isArray(window.navigator.languages) &&
-      window.navigator.languages.length > 0
-        ? window.navigator.languages[0]
-        : window.navigator.language) || "de-DE";
-    const normalizedSpeechLanguage = resolveSpeechLocale(browserSpeechLanguage);
-    speechLanguageHintRef.current = normalizedSpeechLanguage;
-    recognition.lang = normalizedSpeechLanguage;
+    recognition.lang = "de-DE";
     recognition.continuous = true;
     recognition.interimResults = true;
 
@@ -1949,12 +1740,6 @@ export default function HomePage() {
           "Spracherkennung fehlgeschlagen. Bitte erneut versuchen.",
         );
       }
-      void speakAssistant(
-        assistantSpeechText("error", speechLanguageHintRef.current),
-        {
-          languageHint: speechLanguageHintRef.current,
-        },
-      );
       shouldAutoApplyVoiceRef.current = false;
       pauseRequestedRef.current = false;
       recognitionRef.current = null;
@@ -1998,37 +1783,19 @@ export default function HomePage() {
 
     recognitionRef.current = recognition;
 
-    const beginRecognition = () => {
-      try {
-        recognition.start();
-        setIsListening(true);
-        setIsSpeechPaused(false);
-      } catch {
-        recognitionRef.current = null;
-        setIsListening(false);
-        setIsSpeechPaused(false);
-        setVoiceError(
-          "Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen.",
-        );
-        setVoiceInfo("");
-      }
-    };
-
-    if (shouldAnnounceStart) {
-      const announced = speakAssistant(
-        assistantSpeechText("listening", normalizedSpeechLanguage),
-        {
-          languageHint: normalizedSpeechLanguage,
-          onEnd: beginRecognition,
-        },
+    try {
+      recognition.start();
+      setIsListening(true);
+      setIsSpeechPaused(false);
+    } catch {
+      recognitionRef.current = null;
+      setIsListening(false);
+      setIsSpeechPaused(false);
+      setVoiceError(
+        "Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen.",
       );
-      if (!announced) {
-        beginRecognition();
-      }
-      return;
+      setVoiceInfo("");
     }
-
-    beginRecognition();
   }
 
   function pauseSpeechInput() {
@@ -2212,21 +1979,12 @@ export default function HomePage() {
     setIsParsingVoice(true);
     setVoiceError("");
     setVoiceMissingFields([]);
-    if (autoTriggered) {
-      speakAssistant(
-        assistantSpeechText("processing", speechLanguageHintRef.current),
-        { languageHint: speechLanguageHintRef.current },
-      );
-    }
 
     try {
       const response = await fetch("/api/parse-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transcript,
-          speechLanguageHint: speechLanguageHintRef.current,
-        }),
+        body: JSON.stringify({ transcript }),
       });
       const data = (await response.json()) as VoiceParseResponse & {
         error?: string;
@@ -2235,19 +1993,8 @@ export default function HomePage() {
         setVoiceError(
           data.error ?? "Sprachdaten konnten nicht verarbeitet werden.",
         );
-        speakAssistant(
-          assistantSpeechText("error", speechLanguageHintRef.current),
-          { languageHint: speechLanguageHintRef.current },
-        );
         return;
       }
-
-      const detectedConversationLocale = resolveSpeechLocale(
-        data.followUpSpeechLocale ??
-          data.detectedInputLanguage ??
-          speechLanguageHintRef.current,
-      );
-      speechLanguageHintRef.current = detectedConversationLocale;
 
       const fields = data.fields;
       const safeServiceDescription = sanitizeServiceDescription(
@@ -2343,59 +2090,13 @@ export default function HomePage() {
         parsedServiceEntries.length > 0
           ? " Die Positionstabelle wurde automatisch befüllt."
           : "";
-      const baseInfoText = `${modeText}${actionText}${tableText}${missingText}`;
-      const followUpQuestionText =
-        typeof data.followUpQuestion === "string"
-          ? data.followUpQuestion.trim()
-          : "";
-      const shouldSpeakFollowUp =
-        autoTriggered &&
-        data.shouldAskFollowUp === true &&
-        followUpQuestionText.length > 0 &&
-        remainingMissingLabels.length > 0 &&
-        followUpRoundRef.current < 3;
-
-      if (remainingMissingLabels.length === 0) {
-        followUpRoundRef.current = 0;
-      }
-
-      if (shouldSpeakFollowUp) {
-        followUpRoundRef.current += 1;
-        const didSpeakFollowUp = speakAssistant(
-          followUpQuestionText,
-          {
-            languageHint: speechLanguageHintRef.current,
-            autoResumeListening: true,
-          },
-        );
-        if (!didSpeakFollowUp) {
-          skipStartAnnouncementRef.current = true;
-          startSpeechInput();
-        }
-        setVoiceInfo(`${baseInfoText} Rückfrage: ${followUpQuestionText}`);
-      } else {
-        setVoiceInfo(baseInfoText);
-        if (autoTriggered) {
-          const assistantSummaryKey =
-            remainingMissingLabels.length > 0 ? "partial" : "completed";
-          speakAssistant(
-            assistantSpeechText(
-              assistantSummaryKey,
-              speechLanguageHintRef.current,
-            ),
-            { languageHint: speechLanguageHintRef.current },
-          );
-        }
-      }
+      setVoiceInfo(`${modeText}${actionText}${tableText}${missingText}`);
       setVoiceError("");
       setVoiceMissingFields(remainingMissingLabels);
       setAddressSuggestions([]);
     } catch {
       setVoiceMissingFields([]);
       setVoiceError("Netzwerkfehler bei der Sprachverarbeitung.");
-      speakAssistant(assistantSpeechText("error", speechLanguageHintRef.current), {
-        languageHint: speechLanguageHintRef.current,
-      });
     } finally {
       setIsParsingVoice(false);
     }
@@ -2608,6 +2309,28 @@ export default function HomePage() {
 
       const payload = data as ApiResponse;
       updateStoredCustomersRealtime(payload);
+      if (
+        payload.customerNumber &&
+        payload.documentNumber &&
+        selectedArchiveCustomerNumber &&
+        payload.customerNumber === selectedArchiveCustomerNumber
+      ) {
+        const nextDocument: CustomerArchiveDocument = {
+          documentNumber: payload.documentNumber,
+          documentType:
+            payload.documentType === "invoice" ? "invoice" : "offer",
+          customerNumber: payload.customerNumber,
+          customerName: buildCustomerNameForStorage(form),
+          createdAt: new Date().toISOString(),
+        };
+        setArchiveDocuments((prev) => {
+          const deduplicated = prev.filter(
+            (document) =>
+              document.documentNumber !== nextDocument.documentNumber,
+          );
+          return [nextDocument, ...deduplicated];
+        });
+      }
       void loadStoredCustomers();
       const payloadMode =
         payload.documentType === "invoice" ? "invoice" : documentMode;
@@ -2626,6 +2349,36 @@ export default function HomePage() {
       <div className="ambient ambientB" aria-hidden />
       <div className="container">
         <header className="topHeaderMinimal">
+          <button
+            type="button"
+            className="topHeaderSettingsButton topHeaderArchiveButton"
+            aria-label="Kundenarchiv öffnen"
+            title="Kundenarchiv"
+            onClick={openCustomerArchive}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="topHeaderIcon"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M3.8 7.1a1.6 1.6 0 0 1 1.6-1.6h4.3l1.4 1.7h7.5a1.6 1.6 0 0 1 1.6 1.6v8.6a1.6 1.6 0 0 1-1.6 1.6H5.4a1.6 1.6 0 0 1-1.6-1.6V7.1Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3.8 10h16.4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
           <span className="pill topHeaderLogo">Visioro</span>
           <Link
             href="/settings"
@@ -2659,6 +2412,164 @@ export default function HomePage() {
             </svg>
           </Link>
         </header>
+
+        {isCustomerArchiveOpen ? (
+          <div
+            className="customerArchiveBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Kundenarchiv"
+            onClick={closeCustomerArchive}
+          >
+            <section
+              className="customerArchiveSheet"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="customerArchiveHeader">
+                <strong>Kundenarchiv</strong>
+                <button
+                  type="button"
+                  className="customerArchiveCloseButton"
+                  aria-label="Archiv schließen"
+                  onClick={closeCustomerArchive}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="customerArchiveLayout">
+                <div className="customerArchiveCustomers" role="list">
+                  {isCustomersLoading ? (
+                    <p className="customerArchiveHint">
+                      Gespeicherte Kunden werden geladen ...
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading && customersError ? (
+                    <p className="voiceWarning" role="alert">
+                      {customersError}
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading &&
+                  !customersError &&
+                  storedCustomers.length === 0 ? (
+                    <p className="customerArchiveHint">
+                      Noch keine gespeicherten Kunden vorhanden.
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading &&
+                  !customersError &&
+                  storedCustomers.length > 0
+                    ? storedCustomers.map((customer) => (
+                        <button
+                          key={customer.customerNumber}
+                          type="button"
+                          className={`customerArchiveCustomerButton ${selectedArchiveCustomerNumber === customer.customerNumber ? "active" : ""}`}
+                          onClick={() => selectArchiveCustomer(customer)}
+                          role="listitem"
+                        >
+                          <div className="customerArchiveCustomerHead">
+                            <strong>{customer.customerName}</strong>
+                            <span>{customer.customerNumber}</span>
+                          </div>
+                          <p>{customer.customerAddress}</p>
+                        </button>
+                      ))
+                    : null}
+                </div>
+
+                <div className="customerArchiveDocuments">
+                  {selectedArchiveCustomer ? (
+                    <p className="customerArchiveTitle">
+                      Dokumente für {selectedArchiveCustomer.customerName}
+                    </p>
+                  ) : (
+                    <p className="customerArchiveHint">
+                      Wähle einen Kunden aus, um Angebote und Rechnungen zu sehen.
+                    </p>
+                  )}
+
+                  {selectedArchiveCustomer && isArchiveDocumentsLoading ? (
+                    <p className="customerArchiveHint">
+                      Dokumente werden geladen ...
+                    </p>
+                  ) : null}
+                  {selectedArchiveCustomer && !isArchiveDocumentsLoading && archiveError ? (
+                    <p className="voiceWarning" role="alert">
+                      {archiveError}
+                    </p>
+                  ) : null}
+
+                  {selectedArchiveCustomer &&
+                  !isArchiveDocumentsLoading &&
+                  !archiveError &&
+                  archiveDocuments.length === 0 ? (
+                    <p className="customerArchiveHint">
+                      Für diesen Kunden sind noch keine Dokumente gespeichert.
+                    </p>
+                  ) : null}
+
+                  {selectedArchiveCustomer &&
+                  !isArchiveDocumentsLoading &&
+                  !archiveError &&
+                  archiveDocuments.length > 0 ? (
+                    <div className="customerArchiveDocumentGroups">
+                      <div className="customerArchiveDocumentGroup">
+                        <p className="customerArchiveGroupLabel">Angebote</p>
+                        {archiveOfferDocuments.length === 0 ? (
+                          <p className="customerArchiveHint customerArchiveHintCompact">
+                            Keine Angebote vorhanden.
+                          </p>
+                        ) : (
+                          archiveOfferDocuments.map((document) => (
+                            <div
+                              key={document.documentNumber}
+                              className="customerArchiveDocumentItem"
+                            >
+                              <strong>{document.documentNumber}</strong>
+                              <span>{formatArchiveDate(document.createdAt)}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="customerArchiveDocumentGroup">
+                        <p className="customerArchiveGroupLabel">Rechnungen</p>
+                        {archiveInvoiceDocuments.length === 0 ? (
+                          <p className="customerArchiveHint customerArchiveHintCompact">
+                            Keine Rechnungen vorhanden.
+                          </p>
+                        ) : (
+                          archiveInvoiceDocuments.map((document) => (
+                            <div
+                              key={document.documentNumber}
+                              className="customerArchiveDocumentItem"
+                            >
+                              <strong>{document.documentNumber}</strong>
+                              <span>{formatArchiveDate(document.createdAt)}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
 
         <div className="documentModeSwitchTop">
           <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
@@ -2845,12 +2756,6 @@ export default function HomePage() {
                     </button>
                   )}
                 </div>
-
-                {isAiAskingFollowUp ? (
-                  <p className="voiceAssistantIndicator" role="status" aria-live="polite">
-                    KI fragt nach ...
-                  </p>
-                ) : null}
 
                 <label className="field">
                   <span>Gesprochener Text</span>

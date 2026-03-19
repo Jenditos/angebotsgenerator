@@ -508,3 +508,20 @@ export async function createStoredOfferRecord(
     await releaseLock();
   }
 }
+
+export async function listStoredOfferRecords(
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord[]> {
+  const paths = resolvePaths(overrides);
+  const store = await readStoreUnsafe(paths.storePath);
+
+  return [...store.offers].sort((left, right) => {
+    const rightTs = Date.parse(right.createdAt);
+    const leftTs = Date.parse(left.createdAt);
+    if (Number.isFinite(rightTs) && Number.isFinite(leftTs) && rightTs !== leftTs) {
+      return rightTs - leftTs;
+    }
+
+    return right.offerNumber.localeCompare(left.offerNumber);
+  });
+}
