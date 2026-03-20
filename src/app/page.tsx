@@ -662,12 +662,41 @@ function getSubitemUnit(subitem: ServiceSubitemEntry): string {
 }
 
 function parseLocaleNumber(rawValue: string): number {
-  const normalized = rawValue.trim().replace(/\s+/g, "").replace(",", ".");
+  const normalized = rawValue
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^\d.,-]/g, "");
   if (!normalized) {
     return NaN;
   }
 
-  const parsed = Number(normalized);
+  const isNegative = normalized.startsWith("-");
+  const unsigned = normalized.replace(/-/g, "");
+  if (!unsigned) {
+    return NaN;
+  }
+
+  const lastCommaIndex = unsigned.lastIndexOf(",");
+  const lastDotIndex = unsigned.lastIndexOf(".");
+  const decimalIndex = Math.max(lastCommaIndex, lastDotIndex);
+  let numberLiteral = "";
+
+  if (decimalIndex >= 0) {
+    const integerDigits = unsigned.slice(0, decimalIndex).replace(/[^\d]/g, "");
+    const fractionDigits = unsigned
+      .slice(decimalIndex + 1)
+      .replace(/[^\d]/g, "");
+    const safeInteger = integerDigits || "0";
+    numberLiteral = fractionDigits ? `${safeInteger}.${fractionDigits}` : safeInteger;
+  } else {
+    numberLiteral = unsigned.replace(/[^\d]/g, "");
+  }
+
+  if (!numberLiteral) {
+    return NaN;
+  }
+
+  const parsed = Number(isNegative ? `-${numberLiteral}` : numberLiteral);
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
@@ -692,7 +721,51 @@ function sanitizeQuantityInput(rawValue: string): string {
 }
 
 function sanitizePriceInput(rawValue: string): string {
-  return sanitizeQuantityInput(rawValue);
+  const normalized = rawValue.replace(/\s+/g, "").replace(/[^\d.,]/g, "");
+  if (!normalized) {
+    return "";
+  }
+
+  const lastCommaIndex = normalized.lastIndexOf(",");
+  const lastDotIndex = normalized.lastIndexOf(".");
+  const decimalIndex = Math.max(lastCommaIndex, lastDotIndex);
+
+  const integerRaw =
+    decimalIndex >= 0 ? normalized.slice(0, decimalIndex) : normalized;
+  const fractionRaw = decimalIndex >= 0 ? normalized.slice(decimalIndex + 1) : "";
+  const integerDigits = integerRaw.replace(/[^\d]/g, "");
+  const fractionDigits = fractionRaw.replace(/[^\d]/g, "");
+  const trailingSeparator =
+    decimalIndex >= 0 && fractionRaw.length === 0 && /[.,]$/.test(normalized);
+
+  if (!integerDigits && !fractionDigits) {
+    return "";
+  }
+
+  const integerPart = integerDigits || "0";
+  if (trailingSeparator) {
+    return `${integerPart},`;
+  }
+
+  if (fractionDigits) {
+    return `${integerPart},${fractionDigits}`;
+  }
+
+  return integerPart;
+}
+
+function formatPriceInputValue(rawValue: string): string {
+  const sanitized = sanitizePriceInput(rawValue);
+  if (!sanitized) {
+    return "";
+  }
+
+  const parsed = parseLocaleNumber(sanitized);
+  if (!Number.isFinite(parsed)) {
+    return sanitized;
+  }
+
+  return formatEuroValue(parsed);
 }
 
 function formatEuroValue(value: number): string {
@@ -1961,6 +2034,70 @@ export default function HomePage() {
       subitemId,
       "price",
       sanitizePriceInput(rawValue),
+    );
+  }
+
+  function normalizePriceSubitemForEditing(
+    serviceId: string,
+    subitemId: string,
+  ) {
+    setSelectedServices((prev) =>
+      prev.map((service) => {
+        if (service.id !== serviceId) {
+          return service;
+        }
+
+        return {
+          ...service,
+          subitems: service.subitems.map((subitem) => {
+            if (subitem.id !== subitemId) {
+              return subitem;
+            }
+
+            const normalizedPrice = sanitizePriceInput(subitem.price);
+            if (normalizedPrice === subitem.price) {
+              return subitem;
+            }
+
+            return {
+              ...subitem,
+              price: normalizedPrice,
+            };
+          }),
+        };
+      }),
+    );
+  }
+
+  function formatPriceSubitem(
+    serviceId: string,
+    subitemId: string,
+  ) {
+    setSelectedServices((prev) =>
+      prev.map((service) => {
+        if (service.id !== serviceId) {
+          return service;
+        }
+
+        return {
+          ...service,
+          subitems: service.subitems.map((subitem) => {
+            if (subitem.id !== subitemId) {
+              return subitem;
+            }
+
+            const formattedPrice = formatPriceInputValue(subitem.price);
+            if (formattedPrice === subitem.price) {
+              return subitem;
+            }
+
+            return {
+              ...subitem,
+              price: formattedPrice,
+            };
+          }),
+        };
+      }),
     );
   }
 
@@ -3933,49 +4070,49 @@ export default function HomePage() {
                   </div>
 
                   <div className="positionsInputWrap positionsInputWrapMerged">
-                  <table className="positionsInputTable">
-                    <thead>
-                      <tr>
-                        <th>Bezeichnung / Unterpunkt</th>
-                        <th>Menge</th>
-                        <th>Einheit</th>
-                        <th>EP / Preis EUR</th>
-                        <th>Gesamtpreis EUR</th>
-                        <th aria-label="Aktion" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedServices.length === 0 ? (
+                    <table className="positionsInputTable">
+                      <thead>
                         <tr>
-                          <td className="positionsInputEmpty" colSpan={6}>
-                            Noch keine Positionen. Wähle eine Leistung über die
-                            Suche oder füge manuell eine Position hinzu.
-                          </td>
+                          <th>Bezeichnung / Unterpunkt</th>
+                          <th>Menge</th>
+                          <th>Einheit</th>
+                          <th>EP / Preis EUR</th>
+                          <th>Gesamtpreis EUR</th>
+                          <th aria-label="Aktion" />
                         </tr>
-                      ) : (
-                        selectedServices.map((service) => (
-                          <Fragment key={service.id}>
-                            <tr className="positionsGroupRow">
-                              <td colSpan={5}>{service.label}</td>
-                              <td className="positionsGroupAction">
-                                <button
-                                  type="button"
-                                  className="positionsGroupDeleteButton"
-                                  onClick={() =>
-                                    removeSelectedService(service.id)
-                                  }
-                                  aria-label={`${service.label} Gruppe löschen`}
-                                >
-                                  Gruppe löschen
-                                </button>
-                              </td>
-                            </tr>
-                            {service.subitems.map((subitem, index) => {
-                              const subitemTotal =
-                                calculateSubitemTotal(subitem);
+                      </thead>
+                      <tbody>
+                        {selectedServices.length === 0 ? (
+                          <tr>
+                            <td className="positionsInputEmpty" colSpan={6}>
+                              Noch keine Positionen. Wähle eine Leistung über die
+                              Suche oder füge manuell eine Position hinzu.
+                            </td>
+                          </tr>
+                        ) : (
+                          selectedServices.map((service) => (
+                            <Fragment key={service.id}>
+                              <tr className="positionsGroupRow">
+                                <td colSpan={5}>{service.label}</td>
+                                <td className="positionsGroupAction">
+                                  <button
+                                    type="button"
+                                    className="positionsGroupDeleteButton"
+                                    onClick={() =>
+                                      removeSelectedService(service.id)
+                                    }
+                                    aria-label={`${service.label} Gruppe löschen`}
+                                  >
+                                    Gruppe löschen
+                                  </button>
+                                </td>
+                              </tr>
+                              {service.subitems.map((subitem, index) => {
+                                const subitemTotal =
+                                  calculateSubitemTotal(subitem);
 
-                              return (
-                                <tr key={subitem.id}>
+                                return (
+                                  <tr key={subitem.id}>
                                   <td>
                                     <input
                                       className="positionDescriptionInput"
@@ -4105,6 +4242,18 @@ export default function HomePage() {
                                           nextValue,
                                         );
                                       }}
+                                      onFocus={() =>
+                                        normalizePriceSubitemForEditing(
+                                          service.id,
+                                          subitem.id,
+                                        )
+                                      }
+                                      onBlur={() =>
+                                        formatPriceSubitem(
+                                          service.id,
+                                          subitem.id,
+                                        )
+                                      }
                                       placeholder="0,00"
                                       inputMode="decimal"
                                       pattern="[0-9]+([.,][0-9]+)?"
@@ -4112,7 +4261,7 @@ export default function HomePage() {
                                     />
                                   </td>
                                   <td className="positionTotalCell">
-                                    {`${formatEuroValue(subitemTotal)} EUR`}
+                                    {formatEuroValue(subitemTotal)}
                                   </td>
                                   <td className="positionActionCell">
                                     <button
@@ -4129,23 +4278,25 @@ export default function HomePage() {
                                       Löschen
                                     </button>
                                   </td>
-                                </tr>
-                              );
-                            })}
-                          </Fragment>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                                  </tr>
+                                );
+                              })}
+                            </Fragment>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                    <div className="positionsInputTableFooter">
+                      <button
+                        type="button"
+                        className="ghostButton positionsAddRowButton"
+                        onClick={addEmptyPositionRow}
+                      >
+                        + Position hinzufügen
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                </div>
-                <button
-                  type="button"
-                  className="ghostButton positionsAddRowButton"
-                  onClick={addEmptyPositionRow}
-                >
-                  + Position hinzufügen
-                </button>
 
                 {serviceInfo ? (
                   <p className="voiceInfo" role="status" aria-live="polite">

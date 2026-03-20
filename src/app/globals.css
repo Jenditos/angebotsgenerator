@@ -1053,8 +1053,14 @@ p {
   text-align: left;
 }
 
+.positionsInputTableFooter {
+  padding: 9px 10px 10px;
+  border-top: 1px solid rgba(66, 113, 199, 0.16);
+  background: rgba(244, 250, 255, 0.74);
+}
+
 .positionsAddRowButton {
-  margin-top: 9px;
+  margin-top: 0;
   width: auto;
   font-size: 0.84rem;
 }
@@ -2234,6 +2240,10 @@ textarea:focus {
 
   .positionsInputTable tbody td {
     padding: 7px;
+  }
+
+  .positionsInputTableFooter {
+    padding: 8px 8px 9px;
   }
 
   .positionsAddRowButton {
