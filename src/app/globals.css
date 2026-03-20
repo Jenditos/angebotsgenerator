@@ -745,6 +745,28 @@ p {
   position: relative;
 }
 
+.serviceSearchInput {
+  padding-right: 40px;
+}
+
+.serviceSearchIndicator {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #3e5f8f;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.serviceSearchIndicatorIcon {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .serviceSuggestionList {
   position: absolute;
   top: calc(100% + 6px);
@@ -1316,6 +1338,14 @@ textarea:focus {
 
 .submitButton.primaryButton:hover {
   box-shadow: 0 20px 36px rgba(58, 123, 235, 0.46);
+}
+
+@media (min-width: 761px) {
+  .formGrid .submitButton {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - var(--space-3, 13px)) / 2);
+  }
 }
 
 .ghostButton {
@@ -3189,6 +3219,8 @@ button.customerArchiveCustomerButton.active {
 
 .customerArchiveDocumentGroups {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 11px;
 }
 
@@ -3391,6 +3423,10 @@ button.customerArchiveSectionToggle {
     margin-left: 8px;
     padding: 9px 8px 9px 12px;
     gap: 7px;
+  }
+
+  .customerArchiveDocumentGroups {
+    grid-template-columns: 1fr;
   }
 
   .customerArchiveSectionToggle {

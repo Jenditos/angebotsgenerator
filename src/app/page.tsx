@@ -1031,21 +1031,38 @@ export default function HomePage() {
     }
 
     const { body, documentElement } = document;
+    const scrollY = window.scrollY;
     const previousBodyOverflow = body.style.overflow;
     const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousBodyPosition = body.style.position;
+    const previousBodyTop = body.style.top;
+    const previousBodyLeft = body.style.left;
+    const previousBodyRight = body.style.right;
+    const previousBodyWidth = body.style.width;
     const previousHtmlOverflow = documentElement.style.overflow;
     const previousHtmlOverscroll = documentElement.style.overscrollBehavior;
 
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
     body.style.overflow = "hidden";
     body.style.overscrollBehavior = "none";
     documentElement.style.overflow = "hidden";
     documentElement.style.overscrollBehavior = "none";
 
     return () => {
+      body.style.position = previousBodyPosition;
+      body.style.top = previousBodyTop;
+      body.style.left = previousBodyLeft;
+      body.style.right = previousBodyRight;
+      body.style.width = previousBodyWidth;
       body.style.overflow = previousBodyOverflow;
       body.style.overscrollBehavior = previousBodyOverscroll;
       documentElement.style.overflow = previousHtmlOverflow;
       documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+      window.scrollTo(0, scrollY);
     };
   }, [isCustomerArchiveOpen]);
 
@@ -3245,6 +3262,7 @@ export default function HomePage() {
                 <span>Leistung suchen</span>
                 <div className="servicePicker" ref={servicePickerRef}>
                   <input
+                    className="serviceSearchInput"
                     value={serviceSearch}
                     placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
                     autoCapitalize="words"
@@ -3256,6 +3274,22 @@ export default function HomePage() {
                       setServiceError("");
                     }}
                   />
+                  <span className="serviceSearchIndicator" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="serviceSearchIndicatorIcon"
+                      focusable="false"
+                    >
+                      <path
+                        d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
 
                   {isServiceSearchOpen ? (
                     <div
