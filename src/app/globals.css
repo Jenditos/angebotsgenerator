@@ -3591,6 +3591,7 @@ button.voiceActionButtonStart:hover:not(:disabled) {
 
 .customerArchiveSheet {
   width: min(940px, 100%);
+  height: min(calc(100vh - 36px), 860px);
   max-height: min(calc(100vh - 36px), 860px);
   overflow: hidden;
   border: 1px solid rgba(72, 118, 197, 0.28);
@@ -3603,7 +3604,8 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 26px 58px rgba(33, 65, 117, 0.28);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 14px;
   touch-action: pan-y;
@@ -3643,13 +3645,19 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   border: 1px solid rgba(72, 118, 197, 0.2);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.76);
+  flex: 1;
   min-height: 0;
-  max-height: min(68vh, 690px);
+  max-height: none;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
   padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.customerArchiveList {
   display: grid;
   gap: 8px;
 }
@@ -3743,6 +3751,63 @@ button.customerArchiveCustomerButton.active {
 
 .customerArchiveExpandIcon.expanded {
   transform: rotate(180deg);
+}
+
+.customerArchiveDetailView {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+button.customerArchiveBackButton {
+  justify-self: flex-start;
+  border: 1px solid rgba(72, 118, 197, 0.22);
+  border-radius: 11px;
+  min-height: 38px;
+  padding: 7px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(244, 250, 255, 0.92);
+  color: #315683;
+  box-shadow: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.customerArchiveBackIcon {
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+}
+
+.customerArchiveDetailHeader {
+  border: 1px solid rgba(72, 118, 197, 0.2);
+  border-radius: 13px;
+  padding: 10px 11px;
+  background: rgba(247, 252, 255, 0.9);
+  display: grid;
+  gap: 4px;
+}
+
+.customerArchiveDetailHeader strong {
+  color: #1d365f;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.customerArchiveDetailHeader span {
+  color: #375987;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.customerArchiveDetailHeader p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4f6993;
+  overflow-wrap: anywhere;
 }
 
 .customerArchiveChildren {
@@ -4012,6 +4077,7 @@ button.customerArchiveSectionToggle {
 
   .customerArchiveSheet {
     width: 100%;
+    height: calc(100vh - 20px - env(safe-area-inset-top));
     max-height: calc(100vh - 20px - env(safe-area-inset-top));
     border-radius: 18px;
     padding: 11px;
@@ -4023,7 +4089,7 @@ button.customerArchiveSectionToggle {
   }
 
   .customerArchiveTree {
-    max-height: calc(100vh - 190px - env(safe-area-inset-top));
+    max-height: none;
     gap: 7px;
     padding: 8px;
   }
@@ -4041,6 +4107,19 @@ button.customerArchiveSectionToggle {
     padding: 9px 8px 9px 12px;
     gap: 7px;
     max-height: min(56vh, 460px);
+  }
+
+  .customerArchiveDetailView {
+    gap: 9px;
+  }
+
+  .customerArchiveBackButton {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+
+  .customerArchiveDetailHeader {
+    padding: 9px 10px;
   }
 
   .customerArchiveDocumentGroups {
