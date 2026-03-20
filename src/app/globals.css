@@ -2033,6 +2033,26 @@ textarea:focus {
     font-size: 0.84rem;
   }
 
+  .serviceDateRangePopover {
+    left: -1px;
+    right: -1px;
+    padding: 9px;
+    border-radius: 13px;
+  }
+
+  .serviceDateRangeDay {
+    min-height: 38px;
+    font-size: 0.84rem;
+  }
+
+  .serviceDateRangeWeekdays span {
+    font-size: 0.72rem;
+  }
+
+  .serviceDateRangeSummary {
+    font-size: 0.79rem;
+  }
+
   .formBottomMetaRow {
     gap: 8px;
   }
@@ -3117,6 +3137,146 @@ button.dateInputIconButton:active {
   display: block;
 }
 
+.serviceDateRangePicker {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.serviceDateRangeInputWrap .serviceDateRangeInput {
+  padding-left: 12px;
+  padding-right: 44px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.serviceDateRangePopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 80;
+  border: 1px solid rgba(71, 117, 193, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 16px 32px rgba(37, 74, 136, 0.2);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.serviceDateRangeHeader {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.serviceDateRangeHeader strong {
+  justify-self: center;
+  color: #264678;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.serviceDateRangeMonthButton {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: 9px;
+  border: 1px solid rgba(68, 116, 196, 0.24);
+  background: rgba(244, 250, 255, 0.95);
+  color: #335786;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.serviceDateRangeMonthIcon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.serviceDateRangeWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.serviceDateRangeWeekdays span {
+  text-align: center;
+  color: #4e6893;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.serviceDateRangeGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.serviceDateRangeDay {
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #214272;
+  box-shadow: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.serviceDateRangeDay.isOutside {
+  color: #8a9bb9;
+}
+
+.serviceDateRangeDay.isInRange {
+  background: rgba(90, 151, 242, 0.2);
+  color: #1b3f72;
+}
+
+.serviceDateRangeDay.isStart,
+.serviceDateRangeDay.isEnd {
+  background: rgba(72, 136, 238, 0.96);
+  color: #ffffff;
+  border-color: rgba(58, 122, 225, 0.92);
+}
+
+.serviceDateRangeFooter {
+  border-top: 1px solid rgba(72, 118, 197, 0.18);
+  padding-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.serviceDateRangeSummary {
+  color: #47638e;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.serviceDateRangeActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.serviceDateRangeActionButton {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  border-radius: 9px;
+}
+
 .formHintMiniWrap {
   min-height: 42px;
   z-index: 45;
@@ -3482,7 +3642,7 @@ button.customerArchiveCustomerButton.active {
   display: grid;
   gap: 8px;
   min-height: 0;
-  max-height: min(46vh, 430px);
+  max-height: min(62vh, 620px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -3769,7 +3929,7 @@ button.customerArchiveSectionToggle {
     margin-left: 8px;
     padding: 9px 8px 9px 12px;
     gap: 7px;
-    max-height: min(44vh, 320px);
+    max-height: min(56vh, 460px);
   }
 
   .customerArchiveDocumentGroups {

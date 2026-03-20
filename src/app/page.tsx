@@ -174,12 +174,129 @@ type OfferForm = {
 
 type DocumentMode = DocumentType;
 
+type ServiceDateRangeValue = {
+  startDate: string;
+  endDate: string;
+};
+
+type ServiceDateCalendarDay = {
+  dateValue: string;
+  dayNumber: number;
+  inCurrentMonth: boolean;
+};
+
 function todayDateInputValue(): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isDateInputValue(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function toMonthStartValue(dateValue: string): string {
+  if (!isDateInputValue(dateValue)) {
+    return `${todayDateInputValue().slice(0, 7)}-01`;
+  }
+  return `${dateValue.slice(0, 7)}-01`;
+}
+
+function shiftMonthValue(monthStartValue: string, offset: number): string {
+  if (!isDateInputValue(monthStartValue)) {
+    return toMonthStartValue(todayDateInputValue());
+  }
+
+  const year = Number(monthStartValue.slice(0, 4));
+  const month = Number(monthStartValue.slice(5, 7));
+  const nextMonth = new Date(year, month - 1 + offset, 1);
+  return toDateInputValue(nextMonth);
+}
+
+function formatGermanDate(dateValue: string): string {
+  if (!isDateInputValue(dateValue)) {
+    return "";
+  }
+
+  const [year, month, day] = dateValue.split("-");
+  return `${day}.${month}.${year}`;
+}
+
+function formatServiceDateRangeValue(
+  startDate: string,
+  endDate: string,
+): string {
+  const start = formatGermanDate(startDate);
+  const end = formatGermanDate(endDate);
+  if (!start || !end) {
+    return "";
+  }
+  return `${start} – ${end}`;
+}
+
+function parseServiceDateRangeValue(
+  rawValue: string,
+): ServiceDateRangeValue | null {
+  const normalized = rawValue.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const match = normalized.match(
+    /^(\d{2})\.(\d{2})\.(\d{4})\s*[–-]\s*(\d{2})\.(\d{2})\.(\d{4})$/,
+  );
+  if (!match) {
+    return null;
+  }
+
+  const startDate = `${match[3]}-${match[2]}-${match[1]}`;
+  const endDate = `${match[6]}-${match[5]}-${match[4]}`;
+  if (!isDateInputValue(startDate) || !isDateInputValue(endDate)) {
+    return null;
+  }
+
+  return {
+    startDate,
+    endDate,
+  };
+}
+
+function buildServiceDateCalendarDays(
+  monthStartValue: string,
+): ServiceDateCalendarDay[] {
+  if (!isDateInputValue(monthStartValue)) {
+    return [];
+  }
+
+  const year = Number(monthStartValue.slice(0, 4));
+  const month = Number(monthStartValue.slice(5, 7));
+  const firstOfMonth = new Date(year, month - 1, 1);
+  const weekdayIndex = firstOfMonth.getDay();
+  const leadingDays = (weekdayIndex + 6) % 7;
+  const gridStart = new Date(year, month - 1, 1 - leadingDays);
+  const calendarDays: ServiceDateCalendarDay[] = [];
+
+  for (let dayIndex = 0; dayIndex < 42; dayIndex += 1) {
+    const currentDate = new Date(gridStart);
+    currentDate.setDate(gridStart.getDate() + dayIndex);
+    const currentMonth = currentDate.getMonth() === month - 1;
+    calendarDays.push({
+      dateValue: toDateInputValue(currentDate),
+      dayNumber: currentDate.getDate(),
+      inCurrentMonth: currentMonth,
+    });
+  }
+
+  return calendarDays;
 }
 
 function createInitialForm(): OfferForm {
@@ -280,6 +397,8 @@ const UNIT_OPTIONS = [
   "Tag",
   "Pauschal",
 ];
+
+const SERVICE_DATE_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
@@ -700,6 +819,13 @@ export default function HomePage() {
   const [isServiceSearchOpen, setIsServiceSearchOpen] = useState(false);
   const [isServiceCatalogLoading, setIsServiceCatalogLoading] = useState(false);
   const [isAddingCustomService, setIsAddingCustomService] = useState(false);
+  const [isServiceDateRangePickerOpen, setIsServiceDateRangePickerOpen] =
+    useState(false);
+  const [serviceDateRangeStart, setServiceDateRangeStart] = useState("");
+  const [serviceDateRangeEnd, setServiceDateRangeEnd] = useState("");
+  const [serviceDateCalendarMonth, setServiceDateCalendarMonth] = useState(
+    toMonthStartValue(todayDateInputValue()),
+  );
   const [serviceInfo, setServiceInfo] = useState("");
   const [serviceError, setServiceError] = useState("");
   const [storedCustomers, setStoredCustomers] = useState<StoredCustomerRecord[]>(
@@ -721,8 +847,8 @@ export default function HomePage() {
     useState(false);
   const [selectedArchiveCustomerNumber, setSelectedArchiveCustomerNumber] =
     useState("");
-  const [isArchiveOffersOpen, setIsArchiveOffersOpen] = useState(true);
-  const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(true);
+  const [isArchiveOffersOpen, setIsArchiveOffersOpen] = useState(false);
+  const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(false);
   const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
   const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
@@ -738,6 +864,7 @@ export default function HomePage() {
   const shouldAutoApplyVoiceRef = useRef(false);
   const pauseRequestedRef = useRef(false);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
+  const serviceDateRangePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsNavTimeoutRef = useRef<number | null>(null);
   const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -764,6 +891,31 @@ export default function HomePage() {
 
     return Array.from(grouped.entries());
   }, [serviceSuggestions]);
+  const serviceDateCalendarDays = useMemo(
+    () => buildServiceDateCalendarDays(serviceDateCalendarMonth),
+    [serviceDateCalendarMonth],
+  );
+  const serviceDateCalendarMonthLabel = useMemo(() => {
+    if (!isDateInputValue(serviceDateCalendarMonth)) {
+      return "";
+    }
+
+    const year = Number(serviceDateCalendarMonth.slice(0, 4));
+    const month = Number(serviceDateCalendarMonth.slice(5, 7));
+    return new Intl.DateTimeFormat("de-DE", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date(year, month - 1, 1));
+  }, [serviceDateCalendarMonth]);
+  const serviceDateRangeSummary = useMemo(() => {
+    if (serviceDateRangeStart && serviceDateRangeEnd) {
+      return formatServiceDateRangeValue(serviceDateRangeStart, serviceDateRangeEnd);
+    }
+    if (serviceDateRangeStart) {
+      return `${formatGermanDate(serviceDateRangeStart)} – ...`;
+    }
+    return "Start- und Enddatum auswählen";
+  }, [serviceDateRangeEnd, serviceDateRangeStart]);
   const filteredStoredCustomers = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(customerSearch);
     if (!normalizedQuery) {
@@ -1095,6 +1247,21 @@ export default function HomePage() {
   ]);
 
   useEffect(() => {
+    if (!isServiceDateRangePickerOpen || typeof window === "undefined") {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsServiceDateRangePickerOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isServiceDateRangePickerOpen]);
+
+  useEffect(() => {
     let mounted = true;
 
     async function loadSettingsStatus() {
@@ -1164,20 +1331,23 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    function closeServiceSearch(event: MouseEvent) {
-      if (!servicePickerRef.current) {
-        return;
+    function closeFloatingPanels(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (servicePickerRef.current && !servicePickerRef.current.contains(target)) {
+        setIsServiceSearchOpen(false);
       }
 
-      if (servicePickerRef.current.contains(event.target as Node)) {
-        return;
+      if (
+        serviceDateRangePickerRef.current &&
+        !serviceDateRangePickerRef.current.contains(target)
+      ) {
+        setIsServiceDateRangePickerOpen(false);
       }
-
-      setIsServiceSearchOpen(false);
     }
 
-    document.addEventListener("mousedown", closeServiceSearch);
-    return () => document.removeEventListener("mousedown", closeServiceSearch);
+    document.addEventListener("mousedown", closeFloatingPanels);
+    return () => document.removeEventListener("mousedown", closeFloatingPanels);
   }, []);
 
   useEffect(() => {
@@ -1421,8 +1591,8 @@ export default function HomePage() {
     }
 
     setSelectedArchiveCustomerNumber(customer.customerNumber);
-    setIsArchiveOffersOpen(true);
-    setIsArchiveInvoicesOpen(true);
+    setIsArchiveOffersOpen(false);
+    setIsArchiveInvoicesOpen(false);
     void loadCustomerDocuments(customer.customerNumber);
   }
 
@@ -1447,6 +1617,57 @@ export default function HomePage() {
 
     input.focus();
     input.click();
+  }
+
+  function openServiceDateRangePicker() {
+    const parsed = parseServiceDateRangeValue(form.serviceDate);
+    if (parsed) {
+      setServiceDateRangeStart(parsed.startDate);
+      setServiceDateRangeEnd(parsed.endDate);
+      setServiceDateCalendarMonth(toMonthStartValue(parsed.startDate));
+    } else {
+      setServiceDateRangeStart("");
+      setServiceDateRangeEnd("");
+      setServiceDateCalendarMonth(toMonthStartValue(todayDateInputValue()));
+    }
+
+    setIsServiceDateRangePickerOpen(true);
+  }
+
+  function closeServiceDateRangePicker() {
+    setIsServiceDateRangePickerOpen(false);
+  }
+
+  function selectServiceDateRangeDay(dateValue: string) {
+    if (!isDateInputValue(dateValue)) {
+      return;
+    }
+
+    if (!serviceDateRangeStart || serviceDateRangeEnd) {
+      setServiceDateRangeStart(dateValue);
+      setServiceDateRangeEnd("");
+      setForm((prev) => ({ ...prev, serviceDate: "" }));
+      return;
+    }
+
+    const normalizedStart =
+      dateValue < serviceDateRangeStart ? dateValue : serviceDateRangeStart;
+    const normalizedEnd =
+      dateValue < serviceDateRangeStart ? serviceDateRangeStart : dateValue;
+
+    setServiceDateRangeStart(normalizedStart);
+    setServiceDateRangeEnd(normalizedEnd);
+    setForm((prev) => ({
+      ...prev,
+      serviceDate: formatServiceDateRangeValue(normalizedStart, normalizedEnd),
+    }));
+    setIsServiceDateRangePickerOpen(false);
+  }
+
+  function clearServiceDateRange() {
+    setServiceDateRangeStart("");
+    setServiceDateRangeEnd("");
+    setForm((prev) => ({ ...prev, serviceDate: "" }));
   }
 
   async function deleteStoredCustomer(customer: StoredCustomerRecord) {
@@ -3423,19 +3644,164 @@ export default function HomePage() {
 
                   <label className="field invoiceMetaField">
                     <span>Leistungszeitraum</span>
-                    <input
-                      className="invoiceMetaInput"
-                      required
-                      type="text"
-                      placeholder="z. B. 01.03.2026 bis 05.03.2026"
-                      value={form.serviceDate}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          serviceDate: event.target.value,
-                        }))
-                      }
-                    />
+                    <div
+                      className="serviceDateRangePicker"
+                      ref={serviceDateRangePickerRef}
+                    >
+                      <div className="dateInputWithIcon serviceDateRangeInputWrap">
+                        <input
+                          className="invoiceMetaInput serviceDateRangeInput"
+                          required
+                          type="text"
+                          readOnly
+                          placeholder="Zeitraum auswählen"
+                          value={form.serviceDate}
+                          onClick={openServiceDateRangePicker}
+                        />
+                        <button
+                          type="button"
+                          className="dateInputIconButton"
+                          aria-label="Leistungszeitraum auswählen"
+                          title="Leistungszeitraum auswählen"
+                          onClick={openServiceDateRangePicker}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="dateInputIcon"
+                            aria-hidden="true"
+                            focusable="false"
+                          >
+                            <path
+                              d="M7 4.5v2.2m10-2.2v2.2M5.5 9h13m-12 10h11.2a1 1 0 0 0 1-1V7.3a1 1 0 0 0-1-1H6.7a1 1 0 0 0-1 1V18a1 1 0 0 0 1 1Z"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {isServiceDateRangePickerOpen ? (
+                        <div
+                          className="serviceDateRangePopover"
+                          role="dialog"
+                          aria-label="Leistungszeitraum auswählen"
+                        >
+                          <div className="serviceDateRangeHeader">
+                            <button
+                              type="button"
+                              className="serviceDateRangeMonthButton"
+                              aria-label="Vorheriger Monat"
+                              onClick={() =>
+                                setServiceDateCalendarMonth((prev) =>
+                                  shiftMonthValue(prev, -1),
+                                )
+                              }
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="serviceDateRangeMonthIcon"
+                                aria-hidden="true"
+                                focusable="false"
+                              >
+                                <path
+                                  d="M14.7 6.8 9.3 12l5.4 5.2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                            <strong>{serviceDateCalendarMonthLabel}</strong>
+                            <button
+                              type="button"
+                              className="serviceDateRangeMonthButton"
+                              aria-label="Nächster Monat"
+                              onClick={() =>
+                                setServiceDateCalendarMonth((prev) =>
+                                  shiftMonthValue(prev, 1),
+                                )
+                              }
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="serviceDateRangeMonthIcon"
+                                aria-hidden="true"
+                                focusable="false"
+                              >
+                                <path
+                                  d="M9.3 6.8 14.7 12l-5.4 5.2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+
+                          <div className="serviceDateRangeWeekdays">
+                            {SERVICE_DATE_WEEKDAY_LABELS.map((weekday) => (
+                              <span key={weekday}>{weekday}</span>
+                            ))}
+                          </div>
+
+                          <div className="serviceDateRangeGrid">
+                            {serviceDateCalendarDays.map((day) => {
+                              const isStart = day.dateValue === serviceDateRangeStart;
+                              const isEnd = day.dateValue === serviceDateRangeEnd;
+                              const hasFullRange =
+                                Boolean(serviceDateRangeStart) &&
+                                Boolean(serviceDateRangeEnd);
+                              const isInRange =
+                                hasFullRange &&
+                                day.dateValue > serviceDateRangeStart &&
+                                day.dateValue < serviceDateRangeEnd;
+
+                              return (
+                                <button
+                                  key={day.dateValue}
+                                  type="button"
+                                  className={`serviceDateRangeDay ${day.inCurrentMonth ? "" : "isOutside"} ${isInRange ? "isInRange" : ""} ${isStart ? "isStart" : ""} ${isEnd ? "isEnd" : ""}`}
+                                  onClick={() =>
+                                    selectServiceDateRangeDay(day.dateValue)
+                                  }
+                                >
+                                  {day.dayNumber}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="serviceDateRangeFooter">
+                            <span className="serviceDateRangeSummary">
+                              {serviceDateRangeSummary}
+                            </span>
+                            <div className="serviceDateRangeActions">
+                              <button
+                                type="button"
+                                className="ghostButton serviceDateRangeActionButton"
+                                onClick={clearServiceDateRange}
+                              >
+                                Leeren
+                              </button>
+                              <button
+                                type="button"
+                                className="ghostButton serviceDateRangeActionButton"
+                                onClick={closeServiceDateRangePicker}
+                              >
+                                Schließen
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   </label>
 
                   <label className="field invoiceMetaField">
