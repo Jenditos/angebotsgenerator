@@ -723,9 +723,12 @@ export default function HomePage() {
     useState("");
   const [isArchiveOffersOpen, setIsArchiveOffersOpen] = useState(true);
   const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(true);
+  const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
+  const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [isOpeningSettings, setIsOpeningSettings] = useState(false);
+  const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
   const recognitionRef = useRef<any>(null);
   const modeSnapshotsRef = useRef<Record<DocumentMode, ModeSnapshot>>({
@@ -739,6 +742,8 @@ export default function HomePage() {
   const settingsNavTimeoutRef = useRef<number | null>(null);
   const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
   const archiveLoadRequestRef = useRef(0);
+  const archiveCloseTimeoutRef = useRef<number | null>(null);
+  const infoLegalCloseTimeoutRef = useRef<number | null>(null);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -948,6 +953,12 @@ export default function HomePage() {
       if (settingsNavTimeoutRef.current !== null) {
         window.clearTimeout(settingsNavTimeoutRef.current);
       }
+      if (archiveCloseTimeoutRef.current !== null) {
+        window.clearTimeout(archiveCloseTimeoutRef.current);
+      }
+      if (infoLegalCloseTimeoutRef.current !== null) {
+        window.clearTimeout(infoLegalCloseTimeoutRef.current);
+      }
       if (recognitionRef.current) {
         shouldAutoApplyVoiceRef.current = false;
         pauseRequestedRef.current = false;
@@ -1026,45 +1037,62 @@ export default function HomePage() {
       return;
     }
 
-    if (!isCustomerArchiveOpen) {
+    const hasBlockingOverlay = isCustomerArchiveOpen || isInfoLegalOpen;
+    if (!hasBlockingOverlay) {
       return;
     }
 
     const { body, documentElement } = document;
-    const scrollY = window.scrollY;
     const previousBodyOverflow = body.style.overflow;
     const previousBodyOverscroll = body.style.overscrollBehavior;
-    const previousBodyPosition = body.style.position;
-    const previousBodyTop = body.style.top;
-    const previousBodyLeft = body.style.left;
-    const previousBodyRight = body.style.right;
-    const previousBodyWidth = body.style.width;
     const previousHtmlOverflow = documentElement.style.overflow;
     const previousHtmlOverscroll = documentElement.style.overscrollBehavior;
 
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
     body.style.overflow = "hidden";
     body.style.overscrollBehavior = "none";
     documentElement.style.overflow = "hidden";
     documentElement.style.overscrollBehavior = "none";
 
     return () => {
-      body.style.position = previousBodyPosition;
-      body.style.top = previousBodyTop;
-      body.style.left = previousBodyLeft;
-      body.style.right = previousBodyRight;
-      body.style.width = previousBodyWidth;
       body.style.overflow = previousBodyOverflow;
       body.style.overscrollBehavior = previousBodyOverscroll;
       documentElement.style.overflow = previousHtmlOverflow;
       documentElement.style.overscrollBehavior = previousHtmlOverscroll;
-      window.scrollTo(0, scrollY);
     };
-  }, [isCustomerArchiveOpen]);
+  }, [isCustomerArchiveOpen, isInfoLegalOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!isCustomerArchiveOpen && !isInfoLegalOpen) {
+      return;
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (isInfoLegalOpen) {
+        closeInfoLegalModal();
+        return;
+      }
+
+      if (isCustomerArchiveOpen) {
+        closeCustomerArchive();
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [
+    isCustomerArchiveOpen,
+    isClosingCustomerArchive,
+    isInfoLegalOpen,
+    isClosingInfoLegal,
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -1329,6 +1357,11 @@ export default function HomePage() {
   }
 
   function openCustomerArchive() {
+    if (archiveCloseTimeoutRef.current !== null) {
+      window.clearTimeout(archiveCloseTimeoutRef.current);
+      archiveCloseTimeoutRef.current = null;
+    }
+    setIsClosingCustomerArchive(false);
     setIsCustomerArchiveOpen(true);
     setArchiveError("");
 
@@ -1338,7 +1371,44 @@ export default function HomePage() {
   }
 
   function closeCustomerArchive() {
-    setIsCustomerArchiveOpen(false);
+    if (!isCustomerArchiveOpen || isClosingCustomerArchive) {
+      return;
+    }
+
+    setIsClosingCustomerArchive(true);
+    if (archiveCloseTimeoutRef.current !== null) {
+      window.clearTimeout(archiveCloseTimeoutRef.current);
+    }
+    archiveCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsCustomerArchiveOpen(false);
+      setIsClosingCustomerArchive(false);
+      archiveCloseTimeoutRef.current = null;
+    }, 170);
+  }
+
+  function openInfoLegalModal() {
+    if (infoLegalCloseTimeoutRef.current !== null) {
+      window.clearTimeout(infoLegalCloseTimeoutRef.current);
+      infoLegalCloseTimeoutRef.current = null;
+    }
+    setIsClosingInfoLegal(false);
+    setIsInfoLegalOpen(true);
+  }
+
+  function closeInfoLegalModal() {
+    if (!isInfoLegalOpen || isClosingInfoLegal) {
+      return;
+    }
+
+    setIsClosingInfoLegal(true);
+    if (infoLegalCloseTimeoutRef.current !== null) {
+      window.clearTimeout(infoLegalCloseTimeoutRef.current);
+    }
+    infoLegalCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsInfoLegalOpen(false);
+      setIsClosingInfoLegal(false);
+      infoLegalCloseTimeoutRef.current = null;
+    }, 170);
   }
 
   function selectArchiveCustomer(customer: StoredCustomerRecord) {
@@ -2437,7 +2507,7 @@ export default function HomePage() {
     <main className="page">
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
-      <div className="container">
+      <div className="container pageSurfaceTransition">
         <header className="topHeaderMinimal">
           <button
             type="button"
@@ -2505,14 +2575,14 @@ export default function HomePage() {
 
         {isCustomerArchiveOpen ? (
           <div
-            className="customerArchiveBackdrop"
+            className={`customerArchiveBackdrop ${isClosingCustomerArchive ? "closing" : ""}`}
             role="dialog"
             aria-modal="true"
             aria-label="Kundenarchiv"
             onClick={closeCustomerArchive}
           >
             <section
-              className="customerArchiveSheet"
+              className={`customerArchiveSheet ${isClosingCustomerArchive ? "closing" : ""}`}
               onClick={(event) => event.stopPropagation()}
             >
               <div className="customerArchiveHeader">
@@ -2665,16 +2735,6 @@ export default function HomePage() {
                                                   {formatArchiveDate(document.createdAt)}
                                                 </span>
                                               </div>
-                                              <div
-                                                className="customerArchiveDocumentPreview"
-                                                aria-hidden="true"
-                                              >
-                                                <span className="customerArchivePreviewLabel">
-                                                  Vorschau
-                                                </span>
-                                                <span className="customerArchivePreviewLine" />
-                                                <span className="customerArchivePreviewLine short" />
-                                              </div>
                                             </a>
                                           ))}
                                         </div>
@@ -2720,16 +2780,6 @@ export default function HomePage() {
                                                   {formatArchiveDate(document.createdAt)}
                                                 </span>
                                               </div>
-                                              <div
-                                                className="customerArchiveDocumentPreview"
-                                                aria-hidden="true"
-                                              >
-                                                <span className="customerArchivePreviewLabel">
-                                                  Vorschau
-                                                </span>
-                                                <span className="customerArchivePreviewLine" />
-                                                <span className="customerArchivePreviewLine short" />
-                                              </div>
                                             </a>
                                           ))}
                                         </div>
@@ -2744,6 +2794,137 @@ export default function HomePage() {
                       );
                     })
                   : null}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {isInfoLegalOpen ? (
+          <div
+            className={`infoLegalBackdrop ${isClosingInfoLegal ? "closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Info und rechtliche Hinweise"
+            onClick={closeInfoLegalModal}
+          >
+            <section
+              className={`infoLegalSheet ${isClosingInfoLegal ? "closing" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header className="infoLegalHeader">
+                <h2 className="infoLegalHeading">Info &amp; Rechtliche Hinweise</h2>
+                <button
+                  type="button"
+                  className="infoLegalCloseButton"
+                  aria-label="Info-Fenster schließen"
+                  onClick={closeInfoLegalModal}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </header>
+
+              <div className="infoLegalContent">
+                <h3>Offline-Betrieb &amp; Datenschutz</h3>
+                <p>
+                  Diese Software arbeitet überwiegend lokal. Alle Kundendaten,
+                  Angebots- und Rechnungsinformationen sowie PDF-Dateien werden
+                  primär auf dem Gerät des Nutzers gespeichert.
+                </p>
+                <p>
+                  Es findet keine automatische Weitergabe dieser Daten an den
+                  Anbieter oder Dritte statt.
+                </p>
+                <p>
+                  Sofern KI-Funktionen genutzt werden, können zur Verarbeitung
+                  Inhalte temporär an externe Dienste (z. B. OpenAI) übermittelt
+                  werden. Dabei werden keine Daten dauerhaft gespeichert oder
+                  weitergegeben.
+                </p>
+                <p>
+                  Der Nutzer ist verantwortlich für die Einhaltung der geltenden
+                  Datenschutzbestimmungen (insbesondere DSGVO), sowie für
+                  Datensicherung, sichere Passwörter und Zugriffsschutz.
+                </p>
+
+                <h3>Datenschutzrechte</h3>
+                <p>
+                  Nutzer haben im Rahmen der gesetzlichen Bestimmungen das Recht
+                  auf Auskunft, Berichtigung, Löschung und Einschränkung der
+                  Verarbeitung ihrer Daten.
+                </p>
+                <p>
+                  Bei Fragen zum Datenschutz können Sie sich jederzeit an den
+                  Anbieter wenden.
+                </p>
+
+                <h3>Lizenzprüfung &amp; Internetverbindung</h3>
+                <p>
+                  Zur Lizenzprüfung kann beim Start oder in regelmäßigen
+                  Abständen - sofern eine Internetverbindung besteht - eine
+                  anonyme Anfrage an den VISIORO-Server gesendet werden. Dabei
+                  werden ausschließlich technische Informationen wie Lizenzstatus
+                  und Zeitstempel übertragen.
+                </p>
+                <p>
+                  Es werden keine sensiblen oder personenbezogenen Daten
+                  übermittelt.
+                </p>
+                <p>
+                  Die Nutzung der Software ist auch ohne Internetverbindung
+                  möglich (mit Ausnahme von KI-Funktionen).
+                </p>
+
+                <h3>Verantwortlichkeit</h3>
+                <p>
+                  Für die Richtigkeit, Vollständigkeit und rechtliche
+                  Zulässigkeit der erstellten Angebote und Rechnungen ist
+                  ausschließlich der Nutzer verantwortlich. Der Anbieter
+                  übernimmt keine Haftung für Fehler, unvollständige Angaben
+                  oder daraus resultierende Schäden.
+                </p>
+
+                <h3>KI-Hinweis</h3>
+                <p>
+                  Die durch KI generierten Inhalte dienen lediglich als
+                  Unterstützung und müssen vom Nutzer vor Verwendung geprüft und
+                  freigegeben werden.
+                </p>
+
+                <h3>Endbenutzer-Lizenzvereinbarung (EULA)</h3>
+                <p>
+                  Diese Software darf ausschließlich im Rahmen ihrer vorgesehenen
+                  Nutzung verwendet werden. Eine Weitergabe, Vervielfältigung
+                  oder kommerzielle Weiterverwertung der Software oder ihrer
+                  Bestandteile ist ohne ausdrückliche Genehmigung untersagt.
+                </p>
+                <p>
+                  Mit der Nutzung der Software akzeptiert der Nutzer diese
+                  Bedingungen.
+                </p>
+
+                <h3>Anbieter</h3>
+                <p className="infoLegalProvider">
+                  VISIORO SH.P.K.
+                  <br />
+                  Rr. Rifat Berisha 10
+                  <br />
+                  10000 Prishtina, Kosovo
+                  <br />
+                  E-Mail: info@visioro.com
+                </p>
               </div>
             </section>
           </div>
@@ -3040,19 +3221,38 @@ export default function HomePage() {
                     ? "Anrede Ansprechpartner (optional)"
                     : "Anrede"}
                 </span>
-                <select
-                  required={form.customerType === "person"}
-                  value={form.salutation}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      salutation: e.target.value === "frau" ? "frau" : "herr",
-                    }))
-                  }
-                >
-                  <option value="herr">Herr</option>
-                  <option value="frau">Frau</option>
-                </select>
+                <div className="selectWithIndicator">
+                  <select
+                    className="selectWithIndicatorInput"
+                    required={form.customerType === "person"}
+                    value={form.salutation}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        salutation: e.target.value === "frau" ? "frau" : "herr",
+                      }))
+                    }
+                  >
+                    <option value="herr">Herr</option>
+                    <option value="frau">Frau</option>
+                  </select>
+                  <span className="serviceSearchIndicator" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="serviceSearchIndicatorIcon"
+                      focusable="false"
+                    >
+                      <path
+                        d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </div>
               </label>
 
               <label className="field">
@@ -3636,59 +3836,69 @@ export default function HomePage() {
                   : `${singularDocumentLabel} erstellen`}
               </button>
 
-              {!isCompanySetupComplete ? (
-                <p className="formHint span2">
-                  Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
-                  <Link href="/settings" className="formHintLink">
-                    Einstellungen
-                  </Link>{" "}
-                  oder nutze dafür das Zahnradsymbol oben rechts.
-                </p>
-              ) : (
-                <div className="formHintMiniWrap span2">
-                  <button
-                    type="button"
-                    className="formHintMiniButton"
-                    aria-label="Tipp anzeigen"
-                    aria-expanded={isSetupHintOpen}
-                    onClick={() => setIsSetupHintOpen((prev) => !prev)}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="formHintMiniIcon"
-                      aria-hidden="true"
-                      focusable="false"
+              <div className="formBottomMetaRow span2">
+                {!isCompanySetupComplete ? (
+                  <p className="formHint">
+                    Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
+                    <Link href="/settings" className="formHintLink">
+                      Einstellungen
+                    </Link>{" "}
+                    oder nutze dafür das Zahnradsymbol oben rechts.
+                  </p>
+                ) : (
+                  <div className="formHintMiniWrap">
+                    <button
+                      type="button"
+                      className="formHintMiniButton"
+                      aria-label="Tipp anzeigen"
+                      aria-expanded={isSetupHintOpen}
+                      onClick={() => setIsSetupHintOpen((prev) => !prev)}
                     >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="8"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                      <path
-                        d="M12 10.2v5.1"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
-                    </svg>
-                  </button>
-                  {isSetupHintOpen ? (
-                    <p className="formHintMiniPopover">
-                      Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie in
-                      den{" "}
-                      <Link href="/settings" className="formHintLink">
-                        Einstellungen
-                      </Link>{" "}
-                      oder über das Zahnradsymbol oben rechts bearbeiten.
-                    </p>
-                  ) : null}
-                </div>
-              )}
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="formHintMiniIcon"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="8"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                        <path
+                          d="M12 10.2v5.1"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                      </svg>
+                    </button>
+                    {isSetupHintOpen ? (
+                      <p className="formHintMiniPopover">
+                        Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie
+                        in den{" "}
+                        <Link href="/settings" className="formHintLink">
+                          Einstellungen
+                        </Link>{" "}
+                        oder über das Zahnradsymbol oben rechts bearbeiten.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="ghostButton infoLegalTriggerButton"
+                  onClick={openInfoLegalModal}
+                >
+                  Info &amp; Rechtliches
+                </button>
+              </div>
             </form>
 
             {error ? <p className="error">{error}</p> : null}

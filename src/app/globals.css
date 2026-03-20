@@ -112,6 +112,20 @@ a {
   z-index: 2;
 }
 
+.pageSurfaceTransition {
+  animation: pageSurfaceEnter 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.settingsPageTransition {
+  animation: pageSurfaceEnter 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transform-origin: 50% 14%;
+}
+
+.settingsPageTransition.closing {
+  animation: pageSurfaceExit 140ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
 .glassCard {
   border: 1px solid var(--stroke);
   background: linear-gradient(140deg, var(--glass-strong), var(--glass) 55%);
@@ -745,6 +759,16 @@ p {
   position: relative;
 }
 
+.selectWithIndicator {
+  position: relative;
+}
+
+.selectWithIndicatorInput {
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .serviceSearchInput {
   padding-right: 40px;
 }
@@ -1180,6 +1204,18 @@ p {
   color: #4d6793;
 }
 
+.formBottomMetaRow {
+  margin-top: -2px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.formBottomMetaRow .formHint {
+  margin-top: 0;
+}
+
 .formHintMiniWrap {
   margin-top: -2px;
   position: relative;
@@ -1225,6 +1261,27 @@ p {
   font-size: 0.83rem;
   line-height: 1.35;
   z-index: 12;
+}
+
+.infoLegalTriggerButton {
+  width: auto;
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 10px;
+  color: #375a8f;
+  border-color: rgba(71, 116, 192, 0.26);
+  background: rgba(245, 250, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(51, 92, 158, 0.12);
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.infoLegalTriggerButton:hover {
+  border-color: rgba(71, 116, 192, 0.34);
+  background: rgba(241, 248, 255, 0.96);
 }
 
 .formHintLink {
@@ -1734,6 +1791,28 @@ textarea:focus {
   }
 }
 
+@keyframes pageSurfaceEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pageSurfaceExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.994);
+  }
+}
+
 @keyframes settingsOpenTap {
   0% {
     opacity: 1;
@@ -1899,6 +1978,16 @@ textarea:focus {
     width: min(320px, calc(100vw - 44px));
     padding: 9px 10px;
     font-size: 0.84rem;
+  }
+
+  .formBottomMetaRow {
+    gap: 8px;
+  }
+
+  .infoLegalTriggerButton {
+    min-height: 34px;
+    padding: 8px 10px;
+    font-size: 0.74rem;
   }
 
   input:not([type="checkbox"]):not([type="radio"]),
@@ -3043,24 +3132,128 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   right: auto;
 }
 
+.infoLegalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(12, 31, 58, 0.32);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  overflow: hidden;
+  animation: infoLegalBackdropIn 170ms ease-out;
+}
+
+.infoLegalBackdrop.closing {
+  animation: infoLegalBackdropOut 160ms ease-in forwards;
+}
+
+.infoLegalSheet {
+  width: min(820px, 100%);
+  max-height: min(calc(100vh - 36px), 860px);
+  border: 1px solid rgba(72, 118, 197, 0.28);
+  border-radius: 20px;
+  background: linear-gradient(
+    150deg,
+    rgba(252, 255, 255, 0.97),
+    rgba(238, 247, 255, 0.92)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 28px 56px rgba(33, 65, 117, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  animation: infoLegalSheetIn 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.infoLegalSheet.closing {
+  animation: infoLegalSheetOut 160ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.infoLegalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px 9px;
+  border-bottom: 1px solid rgba(72, 118, 197, 0.16);
+}
+
+.infoLegalHeading {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+  color: #183865;
+}
+
+.infoLegalCloseButton {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2d4f80;
+}
+
+.infoLegalContent {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 14px 14px;
+  display: grid;
+  gap: 9px;
+}
+
+.infoLegalContent h3 {
+  margin: 10px 0 0;
+  font-size: 0.91rem;
+  line-height: 1.3;
+  color: #214271;
+}
+
+.infoLegalContent p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: #4d6793;
+}
+
+.infoLegalProvider {
+  color: #3d5f90;
+}
+
 .customerArchiveBackdrop {
   position: fixed;
   inset: 0;
+  height: 100vh;
   z-index: 120;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 18px;
   background: rgba(12, 31, 58, 0.28);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   animation: customerArchiveBackdropIn 170ms ease-out;
 }
 
+.customerArchiveBackdrop.closing {
+  animation: customerArchiveBackdropOut 160ms ease-in forwards;
+}
+
 .customerArchiveSheet {
   width: min(940px, 100%);
-  max-height: min(84vh, 860px);
+  max-height: min(calc(100vh - 36px), 860px);
   overflow: hidden;
   border: 1px solid rgba(72, 118, 197, 0.28);
   border-radius: 22px;
@@ -3076,6 +3269,11 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   gap: 12px;
   padding: 14px;
   animation: customerArchiveSheetIn 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.customerArchiveSheet.closing {
+  animation: customerArchiveSheetOut 160ms cubic-bezier(0.4, 0, 0.2, 1)
+    forwards;
 }
 
 .customerArchiveHeader {
@@ -3290,45 +3488,10 @@ button.customerArchiveSectionToggle {
   line-height: 1.25;
 }
 
-.customerArchiveDocumentPreview {
-  width: 86px;
-  min-width: 86px;
-  border: 1px solid rgba(72, 118, 197, 0.18);
-  border-radius: 9px;
-  background: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(238, 246, 255, 0.9)
-  );
-  padding: 6px 7px;
-  display: grid;
-  gap: 4px;
-}
-
-.customerArchivePreviewLabel {
-  font-size: 0.63rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #4f6d98;
-  font-weight: 700;
-}
-
-.customerArchivePreviewLine {
-  display: block;
-  width: 100%;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(119, 161, 222, 0.36);
-}
-
-.customerArchivePreviewLine.short {
-  width: 74%;
-}
-
 .customerArchiveDocumentLink {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  justify-content: flex-start;
   text-decoration: none;
   transition:
     border-color 0.2s ease,
@@ -3347,6 +3510,50 @@ button.customerArchiveSectionToggle {
   transform: translateX(0);
 }
 
+@keyframes infoLegalBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes infoLegalBackdropOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes infoLegalSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes infoLegalSheetOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
 @keyframes customerArchiveBackdropIn {
   from {
     opacity: 0;
@@ -3354,6 +3561,16 @@ button.customerArchiveSectionToggle {
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes customerArchiveBackdropOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
   }
 }
 
@@ -3366,6 +3583,18 @@ button.customerArchiveSectionToggle {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes customerArchiveSheetOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.984);
   }
 }
 
@@ -3382,6 +3611,47 @@ button.customerArchiveSectionToggle {
 }
 
 @media (max-width: 760px) {
+  .infoLegalBackdrop {
+    align-items: flex-start;
+    padding: 10px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+
+  .infoLegalSheet {
+    width: 100%;
+    max-height: calc(100vh - 16px - env(safe-area-inset-top));
+    border-radius: 18px;
+  }
+
+  .infoLegalHeader {
+    padding: 11px 11px 8px;
+  }
+
+  .infoLegalHeading {
+    font-size: 0.95rem;
+  }
+
+  .infoLegalCloseButton {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .infoLegalContent {
+    padding: 0 11px calc(12px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+
+  .infoLegalContent h3 {
+    font-size: 0.87rem;
+  }
+
+  .infoLegalContent p {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
   .topHeaderArchiveButton {
     left: 2px;
     right: auto;
@@ -3437,15 +3707,5 @@ button.customerArchiveSectionToggle {
   .customerArchiveDocumentItem {
     min-height: 44px;
     padding: 10px;
-  }
-
-  .customerArchiveDocumentPreview {
-    width: 74px;
-    min-width: 74px;
-    padding: 5px 6px;
-  }
-
-  .customerArchivePreviewLabel {
-    font-size: 0.6rem;
   }
 }

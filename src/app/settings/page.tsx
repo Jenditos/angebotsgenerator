@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChangeEvent,
   DragEvent,
   FormEvent,
+  MouseEvent as ReactMouseEvent,
   PointerEvent,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
@@ -58,6 +61,7 @@ function toInvoiceDuePreset(days: number): InvoiceDuePreset {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
@@ -73,6 +77,8 @@ export default function SettingsPage() {
   >(null);
   const [dragOverPdfColumnPosition, setDragOverPdfColumnPosition] =
     useState<PdfColumnDropPosition>("after");
+  const [isLeavingSettings, setIsLeavingSettings] = useState(false);
+  const leaveSettingsTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -384,16 +390,56 @@ export default function SettingsPage() {
     }
   }
 
+  function handleBackNavigation(event: ReactMouseEvent<HTMLAnchorElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    if (isLeavingSettings) {
+      return;
+    }
+
+    setIsLeavingSettings(true);
+    if (leaveSettingsTimeoutRef.current !== null) {
+      window.clearTimeout(leaveSettingsTimeoutRef.current);
+    }
+    leaveSettingsTimeoutRef.current = window.setTimeout(() => {
+      router.push("/");
+    }, 140);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (leaveSettingsTimeoutRef.current !== null) {
+        window.clearTimeout(leaveSettingsTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <main className="page">
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
-      <div className="container">
+      <div className={`container settingsPageTransition ${isLeavingSettings ? "closing" : ""}`}>
         <header className="topHeaderMinimal">
           <span className="pill topHeaderLogo" aria-label="Visioro">
             Visioro
           </span>
-          <Link href="/" className="topHeaderSettingsButton topHeaderBackButton" aria-label="Zurück" title="Zurück">
+          <Link
+            href="/"
+            className={`topHeaderSettingsButton topHeaderBackButton ${isLeavingSettings ? "isNavigating" : ""}`}
+            aria-label="Zurück"
+            title="Zurück"
+            onClick={handleBackNavigation}
+          >
             <svg
               viewBox="0 0 24 24"
               className="topHeaderIcon"
