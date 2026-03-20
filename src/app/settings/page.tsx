@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  useCallback,
   ChangeEvent,
   DragEvent,
   FormEvent,
@@ -38,10 +39,109 @@ const emptySettings: CompanySettings = {
   customServiceTypes: [],
 };
 
+const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
+const SETTINGS_AUTOSAVE_DELAY_MS = 700;
+
 function sortPdfColumns(
   columns: PdfTableColumnConfig[],
 ): PdfTableColumnConfig[] {
   return [...columns].sort((a, b) => a.order - b.order);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeSettingsDraft(input: unknown): CompanySettings | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+
+  const pdfTableColumns = Array.isArray(input.pdfTableColumns)
+    ? (input.pdfTableColumns as PdfTableColumnConfig[])
+    : getDefaultPdfTableColumns();
+
+  return {
+    companyName: asString(input.companyName),
+    ownerName: asString(input.ownerName),
+    companyStreet: asString(input.companyStreet),
+    companyPostalCode: asString(input.companyPostalCode),
+    companyCity: asString(input.companyCity),
+    companyEmail: asString(input.companyEmail),
+    companyPhone: asString(input.companyPhone),
+    companyWebsite: asString(input.companyWebsite),
+    senderCopyEmail: asString(input.senderCopyEmail),
+    logoDataUrl: asString(input.logoDataUrl),
+    pdfTableColumns,
+    customServices: Array.isArray(input.customServices)
+      ? (input.customServices as CompanySettings["customServices"])
+      : [],
+    vatRate: asNumber(input.vatRate, emptySettings.vatRate),
+    offerValidityDays: asNumber(
+      input.offerValidityDays,
+      emptySettings.offerValidityDays,
+    ),
+    invoicePaymentDueDays: asNumber(
+      input.invoicePaymentDueDays,
+      emptySettings.invoicePaymentDueDays,
+    ),
+    offerTermsText: asString(input.offerTermsText, emptySettings.offerTermsText),
+    lastOfferNumber: asString(input.lastOfferNumber),
+    customServiceTypes: Array.isArray(input.customServiceTypes)
+      ? input.customServiceTypes
+          .map((entry) => String(entry).trim())
+          .filter(Boolean)
+      : [],
+  };
+}
+
+function readSettingsDraftFromSessionStorage(): CompanySettings | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    if (isRecord(parsed) && isRecord(parsed.settings)) {
+      return normalizeSettingsDraft(parsed.settings);
+    }
+
+    return normalizeSettingsDraft(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function writeSettingsDraftToSessionStorage(nextSettings: CompanySettings) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    SETTINGS_DRAFT_STORAGE_KEY,
+    JSON.stringify({
+      updatedAt: new Date().toISOString(),
+      settings: nextSettings,
+    }),
+  );
+}
+
+function areSettingsEqual(left: CompanySettings, right: CompanySettings): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 type InvoiceDuePreset = "immediate" | "seven" | "fourteen" | "custom";
@@ -65,6 +165,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
+  const [isSettingsHydrated, setIsSettingsHydrated] = useState(false);
   const [invoiceDuePreset, setInvoiceDuePreset] =
     useState<InvoiceDuePreset>("fourteen");
   const [customInvoiceDueDays, setCustomInvoiceDueDays] = useState("");
@@ -79,20 +180,106 @@ export default function SettingsPage() {
     useState<PdfColumnDropPosition>("after");
   const [isLeavingSettings, setIsLeavingSettings] = useState(false);
   const leaveSettingsTimeoutRef = useRef<number | null>(null);
+  const autosaveTimeoutRef = useRef<number | null>(null);
+  const settingsSaveRequestRef = useRef(0);
+
+  const persistSettings = useCallback(
+    async (
+      nextSettings: CompanySettings,
+      mode: "manual" | "autosave" | "reset" = "manual",
+    ) => {
+      const requestId = ++settingsSaveRequestRef.current;
+
+      if (mode === "manual") {
+        setSaveStatus("");
+        setError("");
+      } else if (mode === "reset") {
+        setError("");
+      }
+
+      try {
+        const response = await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(nextSettings),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          if (
+            settingsSaveRequestRef.current === requestId &&
+            mode !== "autosave"
+          ) {
+            setError(data.error ?? "Speichern fehlgeschlagen");
+          }
+          return false;
+        }
+
+        if (settingsSaveRequestRef.current !== requestId) {
+          return false;
+        }
+
+        const resolvedSettings = data.settings as CompanySettings;
+        setSettings((prev) =>
+          areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
+        );
+        writeSettingsDraftToSessionStorage(resolvedSettings);
+
+        if (mode === "manual") {
+          setSaveStatus("Einstellungen gespeichert.");
+        } else if (mode === "reset") {
+          setSaveStatus("Einstellungen wurden zurückgesetzt.");
+        }
+
+        return true;
+      } catch {
+        if (settingsSaveRequestRef.current === requestId && mode !== "autosave") {
+          setError("Netzwerkfehler beim Speichern.");
+        }
+        return false;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let mounted = true;
+    const draftSettings = readSettingsDraftFromSessionStorage();
+
+    if (draftSettings) {
+      setSettings(draftSettings);
+      setIsSettingsHydrated(true);
+    }
 
     async function loadSettings() {
       try {
         const response = await fetch("/api/settings");
         const data = await response.json();
-        if (mounted) {
-          setSettings(data.settings as CompanySettings);
+        if (!mounted) {
+          return;
         }
+
+        if (!response.ok) {
+          if (!draftSettings) {
+            setError(data.error ?? "Einstellungen konnten nicht geladen werden.");
+          }
+          return;
+        }
+
+        const loadedSettings = data.settings as CompanySettings;
+        if (!draftSettings) {
+          setSettings(loadedSettings);
+        }
+        writeSettingsDraftToSessionStorage(
+          draftSettings ? draftSettings : loadedSettings,
+        );
       } catch {
-        if (mounted) {
+        if (mounted && !draftSettings) {
           setError("Einstellungen konnten nicht geladen werden.");
+        }
+      } finally {
+        if (mounted && !draftSettings) {
+          setIsSettingsHydrated(true);
         }
       }
     }
@@ -103,6 +290,28 @@ export default function SettingsPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isSettingsHydrated) {
+      return;
+    }
+
+    writeSettingsDraftToSessionStorage(settings);
+    if (autosaveTimeoutRef.current !== null) {
+      window.clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    autosaveTimeoutRef.current = window.setTimeout(() => {
+      void persistSettings(settings, "autosave");
+    }, SETTINGS_AUTOSAVE_DELAY_MS);
+
+    return () => {
+      if (autosaveTimeoutRef.current !== null) {
+        window.clearTimeout(autosaveTimeoutRef.current);
+        autosaveTimeoutRef.current = null;
+      }
+    };
+  }, [isSettingsHydrated, persistSettings, settings]);
 
   useEffect(() => {
     if (invoiceDueInitialized) {
@@ -367,27 +576,31 @@ export default function SettingsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaveStatus("");
-    setError("");
+    await persistSettings(settings, "manual");
+  }
 
-    try {
-      const response = await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error ?? "Speichern fehlgeschlagen");
-        return;
-      }
-
-      setSettings(data.settings as CompanySettings);
-      setSaveStatus("Einstellungen gespeichert.");
-    } catch {
-      setError("Netzwerkfehler beim Speichern.");
+  function resetSettings() {
+    const confirmed = window.confirm(
+      "Möchten Sie wirklich alle Einstellungen löschen?",
+    );
+    if (!confirmed) {
+      return;
     }
+
+    const resetTarget: CompanySettings = {
+      ...emptySettings,
+      pdfTableColumns: getDefaultPdfTableColumns(),
+      customServices: [],
+      customServiceTypes: [],
+    };
+
+    setSettings(resetTarget);
+    setInvoiceDuePreset(toInvoiceDuePreset(resetTarget.invoicePaymentDueDays));
+    setCustomInvoiceDueDays("");
+    setError("");
+    setSaveStatus("");
+    writeSettingsDraftToSessionStorage(resetTarget);
+    void persistSettings(resetTarget, "reset");
   }
 
   function handleBackNavigation(event: ReactMouseEvent<HTMLAnchorElement>) {
@@ -408,6 +621,7 @@ export default function SettingsPage() {
     }
 
     setIsLeavingSettings(true);
+    writeSettingsDraftToSessionStorage(settings);
     if (leaveSettingsTimeoutRef.current !== null) {
       window.clearTimeout(leaveSettingsTimeoutRef.current);
     }
@@ -420,6 +634,9 @@ export default function SettingsPage() {
     return () => {
       if (leaveSettingsTimeoutRef.current !== null) {
         window.clearTimeout(leaveSettingsTimeoutRef.current);
+      }
+      if (autosaveTimeoutRef.current !== null) {
+        window.clearTimeout(autosaveTimeoutRef.current);
       }
     };
   }, []);
@@ -834,6 +1051,13 @@ export default function SettingsPage() {
 
             <button type="submit" className="primaryButton submitButton">
               Einstellungen speichern
+            </button>
+            <button
+              type="button"
+              className="ghostButton settingsDeleteButton"
+              onClick={resetSettings}
+            >
+              Einstellungen löschen
             </button>
           </form>
           {saveStatus ? <p className="success">{saveStatus}</p> : null}
