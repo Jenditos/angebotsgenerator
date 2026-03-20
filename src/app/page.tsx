@@ -3458,105 +3458,115 @@ export default function HomePage() {
                 </>
               ) : null}
 
-              <div className="field span2">
-                <span>Leistung suchen</span>
-                <div className="servicePicker" ref={servicePickerRef}>
-                  <input
-                    className="serviceSearchInput"
-                    value={serviceSearch}
-                    placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
-                    autoCapitalize="words"
-                    onFocus={() => setIsServiceSearchOpen(true)}
-                    onChange={(event) => {
-                      setServiceSearch(event.target.value);
-                      setIsServiceSearchOpen(true);
-                      setServiceInfo("");
-                      setServiceError("");
-                    }}
-                  />
-                  <span className="serviceSearchIndicator" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="serviceSearchIndicatorIcon"
-                      focusable="false"
-                    >
-                      <path
-                        d="m8 10 4-4 4 4m-8 4 4 4 4-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+              <div className="field span2 positionsTableField">
+                <div className="positionsIntegratedPanel">
+                  <div className="positionsSearchPanel">
+                    <div className="positionsSearchPanelHeader">
+                      <span className="positionsSearchPanelTitle">
+                        Leistung suchen
+                      </span>
+                      <span className="positionsSearchPanelHint">
+                        Direkt im Bereich Bezeichnung / Unterpunkt hinzufügen
+                      </span>
+                    </div>
+                    <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
+                      <input
+                        className="serviceSearchInput"
+                        value={serviceSearch}
+                        placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
+                        autoCapitalize="words"
+                        onFocus={() => setIsServiceSearchOpen(true)}
+                        onChange={(event) => {
+                          setServiceSearch(event.target.value);
+                          setIsServiceSearchOpen(true);
+                          setServiceInfo("");
+                          setServiceError("");
+                        }}
                       />
-                    </svg>
-                  </span>
-
-                  {isServiceSearchOpen ? (
-                    <div
-                      className="serviceSuggestionList"
-                      role="listbox"
-                      aria-label="Leistungsvorschläge"
-                    >
-                      {isServiceCatalogLoading ? (
-                        <p className="serviceSuggestionHint">
-                          Leistungen werden geladen ...
-                        </p>
-                      ) : null}
-
-                      {groupedServiceSuggestions.map(
-                        ([category, suggestions]) => (
-                          <div
-                            key={category}
-                            className="serviceSuggestionGroup"
-                          >
-                            <p className="serviceSuggestionGroupLabel">
-                              {category}
-                            </p>
-                            {suggestions.map((service) => (
-                              <button
-                                key={service.id}
-                                type="button"
-                                className="serviceSuggestionButton"
-                                onClick={() =>
-                                  addSelectedService(service.label)
-                                }
-                              >
-                                <strong>{service.label}</strong>
-                                {service.source === "custom" ? (
-                                  <span>Eigene Leistung</span>
-                                ) : (
-                                  <span>Standard</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        ),
-                      )}
-
-                      {!isServiceCatalogLoading &&
-                      groupedServiceSuggestions.length === 0 ? (
-                        <p className="serviceSuggestionHint">
-                          Keine passenden Leistungen gefunden.
-                        </p>
-                      ) : null}
-
-                      {canCreateCustomService ? (
-                        <button
-                          type="button"
-                          className="serviceAddCustomButton"
-                          onClick={addCustomService}
-                          disabled={isAddingCustomService}
+                      <span className="serviceSearchIndicator" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="serviceSearchIndicatorIcon"
+                          focusable="false"
                         >
-                          {isAddingCustomService
-                            ? "Eigene Leistung wird gespeichert ..."
-                            : `+ Eigene Leistung hinzufügen: "${serviceSearchValue}"`}
-                        </button>
+                          <path
+                            d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+
+                      {isServiceSearchOpen ? (
+                        <div
+                          className="serviceSuggestionList"
+                          role="listbox"
+                          aria-label="Leistungsvorschläge"
+                        >
+                          {isServiceCatalogLoading ? (
+                            <p className="serviceSuggestionHint">
+                              Leistungen werden geladen ...
+                            </p>
+                          ) : null}
+
+                          {groupedServiceSuggestions.map(
+                            ([category, suggestions]) => (
+                              <div
+                                key={category}
+                                className="serviceSuggestionGroup"
+                              >
+                                <p className="serviceSuggestionGroupLabel">
+                                  {category}
+                                </p>
+                                {suggestions.map((service) => (
+                                  <button
+                                    key={service.id}
+                                    type="button"
+                                    className="serviceSuggestionButton"
+                                    onClick={() =>
+                                      addSelectedService(service.label)
+                                    }
+                                  >
+                                    <strong>{service.label}</strong>
+                                    {service.source === "custom" ? (
+                                      <span>Eigene Leistung</span>
+                                    ) : (
+                                      <span>Standard</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            ),
+                          )}
+
+                          {!isServiceCatalogLoading &&
+                          groupedServiceSuggestions.length === 0 ? (
+                            <p className="serviceSuggestionHint">
+                              Keine passenden Leistungen gefunden.
+                            </p>
+                          ) : null}
+
+                          {canCreateCustomService ? (
+                            <button
+                              type="button"
+                              className="serviceAddCustomButton"
+                              onClick={addCustomService}
+                              disabled={isAddingCustomService}
+                            >
+                              {isAddingCustomService
+                                ? "Eigene Leistung wird gespeichert ..."
+                                : `+ Eigene Leistung hinzufügen: "${serviceSearchValue}"`}
+                            </button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
-                  ) : null}
-                </div>
+                  </div>
 
-                <div className="positionsInputWrap">
+                  <div className="positionsInputWrap positionsInputWrapMerged">
                   <table className="positionsInputTable">
                     <thead>
                       <tr>
@@ -3761,6 +3771,7 @@ export default function HomePage() {
                       )}
                     </tbody>
                   </table>
+                </div>
                 </div>
                 <button
                   type="button"
