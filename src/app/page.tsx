@@ -679,17 +679,35 @@ function parseLocaleNumber(rawValue: string): number {
   const lastCommaIndex = unsigned.lastIndexOf(",");
   const lastDotIndex = unsigned.lastIndexOf(".");
   const decimalIndex = Math.max(lastCommaIndex, lastDotIndex);
+  const commaCount = (unsigned.match(/,/g) ?? []).length;
+  const dotCount = (unsigned.match(/\./g) ?? []).length;
   let numberLiteral = "";
 
-  if (decimalIndex >= 0) {
-    const integerDigits = unsigned.slice(0, decimalIndex).replace(/[^\d]/g, "");
-    const fractionDigits = unsigned
-      .slice(decimalIndex + 1)
-      .replace(/[^\d]/g, "");
-    const safeInteger = integerDigits || "0";
-    numberLiteral = fractionDigits ? `${safeInteger}.${fractionDigits}` : safeInteger;
-  } else {
+  if (decimalIndex < 0) {
     numberLiteral = unsigned.replace(/[^\d]/g, "");
+  } else {
+    const separatorCharacter = unsigned.charAt(decimalIndex);
+    const integerPartRaw = unsigned.slice(0, decimalIndex);
+    const fractionPartRaw = unsigned.slice(decimalIndex + 1);
+    const integerDigits = integerPartRaw.replace(/[^\d]/g, "");
+    const fractionDigits = fractionPartRaw.replace(/[^\d]/g, "");
+    const hasOtherSeparator =
+      separatorCharacter === "," ? dotCount > 0 : commaCount > 0;
+    const hasMultipleSameSeparator =
+      separatorCharacter === "," ? commaCount > 1 : dotCount > 1;
+    const allowThreeDecimalDigits =
+      fractionDigits.length === 3 &&
+      (integerDigits.length === 0 || /^0+$/.test(integerDigits));
+    const treatAsDecimal =
+      fractionDigits.length > 0 &&
+      (fractionDigits.length <= 2 || allowThreeDecimalDigits) &&
+      (hasOtherSeparator || !hasMultipleSameSeparator || allowThreeDecimalDigits);
+
+    if (treatAsDecimal) {
+      numberLiteral = `${integerDigits || "0"}.${fractionDigits}`;
+    } else {
+      numberLiteral = `${integerPartRaw}${fractionPartRaw}`.replace(/[^\d]/g, "");
+    }
   }
 
   if (!numberLiteral) {
@@ -729,6 +747,8 @@ function sanitizePriceInput(rawValue: string): string {
   const lastCommaIndex = normalized.lastIndexOf(",");
   const lastDotIndex = normalized.lastIndexOf(".");
   const decimalIndex = Math.max(lastCommaIndex, lastDotIndex);
+  const commaCount = (normalized.match(/,/g) ?? []).length;
+  const dotCount = (normalized.match(/\./g) ?? []).length;
 
   const integerRaw =
     decimalIndex >= 0 ? normalized.slice(0, decimalIndex) : normalized;
@@ -737,9 +757,27 @@ function sanitizePriceInput(rawValue: string): string {
   const fractionDigits = fractionRaw.replace(/[^\d]/g, "");
   const trailingSeparator =
     decimalIndex >= 0 && fractionRaw.length === 0 && /[.,]$/.test(normalized);
+  const separatorCharacter =
+    decimalIndex >= 0 ? normalized.charAt(decimalIndex) : "";
+  const hasOtherSeparator =
+    separatorCharacter === "," ? dotCount > 0 : commaCount > 0;
+  const hasMultipleSameSeparator =
+    separatorCharacter === "," ? commaCount > 1 : dotCount > 1;
+  const allowThreeDecimalDigits =
+    fractionDigits.length === 3 &&
+    (integerDigits.length === 0 || /^0+$/.test(integerDigits));
+  const treatAsDecimal =
+    decimalIndex >= 0 &&
+    fractionDigits.length > 0 &&
+    (fractionDigits.length <= 2 || allowThreeDecimalDigits) &&
+    (hasOtherSeparator || !hasMultipleSameSeparator || allowThreeDecimalDigits);
 
   if (!integerDigits && !fractionDigits) {
     return "";
+  }
+
+  if (decimalIndex >= 0 && !treatAsDecimal && !trailingSeparator) {
+    return `${integerRaw}${fractionRaw}`.replace(/[^\d]/g, "");
   }
 
   const integerPart = integerDigits || "0";
@@ -889,6 +927,9 @@ export default function HomePage() {
   const [selectedServices, setSelectedServices] = useState<
     SelectedServiceEntry[]
   >([]);
+  const [activePriceSubitemId, setActivePriceSubitemId] = useState<
+    string | null
+  >(null);
   const [isServiceSearchOpen, setIsServiceSearchOpen] = useState(false);
   const [isServiceCatalogLoading, setIsServiceCatalogLoading] = useState(false);
   const [isAddingCustomService, setIsAddingCustomService] = useState(false);
@@ -1088,6 +1129,7 @@ export default function HomePage() {
       setIsListening(false);
     }
     setIsSpeechPaused(false);
+    setActivePriceSubitemId(null);
 
     setDocumentMode(nextMode);
     setModeAnimationKey((value) => value + 1);
@@ -1891,6 +1933,7 @@ export default function HomePage() {
       paymentDueDays: draftState?.paymentDueDays || "14",
     }));
     setSelectedServices(draftSelectedServices);
+    setActivePriceSubitemId(null);
     setAddressSuggestions([]);
     setIsCustomerPickerOpen(false);
     setCustomerSearch("");
@@ -1956,6 +1999,7 @@ export default function HomePage() {
   }
 
   function removeSelectedService(serviceId: string) {
+    setActivePriceSubitemId(null);
     setSelectedServices((prev) =>
       prev.filter((service) => service.id !== serviceId),
     );
@@ -2037,71 +2081,8 @@ export default function HomePage() {
     );
   }
 
-  function normalizePriceSubitemForEditing(
-    serviceId: string,
-    subitemId: string,
-  ) {
-    setSelectedServices((prev) =>
-      prev.map((service) => {
-        if (service.id !== serviceId) {
-          return service;
-        }
-
-        return {
-          ...service,
-          subitems: service.subitems.map((subitem) => {
-            if (subitem.id !== subitemId) {
-              return subitem;
-            }
-
-            const normalizedPrice = sanitizePriceInput(subitem.price);
-            if (normalizedPrice === subitem.price) {
-              return subitem;
-            }
-
-            return {
-              ...subitem,
-              price: normalizedPrice,
-            };
-          }),
-        };
-      }),
-    );
-  }
-
-  function formatPriceSubitem(
-    serviceId: string,
-    subitemId: string,
-  ) {
-    setSelectedServices((prev) =>
-      prev.map((service) => {
-        if (service.id !== serviceId) {
-          return service;
-        }
-
-        return {
-          ...service,
-          subitems: service.subitems.map((subitem) => {
-            if (subitem.id !== subitemId) {
-              return subitem;
-            }
-
-            const formattedPrice = formatPriceInputValue(subitem.price);
-            if (formattedPrice === subitem.price) {
-              return subitem;
-            }
-
-            return {
-              ...subitem,
-              price: formattedPrice,
-            };
-          }),
-        };
-      }),
-    );
-  }
-
   function removeServiceSubitem(serviceId: string, subitemId: string) {
+    setActivePriceSubitemId((prev) => (prev === subitemId ? null : prev));
     setSelectedServices((prev) =>
       prev.map((service) => {
         if (service.id !== serviceId) {
@@ -4206,7 +4187,11 @@ export default function HomePage() {
                                   <td className="positionNumericCell">
                                     <input
                                       className="positionPriceInput"
-                                      value={subitem.price}
+                                      value={
+                                        activePriceSubitemId === subitem.id
+                                          ? subitem.price
+                                          : formatPriceInputValue(subitem.price)
+                                      }
                                       onChange={(event) =>
                                         updatePriceSubitem(
                                           service.id,
@@ -4243,15 +4228,11 @@ export default function HomePage() {
                                         );
                                       }}
                                       onFocus={() =>
-                                        normalizePriceSubitemForEditing(
-                                          service.id,
-                                          subitem.id,
-                                        )
+                                        setActivePriceSubitemId(subitem.id)
                                       }
                                       onBlur={() =>
-                                        formatPriceSubitem(
-                                          service.id,
-                                          subitem.id,
+                                        setActivePriceSubitemId((prev) =>
+                                          prev === subitem.id ? null : prev,
                                         )
                                       }
                                       placeholder="0,00"

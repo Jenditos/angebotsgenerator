@@ -19,8 +19,72 @@ import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 
+function parseLocaleNumberish(rawValue: string): number {
+  const normalized = rawValue
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^\d.,-]/g, "");
+  if (!normalized) {
+    return NaN;
+  }
+
+  const isNegative = normalized.startsWith("-");
+  const unsigned = normalized.replace(/-/g, "");
+  if (!unsigned) {
+    return NaN;
+  }
+
+  const lastCommaIndex = unsigned.lastIndexOf(",");
+  const lastDotIndex = unsigned.lastIndexOf(".");
+  const decimalIndex = Math.max(lastCommaIndex, lastDotIndex);
+  const commaCount = (unsigned.match(/,/g) ?? []).length;
+  const dotCount = (unsigned.match(/\./g) ?? []).length;
+  let numberLiteral = "";
+
+  if (decimalIndex < 0) {
+    numberLiteral = unsigned.replace(/[^\d]/g, "");
+  } else {
+    const separatorCharacter = unsigned.charAt(decimalIndex);
+    const integerPartRaw = unsigned.slice(0, decimalIndex);
+    const fractionPartRaw = unsigned.slice(decimalIndex + 1);
+    const integerDigits = integerPartRaw.replace(/[^\d]/g, "");
+    const fractionDigits = fractionPartRaw.replace(/[^\d]/g, "");
+    const hasOtherSeparator =
+      separatorCharacter === "," ? dotCount > 0 : commaCount > 0;
+    const hasMultipleSameSeparator =
+      separatorCharacter === "," ? commaCount > 1 : dotCount > 1;
+    const allowThreeDecimalDigits =
+      fractionDigits.length === 3 &&
+      (integerDigits.length === 0 || /^0+$/.test(integerDigits));
+    const treatAsDecimal =
+      fractionDigits.length > 0 &&
+      (fractionDigits.length <= 2 || allowThreeDecimalDigits) &&
+      (hasOtherSeparator || !hasMultipleSameSeparator || allowThreeDecimalDigits);
+
+    if (treatAsDecimal) {
+      numberLiteral = `${integerDigits || "0"}.${fractionDigits}`;
+    } else {
+      numberLiteral = `${integerPartRaw}${fractionPartRaw}`.replace(/[^\d]/g, "");
+    }
+  }
+
+  if (!numberLiteral) {
+    return NaN;
+  }
+
+  const parsed = Number(isNegative ? `-${numberLiteral}` : numberLiteral);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 function toNumber(value: string | number): number {
-  const parsed = Number(value);
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : NaN;
+  }
+  if (typeof value !== "string") {
+    return NaN;
+  }
+
+  const parsed = parseLocaleNumberish(value);
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
@@ -84,6 +148,16 @@ function buildPaymentDueText(days: number): string {
 
 function normalizeInputValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeNumberishInputValue(value: unknown): string {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "";
+  }
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  return "";
 }
 
 function sanitizeSelectedServiceEntries(
@@ -552,6 +626,32 @@ export async function POST(request: Request) {
         { error: "Für Firmenangebote bitte einen Firmennamen eintragen." },
         { status: 400 },
       );
+    }
+
+    if (Array.isArray(body.positions)) {
+      for (const position of body.positions) {
+        const description = normalizeInputValue(position?.description) || "Position";
+        const quantityRaw = normalizeNumberishInputValue(position?.quantity);
+        const unitPriceRaw = normalizeNumberishInputValue(position?.unitPrice);
+
+        if (quantityRaw && !Number.isFinite(toNumber(quantityRaw))) {
+          return NextResponse.json(
+            {
+              error: `Bitte eine gültige Menge für "${description}" eingeben.`,
+            },
+            { status: 400 },
+          );
+        }
+
+        if (unitPriceRaw && !Number.isFinite(toNumber(unitPriceRaw))) {
+          return NextResponse.json(
+            {
+              error: `Bitte einen gültigen EP / Preis EUR für "${description}" eingeben.`,
+            },
+            { status: 400 },
+          );
+        }
+      }
     }
 
     const personName = [firstName, lastName].filter(Boolean).join(" ").trim();
