@@ -3,6 +3,7 @@ import { getSeedServices, normalizeSearchValue } from "@/lib/service-catalog";
 import { OfferPromptInput, OfferText } from "@/types/offer";
 
 let client: OpenAI | null = null;
+const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
 const KNOWN_SERVICE_LABELS = Array.from(
   new Set(getSeedServices().map((service) => service.label)),
 ).sort((left, right) => right.length - left.length);
@@ -308,6 +309,19 @@ function fallbackOffer(input: OfferPromptInput): OfferText {
       `Gesamtpreis: ${total.toFixed(2)} EUR (zzgl. MwSt.)`,
     closing: "Dieses Angebot ist 14 Tage gültig."
   };
+}
+
+function debugOfferTextLog(stage: string, payload?: Record<string, unknown>) {
+  if (!OFFER_DEBUG_LOGS_ENABLED) {
+    return;
+  }
+
+  if (payload) {
+    console.info(`[generate-offer-text] ${stage}`, payload);
+    return;
+  }
+
+  console.info(`[generate-offer-text] ${stage}`);
 }
 
 function isValidOfferText(value: Partial<OfferText>): value is OfferText {
@@ -938,6 +952,7 @@ function fallbackParseIntake(transcript: string): ParsedIntakeFields {
 export async function generateOfferText(input: OfferPromptInput): Promise<OfferText> {
   const openai = getClient();
   if (!openai) {
+    debugOfferTextLog("fallback_no_api_key");
     return fallbackOffer(input);
   }
 
@@ -976,6 +991,7 @@ Antworte im JSON-Schema:
 
     const raw = completion.choices[0]?.message?.content;
     if (!raw) {
+      debugOfferTextLog("fallback_empty_model_response");
       return fallbackOffer(input);
     }
 
@@ -984,11 +1000,27 @@ Antworte im JSON-Schema:
       if (isValidOfferText(parsed)) {
         return parsed;
       }
+      debugOfferTextLog("fallback_invalid_model_json_schema", {
+        rawPreview: raw.slice(0, 400),
+      });
       return fallbackOffer(input);
     } catch {
+      debugOfferTextLog("fallback_invalid_model_json", {
+        rawPreview: raw.slice(0, 400),
+      });
       return fallbackOffer(input);
     }
-  } catch {
+  } catch (error) {
+    console.error(
+      "[generate-offer-text] model_call_failed",
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          }
+        : { error },
+    );
     return fallbackOffer(input);
   }
 }

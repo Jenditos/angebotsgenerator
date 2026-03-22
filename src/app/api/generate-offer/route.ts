@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
+import { randomUUID } from "node:crypto";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { readSettings, writeSettings } from "@/lib/settings-store";
@@ -18,6 +19,24 @@ import { createStoredOfferRecord } from "@/server/services/offer-store-service";
 import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
+const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
+
+function debugOfferLog(
+  requestId: string,
+  stage: string,
+  payload?: Record<string, unknown>,
+) {
+  if (!OFFER_DEBUG_LOGS_ENABLED) {
+    return;
+  }
+
+  if (payload) {
+    console.info(`[generate-offer:${requestId}] ${stage}`, payload);
+    return;
+  }
+
+  console.info(`[generate-offer:${requestId}] ${stage}`);
+}
 
 function hasValidThousandsGrouping(
   rawValue: string,
@@ -632,8 +651,47 @@ function adaptTextForDocumentType(
 }
 
 export async function POST(request: Request) {
+  const requestId = randomUUID();
+  let failureStage = "init";
+
   try {
-    const body = (await request.json()) as GenerateOfferRequest;
+    failureStage = "parse_request_body";
+    let body: GenerateOfferRequest;
+    try {
+      body = (await request.json()) as GenerateOfferRequest;
+    } catch (error) {
+      console.error(
+        `[generate-offer:${requestId}] invalid-json`,
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : { error },
+      );
+      return NextResponse.json(
+        { error: "Ungültige Anfrage. Bitte Eingaben prüfen.", requestId },
+        { status: 400 },
+      );
+    }
+
+    debugOfferLog(requestId, "request_received", {
+      documentType: body.documentType,
+      customerType: body.customerType,
+      hasPositions: Array.isArray(body.positions),
+      positionsCount: Array.isArray(body.positions) ? body.positions.length : 0,
+      selectedServicesCount: Array.isArray(body.selectedServices)
+        ? body.selectedServices.length
+        : 0,
+      selectedServiceEntriesCount: Array.isArray(body.selectedServiceEntries)
+        ? body.selectedServiceEntries.length
+        : 0,
+      hasServiceDescription:
+        typeof body.serviceDescription === "string" &&
+        body.serviceDescription.trim().length > 0,
+    });
+
     const documentType = resolveDocumentType(body.documentType);
 
     const customerType = body.customerType === "company" ? "company" : "person";
@@ -661,6 +719,14 @@ export async function POST(request: Request) {
     const hours = toNonNegativeNumber(toNumber(body.hours));
     const hourlyRate = toNonNegativeNumber(toNumber(body.hourlyRate));
     const materialCost = toNonNegativeNumber(toNumber(body.materialCost));
+    debugOfferLog(requestId, "normalized_numeric_fields", {
+      hoursInput: normalizeNumberishInputValue(body.hours),
+      hourlyRateInput: normalizeNumberishInputValue(body.hourlyRate),
+      materialCostInput: normalizeNumberishInputValue(body.materialCost),
+      hours,
+      hourlyRate,
+      materialCost,
+    });
 
     if (
       !street ||
@@ -690,6 +756,25 @@ export async function POST(request: Request) {
     }
 
     if (Array.isArray(body.positions)) {
+      const normalizedPositionsPreview = body.positions.map((position, index) => {
+        const quantityRaw = normalizeNumberishInputValue(position?.quantity);
+        const unitPriceRaw = normalizeNumberishInputValue(position?.unitPrice);
+        const quantityParsed = quantityRaw ? toNumber(quantityRaw) : null;
+        const unitPriceParsed = unitPriceRaw ? toNumber(unitPriceRaw) : null;
+
+        return {
+          index,
+          description: normalizeInputValue(position?.description),
+          quantityRaw,
+          unitPriceRaw,
+          quantityParsed,
+          unitPriceParsed,
+        };
+      });
+      debugOfferLog(requestId, "positions_before_validation", {
+        positions: normalizedPositionsPreview,
+      });
+
       for (const position of body.positions) {
         const description = normalizeInputValue(position?.description) || "Position";
         const quantityRaw = normalizeNumberishInputValue(position?.quantity);
@@ -734,6 +819,7 @@ export async function POST(request: Request) {
     const selectedServiceEntries = sanitizeSelectedServiceEntries(
       body.selectedServiceEntries,
     );
+    failureStage = "build_line_items";
     const lineItems = buildPdfLineItems({
       positions: body.positions,
       serviceDescription: composedServiceDescription,
@@ -742,6 +828,17 @@ export async function POST(request: Request) {
       hourlyRate,
       materialCost,
     });
+    debugOfferLog(requestId, "line_items_built", {
+      lineItemsCount: lineItems.length,
+      lineItemsPreview: lineItems.map((lineItem) => ({
+        position: lineItem.position,
+        description: lineItem.description,
+        quantity: lineItem.quantity,
+        unitPrice: lineItem.unitPrice,
+        totalPrice: lineItem.totalPrice,
+      })),
+    });
+
     const invalidLineItem = findInvalidLineItem(lineItems);
     if (invalidLineItem) {
       return NextResponse.json(
@@ -751,6 +848,8 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    failureStage = "build_draft_state";
     const draftState: CustomerDraftState = {
       serviceDescription,
       hours: String(body.hours ?? "").trim(),
@@ -764,6 +863,8 @@ export async function POST(request: Request) {
           ? selectedServiceEntries
           : buildDraftGroupsFromLineItems(lineItems),
     };
+
+    failureStage = "upsert_customer";
     const storedCustomerRecord = await upsertStoredCustomer({
       customerType,
       companyName,
@@ -800,6 +901,7 @@ export async function POST(request: Request) {
       paymentDueDays,
     });
 
+    failureStage = "generate_offer_text";
     const generatedText =
       documentType === "invoice"
         ? buildInvoiceText({
@@ -823,6 +925,8 @@ export async function POST(request: Request) {
       documentType,
       customerName,
     });
+
+    failureStage = "persist_offer_record";
     const storedOfferRecord = await createStoredOfferRecord({
       documentType,
       customerNumber: storedCustomerRecord.customerNumber,
@@ -845,8 +949,16 @@ export async function POST(request: Request) {
       }).catch(() => undefined);
     }
 
+    failureStage = "render_pdf";
     let pdfBuffer: Buffer;
     try {
+      debugOfferLog(requestId, "pdf_render_start", {
+        documentType,
+        documentNumber: storedOfferRecord.offerNumber,
+        customerNumber: storedCustomerRecord.customerNumber,
+        lineItemsCount: lineItems.length,
+        hasLogoDataUrl: Boolean(safeSettings.logoDataUrl),
+      });
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
           offer,
@@ -873,6 +985,7 @@ export async function POST(request: Request) {
         }),
       );
     } catch {
+      debugOfferLog(requestId, "pdf_render_retry_without_logo");
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
           offer,
@@ -902,6 +1015,10 @@ export async function POST(request: Request) {
         }),
       );
     }
+
+    debugOfferLog(requestId, "pdf_render_success", {
+      byteLength: pdfBuffer.byteLength,
+    });
 
     const pdfBase64 = pdfBuffer.toString("base64");
 
@@ -975,9 +1092,22 @@ export async function POST(request: Request) {
       created_at: storedOfferRecord.created_at,
     });
   } catch (error) {
-    console.error("generate-offer failed", error);
+    console.error(
+      `[generate-offer:${requestId}] failed`,
+      error instanceof Error
+        ? {
+            stage: failureStage,
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          }
+        : {
+            stage: failureStage,
+            error,
+          },
+    );
     return NextResponse.json(
-      { error: "Fehler 500 bei der Angebotserstellung" },
+      { error: "Fehler 500 bei der Angebotserstellung", requestId },
       { status: 500 },
     );
   }
