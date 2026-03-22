@@ -15,7 +15,10 @@ import {
   CustomerDraftSubitem,
   StoredCustomerRecord,
 } from "@/types/offer";
-import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
+import {
+  ensureRuntimeDataDirReady,
+  resolveRuntimeDataDir,
+} from "@/server/services/store-runtime-paths";
 
 type CustomerStore = {
   lastCustomerSequence: number;
@@ -77,6 +80,16 @@ function parseCustomerNumber(value: unknown): number {
 
   const sequence = Number(match[1]);
   return Number.isFinite(sequence) && sequence > 0 ? Math.floor(sequence) : 0;
+}
+
+function parseCustomerSequence(value: unknown): number {
+  const fromPattern = parseCustomerNumber(value);
+  if (fromPattern > 0) {
+    return fromPattern;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 0;
 }
 
 function sanitizeCustomerDraftSubitem(
@@ -159,23 +172,38 @@ function sanitizeCustomerRecord(value: unknown): StoredCustomerRecord | null {
   }
 
   const record = value as Partial<StoredCustomerRecord>;
-  const sequence = parseCustomerNumber(record.customerNumber);
+  const sequence = parseCustomerSequence(record.customerNumber);
   const customerType = record.customerType === "company" ? "company" : "person";
   const salutation = record.salutation === "frau" ? "frau" : "herr";
-  const createdAt = asTrimmedString(record.createdAt);
-  const updatedAt = asTrimmedString(record.updatedAt);
+  const street = asTrimmedString(record.street);
+  const postalCode = asTrimmedString(record.postalCode);
+  const city = asTrimmedString(record.city);
+  const customerEmail = asTrimmedString(record.customerEmail);
+  const fallbackCustomerName =
+    asTrimmedString(record.customerName) ||
+    [asTrimmedString(record.firstName), asTrimmedString(record.lastName)]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    asTrimmedString(record.companyName);
+  const fallbackCustomerAddress = [street, postalCode, city]
+    .filter(Boolean)
+    .join(", ");
+  const customerName = asTrimmedString(record.customerName) || fallbackCustomerName;
+  const customerAddress =
+    asTrimmedString(record.customerAddress) || fallbackCustomerAddress;
 
-  if (
-    !sequence ||
-    !createdAt ||
-    !updatedAt ||
-    !asTrimmedString(record.customerName) ||
-    !asTrimmedString(record.customerAddress) ||
-    !asTrimmedString(record.street) ||
-    !asTrimmedString(record.postalCode) ||
-    !asTrimmedString(record.city) ||
-    !asTrimmedString(record.customerEmail)
-  ) {
+  const createdAtRaw = asTrimmedString(record.createdAt);
+  const updatedAtRaw = asTrimmedString(record.updatedAt);
+  const resolvedCreatedAt =
+    createdAtRaw || updatedAtRaw || new Date().toISOString();
+  const resolvedUpdatedAt = updatedAtRaw || resolvedCreatedAt;
+
+  if (!sequence) {
+    return null;
+  }
+
+  if (!customerName && !street && !city && !customerEmail) {
     return null;
   }
 
@@ -186,15 +214,15 @@ function sanitizeCustomerRecord(value: unknown): StoredCustomerRecord | null {
     salutation,
     firstName: asTrimmedString(record.firstName),
     lastName: asTrimmedString(record.lastName),
-    street: asTrimmedString(record.street),
-    postalCode: asTrimmedString(record.postalCode),
-    city: asTrimmedString(record.city),
-    customerEmail: asTrimmedString(record.customerEmail),
-    customerName: asTrimmedString(record.customerName),
-    customerAddress: asTrimmedString(record.customerAddress),
+    street,
+    postalCode,
+    city,
+    customerEmail,
+    customerName,
+    customerAddress,
     draftState: sanitizeCustomerDraftState(record.draftState),
-    createdAt,
-    updatedAt,
+    createdAt: resolvedCreatedAt,
+    updatedAt: resolvedUpdatedAt,
   };
 }
 
@@ -240,12 +268,38 @@ function resolvePaths(overrides?: Partial<CustomerStorePaths>): CustomerStorePat
   };
 }
 
+function isMissingFileError(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return code === "ENOENT";
+}
+
 async function readStoreUnsafe(storePath: string): Promise<CustomerStore> {
+  const raw = await readFile(storePath, "utf8");
+  return sanitizeStore(JSON.parse(raw));
+}
+
+async function readStoreWithDataLossProtection(
+  storePath: string,
+): Promise<CustomerStore> {
   try {
-    const raw = await readFile(storePath, "utf8");
-    return sanitizeStore(JSON.parse(raw));
-  } catch {
-    return { lastCustomerSequence: 0, customers: [] };
+    return await readStoreUnsafe(storePath);
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return { lastCustomerSequence: 0, customers: [] };
+    }
+
+    throw new Error(
+      `Customer-Store konnte nicht gelesen werden. Schreibvorgang zum Schutz bestehender Daten abgebrochen: ${storePath}`,
+      { cause: error },
+    );
+  }
+}
+
+async function ensureRuntimeDataDirIfNeeded(
+  overrides?: Partial<CustomerStorePaths>,
+): Promise<void> {
+  if (!overrides?.dataDir) {
+    await ensureRuntimeDataDirReady();
   }
 }
 
@@ -339,9 +393,10 @@ function findMatchingCustomerIndex(
 export async function listStoredCustomers(
   overrides?: Partial<CustomerStorePaths>,
 ): Promise<StoredCustomerRecord[]> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
-  const store = await readStoreUnsafe(paths.storePath);
+  const store = await readStoreWithDataLossProtection(paths.storePath);
 
   return [...store.customers].sort((left, right) => {
     const leftTime = new Date(left.updatedAt).getTime();
@@ -358,6 +413,7 @@ export async function removeStoredCustomer(
   customerNumber: string,
   overrides?: Partial<CustomerStorePaths>,
 ): Promise<boolean> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
 
@@ -370,7 +426,7 @@ export async function removeStoredCustomer(
   const releaseLock = await acquireStoreLock(paths.lockPath);
 
   try {
-    const store = await readStoreUnsafe(paths.storePath);
+    const store = await readStoreWithDataLossProtection(paths.storePath);
     const nextCustomers = store.customers.filter(
       (customer) => customer.customerNumber !== normalizedCustomerNumber,
     );
@@ -392,6 +448,7 @@ export async function upsertStoredCustomer(
   input: UpsertStoredCustomerInput,
   overrides?: Partial<CustomerStorePaths>,
 ): Promise<StoredCustomerRecord> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
 
@@ -400,7 +457,7 @@ export async function upsertStoredCustomer(
   try {
     const now = input.referenceDate ?? new Date();
     const nowIso = now.toISOString();
-    const store = await readStoreUnsafe(paths.storePath);
+    const store = await readStoreWithDataLossProtection(paths.storePath);
     const existingIndex = findMatchingCustomerIndex(store.customers, input);
     const normalizedDraftState = sanitizeCustomerDraftState(input.draftState);
 

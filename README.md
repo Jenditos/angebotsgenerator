@@ -69,3 +69,6 @@ Dann im Browser `http://localhost:3000` aufrufen.
 - Ohne `OPENAI_API_KEY` nutzt die App automatisch einen lokalen Demo-Angebotstext.
 - Direktversand funktioniert über verbundenes Gmail/Outlook oder über `RESEND_*` als Fallback.
 - Für OAuth-Provider muss in Google/Microsoft die Redirect-URL auf `${APP_URL}/api/email/callback` gesetzt werden.
+- Persistente Nutzerdaten werden standardmäßig updatesicher im Benutzerverzeichnis unter `~/.visioro-data` gespeichert (lokale Runtime).
+- Beim ersten Start einer neuen Version werden vorhandene Daten aus dem Legacy-Pfad `./data` automatisch migriert, ohne bestehende Dateien im Zielpfad zu überschreiben.
+- Optional kann der Speicherort über `DATA_DIR` (vollständiger Pfad) oder `VISIORO_DATA_HOME` (Basispfad, App nutzt dann `<VISIORO_DATA_HOME>/.visioro-data`) gesetzt werden.

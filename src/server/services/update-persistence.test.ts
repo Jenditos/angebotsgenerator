@@ -1,0 +1,238 @@
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
+import { readSettings } from "@/lib/settings-store";
+import { listStoredCustomers } from "@/server/services/customer-store-service";
+import { listStoredOfferRecords } from "@/server/services/offer-store-service";
+import {
+  __resetRuntimeDataDirPreparationForTests,
+  ensureRuntimeDataDirReady,
+  resolveRuntimeDataDir,
+} from "@/server/services/store-runtime-paths";
+import { CompanySettings } from "@/types/offer";
+
+function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySettings {
+  return {
+    companyName: "Bestand GmbH",
+    ownerName: "Max Mustermann",
+    companyStreet: "Musterstraße 1",
+    companyPostalCode: "10115",
+    companyCity: "Berlin",
+    companyEmail: "info@bestand.de",
+    companyPhone: "+49 30 123456",
+    companyWebsite: "www.bestand.de",
+    senderCopyEmail: "intern@bestand.de",
+    logoDataUrl: "data:image/png;base64,AAAA",
+    pdfTableColumns: [
+      { id: "position", label: "Position", visible: true, order: 0 },
+      { id: "quantity", label: "Menge", visible: true, order: 1 },
+      { id: "description", label: "Leistung", visible: true, order: 2 },
+      { id: "unit", label: "Einheit", visible: true, order: 3 },
+      { id: "unitPrice", label: "EP", visible: true, order: 4 },
+      { id: "totalPrice", label: "Gesamt", visible: true, order: 5 },
+    ],
+    customServices: [],
+    vatRate: 19,
+    offerValidityDays: 30,
+    invoicePaymentDueDays: 14,
+    offerTermsText: "Bestehende Bedingungen",
+    lastOfferNumber: "ANG-2026-123",
+    lastInvoiceNumber: "RE-2026-045",
+    customServiceTypes: ["Malerarbeiten"],
+    ...overrides,
+  };
+}
+
+describe("update persistence", () => {
+  const originalCwd = process.cwd();
+  const originalHome = process.env.HOME;
+  const originalDataDir = process.env.DATA_DIR;
+  const originalDataHome = process.env.VISIORO_DATA_HOME;
+  const createdDirs: string[] = [];
+
+  async function createTempDir(prefix: string): Promise<string> {
+    const dir = await mkdtemp(path.join(tmpdir(), prefix));
+    createdDirs.push(dir);
+    return dir;
+  }
+
+  beforeEach(() => {
+    __resetRuntimeDataDirPreparationForTests();
+  });
+
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    if (typeof originalHome === "undefined") {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = originalHome;
+    }
+    if (typeof originalDataDir === "undefined") {
+      delete process.env.DATA_DIR;
+    } else {
+      process.env.DATA_DIR = originalDataDir;
+    }
+    if (typeof originalDataHome === "undefined") {
+      delete process.env.VISIORO_DATA_HOME;
+    } else {
+      process.env.VISIORO_DATA_HOME = originalDataHome;
+    }
+    __resetRuntimeDataDirPreparationForTests();
+
+    await Promise.all(
+      createdDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+    );
+  });
+
+  it("migrates legacy data on update without losing customers, settings, logo and documents", async () => {
+    const legacyProjectDir = await createTempDir("update-persistence-project-");
+    const runtimeHomeDir = await createTempDir("update-persistence-home-");
+    const legacyDataDir = path.join(legacyProjectDir, "data");
+    await mkdir(legacyDataDir, { recursive: true });
+
+    await writeFile(
+      path.join(legacyDataDir, "company-settings.json"),
+      JSON.stringify(buildSettingsFixture(), null, 2),
+      "utf8",
+    );
+
+    await writeFile(
+      path.join(legacyDataDir, "customers-store.json"),
+      JSON.stringify(
+        {
+          lastCustomerSequence: 1,
+          customers: [
+            {
+              customerNumber: "KDN-000001",
+              customerType: "person",
+              companyName: "",
+              salutation: "herr",
+              firstName: "Max",
+              lastName: "Mustermann",
+              street: "Musterstraße 1",
+              postalCode: "10115",
+              city: "Berlin",
+              customerEmail: "max@example.com",
+              customerName: "Max Mustermann",
+              customerAddress: "Musterstraße 1, 10115 Berlin",
+              createdAt: "2026-03-01T10:00:00.000Z",
+              updatedAt: "2026-03-01T10:00:00.000Z",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    await writeFile(
+      path.join(legacyDataDir, "offers-store.json"),
+      JSON.stringify(
+        {
+          lastOfferNumber: "ANG-2026-099",
+          lastInvoiceNumber: "RE-2026-010",
+          offers: [
+            {
+              documentType: "offer",
+              offerNumber: "ANG-2026-099",
+              customerNumber: "KDN-000001",
+              createdAt: "2026-03-05T09:00:00.000Z",
+              created_at: "2026-03-05T09:00:00.000Z",
+              customerName: "Max Mustermann",
+              customerAddress: "Musterstraße 1, 10115 Berlin",
+              customerEmail: "max@example.com",
+              serviceDescription: "Malerarbeiten",
+              lineItems: [],
+              offer: {
+                subject: "Angebot",
+                intro: "Hallo",
+                details: "Details",
+                closing: "Gruß",
+              },
+            },
+            {
+              documentType: "invoice",
+              offerNumber: "RE-2026-010",
+              customerNumber: "KDN-000001",
+              createdAt: "2026-03-06T09:00:00.000Z",
+              created_at: "2026-03-06T09:00:00.000Z",
+              customerName: "Max Mustermann",
+              customerAddress: "Musterstraße 1, 10115 Berlin",
+              customerEmail: "max@example.com",
+              serviceDescription: "Malerarbeiten",
+              lineItems: [],
+              offer: {
+                subject: "Rechnung",
+                intro: "Hallo",
+                details: "Details",
+                closing: "Gruß",
+              },
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    process.chdir(legacyProjectDir);
+    delete process.env.DATA_DIR;
+    process.env.VISIORO_DATA_HOME = runtimeHomeDir;
+    __resetRuntimeDataDirPreparationForTests();
+
+    await ensureRuntimeDataDirReady();
+
+    const settings = await readSettings();
+    const customers = await listStoredCustomers();
+    const documents = await listStoredOfferRecords();
+
+    expect(settings.companyName).toBe("Bestand GmbH");
+    expect(settings.logoDataUrl).toBe("data:image/png;base64,AAAA");
+    expect(settings.lastOfferNumber).toBe("ANG-2026-123");
+    expect(settings.lastInvoiceNumber).toBe("RE-2026-045");
+    expect(customers).toHaveLength(1);
+    expect(customers[0]?.customerNumber).toBe("KDN-000001");
+    expect(documents.map((entry) => entry.offerNumber)).toEqual(
+      expect.arrayContaining(["ANG-2026-099", "RE-2026-010"]),
+    );
+  });
+
+  it("keeps existing runtime data when migration runs (no overwrite)", async () => {
+    const legacyProjectDir = await createTempDir("update-no-overwrite-project-");
+    const runtimeHomeDir = await createTempDir("update-no-overwrite-home-");
+    const legacyDataDir = path.join(legacyProjectDir, "data");
+    const runtimeDataDir = path.join(runtimeHomeDir, ".visioro-data");
+
+    await mkdir(legacyDataDir, { recursive: true });
+    await mkdir(runtimeDataDir, { recursive: true });
+
+    await writeFile(
+      path.join(legacyDataDir, "company-settings.json"),
+      JSON.stringify(buildSettingsFixture({ companyName: "Legacy GmbH" }), null, 2),
+      "utf8",
+    );
+    await writeFile(
+      path.join(runtimeDataDir, "company-settings.json"),
+      JSON.stringify(buildSettingsFixture({ companyName: "Runtime GmbH" }), null, 2),
+      "utf8",
+    );
+
+    process.chdir(legacyProjectDir);
+    delete process.env.DATA_DIR;
+    process.env.VISIORO_DATA_HOME = runtimeHomeDir;
+    __resetRuntimeDataDirPreparationForTests();
+
+    await ensureRuntimeDataDirReady();
+    const settings = await readSettings();
+    expect(settings.companyName).toBe("Runtime GmbH");
+
+    const runtimeSettingsRaw = await readFile(
+      path.join(resolveRuntimeDataDir(), "company-settings.json"),
+      "utf8",
+    );
+    const runtimeSettings = JSON.parse(runtimeSettingsRaw) as CompanySettings;
+    expect(runtimeSettings.companyName).toBe("Runtime GmbH");
+  });
+});

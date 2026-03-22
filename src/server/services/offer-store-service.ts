@@ -15,7 +15,10 @@ import {
   OfferText,
   StoredOfferRecord,
 } from "@/types/offer";
-import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
+import {
+  ensureRuntimeDataDirReady,
+  resolveRuntimeDataDir,
+} from "@/server/services/store-runtime-paths";
 
 type OfferStore = {
   lastOfferNumber: string;
@@ -72,6 +75,14 @@ function toPositiveInteger(value: unknown): number | null {
   }
 
   return Math.floor(parsed);
+}
+
+function asTrimmedString(value: unknown, fallback = ""): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  return value.trim();
 }
 
 function getYearFromDateString(value: string): number {
@@ -148,7 +159,8 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
   const createdAt = typeof record.createdAt === "string" ? record.createdAt : "";
   const createdAtLegacy =
     typeof record.created_at === "string" ? record.created_at : "";
-  const normalizedCreatedAt = createdAt || createdAtLegacy;
+  const normalizedCreatedAt =
+    createdAt || createdAtLegacy || new Date().toISOString();
 
   const fallbackYear = normalizedCreatedAt
     ? getYearFromDateString(normalizedCreatedAt)
@@ -164,28 +176,32 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     record.offerNumber,
     fallbackYear,
   );
+  const fallbackOfferNumber = asTrimmedString(record.offerNumber);
+  const resolvedOfferNumber =
+    normalizedOfferNumber?.value || fallbackOfferNumber;
 
-  if (
-    !normalizedOfferNumber ||
-    !normalizedCreatedAt ||
-    typeof record.customerName !== "string" ||
-    typeof record.customerAddress !== "string" ||
-    typeof record.customerEmail !== "string" ||
-    typeof record.serviceDescription !== "string" ||
-    !Array.isArray(record.lineItems) ||
-    !record.offer ||
-    typeof record.offer !== "object" ||
-    typeof record.offer.subject !== "string" ||
-    typeof record.offer.intro !== "string" ||
-    typeof record.offer.details !== "string" ||
-    typeof record.offer.closing !== "string"
-  ) {
+  if (!resolvedOfferNumber) {
     return null;
   }
 
+  const customerName =
+    asTrimmedString(record.customerName) ||
+    asTrimmedString(record.customerEmail) ||
+    "Kunde";
+  const customerAddress = asTrimmedString(record.customerAddress);
+  const customerEmail = asTrimmedString(record.customerEmail);
+  const serviceDescription = asTrimmedString(record.serviceDescription);
+  const lineItems = Array.isArray(record.lineItems)
+    ? (record.lineItems as OfferPdfLineItem[])
+    : [];
+  const offerRecord =
+    record.offer && typeof record.offer === "object"
+      ? (record.offer as Partial<OfferText>)
+      : {};
+
   return {
     documentType: inferredDocumentType,
-    offerNumber: normalizedOfferNumber.value,
+    offerNumber: resolvedOfferNumber,
     customerNumber:
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
@@ -193,16 +209,16 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
         : undefined,
     createdAt: normalizedCreatedAt,
     created_at: normalizedCreatedAt,
-    customerName: record.customerName,
-    customerAddress: record.customerAddress,
-    customerEmail: record.customerEmail,
-    serviceDescription: record.serviceDescription,
-    lineItems: record.lineItems,
+    customerName,
+    customerAddress,
+    customerEmail,
+    serviceDescription,
+    lineItems,
     offer: {
-      subject: record.offer.subject,
-      intro: record.offer.intro,
-      details: record.offer.details,
-      closing: record.offer.closing,
+      subject: asTrimmedString(offerRecord.subject),
+      intro: asTrimmedString(offerRecord.intro),
+      details: asTrimmedString(offerRecord.details),
+      closing: asTrimmedString(offerRecord.closing),
     },
   };
 }
@@ -330,12 +346,38 @@ function resolvePaths(overrides?: Partial<OfferStorePaths>): OfferStorePaths {
   };
 }
 
+function isMissingFileError(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return code === "ENOENT";
+}
+
 async function readStoreUnsafe(storePath: string): Promise<OfferStore> {
+  const raw = await readFile(storePath, "utf-8");
+  return sanitizeStore(JSON.parse(raw));
+}
+
+async function readStoreWithDataLossProtection(
+  storePath: string,
+): Promise<OfferStore> {
   try {
-    const raw = await readFile(storePath, "utf-8");
-    return sanitizeStore(JSON.parse(raw));
-  } catch {
-    return { lastOfferNumber: "", offers: [] };
+    return await readStoreUnsafe(storePath);
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return { lastOfferNumber: "", offers: [] };
+    }
+
+    throw new Error(
+      `Offer-Store konnte nicht gelesen werden. Schreibvorgang zum Schutz bestehender Daten abgebrochen: ${storePath}`,
+      { cause: error },
+    );
+  }
+}
+
+async function ensureRuntimeDataDirIfNeeded(
+  overrides?: Partial<OfferStorePaths>,
+): Promise<void> {
+  if (!overrides?.dataDir) {
+    await ensureRuntimeDataDirReady();
   }
 }
 
@@ -439,13 +481,14 @@ export async function createStoredOfferRecord(
   input: CreateStoredOfferInput,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
 
   const releaseLock = await acquireStoreLock(paths.lockPath);
 
   try {
-    const store = await readStoreUnsafe(paths.storePath);
+    const store = await readStoreWithDataLossProtection(paths.storePath);
     const documentType = resolveDocumentType(input.documentType);
     const generatedAt = input.referenceDate ?? new Date();
     const currentYear = generatedAt.getFullYear();
@@ -510,8 +553,9 @@ export async function createStoredOfferRecord(
 export async function listStoredOfferRecords(
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord[]> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
-  const store = await readStoreUnsafe(paths.storePath);
+  const store = await readStoreWithDataLossProtection(paths.storePath);
 
   return [...store.offers].sort((left, right) => {
     const rightTs = Date.parse(right.createdAt);

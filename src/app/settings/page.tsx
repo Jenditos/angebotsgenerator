@@ -205,6 +205,7 @@ export default function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
   const [isSettingsHydrated, setIsSettingsHydrated] = useState(false);
+  const [isAutosaveEnabled, setIsAutosaveEnabled] = useState(false);
   const [invoiceDuePreset, setInvoiceDuePreset] =
     useState<InvoiceDuePreset>("fourteen");
   const [customInvoiceDueDays, setCustomInvoiceDueDays] = useState("");
@@ -280,6 +281,7 @@ export default function SettingsPage() {
           areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
         );
         writeSettingsDraftToSessionStorage(resolvedSettings);
+        setIsAutosaveEnabled(true);
         setError("");
 
         if (mode === "manual") {
@@ -306,6 +308,7 @@ export default function SettingsPage() {
     if (draftSettings) {
       setSettings(draftSettings);
       setIsSettingsHydrated(true);
+      setIsAutosaveEnabled(true);
     }
 
     async function loadSettings() {
@@ -330,12 +333,13 @@ export default function SettingsPage() {
         writeSettingsDraftToSessionStorage(
           draftSettings ? draftSettings : loadedSettings,
         );
+        setIsAutosaveEnabled(true);
       } catch {
         if (mounted && !draftSettings) {
           setError("Einstellungen konnten nicht geladen werden.");
         }
       } finally {
-        if (mounted && !draftSettings) {
+        if (mounted) {
           setIsSettingsHydrated(true);
         }
       }
@@ -349,7 +353,7 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (!isSettingsHydrated) {
+    if (!isSettingsHydrated || !isAutosaveEnabled) {
       return;
     }
 
@@ -368,7 +372,7 @@ export default function SettingsPage() {
         autosaveTimeoutRef.current = null;
       }
     };
-  }, [isSettingsHydrated, persistSettings, settings]);
+  }, [isAutosaveEnabled, isSettingsHydrated, persistSettings, settings]);
 
   useEffect(() => {
     if (invoiceDueInitialized) {

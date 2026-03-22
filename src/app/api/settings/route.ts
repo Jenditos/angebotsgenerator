@@ -16,31 +16,78 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Partial<CompanySettings>;
+    const rawBody = (await request.json()) as unknown;
+    const body =
+      rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
+        ? (rawBody as Partial<CompanySettings>)
+        : {};
 
-    const sanitized: Partial<CompanySettings> = {
-      companyName: body.companyName?.trim() ?? "",
-      ownerName: body.ownerName?.trim() ?? "",
-      companyStreet: body.companyStreet?.trim() ?? "",
-      companyPostalCode: body.companyPostalCode?.trim() ?? "",
-      companyCity: body.companyCity?.trim() ?? "",
-      companyEmail: body.companyEmail?.trim() ?? "",
-      companyPhone: body.companyPhone?.trim() ?? "",
-      companyWebsite: body.companyWebsite?.trim() ?? "",
-      senderCopyEmail: body.senderCopyEmail?.trim() ?? "",
-      logoDataUrl: body.logoDataUrl?.trim() ?? "",
-      vatRate: Number(body.vatRate),
-      offerValidityDays: Number(body.offerValidityDays),
-      invoicePaymentDueDays: Number(body.invoicePaymentDueDays),
-      offerTermsText: body.offerTermsText?.trim() ?? "",
-      lastOfferNumber: body.lastOfferNumber?.trim() ?? "",
-      lastInvoiceNumber: body.lastInvoiceNumber?.trim() ?? "",
-      customServiceTypes: Array.isArray(body.customServiceTypes)
-        ? body.customServiceTypes
-            .map((item) => String(item).trim())
-            .filter(Boolean)
-        : [],
+    const sanitized: Partial<CompanySettings> = {};
+
+    const maybeAssignString = (
+      key: keyof Pick<
+        CompanySettings,
+        | "companyName"
+        | "ownerName"
+        | "companyStreet"
+        | "companyPostalCode"
+        | "companyCity"
+        | "companyEmail"
+        | "companyPhone"
+        | "companyWebsite"
+        | "senderCopyEmail"
+        | "logoDataUrl"
+        | "offerTermsText"
+        | "lastOfferNumber"
+        | "lastInvoiceNumber"
+      >,
+    ) => {
+      const value = body[key];
+      if (typeof value === "string") {
+        sanitized[key] = value.trim();
+      }
     };
+
+    maybeAssignString("companyName");
+    maybeAssignString("ownerName");
+    maybeAssignString("companyStreet");
+    maybeAssignString("companyPostalCode");
+    maybeAssignString("companyCity");
+    maybeAssignString("companyEmail");
+    maybeAssignString("companyPhone");
+    maybeAssignString("companyWebsite");
+    maybeAssignString("senderCopyEmail");
+    maybeAssignString("logoDataUrl");
+    maybeAssignString("offerTermsText");
+    maybeAssignString("lastOfferNumber");
+    maybeAssignString("lastInvoiceNumber");
+
+    if (typeof body.vatRate !== "undefined") {
+      const vatRate = Number(body.vatRate);
+      if (Number.isFinite(vatRate)) {
+        sanitized.vatRate = vatRate;
+      }
+    }
+
+    if (typeof body.offerValidityDays !== "undefined") {
+      const offerValidityDays = Number(body.offerValidityDays);
+      if (Number.isFinite(offerValidityDays)) {
+        sanitized.offerValidityDays = offerValidityDays;
+      }
+    }
+
+    if (typeof body.invoicePaymentDueDays !== "undefined") {
+      const invoicePaymentDueDays = Number(body.invoicePaymentDueDays);
+      if (Number.isFinite(invoicePaymentDueDays)) {
+        sanitized.invoicePaymentDueDays = invoicePaymentDueDays;
+      }
+    }
+
+    if (Array.isArray(body.customServiceTypes)) {
+      sanitized.customServiceTypes = body.customServiceTypes
+        .map((item) => String(item).trim())
+        .filter(Boolean);
+    }
 
     if (Array.isArray(body.pdfTableColumns)) {
       sanitized.pdfTableColumns = body.pdfTableColumns;
