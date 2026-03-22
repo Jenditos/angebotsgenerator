@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
-import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
+import {
+  MAX_LOGO_DATA_URL_LENGTH,
+  sanitizeCompanyLogoDataUrl,
+} from "@/lib/logo-config";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
@@ -171,7 +174,7 @@ function resolveCompanySettings(
         : FALLBACK_COMPANY_SETTINGS.senderCopyEmail,
     logoDataUrl:
       typeof payload.logoDataUrl === "string"
-        ? payload.logoDataUrl.trim()
+        ? sanitizeCompanyLogoDataUrl(payload.logoDataUrl)
         : FALLBACK_COMPANY_SETTINGS.logoDataUrl,
     pdfTableColumns: Array.isArray(payload.pdfTableColumns)
       ? payload.pdfTableColumns

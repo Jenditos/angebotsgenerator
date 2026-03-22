@@ -1,7 +1,10 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
+import {
+  LEGACY_VISIORO_FALLBACK_LOGO_DATA_URL,
+  MAX_LOGO_DATA_URL_LENGTH,
+} from "@/lib/logo-config";
 import { readSettings, writeSettings } from "@/lib/settings-store";
 import { __resetRuntimeDataDirPreparationForTests } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
@@ -136,5 +139,30 @@ describe("settings-store", () => {
     });
     const afterLogoDelete = await readSettings();
     expect(afterLogoDelete.logoDataUrl).toBe("");
+  });
+
+  it("migrates legacy hardcoded fallback logo to empty logo", async () => {
+    const dataDir = await createTempDir("settings-store-logo-legacy-migration-");
+    process.env.DATA_DIR = dataDir;
+    await mkdir(dataDir, { recursive: true });
+    const settingsPath = path.join(dataDir, "company-settings.json");
+    await writeFile(
+      settingsPath,
+      JSON.stringify(
+        buildSettingsFixture({
+          logoDataUrl: LEGACY_VISIORO_FALLBACK_LOGO_DATA_URL,
+        }),
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const loaded = await readSettings();
+    expect(loaded.logoDataUrl).toBe("");
+
+    const persistedRaw = await readFile(settingsPath, "utf8");
+    const persisted = JSON.parse(persistedRaw) as CompanySettings;
+    expect(persisted.logoDataUrl).toBe("");
   });
 });

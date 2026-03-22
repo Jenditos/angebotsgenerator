@@ -4,7 +4,11 @@ import {
   getDefaultPdfTableColumns,
   sanitizePdfTableColumns,
 } from "@/lib/pdf-table-config";
-import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
+import {
+  isLegacyFallbackLogoDataUrl,
+  MAX_LOGO_DATA_URL_LENGTH,
+  sanitizeCompanyLogoDataUrl,
+} from "@/lib/logo-config";
 import { sanitizeCustomServices } from "@/lib/service-catalog";
 import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
@@ -238,7 +242,9 @@ function resolveSettingsPayload(
       parsed.senderCopyEmail,
       defaultSettings.senderCopyEmail,
     ),
-    logoDataUrl: asTrimmedString(parsed.logoDataUrl, defaultSettings.logoDataUrl),
+    logoDataUrl: sanitizeCompanyLogoDataUrl(
+      asTrimmedString(parsed.logoDataUrl, defaultSettings.logoDataUrl),
+    ),
     pdfTableColumns: sanitizePdfTableColumns(parsed.pdfTableColumns),
     customServices: sanitizeCustomServices(parsed.customServices),
     vatRate: asNumberInRange(
@@ -291,6 +297,22 @@ export async function readSettings(): Promise<CompanySettings> {
   }
 
   const resolvedSettings = resolveSettingsPayload(parsed);
+  const parsedLogoDataUrl =
+    typeof parsed.logoDataUrl === "string" ? parsed.logoDataUrl.trim() : "";
+  if (parsedLogoDataUrl && isLegacyFallbackLogoDataUrl(parsedLogoDataUrl)) {
+    try {
+      await writeFile(settingsPath, JSON.stringify(resolvedSettings, null, 2), "utf-8");
+    } catch (error) {
+      if (isReadonlyStorageError(error)) {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Legacy-Logo-Migration konnte nicht geschrieben werden (${code}).`,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
   volatileSettingsCache = resolvedSettings;
   return resolvedSettings;
 }
@@ -301,7 +323,9 @@ export async function writeSettings(
   const { dataDir, settingsPath } = await resolveSettingsStorePaths();
   const current = await readSettings();
 
-  const nextLogoRaw = resolveStringUpdate(current.logoDataUrl, payload.logoDataUrl);
+  const nextLogoRaw = sanitizeCompanyLogoDataUrl(
+    resolveStringUpdate(current.logoDataUrl, payload.logoDataUrl),
+  );
   const nextLogo =
     nextLogoRaw.length <= MAX_LOGO_DATA_URL_LENGTH ? nextLogoRaw : current.logoDataUrl;
 

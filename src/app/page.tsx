@@ -15,6 +15,7 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
+import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
   CompanySettings,
@@ -641,7 +642,9 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
       value.senderCopyEmail,
       fallbackCompanySettings.senderCopyEmail,
     ),
-    logoDataUrl: asString(value.logoDataUrl, fallbackCompanySettings.logoDataUrl),
+    logoDataUrl: sanitizeCompanyLogoDataUrl(
+      asString(value.logoDataUrl, fallbackCompanySettings.logoDataUrl),
+    ),
     pdfTableColumns: Array.isArray(value.pdfTableColumns)
       ? (value.pdfTableColumns as CompanySettings["pdfTableColumns"])
       : fallbackCompanySettings.pdfTableColumns,

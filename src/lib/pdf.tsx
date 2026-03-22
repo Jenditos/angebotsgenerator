@@ -21,16 +21,6 @@ import {
 
 Font.registerHyphenationCallback((word) => [word]);
 
-const VISIORO_LOGO_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="210" height="48" viewBox="0 0 210 48" fill="none">
-  <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="12" fill="#3F6FB2" stroke="#2B4F85" stroke-width="1.5"/>
-  <path d="M13 14L24 34L35 14" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="58" y="31" font-family="Helvetica, Arial, sans-serif" font-size="23" font-weight="700" fill="#2B4F85">Visioro</text>
-</svg>
-`;
-
-const VISIORO_LOGO_DATA_URL = `data:image/svg+xml;base64,${Buffer.from(VISIORO_LOGO_SVG).toString("base64")}`;
-
 const theme = {
   canvas: "#ffffff",
   border: "#d5dde8",
@@ -60,12 +50,6 @@ const styles = StyleSheet.create({
   },
   topLeft: {
     width: "56%",
-  },
-  visioroLogo: {
-    width: 132,
-    height: 30,
-    objectFit: "contain",
-    marginBottom: 1,
   },
   senderCompactLine: {
     fontSize: 8,
@@ -892,7 +876,6 @@ export function OfferPdfDocument({
               <>
                 <View style={styles.topRow}>
                   <View style={styles.topLeft}>
-                    <Image src={VISIORO_LOGO_DATA_URL} style={styles.visioroLogo} />
                     <Text style={styles.senderCompactLine}>
                       {senderCompactLine || "Handwerksbetrieb • Straße 1 • 12345 Stadt"}
                     </Text>
@@ -902,10 +885,9 @@ export function OfferPdfDocument({
                   </View>
 
                   <View style={styles.topRight}>
-                    <Image
-                      src={settings.logoDataUrl || VISIORO_LOGO_DATA_URL}
-                      style={styles.companyLogo}
-                    />
+                    {settings.logoDataUrl ? (
+                      <Image src={settings.logoDataUrl} style={styles.companyLogo} />
+                    ) : null}
                   </View>
                 </View>
 

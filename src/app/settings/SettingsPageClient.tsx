@@ -23,6 +23,7 @@ import {
   MAX_LOGO_UPLOAD_FILE_MB,
   hasSupportedLogoExtension,
   isSupportedLogoMimeType,
+  sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
@@ -279,7 +280,7 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
       emptySettings.includeCustomerVatId,
     ),
     senderCopyEmail: asString(input.senderCopyEmail),
-    logoDataUrl: asString(input.logoDataUrl),
+    logoDataUrl: sanitizeCompanyLogoDataUrl(asString(input.logoDataUrl)),
     pdfTableColumns,
     customServices: Array.isArray(input.customServices)
       ? (input.customServices as CompanySettings["customServices"])
