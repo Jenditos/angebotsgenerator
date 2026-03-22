@@ -1281,8 +1281,9 @@ export default function HomePage() {
   );
   const isInvoiceMode = documentMode === "invoice";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
+  const isOfferMailActionVisible = !isInvoiceMode;
   const canOpenOfferMailDraft =
-    !isInvoiceMode &&
+    isOfferMailActionVisible &&
     Boolean(offerMailActionState?.payload.pdfBase64?.trim());
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
@@ -2849,8 +2850,11 @@ export default function HomePage() {
     const link = document.createElement("a");
     link.href = url;
     link.download = file.name;
+    link.rel = "noopener";
+    document.body.append(link);
     link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
   }
 
   function resolveDraftDocumentNumber(
@@ -2883,7 +2887,6 @@ export default function HomePage() {
     return {
       subject: `Ihr Angebot ${normalizedOfferNumber} von ${senderName}`,
       text:
-        `Ihr Angebot von ${senderName}\n\n\n` +
         `Sehr geehrte Damen und Herren,\n\n` +
         `anbei erhalten Sie unser Angebot.\n\n` +
         `Bei Fragen stehen wir Ihnen gerne zur Verfügung.\n\n` +
@@ -3151,6 +3154,14 @@ export default function HomePage() {
       void loadStoredCustomers();
       const payloadMode =
         payload.documentType === "invoice" ? "invoice" : documentMode;
+      if (payloadMode === "offer" && payload.pdfBase64?.trim()) {
+        const downloadDocumentNumber = resolveDraftDocumentNumber(payload, "offer");
+        const file = createPdfFile(
+          payload.pdfBase64,
+          `${downloadDocumentNumber}.pdf`,
+        );
+        downloadPdfFile(file);
+      }
       if (payloadMode === "offer") {
         const companyNameForMail =
           settingsPayload?.companyName?.trim() ||
@@ -4742,9 +4753,7 @@ export default function HomePage() {
               </label>
 
               <div
-                className={`submitActionRow span2${
-                  canOpenOfferMailDraft ? " submitActionRowWithMail" : ""
-                }`}
+                className="submitActionRow span2"
               >
                 <button
                   className="primaryButton submitButton"
@@ -4755,17 +4764,20 @@ export default function HomePage() {
                     ? `${singularDocumentLabel} wird erstellt...`
                     : `${singularDocumentLabel} erstellen`}
                 </button>
-                {canOpenOfferMailDraft ? (
+                {isOfferMailActionVisible ? (
                   <button
                     type="button"
                     className="ghostButton submitMailButton"
                     onClick={handleOfferMailDraftOpen}
                     disabled={
+                      !canOpenOfferMailDraft ||
                       isPreparingOfferMailDraft ||
                       !offerMailActionState?.customerEmail.trim()
                     }
                     title={
-                      offerMailActionState?.customerEmail.trim()
+                      !canOpenOfferMailDraft
+                        ? "Bitte zuerst ein Angebot erstellen."
+                        : offerMailActionState?.customerEmail.trim()
                         ? "Angebot per E-Mail versenden"
                         : "Für den Versand fehlt eine Kunden-E-Mail"
                     }
@@ -4795,7 +4807,7 @@ export default function HomePage() {
                     <span className="submitMailButtonLabel">
                       {isPreparingOfferMailDraft
                         ? "Mail wird geöffnet..."
-                        : "Per E-Mail"}
+                        : "Per E-Mail senden"}
                     </span>
                   </button>
                 ) : null}

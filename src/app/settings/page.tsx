@@ -216,6 +216,7 @@ export default function SettingsPage() {
   const [dragOverPdfColumnPosition, setDragOverPdfColumnPosition] =
     useState<PdfColumnDropPosition>("after");
   const [isLeavingSettings, setIsLeavingSettings] = useState(false);
+  const [logoPreviewRevision, setLogoPreviewRevision] = useState(0);
   const leaveSettingsTimeoutRef = useRef<number | null>(null);
   const autosaveTimeoutRef = useRef<number | null>(null);
   const settingsSaveRequestRef = useRef(0);
@@ -239,13 +240,15 @@ export default function SettingsPage() {
         if (mode !== "autosave") {
           setSaveStatus("");
           setError("Bitte geben Sie eine gültige URL ein.");
+          return false;
         }
-        return false;
       }
 
       const payloadSettings: CompanySettings = {
         ...nextSettings,
-        companyWebsite: websiteValidation.normalized,
+        companyWebsite: websiteValidation.isValid
+          ? websiteValidation.normalized
+          : nextSettings.companyWebsite.trim(),
       };
 
       try {
@@ -624,6 +627,8 @@ export default function SettingsPage() {
     });
 
     setSettings((prev) => ({ ...prev, logoDataUrl: dataUrl }));
+    setLogoPreviewRevision((prev) => prev + 1);
+    event.target.value = "";
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1109,6 +1114,7 @@ export default function SettingsPage() {
             {settings.logoDataUrl ? (
               <div className="logoFrame span2">
                 <img
+                  key={logoPreviewRevision}
                   src={settings.logoDataUrl}
                   alt="Logo Vorschau"
                   className="logoPreview"

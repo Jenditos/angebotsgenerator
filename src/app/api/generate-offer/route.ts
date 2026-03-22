@@ -6,6 +6,10 @@ import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
+  createStoredOfferRecord,
+} from "@/server/services/offer-store-service";
+import { upsertStoredCustomer } from "@/server/services/customer-store-service";
+import {
   CompanySettings,
   CustomerDraftGroup,
   CustomerDraftSubitem,
@@ -960,12 +964,12 @@ export async function POST(request: Request) {
         : requestedPaymentDueDays;
     const now = new Date();
     const generatedCreatedAt = now.toISOString();
-    const generatedDocumentNumber = buildRuntimeDocumentNumber(
+    let generatedDocumentNumber = buildRuntimeDocumentNumber(
       documentType,
       now,
     );
     const requestedCustomerNumber = normalizeInputValue(body.customerNumber);
-    const customerNumberForDocument =
+    let customerNumberForDocument =
       requestedCustomerNumber || buildRuntimeCustomerNumber(now);
     failureStage = "build_line_items";
     const lineItems = buildPdfLineItems({
@@ -1042,6 +1046,74 @@ export async function POST(request: Request) {
       documentType,
       customerName,
     });
+    const selectedServiceDraftGroups = sanitizeSelectedServiceEntries(
+      body.selectedServiceEntries,
+    );
+    const fallbackDraftGroups = buildDraftGroupsFromLineItems(lineItems);
+    const draftGroups =
+      selectedServiceDraftGroups.length > 0
+        ? selectedServiceDraftGroups
+        : fallbackDraftGroups;
+
+    try {
+      const storedCustomer = await upsertStoredCustomer({
+        customerType,
+        companyName,
+        salutation,
+        firstName,
+        lastName,
+        street,
+        postalCode,
+        city,
+        customerEmail,
+        customerName,
+        customerAddress,
+        draftState: {
+          serviceDescription: composedServiceDescription,
+          hours: toDecimalInputValue(hours),
+          hourlyRate: toDecimalInputValue(hourlyRate),
+          materialCost: toDecimalInputValue(materialCost),
+          invoiceDate: toDateInputValue(resolvedInvoiceDate),
+          serviceDate: servicePeriod,
+          paymentDueDays: String(paymentDueDays),
+          positions: draftGroups,
+        },
+        referenceDate: now,
+      });
+      customerNumberForDocument = storedCustomer.customerNumber;
+    } catch (error) {
+      console.warn(
+        `[generate-offer:${requestId}] customer_upsert_failed`,
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { error },
+      );
+    }
+
+    try {
+      const storedDocument = await createStoredOfferRecord({
+        documentType,
+        customerNumber: customerNumberForDocument,
+        customerName,
+        customerAddress,
+        customerEmail,
+        serviceDescription: composedServiceDescription,
+        lineItems,
+        offer,
+        configuredLastOfferNumber: settings.lastOfferNumber,
+        configuredLastInvoiceNumber: settings.lastInvoiceNumber,
+        referenceDate: now,
+      });
+      generatedDocumentNumber = storedDocument.offerNumber;
+    } catch (error) {
+      console.warn(
+        `[generate-offer:${requestId}] offer_record_persist_failed`,
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { error },
+      );
+    }
+
     const pdfFilename = `${generatedDocumentNumber}.pdf`;
     debugOfferLog(requestId, "pdf_payload_preview", {
       documentType,

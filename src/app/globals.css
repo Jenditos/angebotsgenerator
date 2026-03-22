@@ -1451,12 +1451,14 @@ textarea:focus {
 
 .submitActionRow {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 9px;
 }
 
-.submitActionRow .submitButton {
+.submitActionRow .submitButton,
+.submitActionRow .submitMailButton {
   width: 100%;
 }
 
@@ -1504,19 +1506,10 @@ textarea:focus {
     width: calc((100% - var(--space-3, 13px)) / 2);
   }
 
-  .submitActionRowWithMail {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: stretch;
-  }
-
   .formGrid .submitActionRow .submitButton {
     grid-column: auto;
     justify-self: stretch;
     width: 100%;
-  }
-
-  .submitActionRowWithMail .submitMailButton {
-    min-width: 120px;
   }
 
   .formGrid .submitButton {
@@ -2376,35 +2369,29 @@ textarea:focus {
     right: 2px;
   }
 
-  .submitButton {
+  .submitActionRow {
     position: sticky;
     bottom: calc(8px + env(safe-area-inset-bottom));
     z-index: 40;
+  }
+
+  .submitButton {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: auto;
     min-height: 62px;
     font-size: 1.04rem;
   }
 
-  .submitActionRowWithMail {
-    grid-template-columns: minmax(0, 1fr) auto;
-    position: sticky;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    z-index: 40;
-  }
-
-  .submitActionRowWithMail .submitButton {
+  .submitActionRow .submitButton {
     position: static;
     bottom: auto;
   }
 
-  .submitActionRowWithMail .submitMailButton {
-    width: auto;
+  .submitActionRow .submitMailButton {
+    width: 100%;
     min-height: 62px;
-    min-width: 56px;
     padding: 10px 12px;
-  }
-
-  .submitActionRowWithMail .submitMailButtonLabel {
-    display: none;
   }
 
   .formHint {
@@ -2988,12 +2975,12 @@ textarea,
   }
 
   .topHeaderSettingsButton:hover {
-    transform: translateY(-50%) scale(1.005);
+    transform: translateY(-50%) scale(1.002);
   }
 }
 
 .topHeaderSettingsButton:active:not(:disabled) {
-  transform: translateY(-50%) scale(var(--interactive-scale-press));
+  transform: translateY(-50%) scale(0.997);
 }
 
 :is(button, a.primaryButton, a.ghostButton, .topHeaderSettingsButton):focus-visible {
