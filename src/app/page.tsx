@@ -661,6 +661,24 @@ function getSubitemUnit(subitem: ServiceSubitemEntry): string {
   return subitem.unit.trim() || "Pauschal";
 }
 
+function hasValidThousandsGrouping(
+  rawValue: string,
+  separator: "," | ".",
+): boolean {
+  const parts = rawValue.split(separator);
+  if (parts.length <= 1) {
+    return true;
+  }
+  if (!parts.every((part) => /^\d+$/.test(part))) {
+    return false;
+  }
+  if (parts[0].length < 1 || parts[0].length > 3) {
+    return false;
+  }
+
+  return parts.slice(1).every((part) => part.length === 3);
+}
+
 function parseLocaleNumber(rawValue: string): number {
   const normalized = rawValue
     .trim()
@@ -704,8 +722,37 @@ function parseLocaleNumber(rawValue: string): number {
       (hasOtherSeparator || !hasMultipleSameSeparator || allowThreeDecimalDigits);
 
     if (treatAsDecimal) {
+      if (fractionPartRaw.includes(",") || fractionPartRaw.includes(".")) {
+        return NaN;
+      }
+      if (integerPartRaw.includes(separatorCharacter)) {
+        return NaN;
+      }
+      if (hasOtherSeparator) {
+        const thousandsSeparator = separatorCharacter === "," ? "." : ",";
+        if (
+          integerPartRaw.includes(thousandsSeparator) &&
+          !hasValidThousandsGrouping(
+            integerPartRaw,
+            thousandsSeparator as "," | ".",
+          )
+        ) {
+          return NaN;
+        }
+      }
       numberLiteral = `${integerDigits || "0"}.${fractionDigits}`;
     } else {
+      if (hasOtherSeparator) {
+        return NaN;
+      }
+      if (
+        !hasValidThousandsGrouping(
+          unsigned,
+          separatorCharacter as "," | ".",
+        )
+      ) {
+        return NaN;
+      }
       numberLiteral = `${integerPartRaw}${fractionPartRaw}`.replace(/[^\d]/g, "");
     }
   }
@@ -777,6 +824,15 @@ function sanitizePriceInput(rawValue: string): string {
   }
 
   if (decimalIndex >= 0 && !treatAsDecimal && !trailingSeparator) {
+    if (
+      hasOtherSeparator ||
+      !hasValidThousandsGrouping(
+        normalized,
+        separatorCharacter as "," | ".",
+      )
+    ) {
+      return normalized;
+    }
     return `${integerRaw}${fractionRaw}`.replace(/[^\d]/g, "");
   }
 

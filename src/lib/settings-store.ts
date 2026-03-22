@@ -114,14 +114,14 @@ export async function readSettings(): Promise<CompanySettings> {
         parsed.companyEmail,
         defaultSettings.companyEmail,
       ),
-      companyPhone: asTrimmedString(
-        parsed.companyPhone,
-        defaultSettings.companyPhone,
-      ),
-      companyWebsite: asTrimmedString(
-        parsed.companyWebsite,
-        defaultSettings.companyWebsite,
-      ),
+      companyPhone:
+        typeof parsed.companyPhone === "string"
+          ? parsed.companyPhone.trim()
+          : defaultSettings.companyPhone,
+      companyWebsite:
+        typeof parsed.companyWebsite === "string"
+          ? parsed.companyWebsite.trim()
+          : defaultSettings.companyWebsite,
       senderCopyEmail: asTrimmedString(
         parsed.senderCopyEmail,
         defaultSettings.senderCopyEmail,

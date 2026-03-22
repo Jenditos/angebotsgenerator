@@ -19,6 +19,24 @@ import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 
+function hasValidThousandsGrouping(
+  rawValue: string,
+  separator: "," | ".",
+): boolean {
+  const parts = rawValue.split(separator);
+  if (parts.length <= 1) {
+    return true;
+  }
+  if (!parts.every((part) => /^\d+$/.test(part))) {
+    return false;
+  }
+  if (parts[0].length < 1 || parts[0].length > 3) {
+    return false;
+  }
+
+  return parts.slice(1).every((part) => part.length === 3);
+}
+
 function parseLocaleNumberish(rawValue: string): number {
   const normalized = rawValue
     .trim()
@@ -62,8 +80,37 @@ function parseLocaleNumberish(rawValue: string): number {
       (hasOtherSeparator || !hasMultipleSameSeparator || allowThreeDecimalDigits);
 
     if (treatAsDecimal) {
+      if (fractionPartRaw.includes(",") || fractionPartRaw.includes(".")) {
+        return NaN;
+      }
+      if (integerPartRaw.includes(separatorCharacter)) {
+        return NaN;
+      }
+      if (hasOtherSeparator) {
+        const thousandsSeparator = separatorCharacter === "," ? "." : ",";
+        if (
+          integerPartRaw.includes(thousandsSeparator) &&
+          !hasValidThousandsGrouping(
+            integerPartRaw,
+            thousandsSeparator as "," | ".",
+          )
+        ) {
+          return NaN;
+        }
+      }
       numberLiteral = `${integerDigits || "0"}.${fractionDigits}`;
     } else {
+      if (hasOtherSeparator) {
+        return NaN;
+      }
+      if (
+        !hasValidThousandsGrouping(
+          unsigned,
+          separatorCharacter as "," | ".",
+        )
+      ) {
+        return NaN;
+      }
       numberLiteral = `${integerPartRaw}${fractionPartRaw}`.replace(/[^\d]/g, "");
     }
   }
