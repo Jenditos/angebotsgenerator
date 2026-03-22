@@ -15,6 +15,7 @@ import {
   CustomerDraftSubitem,
   StoredCustomerRecord,
 } from "@/types/offer";
+import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
 
 type CustomerStore = {
   lastCustomerSequence: number;
@@ -43,9 +44,6 @@ export type UpsertStoredCustomerInput = {
   referenceDate?: Date;
 };
 
-const DEFAULT_DATA_DIR = path.join(process.cwd(), "data");
-const DEFAULT_STORE_PATH = path.join(DEFAULT_DATA_DIR, "customers-store.json");
-const DEFAULT_LOCK_PATH = path.join(DEFAULT_DATA_DIR, "customers-store.lock");
 const LOCK_TIMEOUT_MS = 10_000;
 const LOCK_POLL_INTERVAL_MS = 30;
 const STALE_LOCK_AFTER_MS = 15_000;
@@ -234,7 +232,7 @@ function sanitizeStore(payload: unknown): CustomerStore {
 }
 
 function resolvePaths(overrides?: Partial<CustomerStorePaths>): CustomerStorePaths {
-  const dataDir = overrides?.dataDir ?? DEFAULT_DATA_DIR;
+  const dataDir = overrides?.dataDir ?? resolveRuntimeDataDir();
   return {
     dataDir,
     storePath: overrides?.storePath ?? path.join(dataDir, "customers-store.json"),

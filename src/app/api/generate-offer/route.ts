@@ -865,20 +865,39 @@ export async function POST(request: Request) {
     };
 
     failureStage = "upsert_customer";
-    const storedCustomerRecord = await upsertStoredCustomer({
-      customerType,
-      companyName,
-      salutation,
-      firstName,
-      lastName,
-      street,
-      postalCode,
-      city,
-      customerEmail,
-      customerName,
-      customerAddress,
-      draftState,
-    });
+    let storedCustomerRecord:
+      | Awaited<ReturnType<typeof upsertStoredCustomer>>
+      | null = null;
+    try {
+      storedCustomerRecord = await upsertStoredCustomer({
+        customerType,
+        companyName,
+        salutation,
+        firstName,
+        lastName,
+        street,
+        postalCode,
+        city,
+        customerEmail,
+        customerName,
+        customerAddress,
+        draftState,
+      });
+    } catch (error) {
+      console.error(
+        `[generate-offer:${requestId}] upsert_customer_failed`,
+        error instanceof Error
+          ? {
+              stage: failureStage,
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : { stage: failureStage, error },
+      );
+    }
+    const customerNumberForDocument =
+      storedCustomerRecord?.customerNumber || "KDN-TEMP";
     const safeSettings = {
       ...settings,
       logoDataUrl:
@@ -929,7 +948,7 @@ export async function POST(request: Request) {
     failureStage = "persist_offer_record";
     const storedOfferRecord = await createStoredOfferRecord({
       documentType,
-      customerNumber: storedCustomerRecord.customerNumber,
+      customerNumber: storedCustomerRecord?.customerNumber,
       customerName,
       customerAddress,
       customerEmail,
@@ -955,7 +974,7 @@ export async function POST(request: Request) {
       debugOfferLog(requestId, "pdf_render_start", {
         documentType,
         documentNumber: storedOfferRecord.offerNumber,
-        customerNumber: storedCustomerRecord.customerNumber,
+        customerNumber: customerNumberForDocument,
         lineItemsCount: lineItems.length,
         hasLogoDataUrl: Boolean(safeSettings.logoDataUrl),
       });
@@ -964,7 +983,7 @@ export async function POST(request: Request) {
           offer,
           offerNumber: storedOfferRecord.offerNumber,
           documentType,
-          customerNumber: storedCustomerRecord.customerNumber,
+          customerNumber: customerNumberForDocument,
           createdAt: storedOfferRecord.createdAt,
           invoiceDate:
             documentType === "invoice"
@@ -991,7 +1010,7 @@ export async function POST(request: Request) {
           offer,
           offerNumber: storedOfferRecord.offerNumber,
           documentType,
-          customerNumber: storedCustomerRecord.customerNumber,
+          customerNumber: customerNumberForDocument,
           createdAt: storedOfferRecord.createdAt,
           invoiceDate:
             documentType === "invoice"
@@ -1082,7 +1101,7 @@ export async function POST(request: Request) {
       pdfBase64,
       emailStatus,
       emailInfo,
-      customerNumber: storedCustomerRecord.customerNumber,
+      customerNumber: customerNumberForDocument,
       documentType,
       documentNumber: storedOfferRecord.offerNumber,
       offerNumber: storedOfferRecord.offerNumber,

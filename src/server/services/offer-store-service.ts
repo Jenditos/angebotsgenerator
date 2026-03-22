@@ -15,6 +15,7 @@ import {
   OfferText,
   StoredOfferRecord,
 } from "@/types/offer";
+import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
 
 type OfferStore = {
   lastOfferNumber: string;
@@ -44,9 +45,6 @@ export type CreateStoredOfferInput = {
   referenceDate?: Date;
 };
 
-const DEFAULT_DATA_DIR = path.join(process.cwd(), "data");
-const DEFAULT_STORE_PATH = path.join(DEFAULT_DATA_DIR, "offers-store.json");
-const DEFAULT_LOCK_PATH = path.join(DEFAULT_DATA_DIR, "offers-store.lock");
 const LOCK_TIMEOUT_MS = 10_000;
 const LOCK_POLL_INTERVAL_MS = 30;
 const STALE_LOCK_AFTER_MS = 15_000;
@@ -324,7 +322,7 @@ function sanitizeStore(payload: unknown): OfferStore {
 }
 
 function resolvePaths(overrides?: Partial<OfferStorePaths>): OfferStorePaths {
-  const dataDir = overrides?.dataDir ?? DEFAULT_DATA_DIR;
+  const dataDir = overrides?.dataDir ?? resolveRuntimeDataDir();
   return {
     dataDir,
     storePath: overrides?.storePath ?? path.join(dataDir, "offers-store.json"),
