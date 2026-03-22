@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  MouseEvent as ReactMouseEvent,
   FormEvent,
   Fragment,
   useEffect,
@@ -1101,7 +1099,6 @@ function normalizeAddressSuggestion(
 }
 
 export default function HomePage() {
-  const router = useRouter();
   const [documentMode, setDocumentMode] = useState<DocumentMode>("offer");
   const [modeAnimationKey, setModeAnimationKey] = useState(0);
   const [form, setForm] = useState<OfferForm>(initialForm);
@@ -1172,9 +1169,11 @@ export default function HomePage() {
   const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(false);
   const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
   const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
+  const [isSettingsOverlayOpen, setIsSettingsOverlayOpen] = useState(false);
+  const [isClosingSettingsOverlay, setIsClosingSettingsOverlay] = useState(false);
+  const [isClosingCustomerPicker, setIsClosingCustomerPicker] = useState(false);
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
-  const [isOpeningSettings, setIsOpeningSettings] = useState(false);
   const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -1187,7 +1186,8 @@ export default function HomePage() {
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const serviceDateRangePickerRef = useRef<HTMLDivElement | null>(null);
   const finalTranscriptRef = useRef("");
-  const settingsNavTimeoutRef = useRef<number | null>(null);
+  const settingsOverlayCloseTimeoutRef = useRef<number | null>(null);
+  const customerPickerCloseTimeoutRef = useRef<number | null>(null);
   const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
   const archiveLoadRequestRef = useRef(0);
   const archiveCloseTimeoutRef = useRef<number | null>(null);
@@ -1388,48 +1388,60 @@ export default function HomePage() {
     applyModeSnapshot(resetSnapshot);
   }
 
-  function openSettingsWithAnimation(event: ReactMouseEvent<HTMLAnchorElement>) {
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
+  function openSettingsOverlay() {
+    if (settingsOverlayCloseTimeoutRef.current !== null) {
+      window.clearTimeout(settingsOverlayCloseTimeoutRef.current);
+      settingsOverlayCloseTimeoutRef.current = null;
+    }
+    setIsClosingSettingsOverlay(false);
+    setIsSettingsOverlayOpen(true);
+  }
+
+  function closeSettingsOverlay() {
+    if (!isSettingsOverlayOpen || isClosingSettingsOverlay) {
       return;
     }
 
-    event.preventDefault();
-    if (isOpeningSettings) {
+    setIsClosingSettingsOverlay(true);
+    if (settingsOverlayCloseTimeoutRef.current !== null) {
+      window.clearTimeout(settingsOverlayCloseTimeoutRef.current);
+    }
+    settingsOverlayCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsSettingsOverlayOpen(false);
+      setIsClosingSettingsOverlay(false);
+      settingsOverlayCloseTimeoutRef.current = null;
+    }, 170);
+  }
+
+  function openCustomerPickerPopup() {
+    if (customerPickerCloseTimeoutRef.current !== null) {
+      window.clearTimeout(customerPickerCloseTimeoutRef.current);
+      customerPickerCloseTimeoutRef.current = null;
+    }
+    setIsClosingCustomerPicker(false);
+    setIsCustomerPickerOpen(true);
+    setCustomersError("");
+
+    if (!isCustomersLoading && storedCustomers.length === 0) {
+      void loadStoredCustomers();
+    }
+  }
+
+  function closeCustomerPickerPopup() {
+    if (!isCustomerPickerOpen || isClosingCustomerPicker) {
       return;
     }
 
-    try {
-      const snapshots: Record<DocumentMode, ModeSnapshot> = {
-        ...modeSnapshotsRef.current,
-        [documentMode]: createCurrentModeSnapshot(),
-      };
-      modeSnapshotsRef.current = snapshots;
-      const payload: PersistedHomeState = {
-        documentMode,
-        modeSnapshots: snapshots,
-      };
-      window.sessionStorage.setItem(
-        HOME_STATE_STORAGE_KEY,
-        JSON.stringify(payload),
-      );
-    } catch {
-      // Navigationswechsel darf nicht blockiert werden.
+    setIsClosingCustomerPicker(true);
+    if (customerPickerCloseTimeoutRef.current !== null) {
+      window.clearTimeout(customerPickerCloseTimeoutRef.current);
     }
-
-    setIsOpeningSettings(true);
-    if (settingsNavTimeoutRef.current !== null) {
-      window.clearTimeout(settingsNavTimeoutRef.current);
-    }
-    settingsNavTimeoutRef.current = window.setTimeout(() => {
-      router.push("/settings");
-    }, 110);
+    customerPickerCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsCustomerPickerOpen(false);
+      setIsClosingCustomerPicker(false);
+      setCustomerSearch("");
+      customerPickerCloseTimeoutRef.current = null;
+    }, 160);
   }
 
   useEffect(() => {
@@ -1439,8 +1451,11 @@ export default function HomePage() {
     setSpeechSupported(Boolean(speechCtor));
 
     return () => {
-      if (settingsNavTimeoutRef.current !== null) {
-        window.clearTimeout(settingsNavTimeoutRef.current);
+      if (settingsOverlayCloseTimeoutRef.current !== null) {
+        window.clearTimeout(settingsOverlayCloseTimeoutRef.current);
+      }
+      if (customerPickerCloseTimeoutRef.current !== null) {
+        window.clearTimeout(customerPickerCloseTimeoutRef.current);
       }
       if (archiveCloseTimeoutRef.current !== null) {
         window.clearTimeout(archiveCloseTimeoutRef.current);
@@ -1455,7 +1470,7 @@ export default function HomePage() {
         recognitionRef.current = null;
       }
     };
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1527,7 +1542,11 @@ export default function HomePage() {
       return;
     }
 
-    const hasBlockingOverlay = isCustomerArchiveOpen || isInfoLegalOpen;
+    const hasBlockingOverlay =
+      isCustomerArchiveOpen ||
+      isInfoLegalOpen ||
+      isSettingsOverlayOpen ||
+      isCustomerPickerOpen;
     if (!hasBlockingOverlay) {
       return;
     }
@@ -1549,14 +1568,24 @@ export default function HomePage() {
       documentElement.style.overflow = previousHtmlOverflow;
       documentElement.style.overscrollBehavior = previousHtmlOverscroll;
     };
-  }, [isCustomerArchiveOpen, isInfoLegalOpen]);
+  }, [
+    isCustomerArchiveOpen,
+    isInfoLegalOpen,
+    isSettingsOverlayOpen,
+    isCustomerPickerOpen,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    if (!isCustomerArchiveOpen && !isInfoLegalOpen) {
+    if (
+      !isCustomerArchiveOpen &&
+      !isInfoLegalOpen &&
+      !isSettingsOverlayOpen &&
+      !isCustomerPickerOpen
+    ) {
       return;
     }
 
@@ -1570,8 +1599,18 @@ export default function HomePage() {
         return;
       }
 
+      if (isSettingsOverlayOpen) {
+        closeSettingsOverlay();
+        return;
+      }
+
       if (isCustomerArchiveOpen) {
         closeCustomerArchive();
+        return;
+      }
+
+      if (isCustomerPickerOpen) {
+        closeCustomerPickerPopup();
       }
     }
 
@@ -1582,6 +1621,10 @@ export default function HomePage() {
     isClosingCustomerArchive,
     isInfoLegalOpen,
     isClosingInfoLegal,
+    isSettingsOverlayOpen,
+    isClosingSettingsOverlay,
+    isCustomerPickerOpen,
+    isClosingCustomerPicker,
   ]);
 
   useEffect(() => {
@@ -1801,16 +1844,11 @@ export default function HomePage() {
   }
 
   function toggleStoredCustomers() {
-    const nextOpen = !isCustomerPickerOpen;
-    setIsCustomerPickerOpen(nextOpen);
-    setCustomersError("");
-    if (!nextOpen) {
-      setCustomerSearch("");
+    if (isCustomerPickerOpen) {
+      closeCustomerPickerPopup();
+      return;
     }
-
-    if (nextOpen && !isCustomersLoading && storedCustomers.length === 0) {
-      void loadStoredCustomers();
-    }
+    openCustomerPickerPopup();
   }
 
   async function loadCustomerDocuments(customerNumber: string) {
@@ -2170,6 +2208,11 @@ export default function HomePage() {
     setActiveCustomerNumber(customer.customerNumber);
     setActivePriceSubitemId(null);
     setAddressSuggestions([]);
+    if (customerPickerCloseTimeoutRef.current !== null) {
+      window.clearTimeout(customerPickerCloseTimeoutRef.current);
+      customerPickerCloseTimeoutRef.current = null;
+    }
+    setIsClosingCustomerPicker(false);
     setIsCustomerPickerOpen(false);
     setCustomerSearch("");
     setCustomersError("");
@@ -2592,34 +2635,84 @@ export default function HomePage() {
   }
 
   function normalizeVoiceUnit(rawUnit: string | undefined): string {
-    const normalized = normalizeSearchValue(rawUnit ?? "");
-    if (!normalized) {
+    if (!rawUnit) {
       return UNIT_OPTIONS[0];
     }
-    if (normalized === "stuck" || normalized === "stk") {
+    const compact = rawUnit
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/²/g, "2")
+      .replace(/³/g, "3")
+      .replace(/\s+/g, "")
+      .replace(/\./g, "")
+      .trim();
+    if (!compact) {
+      return UNIT_OPTIONS[0];
+    }
+
+    if (compact === "stuck" || compact === "stueck" || compact === "stk") {
       return "Stück";
     }
-    if (normalized === "m2" || normalized === "qm") {
+    if (
+      compact === "m2" ||
+      compact === "qm" ||
+      compact === "quadratmeter" ||
+      compact === "quadratmetern"
+    ) {
       return "m²";
     }
-    if (normalized === "m3") {
+    if (
+      compact === "m3" ||
+      compact === "cbm" ||
+      compact === "kubikmeter" ||
+      compact === "kubikmetern"
+    ) {
       return "m³";
     }
+    if (compact === "m" || compact === "meter" || compact === "metern") {
+      return "m";
+    }
+    if (compact === "kg" || compact === "kilogramm") {
+      return "kg";
+    }
+    if (compact === "t" || compact === "tonne" || compact === "tonnen") {
+      return "t";
+    }
+    if (compact === "l" || compact === "liter") {
+      return "l";
+    }
     if (
-      normalized === "stunde" ||
-      normalized === "stunden" ||
-      normalized === "std" ||
-      normalized === "h"
+      compact === "stunde" ||
+      compact === "stunden" ||
+      compact === "std" ||
+      compact === "h"
     ) {
       return "Std";
     }
-    if (normalized === "psch" || normalized === "pauschale") {
+    if (compact === "tag" || compact === "tage") {
+      return "Tag";
+    }
+    if (
+      compact === "psch" ||
+      compact === "pauschale" ||
+      compact === "pauschal"
+    ) {
       return "Pauschal";
     }
 
-    const mapped = UNIT_OPTIONS.find(
-      (option) => normalizeSearchValue(option) === normalized,
-    );
+    const mapped = UNIT_OPTIONS.find((option) => {
+      const optionCompact = option
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/²/g, "2")
+        .replace(/³/g, "3")
+        .replace(/\s+/g, "")
+        .replace(/\./g, "")
+        .trim();
+      return optionCompact === compact;
+    });
     return mapped ?? UNIT_OPTIONS[0];
   }
 
@@ -2641,9 +2734,9 @@ export default function HomePage() {
       const unitPrice =
         typeof item.unitPrice === "number" && Number.isFinite(item.unitPrice) && item.unitPrice >= 0
           ? item.unitPrice
-          : NaN;
+          : undefined;
 
-      if (!description || !Number.isFinite(quantity) || !Number.isFinite(unitPrice)) {
+      if (!description || !Number.isFinite(quantity)) {
         continue;
       }
 
@@ -2653,7 +2746,10 @@ export default function HomePage() {
       const subitem = createSubitemEntry(description);
       subitem.quantity = sanitizeQuantityInput(toDecimalInputValue(quantity));
       subitem.unit = normalizeVoiceUnit(item.unit);
-      subitem.price = sanitizePriceInput(toDecimalInputValue(unitPrice));
+      subitem.price =
+        typeof unitPrice === "number"
+          ? sanitizePriceInput(toDecimalInputValue(unitPrice))
+          : "";
 
       if (existing) {
         existing.subitems.push(subitem);
@@ -3266,12 +3362,12 @@ export default function HomePage() {
             </svg>
           </button>
           <span className="pill topHeaderLogo">Visioro</span>
-          <Link
-            href="/settings"
-            className={`topHeaderSettingsButton ${isOpeningSettings ? "isNavigating" : ""}`}
+          <button
+            type="button"
+            className="topHeaderSettingsButton"
             aria-label="Einstellungen"
             title="Einstellungen"
-            onClick={openSettingsWithAnimation}
+            onClick={openSettingsOverlay}
           >
             <svg
               viewBox="0 0 24 24"
@@ -3296,7 +3392,7 @@ export default function HomePage() {
                 strokeWidth="1.7"
               />
             </svg>
-          </Link>
+          </button>
         </header>
 
         {isCustomerArchiveOpen ? (
@@ -3555,6 +3651,180 @@ export default function HomePage() {
           </div>
         ) : null}
 
+        {isSettingsOverlayOpen ? (
+          <div
+            className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Einstellungen"
+            onClick={closeSettingsOverlay}
+          >
+            <section
+              className={`settingsOverlaySheet ${isClosingSettingsOverlay ? "closing" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="settingsOverlayHeader">
+                <strong>Einstellungen</strong>
+                <button
+                  type="button"
+                  className="settingsOverlayCloseButton"
+                  aria-label="Einstellungen schließen"
+                  onClick={closeSettingsOverlay}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="settingsOverlayFrameWrap">
+                <iframe
+                  src="/settings?embedded=1"
+                  title="Einstellungen"
+                  className="settingsOverlayFrame"
+                />
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {isCustomerPickerOpen ? (
+          <div
+            className={`customerPickerModalBackdrop ${isClosingCustomerPicker ? "closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Gespeicherte Kunden"
+            onClick={closeCustomerPickerPopup}
+          >
+            <section
+              className={`customerPickerModalSheet ${isClosingCustomerPicker ? "closing" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="customerPickerModalHeader">
+                <strong>Gespeicherte Kunden</strong>
+                <button
+                  type="button"
+                  className="customerPickerModalCloseButton"
+                  aria-label="Gespeicherte Kunden schließen"
+                  onClick={closeCustomerPickerPopup}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="customerPickerList customerPickerListModal">
+                <input
+                  className="customerPickerSearch"
+                  type="search"
+                  value={customerSearch}
+                  onChange={(event) => setCustomerSearch(event.target.value)}
+                  placeholder="Kunde suchen (Name, Firma, Adresse)"
+                  aria-label="Gespeicherte Kunden suchen"
+                />
+
+                <div className="customerPickerResults customerPickerResultsModal" role="list">
+                  {isCustomersLoading ? (
+                    <p className="customerPickerHint">
+                      Gespeicherte Kunden werden geladen ...
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading && customersError ? (
+                    <p className="voiceWarning" role="alert">
+                      {customersError}
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading &&
+                  !customersError &&
+                  storedCustomers.length === 0 ? (
+                    <p className="customerPickerHint">
+                      Noch keine gespeicherten Kunden vorhanden.
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading &&
+                  !customersError &&
+                  storedCustomers.length > 0 &&
+                  filteredStoredCustomers.length === 0 ? (
+                    <p className="customerPickerHint">
+                      Keine Kunden zur Suche gefunden.
+                    </p>
+                  ) : null}
+                  {!isCustomersLoading &&
+                  !customersError &&
+                  filteredStoredCustomers.length > 0
+                    ? filteredStoredCustomers.map((customer) => (
+                        <div
+                          key={customer.customerNumber}
+                          className="customerPickerItemRow"
+                          role="listitem"
+                        >
+                          <button
+                            type="button"
+                            className="customerPickerItem customerPickerApplyButton"
+                            onClick={() => applyStoredCustomer(customer)}
+                          >
+                            <div className="customerPickerItemHeader">
+                              <strong>{customer.customerName}</strong>
+                              <span>{customer.customerNumber}</span>
+                            </div>
+                            <p>{customer.customerAddress}</p>
+                            <p>{customer.customerEmail}</p>
+                          </button>
+                          <button
+                            type="button"
+                            className="customerPickerDeleteButton"
+                            aria-label={`${customer.customerName} löschen`}
+                            title="Kunde löschen"
+                            disabled={deletingCustomerNumber === customer.customerNumber}
+                            onClick={() => void deleteStoredCustomer(customer)}
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="customerPickerDeleteIcon"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path
+                                d="M9 4.5h6m-8 3h10m-8 0-.5 11h5l.5-11m-3.5 0V6.5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ))
+                    : null}
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
         {isInfoLegalOpen ? (
           <div
             className={`infoLegalBackdrop ${isClosingInfoLegal ? "closing" : ""}`}
@@ -3716,98 +3986,8 @@ export default function HomePage() {
                 className="ghostButton customerPickerToggle"
                 onClick={toggleStoredCustomers}
               >
-                {isCustomerPickerOpen
-                  ? "Gespeicherte Kunden schließen"
-                  : "Gespeicherte Kunden"}
+                Gespeicherte Kunden
               </button>
-              {isCustomerPickerOpen ? (
-                <div className="customerPickerList">
-                  <input
-                    className="customerPickerSearch"
-                    type="search"
-                    value={customerSearch}
-                    onChange={(event) => setCustomerSearch(event.target.value)}
-                    placeholder="Kunde suchen (Name, Firma, Adresse)"
-                    aria-label="Gespeicherte Kunden suchen"
-                  />
-
-                  <div className="customerPickerResults" role="list">
-                    {isCustomersLoading ? (
-                      <p className="customerPickerHint">
-                        Gespeicherte Kunden werden geladen ...
-                      </p>
-                    ) : null}
-                    {!isCustomersLoading && customersError ? (
-                      <p className="voiceWarning" role="alert">
-                        {customersError}
-                      </p>
-                    ) : null}
-                    {!isCustomersLoading &&
-                    !customersError &&
-                    storedCustomers.length === 0 ? (
-                      <p className="customerPickerHint">
-                        Noch keine gespeicherten Kunden vorhanden.
-                      </p>
-                    ) : null}
-                    {!isCustomersLoading &&
-                    !customersError &&
-                    storedCustomers.length > 0 &&
-                    filteredStoredCustomers.length === 0 ? (
-                      <p className="customerPickerHint">
-                        Keine Kunden zur Suche gefunden.
-                      </p>
-                    ) : null}
-                    {!isCustomersLoading &&
-                    !customersError &&
-                    filteredStoredCustomers.length > 0
-                      ? filteredStoredCustomers.map((customer) => (
-                          <div
-                            key={customer.customerNumber}
-                            className="customerPickerItemRow"
-                            role="listitem"
-                          >
-                            <button
-                              type="button"
-                              className="customerPickerItem customerPickerApplyButton"
-                              onClick={() => applyStoredCustomer(customer)}
-                            >
-                              <div className="customerPickerItemHeader">
-                                <strong>{customer.customerName}</strong>
-                                <span>{customer.customerNumber}</span>
-                              </div>
-                              <p>{customer.customerAddress}</p>
-                              <p>{customer.customerEmail}</p>
-                            </button>
-                            <button
-                              type="button"
-                              className="customerPickerDeleteButton"
-                              aria-label={`${customer.customerName} löschen`}
-                              title="Kunde löschen"
-                              disabled={deletingCustomerNumber === customer.customerNumber}
-                              onClick={() => void deleteStoredCustomer(customer)}
-                            >
-                              <svg
-                                viewBox="0 0 24 24"
-                                className="customerPickerDeleteIcon"
-                                aria-hidden="true"
-                                focusable="false"
-                              >
-                                <path
-                                  d="M9 4.5h6m-8 3h10m-8 0-.5 11h5l.5-11m-3.5 0V6.5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        ))
-                      : null}
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <form onSubmit={onSubmit} className="formGrid">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   ChangeEvent,
@@ -199,6 +199,8 @@ function toInvoiceDuePreset(days: number): InvoiceDuePreset {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEmbedded = searchParams.get("embedded") === "1";
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
@@ -699,38 +701,44 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <main className="page">
-      <div className="ambient ambientA" aria-hidden />
-      <div className="ambient ambientB" aria-hidden />
-      <div className={`container settingsPageTransition ${isLeavingSettings ? "closing" : ""}`}>
-        <header className="topHeaderMinimal">
-          <span className="pill topHeaderLogo" aria-label="Visioro">
-            Visioro
-          </span>
-          <Link
-            href="/"
-            className={`topHeaderSettingsButton topHeaderBackButton ${isLeavingSettings ? "isNavigating" : ""}`}
-            aria-label="Zurück"
-            title="Zurück"
-            onClick={handleBackNavigation}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="topHeaderIcon"
-              aria-hidden="true"
-              focusable="false"
+    <main className={`page ${isEmbedded ? "settingsEmbeddedPage" : ""}`}>
+      {!isEmbedded ? <div className="ambient ambientA" aria-hidden /> : null}
+      {!isEmbedded ? <div className="ambient ambientB" aria-hidden /> : null}
+      <div
+        className={`container settingsPageTransition ${
+          isLeavingSettings ? "closing" : ""
+        } ${isEmbedded ? "settingsEmbeddedContainer" : ""}`}
+      >
+        {!isEmbedded ? (
+          <header className="topHeaderMinimal">
+            <span className="pill topHeaderLogo" aria-label="Visioro">
+              Visioro
+            </span>
+            <Link
+              href="/"
+              className={`topHeaderSettingsButton topHeaderBackButton ${isLeavingSettings ? "isNavigating" : ""}`}
+              aria-label="Zurück"
+              title="Zurück"
+              onClick={handleBackNavigation}
             >
-              <path
-                d="M15.5 5.5 8.5 12l7 6.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </Link>
-        </header>
+              <svg
+                viewBox="0 0 24 24"
+                className="topHeaderIcon"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M15.5 5.5 8.5 12l7 6.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Link>
+          </header>
+        ) : null}
 
         <section className="hero glassCard compactHero">
           <p className="heroEyebrow">Einmal einrichten</p>

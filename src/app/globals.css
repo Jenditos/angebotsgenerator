@@ -132,6 +132,19 @@ a {
   pointer-events: none;
 }
 
+.settingsEmbeddedPage {
+  padding: 0;
+  min-height: 100%;
+  background: transparent;
+}
+
+.settingsEmbeddedContainer {
+  max-width: none;
+  width: 100%;
+  gap: 12px;
+  padding: 12px;
+}
+
 .glassCard {
   border: 1px solid var(--stroke);
   background: linear-gradient(140deg, var(--glass-strong), var(--glass) 55%);
@@ -3544,6 +3557,177 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   right: auto;
 }
 
+.settingsOverlayBackdrop {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  z-index: 126;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(12, 31, 58, 0.3);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  animation: customerArchiveBackdropIn 170ms ease-out;
+}
+
+.settingsOverlayBackdrop.closing {
+  animation: customerArchiveBackdropOut 160ms ease-in forwards;
+}
+
+.settingsOverlaySheet {
+  width: min(980px, 100%);
+  height: min(calc(100vh - 36px), 890px);
+  max-height: min(calc(100vh - 36px), 890px);
+  border: 1px solid rgba(72, 118, 197, 0.28);
+  border-radius: 22px;
+  background: linear-gradient(
+    148deg,
+    rgba(252, 255, 255, 0.95),
+    rgba(239, 247, 255, 0.9)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 26px 58px rgba(33, 65, 117, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px;
+  animation: customerArchiveSheetIn 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.settingsOverlaySheet.closing {
+  animation: customerArchiveSheetOut 160ms cubic-bezier(0.4, 0, 0.2, 1)
+    forwards;
+}
+
+.settingsOverlayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 0;
+}
+
+.settingsOverlayHeader strong {
+  font-size: 1.02rem;
+  color: #163462;
+}
+
+.settingsOverlayCloseButton {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #274a7c;
+}
+
+.settingsOverlayFrameWrap {
+  min-height: 0;
+  border: 1px solid rgba(72, 118, 197, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+}
+
+.settingsOverlayFrame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: transparent;
+}
+
+.customerPickerModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 118;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(12, 31, 58, 0.24);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  animation: customerArchiveBackdropIn 160ms ease-out;
+}
+
+.customerPickerModalBackdrop.closing {
+  animation: customerArchiveBackdropOut 140ms ease-in forwards;
+}
+
+.customerPickerModalSheet {
+  width: min(560px, 100%);
+  max-height: min(calc(100vh - 36px), 620px);
+  border: 1px solid rgba(72, 118, 197, 0.26);
+  border-radius: 18px;
+  background: linear-gradient(
+    148deg,
+    rgba(252, 255, 255, 0.95),
+    rgba(239, 247, 255, 0.9)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 22px 48px rgba(33, 65, 117, 0.24);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  animation: customerArchiveSheetIn 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.customerPickerModalSheet.closing {
+  animation: customerArchiveSheetOut 150ms cubic-bezier(0.4, 0, 0.2, 1)
+    forwards;
+}
+
+.customerPickerModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+
+.customerPickerModalHeader strong {
+  color: #1d365f;
+  font-size: 0.95rem;
+}
+
+.customerPickerModalCloseButton {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2d4f80;
+}
+
+.customerPickerListModal {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.customerPickerResultsModal {
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
 .infoLegalBackdrop {
   position: fixed;
   inset: 0;
@@ -4142,6 +4326,39 @@ button.customerArchiveSectionToggle {
   .topHeaderArchiveButton {
     left: 2px;
     right: auto;
+  }
+
+  .settingsOverlayBackdrop {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+
+  .settingsOverlaySheet {
+    width: 100%;
+    height: calc(100vh - 20px - env(safe-area-inset-top));
+    max-height: calc(100vh - 20px - env(safe-area-inset-top));
+    border-radius: 18px;
+    padding: 11px;
+    gap: 10px;
+  }
+
+  .settingsOverlayHeader strong {
+    font-size: 0.96rem;
+  }
+
+  .customerPickerModalBackdrop {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+
+  .customerPickerModalSheet {
+    width: 100%;
+    max-height: calc(100vh - 20px - env(safe-area-inset-top));
+    border-radius: 16px;
+    padding: 10px;
+    gap: 9px;
   }
 
   .customerArchiveBackdrop {

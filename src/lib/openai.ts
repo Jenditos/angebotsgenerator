@@ -57,7 +57,7 @@ const POSITION_DESCRIPTION_BLOCKLIST = new Set([
 ]);
 const MAX_PARSED_POSITIONS = 60;
 const UNIT_TOKEN_PATTERN =
-  "(?:stück|stk|m²|m2|m³|m3|m|kg|t|l|std|stunde|stunden|tag|pauschal|psch\\.?)";
+  "(?:stück|stueck|stk|m²|m2|qm|quadrat\\s*meter(?:n)?|quadratmeter(?:n)?|m³|m3|cbm|kubik\\s*meter(?:n)?|kubikmeter(?:n)?|meter(?:n)?|m|kilogramm|kg|tonnen?|t|liter|l|std|stunde|stunden|h|tage?|tag|pauschal(?:e)?|psch\\.?)";
 const NUMBER_WORDS: Record<string, number> = {
   null: 0,
   zero: 0,
@@ -390,41 +390,72 @@ function normalizeTextValue(input: unknown): string | undefined {
 }
 
 function normalizeUnitLabel(value: unknown): string {
-  const normalized = normalizeSearchValue(normalizeTextValue(value) ?? "");
-  if (!normalized) {
+  const raw = normalizeTextValue(value);
+  if (!raw) {
     return "Pauschal";
   }
 
-  if (normalized === "stuck" || normalized === "stk") {
+  const compact = normalizeGermanUmlauts(raw.toLowerCase())
+    .replace(/\s+/g, "")
+    .replace(/²/g, "2")
+    .replace(/³/g, "3")
+    .replace(/\./g, "")
+    .trim();
+  if (!compact) {
+    return "Pauschal";
+  }
+
+  if (compact === "stuck" || compact === "stueck" || compact === "stk") {
     return "Stück";
   }
-  if (normalized === "m2" || normalized === "qm") {
+  if (
+    compact === "m2" ||
+    compact === "qm" ||
+    compact === "quadratmeter" ||
+    compact === "quadratmetern"
+  ) {
     return "m²";
   }
-  if (normalized === "m3") {
+  if (
+    compact === "m3" ||
+    compact === "cbm" ||
+    compact === "kubikmeter" ||
+    compact === "kubikmetern"
+  ) {
     return "m³";
   }
-  if (normalized === "std" || normalized === "stunde" || normalized === "stunden" || normalized === "h") {
+  if (compact === "m" || compact === "meter" || compact === "metern") {
+    return "m";
+  }
+  if (compact === "kg" || compact === "kilogramm") {
+    return "kg";
+  }
+  if (compact === "t" || compact === "tonne" || compact === "tonnen") {
+    return "t";
+  }
+  if (compact === "l" || compact === "liter") {
+    return "l";
+  }
+  if (
+    compact === "std" ||
+    compact === "stunde" ||
+    compact === "stunden" ||
+    compact === "h"
+  ) {
     return "Std";
   }
-  if (normalized === "psch" || normalized === "pauschale") {
+  if (compact === "tag" || compact === "tage") {
+    return "Tag";
+  }
+  if (
+    compact === "psch" ||
+    compact === "pauschale" ||
+    compact === "pauschal"
+  ) {
     return "Pauschal";
   }
 
-  const knownUnits = new Set(["stuck", "m", "m2", "m3", "kg", "t", "l", "std", "tag", "pauschal"]);
-  if (!knownUnits.has(normalized)) {
-    return "Pauschal";
-  }
-
-  return normalized === "m2"
-    ? "m²"
-    : normalized === "m3"
-      ? "m³"
-      : normalized === "std"
-        ? "Std"
-        : normalized === "stuck"
-          ? "Stück"
-          : normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  return "Pauschal";
 }
 
 function normalizeParsedPositions(input: unknown): ParsedIntakePosition[] {
