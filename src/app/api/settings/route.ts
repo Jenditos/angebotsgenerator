@@ -35,6 +35,10 @@ export async function POST(request: Request) {
         | "companyEmail"
         | "companyPhone"
         | "companyWebsite"
+        | "taxNumber"
+        | "vatId"
+        | "companyCountry"
+        | "euVatNoticeText"
         | "senderCopyEmail"
         | "logoDataUrl"
         | "offerTermsText"
@@ -56,6 +60,10 @@ export async function POST(request: Request) {
     maybeAssignString("companyEmail");
     maybeAssignString("companyPhone");
     maybeAssignString("companyWebsite");
+    maybeAssignString("taxNumber");
+    maybeAssignString("vatId");
+    maybeAssignString("companyCountry");
+    maybeAssignString("euVatNoticeText");
     maybeAssignString("senderCopyEmail");
     maybeAssignString("logoDataUrl");
     maybeAssignString("offerTermsText");
@@ -95,6 +103,10 @@ export async function POST(request: Request) {
 
     if (Array.isArray(body.customServices)) {
       sanitized.customServices = body.customServices;
+    }
+
+    if (typeof body.includeCustomerVatId === "boolean") {
+      sanitized.includeCustomerVatId = body.includeCustomerVatId;
     }
 
     const settings = await writeSettings(sanitized);

@@ -16,6 +16,11 @@ function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySett
     companyEmail: "info@bestand.de",
     companyPhone: "+49 30 123456",
     companyWebsite: "www.bestand.de",
+    taxNumber: "12/345/67890",
+    vatId: "DE123456789",
+    companyCountry: "Deutschland",
+    euVatNoticeText: "Steuerfreie innergemeinschaftliche Lieferung.",
+    includeCustomerVatId: true,
     senderCopyEmail: "intern@bestand.de",
     logoDataUrl: "data:image/png;base64,AAAA",
     pdfTableColumns: [

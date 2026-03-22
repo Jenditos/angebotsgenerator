@@ -36,6 +36,11 @@ const emptySettings: CompanySettings = {
   companyEmail: "",
   companyPhone: "",
   companyWebsite: "",
+  taxNumber: "",
+  vatId: "",
+  companyCountry: "Deutschland",
+  euVatNoticeText: "",
+  includeCustomerVatId: false,
   senderCopyEmail: "",
   logoDataUrl: "",
   pdfTableColumns: getDefaultPdfTableColumns(),
@@ -73,6 +78,10 @@ function asString(value: unknown, fallback = ""): string {
 function asNumber(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asBoolean(value: unknown, fallback = false): boolean {
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function validateWebsiteInput(rawValue: string): {
@@ -261,6 +270,14 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
     companyEmail: asString(input.companyEmail),
     companyPhone: asString(input.companyPhone),
     companyWebsite: asString(input.companyWebsite),
+    taxNumber: asString(input.taxNumber),
+    vatId: asString(input.vatId),
+    companyCountry: asString(input.companyCountry, emptySettings.companyCountry),
+    euVatNoticeText: asString(input.euVatNoticeText),
+    includeCustomerVatId: asBoolean(
+      input.includeCustomerVatId,
+      emptySettings.includeCustomerVatId,
+    ),
     senderCopyEmail: asString(input.senderCopyEmail),
     logoDataUrl: asString(input.logoDataUrl),
     pdfTableColumns,
@@ -1190,6 +1207,51 @@ export default function SettingsPage() {
               />
             </label>
 
+            <label className="field">
+              <span>Steuernummer</span>
+              <input
+                value={settings.taxNumber}
+                autoCapitalize="characters"
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    taxNumber: e.target.value,
+                  }))
+                }
+                placeholder="z. B. 12/345/67890"
+              />
+            </label>
+
+            <label className="field">
+              <span>USt-IdNr.</span>
+              <input
+                value={settings.vatId}
+                autoCapitalize="characters"
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    vatId: e.target.value,
+                  }))
+                }
+                placeholder="z. B. DE123456789"
+              />
+            </label>
+
+            <label className="field span2">
+              <span>Standard-Land / Unternehmenssitz</span>
+              <input
+                value={settings.companyCountry}
+                autoCapitalize="words"
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    companyCountry: e.target.value,
+                  }))
+                }
+                placeholder="z. B. Deutschland"
+              />
+            </label>
+
             <div className="field span2 settingsInvoiceDueField">
               <span>Zahlungsfrist für Rechnungen</span>
               <div className="settingsInvoiceDuePanel">
@@ -1243,6 +1305,41 @@ export default function SettingsPage() {
                   </div>
                 </label>
               </div>
+            </div>
+
+            <label className="field span2">
+              <span>Steuerhinweis für EU-/Auslandsfälle (optional)</span>
+              <textarea
+                rows={3}
+                value={settings.euVatNoticeText}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    euVatNoticeText: e.target.value,
+                  }))
+                }
+                placeholder="z. B. Reverse-Charge-Hinweis oder Hinweis zur Steuerbefreiung"
+              />
+            </label>
+
+            <div className="field span2 settingsTaxOptionsField">
+              <span>Dokumentenoptionen (Vorbereitung)</span>
+              <label className="settingsTaxOptionToggle">
+                <input
+                  type="checkbox"
+                  checked={settings.includeCustomerVatId}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      includeCustomerVatId: e.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  Kunden-USt-IdNr. auf Dokumenten berücksichtigen (für
+                  EU-/Auslandsfälle)
+                </span>
+              </label>
             </div>
 
             <label className="field">

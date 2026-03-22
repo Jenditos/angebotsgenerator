@@ -73,6 +73,11 @@ export type CompanySettings = {
   companyEmail: string;
   companyPhone: string;
   companyWebsite: string;
+  taxNumber: string;
+  vatId: string;
+  companyCountry: string;
+  euVatNoticeText: string;
+  includeCustomerVatId: boolean;
   senderCopyEmail: string;
   logoDataUrl: string;
   pdfTableColumns: PdfTableColumnConfig[];

@@ -30,6 +30,11 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   companyEmail: "info@musterbetrieb.de",
   companyPhone: "+49 30 123456",
   companyWebsite: "www.musterbetrieb.de",
+  taxNumber: "",
+  vatId: "",
+  companyCountry: "Deutschland",
+  euVatNoticeText: "",
+  includeCustomerVatId: false,
   senderCopyEmail: "",
   logoDataUrl: "",
   pdfTableColumns: getDefaultPdfTableColumns(),
@@ -140,6 +145,26 @@ function resolveCompanySettings(
       typeof payload.companyWebsite === "string"
         ? payload.companyWebsite.trim()
         : FALLBACK_COMPANY_SETTINGS.companyWebsite,
+    taxNumber:
+      typeof payload.taxNumber === "string"
+        ? payload.taxNumber.trim()
+        : FALLBACK_COMPANY_SETTINGS.taxNumber,
+    vatId:
+      typeof payload.vatId === "string"
+        ? payload.vatId.trim()
+        : FALLBACK_COMPANY_SETTINGS.vatId,
+    companyCountry:
+      typeof payload.companyCountry === "string"
+        ? payload.companyCountry.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyCountry,
+    euVatNoticeText:
+      typeof payload.euVatNoticeText === "string"
+        ? payload.euVatNoticeText.trim()
+        : FALLBACK_COMPANY_SETTINGS.euVatNoticeText,
+    includeCustomerVatId:
+      typeof payload.includeCustomerVatId === "boolean"
+        ? payload.includeCustomerVatId
+        : FALLBACK_COMPANY_SETTINGS.includeCustomerVatId,
     senderCopyEmail:
       typeof payload.senderCopyEmail === "string"
         ? payload.senderCopyEmail.trim()

@@ -420,6 +420,11 @@ const fallbackCompanySettings: CompanySettings = {
   companyEmail: "info@musterbetrieb.de",
   companyPhone: "+49 30 123456",
   companyWebsite: "www.musterbetrieb.de",
+  taxNumber: "",
+  vatId: "",
+  companyCountry: "Deutschland",
+  euVatNoticeText: "",
+  includeCustomerVatId: false,
   senderCopyEmail: "",
   logoDataUrl: "",
   pdfTableColumns: getDefaultPdfTableColumns(),
@@ -618,6 +623,20 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
       value.companyWebsite,
       fallbackCompanySettings.companyWebsite,
     ),
+    taxNumber: asString(value.taxNumber, fallbackCompanySettings.taxNumber),
+    vatId: asString(value.vatId, fallbackCompanySettings.vatId),
+    companyCountry: asString(
+      value.companyCountry,
+      fallbackCompanySettings.companyCountry,
+    ),
+    euVatNoticeText: asString(
+      value.euVatNoticeText,
+      fallbackCompanySettings.euVatNoticeText,
+    ),
+    includeCustomerVatId:
+      typeof value.includeCustomerVatId === "boolean"
+        ? value.includeCustomerVatId
+        : fallbackCompanySettings.includeCustomerVatId,
     senderCopyEmail: asString(
       value.senderCopyEmail,
       fallbackCompanySettings.senderCopyEmail,

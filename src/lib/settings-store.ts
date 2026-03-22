@@ -17,6 +17,7 @@ const MAX_INVOICE_PAYMENT_DUE_DAYS = 365;
 const MIN_VAT_RATE = 0;
 const MAX_VAT_RATE = 100;
 const MAX_TERMS_TEXT_LENGTH = 3000;
+const MAX_EU_VAT_NOTICE_TEXT_LENGTH = 2000;
 
 const defaultSettings: CompanySettings = {
   companyName: "Musterbetrieb GmbH",
@@ -27,6 +28,11 @@ const defaultSettings: CompanySettings = {
   companyEmail: "info@musterbetrieb.de",
   companyPhone: "+49 30 123456",
   companyWebsite: "www.musterbetrieb.de",
+  taxNumber: "",
+  vatId: "",
+  companyCountry: "Deutschland",
+  euVatNoticeText: "",
+  includeCustomerVatId: false,
   senderCopyEmail: "",
   logoDataUrl: "",
   pdfTableColumns: getDefaultPdfTableColumns(),
@@ -95,6 +101,13 @@ function asStringArray(value: unknown): string[] {
   );
 }
 
+function asBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return fallback;
+}
+
 function resolveStringUpdate(current: string, value: unknown): string {
   if (typeof value !== "string") {
     return current;
@@ -112,6 +125,13 @@ function resolveNumberUpdate(
     return current;
   }
   return asNumberInRange(value, current, min, max);
+}
+
+function resolveBooleanUpdate(current: boolean, value: unknown): boolean {
+  if (typeof value === "undefined") {
+    return current;
+  }
+  return typeof value === "boolean" ? value : current;
 }
 
 async function resolveSettingsStorePaths(): Promise<{
@@ -200,6 +220,20 @@ function resolveSettingsPayload(
       typeof parsed.companyWebsite === "string"
         ? parsed.companyWebsite.trim()
         : defaultSettings.companyWebsite,
+    taxNumber: asTrimmedString(parsed.taxNumber, defaultSettings.taxNumber),
+    vatId: asTrimmedString(parsed.vatId, defaultSettings.vatId),
+    companyCountry: asTrimmedString(
+      parsed.companyCountry,
+      defaultSettings.companyCountry,
+    ),
+    euVatNoticeText: asTrimmedString(
+      parsed.euVatNoticeText,
+      defaultSettings.euVatNoticeText,
+    ).slice(0, MAX_EU_VAT_NOTICE_TEXT_LENGTH),
+    includeCustomerVatId: asBoolean(
+      parsed.includeCustomerVatId,
+      defaultSettings.includeCustomerVatId,
+    ),
     senderCopyEmail: asTrimmedString(
       parsed.senderCopyEmail,
       defaultSettings.senderCopyEmail,
@@ -285,6 +319,22 @@ export async function writeSettings(
     companyWebsite: resolveStringUpdate(
       current.companyWebsite,
       payload.companyWebsite,
+    ),
+    taxNumber: resolveStringUpdate(current.taxNumber, payload.taxNumber),
+    vatId: resolveStringUpdate(current.vatId, payload.vatId),
+    companyCountry: resolveStringUpdate(
+      current.companyCountry,
+      payload.companyCountry,
+    ),
+    euVatNoticeText:
+      typeof payload.euVatNoticeText === "undefined"
+        ? current.euVatNoticeText
+        : String(payload.euVatNoticeText)
+            .trim()
+            .slice(0, MAX_EU_VAT_NOTICE_TEXT_LENGTH),
+    includeCustomerVatId: resolveBooleanUpdate(
+      current.includeCustomerVatId,
+      payload.includeCustomerVatId,
     ),
     senderCopyEmail: resolveStringUpdate(
       current.senderCopyEmail,
