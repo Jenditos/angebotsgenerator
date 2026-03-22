@@ -1901,6 +1901,41 @@ textarea:focus {
   justify-content: center;
 }
 
+.settingsLogoActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.settingsLogoDeleteButton {
+  width: auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: #6f2f4a;
+  border-color: rgba(216, 176, 195, 0.62);
+  background: linear-gradient(
+    150deg,
+    rgba(255, 250, 252, 0.84),
+    rgba(255, 241, 247, 0.68)
+  );
+}
+
+.settingsLogoDeleteButton:hover:not(:disabled) {
+  background: linear-gradient(
+    150deg,
+    rgba(255, 252, 253, 0.9),
+    rgba(255, 246, 249, 0.76)
+  );
+  border-color: rgba(221, 186, 203, 0.72);
+}
+
+.settingsLogoDeleteButton:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .logoFrame {
   border: 1px solid rgba(66, 114, 193, 0.24);
   border-radius: var(--radius-md);

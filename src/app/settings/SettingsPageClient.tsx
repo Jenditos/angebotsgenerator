@@ -223,6 +223,8 @@ export default function SettingsPage() {
   const leaveSettingsTimeoutRef = useRef<number | null>(null);
   const autosaveTimeoutRef = useRef<number | null>(null);
   const settingsSaveRequestRef = useRef(0);
+  const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const hasLocalLogoChangeRef = useRef(false);
 
   const persistSettings = useCallback(
     async (
@@ -230,73 +232,89 @@ export default function SettingsPage() {
       mode: "manual" | "autosave" | "reset" = "manual",
     ) => {
       const requestId = ++settingsSaveRequestRef.current;
-
-      if (mode === "manual") {
-        setSaveStatus("");
-        setError("");
-      } else if (mode === "reset") {
-        setError("");
-      }
-
-      const websiteValidation = validateWebsiteInput(nextSettings.companyWebsite);
-      if (!websiteValidation.isValid) {
-        if (mode !== "autosave") {
+      const runPersist = async (): Promise<boolean> => {
+        if (mode === "manual") {
           setSaveStatus("");
-          setError("Bitte geben Sie eine gültige URL ein.");
-          return false;
+          setError("");
+        } else if (mode === "reset") {
+          setError("");
         }
-      }
 
-      const payloadSettings: CompanySettings = {
-        ...nextSettings,
-        companyWebsite: websiteValidation.isValid
-          ? websiteValidation.normalized
-          : nextSettings.companyWebsite.trim(),
-      };
+        const websiteValidation = validateWebsiteInput(nextSettings.companyWebsite);
+        if (!websiteValidation.isValid) {
+          if (mode !== "autosave") {
+            setSaveStatus("");
+            setError("Bitte geben Sie eine gültige URL ein.");
+            return false;
+          }
+        }
 
-      try {
-        const response = await fetch("/api/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payloadSettings),
-        });
+        const payloadSettings: CompanySettings = {
+          ...nextSettings,
+          companyWebsite: websiteValidation.isValid
+            ? websiteValidation.normalized
+            : nextSettings.companyWebsite.trim(),
+        };
 
-        const data = await response.json();
-        if (!response.ok) {
+        try {
+          const response = await fetch("/api/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payloadSettings),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            if (
+              settingsSaveRequestRef.current === requestId &&
+              mode !== "autosave"
+            ) {
+              setError(data.error ?? "Speichern fehlgeschlagen");
+            }
+            return false;
+          }
+
+          if (settingsSaveRequestRef.current !== requestId) {
+            return false;
+          }
+
+          const resolvedSettings = data.settings as CompanySettings;
+          setSettings((prev) =>
+            areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
+          );
+          writeSettingsDraftToSessionStorage(resolvedSettings);
+          setIsAutosaveEnabled(true);
+          setError("");
+          if (resolvedSettings.logoDataUrl === payloadSettings.logoDataUrl) {
+            hasLocalLogoChangeRef.current = false;
+          }
+
+          if (mode === "manual") {
+            setSaveStatus("Einstellungen wurden gespeichert.");
+          } else if (mode === "reset") {
+            setSaveStatus("Einstellungen wurden zurückgesetzt.");
+          }
+
+          return true;
+        } catch {
           if (
             settingsSaveRequestRef.current === requestId &&
             mode !== "autosave"
           ) {
-            setError(data.error ?? "Speichern fehlgeschlagen");
+            setError("Netzwerkfehler beim Speichern.");
           }
           return false;
         }
+      };
 
-        if (settingsSaveRequestRef.current !== requestId) {
-          return false;
-        }
-
-        const resolvedSettings = data.settings as CompanySettings;
-        setSettings((prev) =>
-          areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
-        );
-        writeSettingsDraftToSessionStorage(resolvedSettings);
-        setIsAutosaveEnabled(true);
-        setError("");
-
-        if (mode === "manual") {
-          setSaveStatus("Einstellungen wurden gespeichert.");
-        } else if (mode === "reset") {
-          setSaveStatus("Einstellungen wurden zurückgesetzt.");
-        }
-
-        return true;
-      } catch {
-        if (settingsSaveRequestRef.current === requestId && mode !== "autosave") {
-          setError("Netzwerkfehler beim Speichern.");
-        }
-        return false;
-      }
+      const queuedPersistPromise = settingsSaveQueueRef.current.then(
+        runPersist,
+        runPersist,
+      );
+      settingsSaveQueueRef.current = queuedPersistPromise
+        .then(() => undefined)
+        .catch(() => undefined);
+      return queuedPersistPromise;
     },
     [],
   );
@@ -308,7 +326,6 @@ export default function SettingsPage() {
     if (draftSettings) {
       setSettings(draftSettings);
       setIsSettingsHydrated(true);
-      setIsAutosaveEnabled(true);
     }
 
     async function loadSettings() {
@@ -322,21 +339,46 @@ export default function SettingsPage() {
         if (!response.ok) {
           if (!draftSettings) {
             setError(data.error ?? "Einstellungen konnten nicht geladen werden.");
+          } else {
+            setIsAutosaveEnabled(true);
           }
           return;
         }
 
         const loadedSettings = data.settings as CompanySettings;
-        if (!draftSettings) {
+        if (draftSettings) {
+          setSettings((prev) => {
+            const mergedSettings: CompanySettings = {
+              ...prev,
+              logoDataUrl: hasLocalLogoChangeRef.current
+                ? prev.logoDataUrl
+                : loadedSettings.logoDataUrl,
+            };
+            writeSettingsDraftToSessionStorage(mergedSettings);
+            return mergedSettings;
+          });
+        } else if (hasLocalLogoChangeRef.current) {
+          setSettings((prev) => {
+            const mergedSettings: CompanySettings = {
+              ...loadedSettings,
+              logoDataUrl: prev.logoDataUrl,
+            };
+            writeSettingsDraftToSessionStorage(mergedSettings);
+            return mergedSettings;
+          });
+        } else {
           setSettings(loadedSettings);
+          writeSettingsDraftToSessionStorage(loadedSettings);
         }
-        writeSettingsDraftToSessionStorage(
-          draftSettings ? draftSettings : loadedSettings,
-        );
         setIsAutosaveEnabled(true);
+        setError("");
       } catch {
-        if (mounted && !draftSettings) {
-          setError("Einstellungen konnten nicht geladen werden.");
+        if (mounted) {
+          if (!draftSettings) {
+            setError("Einstellungen konnten nicht geladen werden.");
+          } else {
+            setIsAutosaveEnabled(true);
+          }
         }
       } finally {
         if (mounted) {
@@ -624,17 +666,65 @@ export default function SettingsPage() {
       return;
     }
 
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () =>
-        reject(new Error("Datei konnte nicht gelesen werden."));
-      reader.readAsDataURL(file);
-    });
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () =>
+          reject(new Error("Datei konnte nicht gelesen werden."));
+        reader.readAsDataURL(file);
+      });
 
-    setSettings((prev) => ({ ...prev, logoDataUrl: dataUrl }));
+      const nextSettings: CompanySettings = {
+        ...settings,
+        logoDataUrl: dataUrl,
+      };
+      hasLocalLogoChangeRef.current = true;
+      setSettings(nextSettings);
+      writeSettingsDraftToSessionStorage(nextSettings);
+      setIsAutosaveEnabled(true);
+      setLogoPreviewRevision((prev) => prev + 1);
+      setSaveStatus("");
+      setError("");
+      if (autosaveTimeoutRef.current !== null) {
+        window.clearTimeout(autosaveTimeoutRef.current);
+        autosaveTimeoutRef.current = null;
+      }
+      void persistSettings(nextSettings, "autosave");
+      event.target.value = "";
+    } catch {
+      setError("Datei konnte nicht gelesen werden.");
+    }
+  }
+
+  function deleteLogo() {
+    if (!settings.logoDataUrl) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Möchten Sie das Firmenlogo wirklich löschen?",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const nextSettings: CompanySettings = {
+      ...settings,
+      logoDataUrl: "",
+    };
+    hasLocalLogoChangeRef.current = true;
+    setSettings(nextSettings);
+    writeSettingsDraftToSessionStorage(nextSettings);
+    setIsAutosaveEnabled(true);
     setLogoPreviewRevision((prev) => prev + 1);
-    event.target.value = "";
+    setSaveStatus("");
+    setError("");
+    if (autosaveTimeoutRef.current !== null) {
+      window.clearTimeout(autosaveTimeoutRef.current);
+      autosaveTimeoutRef.current = null;
+    }
+    void persistSettings(nextSettings, "autosave");
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1122,6 +1212,17 @@ export default function SettingsPage() {
               <span>Firmenlogo</span>
               <input type="file" accept="image/*" onChange={onLogoUpload} />
             </label>
+
+            <div className="settingsLogoActions span2">
+              <button
+                type="button"
+                className="ghostButton settingsLogoDeleteButton"
+                onClick={deleteLogo}
+                disabled={!settings.logoDataUrl}
+              >
+                Logo löschen
+              </button>
+            </div>
 
             {settings.logoDataUrl ? (
               <div className="logoFrame span2">

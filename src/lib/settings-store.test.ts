@@ -102,4 +102,33 @@ describe("settings-store", () => {
     const updated = await readSettings();
     expect(updated.logoDataUrl).toBe("data:image/png;base64,AAAA");
   });
+
+  it("persists logo updates and explicit logo deletion", async () => {
+    const dataDir = await createTempDir("settings-store-logo-update-delete-");
+    process.env.DATA_DIR = dataDir;
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(
+      path.join(dataDir, "company-settings.json"),
+      JSON.stringify(buildSettingsFixture(), null, 2),
+      "utf8",
+    );
+
+    await writeSettings({
+      logoDataUrl: "data:image/png;base64,BBBB",
+    });
+    const afterFirstLogoUpdate = await readSettings();
+    expect(afterFirstLogoUpdate.logoDataUrl).toBe("data:image/png;base64,BBBB");
+
+    await writeSettings({
+      logoDataUrl: "data:image/png;base64,CCCC",
+    });
+    const afterSecondLogoUpdate = await readSettings();
+    expect(afterSecondLogoUpdate.logoDataUrl).toBe("data:image/png;base64,CCCC");
+
+    await writeSettings({
+      logoDataUrl: "",
+    });
+    const afterLogoDelete = await readSettings();
+    expect(afterLogoDelete.logoDataUrl).toBe("");
+  });
 });
