@@ -531,6 +531,20 @@ function buildPdfLineItems(input: {
   return fallbackItems;
 }
 
+function findInvalidLineItem(
+  lineItems: OfferPdfLineItem[],
+): OfferPdfLineItem | undefined {
+  return lineItems.find(
+    (lineItem) =>
+      !Number.isFinite(lineItem.quantity) ||
+      !Number.isFinite(lineItem.unitPrice) ||
+      !Number.isFinite(lineItem.totalPrice) ||
+      lineItem.quantity < 0 ||
+      lineItem.unitPrice < 0 ||
+      lineItem.totalPrice < 0,
+  );
+}
+
 type EmailStatus = "not_requested" | "sent" | "not_configured" | "failed";
 
 function buildEmailText(input: {
@@ -728,6 +742,15 @@ export async function POST(request: Request) {
       hourlyRate,
       materialCost,
     });
+    const invalidLineItem = findInvalidLineItem(lineItems);
+    if (invalidLineItem) {
+      return NextResponse.json(
+        {
+          error: `Bitte einen gültigen EP / Preis EUR für "${invalidLineItem.description || "Position"}" eingeben.`,
+        },
+        { status: 400 },
+      );
+    }
     const draftState: CustomerDraftState = {
       serviceDescription,
       hours: String(body.hours ?? "").trim(),

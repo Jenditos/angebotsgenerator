@@ -941,18 +941,19 @@ export async function generateOfferText(input: OfferPromptInput): Promise<OfferT
     return fallbackOffer(input);
   }
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content:
-          "Du erstellst professionelle deutsche Angebote für Handwerksbetriebe. Antworte nur mit valide JSON."
-      },
-      {
-        role: "user",
-        content: `
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "Du erstellst professionelle deutsche Angebote für Handwerksbetriebe. Antworte nur mit valide JSON."
+        },
+        {
+          role: "user",
+          content: `
 Erstelle ein professionelles Angebot auf Deutsch mit diesen Daten:
 Kunde: ${input.customerName}
 Adresse: ${input.customerAddress}
@@ -969,21 +970,24 @@ Antworte im JSON-Schema:
   "closing": "Abschluss"
 }
 `
-      }
-    ]
-  });
+        }
+      ]
+    });
 
-  const raw = completion.choices[0]?.message?.content;
-  if (!raw) {
-    return fallbackOffer(input);
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<OfferText>;
-    if (isValidOfferText(parsed)) {
-      return parsed;
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) {
+      return fallbackOffer(input);
     }
-    return fallbackOffer(input);
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<OfferText>;
+      if (isValidOfferText(parsed)) {
+        return parsed;
+      }
+      return fallbackOffer(input);
+    } catch {
+      return fallbackOffer(input);
+    }
   } catch {
     return fallbackOffer(input);
   }
