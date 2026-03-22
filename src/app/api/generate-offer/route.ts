@@ -679,6 +679,16 @@ export async function POST(request: Request) {
     debugOfferLog(requestId, "request_received", {
       documentType: body.documentType,
       customerType: body.customerType,
+      salutation: body.salutation,
+      companyName: body.companyName,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      street: body.street,
+      postalCode: body.postalCode,
+      city: body.city,
+      customerEmail: body.customerEmail,
+      serviceDescription: body.serviceDescription,
+      serviceDate: body.serviceDate,
       hasPositions: Array.isArray(body.positions),
       positionsCount: Array.isArray(body.positions) ? body.positions.length : 0,
       selectedServicesCount: Array.isArray(body.selectedServices)
@@ -709,6 +719,12 @@ export async function POST(request: Request) {
       selectedServices,
       serviceDescription,
     );
+    debugOfferLog(requestId, "normalized_text_fields", {
+      serviceDescription,
+      composedServiceDescription,
+      selectedServices,
+      projectDescriptionSource: serviceDescription,
+    });
     const sendEmailRequested = Boolean(body.sendEmail);
     const requestedPaymentDueDays = parsePaymentDueDays(body.paymentDueDays);
     const resolvedInvoiceDate =
