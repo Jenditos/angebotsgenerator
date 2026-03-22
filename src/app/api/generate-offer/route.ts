@@ -4,22 +4,40 @@ import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
-import { readSettings, writeSettings } from "@/lib/settings-store";
-import { sendViaConnectedMailbox } from "@/lib/email-sender";
+import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
+  CompanySettings,
   CustomerDraftGroup,
-  CustomerDraftState,
   CustomerDraftSubitem,
   DocumentType,
   GenerateOfferRequest,
   OfferPdfLineItem,
   OfferPositionInput,
 } from "@/types/offer";
-import { createStoredOfferRecord } from "@/server/services/offer-store-service";
-import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 
 const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
+const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
+  companyName: "Musterbetrieb GmbH",
+  ownerName: "Max Mustermann",
+  companyStreet: "Musterstraße 1",
+  companyPostalCode: "10115",
+  companyCity: "Berlin",
+  companyEmail: "info@musterbetrieb.de",
+  companyPhone: "+49 30 123456",
+  companyWebsite: "www.musterbetrieb.de",
+  senderCopyEmail: "",
+  logoDataUrl: "",
+  pdfTableColumns: getDefaultPdfTableColumns(),
+  customServices: [],
+  vatRate: 19,
+  offerValidityDays: 30,
+  invoicePaymentDueDays: 14,
+  offerTermsText:
+    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
+  lastOfferNumber: "",
+  customServiceTypes: [],
+};
 
 function debugOfferLog(
   requestId: string,
@@ -36,6 +54,17 @@ function debugOfferLog(
   }
 
   console.info(`[generate-offer:${requestId}] ${stage}`);
+}
+
+function buildRuntimeDocumentNumber(
+  documentType: DocumentType,
+  referenceDate: Date,
+): string {
+  const prefix = documentType === "invoice" ? "RE" : "ANG";
+  const year = referenceDate.getFullYear();
+  const entropy = `${referenceDate.getTime()}${Math.floor(Math.random() * 1000)}`;
+  const sequence = entropy.slice(-6).padStart(6, "0");
+  return `${prefix}-${year}-${sequence}`;
 }
 
 function hasValidThousandsGrouping(
@@ -808,17 +837,15 @@ export async function POST(request: Request) {
           : companyName
         : personName;
     const customerAddress = `${street}, ${postalCode} ${city}`;
-    const settings = await readSettings();
-    const configuredPaymentDueDays = parsePaymentDueDays(
-      settings.invoicePaymentDueDays,
+    const settings = FALLBACK_COMPANY_SETTINGS;
+    const paymentDueDays = requestedPaymentDueDays;
+    const now = new Date();
+    const generatedCreatedAt = now.toISOString();
+    const generatedDocumentNumber = buildRuntimeDocumentNumber(
+      documentType,
+      now,
     );
-    const paymentDueDays =
-      documentType === "invoice"
-        ? configuredPaymentDueDays
-        : requestedPaymentDueDays;
-    const selectedServiceEntries = sanitizeSelectedServiceEntries(
-      body.selectedServiceEntries,
-    );
+    const customerNumberForDocument = "KDN-TEMP";
     failureStage = "build_line_items";
     const lineItems = buildPdfLineItems({
       positions: body.positions,
@@ -848,56 +875,6 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-
-    failureStage = "build_draft_state";
-    const draftState: CustomerDraftState = {
-      serviceDescription,
-      hours: String(body.hours ?? "").trim(),
-      hourlyRate: String(body.hourlyRate ?? "").trim(),
-      materialCost: String(body.materialCost ?? "").trim(),
-      invoiceDate: toDateInputValue(resolvedInvoiceDate),
-      serviceDate: servicePeriod,
-      paymentDueDays: String(paymentDueDays),
-      positions:
-        selectedServiceEntries.length > 0
-          ? selectedServiceEntries
-          : buildDraftGroupsFromLineItems(lineItems),
-    };
-
-    failureStage = "upsert_customer";
-    let storedCustomerRecord:
-      | Awaited<ReturnType<typeof upsertStoredCustomer>>
-      | null = null;
-    try {
-      storedCustomerRecord = await upsertStoredCustomer({
-        customerType,
-        companyName,
-        salutation,
-        firstName,
-        lastName,
-        street,
-        postalCode,
-        city,
-        customerEmail,
-        customerName,
-        customerAddress,
-        draftState,
-      });
-    } catch (error) {
-      console.error(
-        `[generate-offer:${requestId}] upsert_customer_failed`,
-        error instanceof Error
-          ? {
-              stage: failureStage,
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            }
-          : { stage: failureStage, error },
-      );
-    }
-    const customerNumberForDocument =
-      storedCustomerRecord?.customerNumber || "KDN-TEMP";
     const safeSettings = {
       ...settings,
       logoDataUrl:
@@ -944,36 +921,14 @@ export async function POST(request: Request) {
       documentType,
       customerName,
     });
-
-    failureStage = "persist_offer_record";
-    const storedOfferRecord = await createStoredOfferRecord({
-      documentType,
-      customerNumber: storedCustomerRecord?.customerNumber,
-      customerName,
-      customerAddress,
-      customerEmail,
-      serviceDescription: composedServiceDescription,
-      lineItems,
-      offer,
-      configuredLastOfferNumber:
-        documentType === "offer" ? settings.lastOfferNumber : undefined,
-    });
-    const pdfFilename = `${storedOfferRecord.offerNumber}.pdf`;
-    if (
-      documentType === "offer" &&
-      settings.lastOfferNumber !== storedOfferRecord.offerNumber
-    ) {
-      await writeSettings({
-        lastOfferNumber: storedOfferRecord.offerNumber,
-      }).catch(() => undefined);
-    }
+    const pdfFilename = `${generatedDocumentNumber}.pdf`;
 
     failureStage = "render_pdf";
     let pdfBuffer: Buffer;
     try {
       debugOfferLog(requestId, "pdf_render_start", {
         documentType,
-        documentNumber: storedOfferRecord.offerNumber,
+        documentNumber: generatedDocumentNumber,
         customerNumber: customerNumberForDocument,
         lineItemsCount: lineItems.length,
         hasLogoDataUrl: Boolean(safeSettings.logoDataUrl),
@@ -981,10 +936,10 @@ export async function POST(request: Request) {
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
           offer,
-          offerNumber: storedOfferRecord.offerNumber,
+          offerNumber: generatedDocumentNumber,
           documentType,
           customerNumber: customerNumberForDocument,
-          createdAt: storedOfferRecord.createdAt,
+          createdAt: generatedCreatedAt,
           invoiceDate:
             documentType === "invoice"
               ? toDateInputValue(resolvedInvoiceDate)
@@ -1008,10 +963,10 @@ export async function POST(request: Request) {
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
           offer,
-          offerNumber: storedOfferRecord.offerNumber,
+          offerNumber: generatedDocumentNumber,
           documentType,
           customerNumber: customerNumberForDocument,
-          createdAt: storedOfferRecord.createdAt,
+          createdAt: generatedCreatedAt,
           invoiceDate:
             documentType === "invoice"
               ? toDateInputValue(resolvedInvoiceDate)
@@ -1047,26 +1002,10 @@ export async function POST(request: Request) {
     let emailInfo = "Es wurde nur ein PDF erstellt.";
 
     if (sendEmailRequested) {
-      const mailboxResult = await sendViaConnectedMailbox({
-        to: customerEmail,
-        subject: offer.subject,
-        text: mailText,
-        pdfBase64,
-        filename: pdfFilename,
-      });
-
-      if (mailboxResult.ok) {
-        emailStatus = "sent";
-        emailInfo = mailboxResult.info;
-      } else if (mailboxResult.reason === "failed") {
-        emailStatus = "failed";
-        emailInfo = mailboxResult.info;
-      } else if (resendApiKey && resendFromEmail) {
+      if (resendApiKey && resendFromEmail) {
         try {
           const resend = new Resend(resendApiKey);
-          const recipients = [customerEmail, settings.senderCopyEmail].filter(
-            Boolean,
-          );
+          const recipients = [customerEmail];
 
           await resend.emails.send({
             from: resendFromEmail,
@@ -1103,12 +1042,12 @@ export async function POST(request: Request) {
       emailInfo,
       customerNumber: customerNumberForDocument,
       documentType,
-      documentNumber: storedOfferRecord.offerNumber,
-      offerNumber: storedOfferRecord.offerNumber,
+      documentNumber: generatedDocumentNumber,
+      offerNumber: generatedDocumentNumber,
       invoiceNumber:
-        documentType === "invoice" ? storedOfferRecord.offerNumber : undefined,
-      createdAt: storedOfferRecord.createdAt,
-      created_at: storedOfferRecord.created_at,
+        documentType === "invoice" ? generatedDocumentNumber : undefined,
+      createdAt: generatedCreatedAt,
+      created_at: generatedCreatedAt,
     });
   } catch (error) {
     console.error(
@@ -1126,8 +1065,8 @@ export async function POST(request: Request) {
           },
     );
     return NextResponse.json(
-      { error: "Fehler 500 bei der Angebotserstellung", requestId },
-      { status: 500 },
+      { error: "Angebot konnte nicht erstellt werden.", requestId },
+      { status: 400 },
     );
   }
 }
