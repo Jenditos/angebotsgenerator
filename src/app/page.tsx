@@ -2853,11 +2853,37 @@ export default function HomePage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function buildOfferMailDraftContent(companyName: string) {
+  function resolveDraftDocumentNumber(
+    payload: ApiResponse,
+    mode: DocumentMode,
+  ): string {
+    return (
+      payload.documentNumber?.trim() ||
+      payload.offerNumber?.trim() ||
+      payload.invoiceNumber?.trim() ||
+      (mode === "invoice" ? "RECHNUNG" : "ANGEBOT")
+    );
+  }
+
+  function resolveOfferReferenceNumber(payload: ApiResponse): string {
+    const resolved = resolveDraftDocumentNumber(payload, "offer").trim();
+    if (resolved && resolved !== "ANGEBOT") {
+      return resolved;
+    }
+    const year = new Date().getFullYear();
+    return `ANG-${year}-000`;
+  }
+
+  function buildOfferMailDraftContent(
+    companyName: string,
+    offerNumber: string,
+  ) {
     const senderName = companyName.trim() || "Ihr Handwerksbetrieb";
+    const normalizedOfferNumber = offerNumber.trim();
     return {
-      subject: `Ihr Angebot von ${senderName}`,
+      subject: `Ihr Angebot ${normalizedOfferNumber} von ${senderName}`,
       text:
+        `Ihr Angebot von ${senderName}\n\n\n` +
         `Sehr geehrte Damen und Herren,\n\n` +
         `anbei erhalten Sie unser Angebot.\n\n` +
         `Bei Fragen stehen wir Ihnen gerne zur Verfügung.\n\n` +
@@ -2893,11 +2919,7 @@ export default function HomePage() {
       return "Bitte zuerst eine Kunden-E-Mail hinterlegen.";
     }
 
-    const resolvedDocumentNumber =
-      payload.documentNumber?.trim() ||
-      payload.offerNumber?.trim() ||
-      payload.invoiceNumber?.trim() ||
-      (mode === "invoice" ? "RECHNUNG" : "ANGEBOT");
+    const resolvedDocumentNumber = resolveDraftDocumentNumber(payload, mode);
     const fileName = `${resolvedDocumentNumber}.pdf`;
     const documentLabel = mode === "invoice" ? "Rechnung" : "Angebot";
     const subject = options?.subject?.trim() || payload.offer.subject;
@@ -3175,7 +3197,10 @@ export default function HomePage() {
     setError("");
     setIsPreparingOfferMailDraft(true);
     try {
-      const draft = buildOfferMailDraftContent(offerMailActionState.companyName);
+      const draft = buildOfferMailDraftContent(
+        offerMailActionState.companyName,
+        resolveOfferReferenceNumber(offerMailActionState.payload),
+      );
       const info = await openMailDraftWithDocument(
         offerMailActionState.payload,
         "offer",
