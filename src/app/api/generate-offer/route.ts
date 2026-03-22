@@ -36,6 +36,7 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
+  lastInvoiceNumber: "",
   customServiceTypes: [],
 };
 
@@ -170,6 +171,10 @@ function resolveCompanySettings(
       typeof payload.lastOfferNumber === "string"
         ? payload.lastOfferNumber.trim()
         : FALLBACK_COMPANY_SETTINGS.lastOfferNumber,
+    lastInvoiceNumber:
+      typeof payload.lastInvoiceNumber === "string"
+        ? payload.lastInvoiceNumber.trim()
+        : FALLBACK_COMPANY_SETTINGS.lastInvoiceNumber,
     customServiceTypes: Array.isArray(payload.customServiceTypes)
       ? payload.customServiceTypes
           .map((entry) => String(entry).trim())

@@ -293,6 +293,7 @@ a {
   font-size: 1.08rem;
   line-height: 1;
   text-decoration: none;
+  cursor: pointer;
   transition:
     background-color 0.18s ease,
     border-color 0.18s ease,
@@ -1448,6 +1449,41 @@ textarea:focus {
   background-clip: padding-box;
 }
 
+.submitActionRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+}
+
+.submitActionRow .submitButton {
+  width: 100%;
+}
+
+.submitMailButton {
+  min-height: 56px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.submitMailButtonIcon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.submitMailButton:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .resetAllButton {
   width: 100%;
   justify-content: center;
@@ -1463,6 +1499,26 @@ textarea:focus {
 }
 
 @media (min-width: 761px) {
+  .submitActionRow {
+    justify-self: center;
+    width: calc((100% - var(--space-3, 13px)) / 2);
+  }
+
+  .submitActionRowWithMail {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+  }
+
+  .formGrid .submitActionRow .submitButton {
+    grid-column: auto;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .submitActionRowWithMail .submitMailButton {
+    min-width: 120px;
+  }
+
   .formGrid .submitButton {
     grid-column: 1 / -1;
     justify-self: center;
@@ -2328,6 +2384,29 @@ textarea:focus {
     font-size: 1.04rem;
   }
 
+  .submitActionRowWithMail {
+    grid-template-columns: minmax(0, 1fr) auto;
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 40;
+  }
+
+  .submitActionRowWithMail .submitButton {
+    position: static;
+    bottom: auto;
+  }
+
+  .submitActionRowWithMail .submitMailButton {
+    width: auto;
+    min-height: 62px;
+    min-width: 56px;
+    padding: 10px 12px;
+  }
+
+  .submitActionRowWithMail .submitMailButtonLabel {
+    display: none;
+  }
+
   .formHint {
     margin-top: 2px;
   }
@@ -2907,6 +2986,14 @@ textarea,
     ):hover {
     transform: translateY(-1px) scale(var(--interactive-scale-hover));
   }
+
+  .topHeaderSettingsButton:hover {
+    transform: translateY(-50%) scale(1.005);
+  }
+}
+
+.topHeaderSettingsButton:active:not(:disabled) {
+  transform: translateY(-50%) scale(var(--interactive-scale-press));
 }
 
 :is(button, a.primaryButton, a.ghostButton, .topHeaderSettingsButton):focus-visible {

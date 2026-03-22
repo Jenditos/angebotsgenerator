@@ -82,6 +82,7 @@ export type CompanySettings = {
   invoicePaymentDueDays: number;
   offerTermsText: string;
   lastOfferNumber: string;
+  lastInvoiceNumber: string;
   customServiceTypes: string[];
 };
 

@@ -36,6 +36,7 @@ const emptySettings: CompanySettings = {
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
+  lastInvoiceNumber: "",
   customServiceTypes: [],
 };
 
@@ -59,6 +60,41 @@ function asString(value: unknown, fallback = ""): string {
 function asNumber(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function validateWebsiteInput(rawValue: string): {
+  isValid: boolean;
+  normalized: string;
+} {
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return { isValid: true, normalized: "" };
+  }
+
+  if (/\s/.test(trimmed)) {
+    return { isValid: false, normalized: trimmed };
+  }
+
+  const hasScheme = /^https?:\/\//i.test(trimmed);
+  const candidate = hasScheme ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { isValid: false, normalized: trimmed };
+    }
+
+    const host = parsed.hostname.trim().toLowerCase();
+    const isIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+    const isDomainLike = host.includes(".") || host === "localhost" || isIpv4;
+    if (!isDomainLike) {
+      return { isValid: false, normalized: trimmed };
+    }
+
+    return { isValid: true, normalized: trimmed };
+  } catch {
+    return { isValid: false, normalized: trimmed };
+  }
 }
 
 function normalizeSettingsDraft(input: unknown): CompanySettings | null {
@@ -96,6 +132,7 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
     ),
     offerTermsText: asString(input.offerTermsText, emptySettings.offerTermsText),
     lastOfferNumber: asString(input.lastOfferNumber),
+    lastInvoiceNumber: asString(input.lastInvoiceNumber),
     customServiceTypes: Array.isArray(input.customServiceTypes)
       ? input.customServiceTypes
           .map((entry) => String(entry).trim())
@@ -197,11 +234,25 @@ export default function SettingsPage() {
         setError("");
       }
 
+      const websiteValidation = validateWebsiteInput(nextSettings.companyWebsite);
+      if (!websiteValidation.isValid) {
+        if (mode !== "autosave") {
+          setSaveStatus("");
+          setError("Bitte geben Sie eine gültige URL ein.");
+        }
+        return false;
+      }
+
+      const payloadSettings: CompanySettings = {
+        ...nextSettings,
+        companyWebsite: websiteValidation.normalized,
+      };
+
       try {
         const response = await fetch("/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(nextSettings),
+          body: JSON.stringify(payloadSettings),
         });
 
         const data = await response.json();
@@ -224,9 +275,10 @@ export default function SettingsPage() {
           areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
         );
         writeSettingsDraftToSessionStorage(resolvedSettings);
+        setError("");
 
         if (mode === "manual") {
-          setSaveStatus("Einstellungen gespeichert.");
+          setSaveStatus("Einstellungen wurden gespeichert.");
         } else if (mode === "reset") {
           setSaveStatus("Einstellungen wurden zurückgesetzt.");
         }
@@ -797,7 +849,8 @@ export default function SettingsPage() {
             <label className="field">
               <span>Website</span>
               <input
-                type="url"
+                type="text"
+                inputMode="url"
                 autoCapitalize="none"
                 autoCorrect="off"
                 value={settings.companyWebsite}
@@ -926,6 +979,20 @@ export default function SettingsPage() {
                   }))
                 }
                 placeholder="z. B. ANG-2026-025"
+              />
+            </label>
+
+            <label className="field">
+              <span>Letzte Rechnungsnummer</span>
+              <input
+                value={settings.lastInvoiceNumber}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    lastInvoiceNumber: e.target.value,
+                  }))
+                }
+                placeholder="z. B. RE-2026-025"
               />
             </label>
 

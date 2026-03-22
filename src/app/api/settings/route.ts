@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       invoicePaymentDueDays: Number(body.invoicePaymentDueDays),
       offerTermsText: body.offerTermsText?.trim() ?? "",
       lastOfferNumber: body.lastOfferNumber?.trim() ?? "",
+      lastInvoiceNumber: body.lastInvoiceNumber?.trim() ?? "",
       customServiceTypes: Array.isArray(body.customServiceTypes)
         ? body.customServiceTypes
             .map((item) => String(item).trim())

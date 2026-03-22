@@ -37,8 +37,11 @@ const defaultSettings: CompanySettings = {
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
+  lastInvoiceNumber: "",
   customServiceTypes: [],
 };
+
+let volatileSettingsCache: CompanySettings | null = null;
 
 function asTrimmedString(value: unknown, fallback = ""): string {
   if (typeof value !== "string") {
@@ -92,7 +95,7 @@ export async function readSettings(): Promise<CompanySettings> {
       .split(/\s+/);
     const legacyCity = legacyCityParts.join(" ").trim();
 
-    return {
+    const resolvedSettings: CompanySettings = {
       companyName: asTrimmedString(
         parsed.companyName,
         defaultSettings.companyName,
@@ -130,6 +133,10 @@ export async function readSettings(): Promise<CompanySettings> {
         parsed.lastOfferNumber,
         defaultSettings.lastOfferNumber,
       ),
+      lastInvoiceNumber: asTrimmedString(
+        parsed.lastInvoiceNumber,
+        defaultSettings.lastInvoiceNumber,
+      ),
       customServiceTypes: asStringArray(parsed.customServiceTypes),
       logoDataUrl: (() => {
         const logo = asTrimmedString(
@@ -163,7 +170,12 @@ export async function readSettings(): Promise<CompanySettings> {
         defaultSettings.offerTermsText,
       ).slice(0, MAX_TERMS_TEXT_LENGTH),
     };
+    volatileSettingsCache = resolvedSettings;
+    return resolvedSettings;
   } catch {
+    if (volatileSettingsCache) {
+      return volatileSettingsCache;
+    }
     return defaultSettings;
   }
 }
@@ -211,6 +223,10 @@ export async function writeSettings(
       payload.lastOfferNumber,
       current.lastOfferNumber,
     ),
+    lastInvoiceNumber: asTrimmedString(
+      payload.lastInvoiceNumber,
+      current.lastInvoiceNumber,
+    ),
     customServiceTypes: payload.customServiceTypes
       ? asStringArray(payload.customServiceTypes)
       : current.customServiceTypes,
@@ -225,8 +241,20 @@ export async function writeSettings(
     companyPostalCity: undefined,
   };
 
-  await mkdir(dataDir, { recursive: true });
-  await writeFile(settingsPath, JSON.stringify(next, null, 2), "utf-8");
+  volatileSettingsCache = next;
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(settingsPath, JSON.stringify(next, null, 2), "utf-8");
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    if (code === "EROFS" || code === "EACCES" || code === "EPERM") {
+      console.warn(
+        `[settings-store] Persistente Speicherung nicht verfügbar (${code}). Verwende flüchtigen Runtime-Cache.`,
+      );
+    } else {
+      throw error;
+    }
+  }
 
   return next;
 }
