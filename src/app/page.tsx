@@ -4047,7 +4047,7 @@ export default function HomePage() {
                       onClick={startSpeechInput}
                       disabled={!speechSupported || isParsingVoice}
                     >
-                      Aufnahme starten
+                      KI-Aufnahme starten
                     </button>
                   )}
                   <button
