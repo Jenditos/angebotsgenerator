@@ -881,10 +881,6 @@ export function OfferPdfDocument({
               ]
               : [
                   { label: "Datum", value: today },
-                  {
-                    label: "Ausführung",
-                    value: serviceDescription.trim() || "—",
-                  },
                 ]),
         ];
 
