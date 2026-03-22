@@ -67,6 +67,117 @@ function buildRuntimeDocumentNumber(
   return `${prefix}-${year}-${sequence}`;
 }
 
+function buildRuntimeCustomerNumber(referenceDate: Date): string {
+  const sequence = String(referenceDate.getTime()).slice(-6).padStart(6, "0");
+  return `KDN-${sequence}`;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function toNumberInRange(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function resolveCompanySettings(
+  payload: GenerateOfferRequest["settings"],
+): CompanySettings {
+  if (!isObjectRecord(payload)) {
+    return {
+      ...FALLBACK_COMPANY_SETTINGS,
+      pdfTableColumns: [...FALLBACK_COMPANY_SETTINGS.pdfTableColumns],
+      customServices: [...FALLBACK_COMPANY_SETTINGS.customServices],
+      customServiceTypes: [...FALLBACK_COMPANY_SETTINGS.customServiceTypes],
+    };
+  }
+
+  return {
+    companyName:
+      typeof payload.companyName === "string"
+        ? payload.companyName.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyName,
+    ownerName:
+      typeof payload.ownerName === "string"
+        ? payload.ownerName.trim()
+        : FALLBACK_COMPANY_SETTINGS.ownerName,
+    companyStreet:
+      typeof payload.companyStreet === "string"
+        ? payload.companyStreet.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyStreet,
+    companyPostalCode:
+      typeof payload.companyPostalCode === "string"
+        ? payload.companyPostalCode.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyPostalCode,
+    companyCity:
+      typeof payload.companyCity === "string"
+        ? payload.companyCity.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyCity,
+    companyEmail:
+      typeof payload.companyEmail === "string"
+        ? payload.companyEmail.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyEmail,
+    companyPhone:
+      typeof payload.companyPhone === "string"
+        ? payload.companyPhone.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyPhone,
+    companyWebsite:
+      typeof payload.companyWebsite === "string"
+        ? payload.companyWebsite.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyWebsite,
+    senderCopyEmail:
+      typeof payload.senderCopyEmail === "string"
+        ? payload.senderCopyEmail.trim()
+        : FALLBACK_COMPANY_SETTINGS.senderCopyEmail,
+    logoDataUrl:
+      typeof payload.logoDataUrl === "string"
+        ? payload.logoDataUrl.trim()
+        : FALLBACK_COMPANY_SETTINGS.logoDataUrl,
+    pdfTableColumns: Array.isArray(payload.pdfTableColumns)
+      ? payload.pdfTableColumns
+      : [...FALLBACK_COMPANY_SETTINGS.pdfTableColumns],
+    customServices: Array.isArray(payload.customServices)
+      ? payload.customServices
+      : [...FALLBACK_COMPANY_SETTINGS.customServices],
+    vatRate: toNumberInRange(payload.vatRate, FALLBACK_COMPANY_SETTINGS.vatRate, 0, 100),
+    offerValidityDays: toNumberInRange(
+      payload.offerValidityDays,
+      FALLBACK_COMPANY_SETTINGS.offerValidityDays,
+      1,
+      365,
+    ),
+    invoicePaymentDueDays: toNumberInRange(
+      payload.invoicePaymentDueDays,
+      FALLBACK_COMPANY_SETTINGS.invoicePaymentDueDays,
+      0,
+      365,
+    ),
+    offerTermsText:
+      typeof payload.offerTermsText === "string"
+        ? payload.offerTermsText.trim()
+        : FALLBACK_COMPANY_SETTINGS.offerTermsText,
+    lastOfferNumber:
+      typeof payload.lastOfferNumber === "string"
+        ? payload.lastOfferNumber.trim()
+        : FALLBACK_COMPANY_SETTINGS.lastOfferNumber,
+    customServiceTypes: Array.isArray(payload.customServiceTypes)
+      ? payload.customServiceTypes
+          .map((entry) => String(entry).trim())
+          .filter(Boolean)
+      : [...FALLBACK_COMPANY_SETTINGS.customServiceTypes],
+  };
+}
+
 function hasValidThousandsGrouping(
   rawValue: string,
   separator: "," | ".",
@@ -837,15 +948,20 @@ export async function POST(request: Request) {
           : companyName
         : personName;
     const customerAddress = `${street}, ${postalCode} ${city}`;
-    const settings = FALLBACK_COMPANY_SETTINGS;
-    const paymentDueDays = requestedPaymentDueDays;
+    const settings = resolveCompanySettings(body.settings);
+    const paymentDueDays =
+      documentType === "invoice"
+        ? parsePaymentDueDays(settings.invoicePaymentDueDays)
+        : requestedPaymentDueDays;
     const now = new Date();
     const generatedCreatedAt = now.toISOString();
     const generatedDocumentNumber = buildRuntimeDocumentNumber(
       documentType,
       now,
     );
-    const customerNumberForDocument = "KDN-TEMP";
+    const requestedCustomerNumber = normalizeInputValue(body.customerNumber);
+    const customerNumberForDocument =
+      requestedCustomerNumber || buildRuntimeCustomerNumber(now);
     failureStage = "build_line_items";
     const lineItems = buildPdfLineItems({
       positions: body.positions,
@@ -922,6 +1038,34 @@ export async function POST(request: Request) {
       customerName,
     });
     const pdfFilename = `${generatedDocumentNumber}.pdf`;
+    debugOfferLog(requestId, "pdf_payload_preview", {
+      documentType,
+      documentNumber: generatedDocumentNumber,
+      customerNumber: customerNumberForDocument,
+      customerName,
+      customerAddress,
+      customerEmail,
+      serviceDescription: composedServiceDescription,
+      projectDetails: serviceDescription,
+      lineItems,
+      settings: {
+        companyName: settings.companyName,
+        ownerName: settings.ownerName,
+        companyStreet: settings.companyStreet,
+        companyPostalCode: settings.companyPostalCode,
+        companyCity: settings.companyCity,
+        companyEmail: settings.companyEmail,
+        companyPhone: settings.companyPhone,
+        companyWebsite: settings.companyWebsite,
+        senderCopyEmail: settings.senderCopyEmail,
+        logoDataUrlPresent: Boolean(settings.logoDataUrl),
+        pdfTableColumnsCount: settings.pdfTableColumns.length,
+        vatRate: settings.vatRate,
+        offerValidityDays: settings.offerValidityDays,
+        invoicePaymentDueDays: settings.invoicePaymentDueDays,
+        offerTermsTextLength: settings.offerTermsText.length,
+      },
+    });
 
     failureStage = "render_pdf";
     let pdfBuffer: Buffer;

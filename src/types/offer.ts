@@ -118,6 +118,7 @@ export type CustomerDraftState = {
 
 export type GenerateOfferRequest = {
   documentType?: DocumentType;
+  customerNumber?: string;
   customerType: "person" | "company";
   salutation?: "herr" | "frau";
   companyName?: string;
@@ -145,6 +146,7 @@ export type GenerateOfferRequest = {
   invoiceDate?: string;
   serviceDate?: string;
   paymentDueDays?: number | string;
+  settings?: Partial<CompanySettings>;
   sendEmail?: boolean;
 };
 

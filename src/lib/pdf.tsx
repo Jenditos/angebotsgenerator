@@ -29,7 +29,7 @@ const VISIORO_LOGO_SVG = `
 </svg>
 `;
 
-const VISIORO_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(VISIORO_LOGO_SVG)}`;
+const VISIORO_LOGO_DATA_URL = `data:image/svg+xml;base64,${Buffer.from(VISIORO_LOGO_SVG).toString("base64")}`;
 
 const theme = {
   canvas: "#ffffff",
@@ -879,10 +879,13 @@ export function OfferPdfDocument({
                   value: invoicePaymentDueLabel,
                 },
               ]
-            : [
-                { label: "Datum", value: today },
-                { label: "Ausführung", value: "—" },
-              ]),
+              : [
+                  { label: "Datum", value: today },
+                  {
+                    label: "Ausführung",
+                    value: serviceDescription.trim() || "—",
+                  },
+                ]),
         ];
 
         let globalItemIndex = chunkStartItemIndex[chunkIndex] ?? 0;

@@ -17,6 +17,7 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
+import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
   CompanySettings,
   CustomerDraftGroup,
@@ -324,6 +325,7 @@ const initialForm: OfferForm = createInitialForm();
 
 type ModeSnapshot = {
   form: OfferForm;
+  activeCustomerNumber: string;
   selectedServices: SelectedServiceEntry[];
   voiceTranscript: string;
   voiceInfo: string;
@@ -355,6 +357,7 @@ function cloneSelectedServices(
 function createInitialModeSnapshot(): ModeSnapshot {
   return {
     form: createInitialForm(),
+    activeCustomerNumber: "",
     selectedServices: [],
     voiceTranscript: "",
     voiceInfo: "",
@@ -402,9 +405,32 @@ const SERVICE_DATE_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
+const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 
-function asString(value: unknown): string {
-  return typeof value === "string" ? value : "";
+const fallbackCompanySettings: CompanySettings = {
+  companyName: "Musterbetrieb GmbH",
+  ownerName: "Max Mustermann",
+  companyStreet: "Musterstraße 1",
+  companyPostalCode: "10115",
+  companyCity: "Berlin",
+  companyEmail: "info@musterbetrieb.de",
+  companyPhone: "+49 30 123456",
+  companyWebsite: "www.musterbetrieb.de",
+  senderCopyEmail: "",
+  logoDataUrl: "",
+  pdfTableColumns: getDefaultPdfTableColumns(),
+  customServices: [],
+  vatRate: 19,
+  offerValidityDays: 30,
+  invoicePaymentDueDays: 14,
+  offerTermsText:
+    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
+  lastOfferNumber: "",
+  customServiceTypes: [],
+};
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -512,6 +538,7 @@ function hydrateModeSnapshot(value: unknown): ModeSnapshot {
 
   return {
     form: hydrateOfferForm(value.form),
+    activeCustomerNumber: asString(value.activeCustomerNumber),
     selectedServices: hydrateSelectedServices(value.selectedServices),
     voiceTranscript: asString(value.voiceTranscript),
     voiceInfo: asString(value.voiceInfo),
@@ -541,6 +568,111 @@ function hydratePersistedHomeState(value: unknown): PersistedHomeState | null {
       invoice: hydrateModeSnapshot(value.modeSnapshots.invoice),
     },
   };
+}
+
+function toNumberInRange(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
+  if (!isObjectRecord(value)) {
+    return null;
+  }
+
+  return {
+    companyName: asString(value.companyName, fallbackCompanySettings.companyName),
+    ownerName: asString(value.ownerName, fallbackCompanySettings.ownerName),
+    companyStreet: asString(
+      value.companyStreet,
+      fallbackCompanySettings.companyStreet,
+    ),
+    companyPostalCode: asString(
+      value.companyPostalCode,
+      fallbackCompanySettings.companyPostalCode,
+    ),
+    companyCity: asString(value.companyCity, fallbackCompanySettings.companyCity),
+    companyEmail: asString(
+      value.companyEmail,
+      fallbackCompanySettings.companyEmail,
+    ),
+    companyPhone: asString(
+      value.companyPhone,
+      fallbackCompanySettings.companyPhone,
+    ),
+    companyWebsite: asString(
+      value.companyWebsite,
+      fallbackCompanySettings.companyWebsite,
+    ),
+    senderCopyEmail: asString(
+      value.senderCopyEmail,
+      fallbackCompanySettings.senderCopyEmail,
+    ),
+    logoDataUrl: asString(value.logoDataUrl, fallbackCompanySettings.logoDataUrl),
+    pdfTableColumns: Array.isArray(value.pdfTableColumns)
+      ? (value.pdfTableColumns as CompanySettings["pdfTableColumns"])
+      : fallbackCompanySettings.pdfTableColumns,
+    customServices: Array.isArray(value.customServices)
+      ? (value.customServices as CompanySettings["customServices"])
+      : fallbackCompanySettings.customServices,
+    vatRate: toNumberInRange(value.vatRate, fallbackCompanySettings.vatRate, 0, 100),
+    offerValidityDays: toNumberInRange(
+      value.offerValidityDays,
+      fallbackCompanySettings.offerValidityDays,
+      1,
+      365,
+    ),
+    invoicePaymentDueDays: toNumberInRange(
+      value.invoicePaymentDueDays,
+      fallbackCompanySettings.invoicePaymentDueDays,
+      0,
+      365,
+    ),
+    offerTermsText: asString(
+      value.offerTermsText,
+      fallbackCompanySettings.offerTermsText,
+    ),
+    lastOfferNumber: asString(
+      value.lastOfferNumber,
+      fallbackCompanySettings.lastOfferNumber,
+    ),
+    customServiceTypes: Array.isArray(value.customServiceTypes)
+      ? value.customServiceTypes
+          .map((entry) => String(entry).trim())
+          .filter(Boolean)
+      : fallbackCompanySettings.customServiceTypes,
+  };
+}
+
+function readSettingsDraftFromSessionStorageForOffer(): CompanySettings | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    if (isObjectRecord(parsed) && isObjectRecord(parsed.settings)) {
+      return normalizeCompanySettingsInput(parsed.settings);
+    }
+
+    return normalizeCompanySettingsInput(parsed);
+  } catch {
+    return null;
+  }
 }
 
 function hasCompletedCompanySettings(settings: CompanySettings | undefined): boolean {
@@ -965,6 +1097,10 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [postActionInfo, setPostActionInfo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeCustomerNumber, setActiveCustomerNumber] = useState("");
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
+    null,
+  );
   const [addressSuggestions, setAddressSuggestions] = useState<
     AddressSuggestion[]
   >([]);
@@ -1133,6 +1269,7 @@ export default function HomePage() {
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
+    setActiveCustomerNumber(snapshot.activeCustomerNumber);
     setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
     setVoiceTranscript(snapshot.voiceTranscript);
     setVoiceInfo(snapshot.voiceInfo);
@@ -1152,6 +1289,7 @@ export default function HomePage() {
   function createCurrentModeSnapshot(): ModeSnapshot {
     return {
       form: { ...form },
+      activeCustomerNumber,
       selectedServices: cloneSelectedServices(selectedServices),
       voiceTranscript,
       voiceInfo,
@@ -1346,6 +1484,7 @@ export default function HomePage() {
     }
   }, [
     addressSuggestions,
+    activeCustomerNumber,
     documentMode,
     error,
     form,
@@ -1443,6 +1582,11 @@ export default function HomePage() {
     let mounted = true;
 
     async function loadSettingsStatus() {
+      const draftSettings = readSettingsDraftFromSessionStorageForOffer();
+      if (mounted && draftSettings) {
+        setCompanySettings(draftSettings);
+      }
+
       try {
         const response = await fetch("/api/settings");
         const data = (await response.json()) as SettingsApiResponse;
@@ -1450,6 +1594,9 @@ export default function HomePage() {
           return;
         }
         if (mounted) {
+          if (data.settings) {
+            setCompanySettings(data.settings);
+          }
           const isComplete = hasCompletedCompanySettings(data.settings);
           setIsCompanySetupComplete(isComplete);
           if (!isComplete) {
@@ -1999,6 +2146,7 @@ export default function HomePage() {
       paymentDueDays: draftState?.paymentDueDays || "14",
     }));
     setSelectedServices(draftSelectedServices);
+    setActiveCustomerNumber(customer.customerNumber);
     setActivePriceSubitemId(null);
     setAddressSuggestions([]);
     setIsCustomerPickerOpen(false);
@@ -2853,15 +3001,33 @@ export default function HomePage() {
     setIsSubmitting(true);
 
     try {
+      let settingsPayload = companySettings;
+      try {
+        const settingsResponse = await fetch("/api/settings");
+        const settingsData = (await settingsResponse.json()) as SettingsApiResponse;
+        if (settingsResponse.ok && settingsData.settings) {
+          settingsPayload = settingsData.settings;
+          setCompanySettings(settingsData.settings);
+        }
+      } catch {
+        // Fallback auf zuletzt bekannte Einstellungen.
+      }
+
+      if (!settingsPayload) {
+        settingsPayload = readSettingsDraftFromSessionStorageForOffer();
+      }
+
       const response = await fetch("/api/generate-offer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           documentType: documentMode,
+          customerNumber: activeCustomerNumber || undefined,
           selectedServices: selectedServicesPayload,
           selectedServiceEntries: selectedServiceEntriesPayload,
           positions: positionsPayload,
+          settings: settingsPayload ?? undefined,
           sendEmail: false,
         }),
       });
@@ -2873,6 +3039,9 @@ export default function HomePage() {
       }
 
       const payload = data as ApiResponse;
+      if (payload.customerNumber?.trim()) {
+        setActiveCustomerNumber(payload.customerNumber.trim());
+      }
       updateStoredCustomersRealtime(payload);
       if (
         payload.customerNumber &&
