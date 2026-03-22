@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
+import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
@@ -19,7 +20,6 @@ import {
   OfferPositionInput,
 } from "@/types/offer";
 
-const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
 const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   companyName: "Musterbetrieb GmbH",

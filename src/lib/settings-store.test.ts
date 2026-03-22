@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
 import { readSettings, writeSettings } from "@/lib/settings-store";
 import { __resetRuntimeDataDirPreparationForTests } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
@@ -96,7 +97,7 @@ describe("settings-store", () => {
     );
 
     await writeSettings({
-      logoDataUrl: `data:image/png;base64,${"A".repeat(2_000_100)}`,
+      logoDataUrl: `data:image/png;base64,${"A".repeat(MAX_LOGO_DATA_URL_LENGTH + 100)}`,
     });
 
     const updated = await readSettings();

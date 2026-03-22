@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { readSettings } from "@/lib/settings-store";
 import { findStoredOfferRecordByNumber } from "@/server/services/offer-store-service";
-
-const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 
 function toSafeFilename(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]/g, "_");

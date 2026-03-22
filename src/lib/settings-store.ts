@@ -4,12 +4,12 @@ import {
   getDefaultPdfTableColumns,
   sanitizePdfTableColumns,
 } from "@/lib/pdf-table-config";
+import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
 import { sanitizeCustomServices } from "@/lib/service-catalog";
 import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
 
 const SETTINGS_FILE_NAME = "company-settings.json";
-const MAX_LOGO_DATA_URL_LENGTH = 2_000_000;
 const MIN_OFFER_VALIDITY_DAYS = 1;
 const MAX_OFFER_VALIDITY_DAYS = 365;
 const MIN_INVOICE_PAYMENT_DUE_DAYS = 0;

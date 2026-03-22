@@ -14,6 +14,16 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  LOGO_ALLOWED_FORMATS_LABEL,
+  LOGO_UPLOAD_ACCEPT_ATTRIBUTE,
+  MAX_LOGO_DATA_URL_LENGTH,
+  MAX_LOGO_RENDER_EDGE_PX,
+  MAX_LOGO_UPLOAD_FILE_BYTES,
+  MAX_LOGO_UPLOAD_FILE_MB,
+  hasSupportedLogoExtension,
+  isSupportedLogoMimeType,
+} from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
 
@@ -42,6 +52,9 @@ const emptySettings: CompanySettings = {
 
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 const SETTINGS_AUTOSAVE_DELAY_MS = 700;
+const LOGO_DOWNSCALE_FACTOR = 0.82;
+const LOGO_MAX_DOWNSCALE_ATTEMPTS = 6;
+const LOGO_JPEG_QUALITIES = [0.92, 0.86, 0.8, 0.74, 0.68];
 
 function sortPdfColumns(
   columns: PdfTableColumnConfig[],
@@ -95,6 +108,139 @@ function validateWebsiteInput(rawValue: string): {
   } catch {
     return { isValid: false, normalized: trimmed };
   }
+}
+
+function isSupportedLogoFile(file: File): boolean {
+  if (isSupportedLogoMimeType(file.type)) {
+    return true;
+  }
+
+  return hasSupportedLogoExtension(file.name);
+}
+
+function scaleToMaxEdge(
+  width: number,
+  height: number,
+  maxEdge: number,
+): { width: number; height: number } {
+  const largestEdge = Math.max(width, height);
+  if (largestEdge <= maxEdge) {
+    return { width, height };
+  }
+
+  const scale = maxEdge / largestEdge;
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function serializeCanvasWithinLimit(
+  canvas: HTMLCanvasElement,
+  maxDataUrlLength: number,
+): string | null {
+  try {
+    const pngDataUrl = canvas.toDataURL("image/png");
+    if (pngDataUrl.length <= maxDataUrlLength) {
+      return pngDataUrl;
+    }
+  } catch {
+    // Try JPEG fallback below.
+  }
+
+  for (const quality of LOGO_JPEG_QUALITIES) {
+    try {
+      const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
+      if (jpegDataUrl.length <= maxDataUrlLength) {
+        return jpegDataUrl;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+async function loadImageElementFromFile(file: File): Promise<HTMLImageElement> {
+  return await new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("logo-image-load-failed"));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+async function convertLogoFileToDataUrl(file: File): Promise<string> {
+  const image = await loadImageElementFromFile(file);
+  const naturalWidth = image.naturalWidth || image.width;
+  const naturalHeight = image.naturalHeight || image.height;
+
+  if (naturalWidth <= 0 || naturalHeight <= 0) {
+    throw new Error("logo-image-invalid");
+  }
+
+  const initialSize = scaleToMaxEdge(
+    naturalWidth,
+    naturalHeight,
+    MAX_LOGO_RENDER_EDGE_PX,
+  );
+  let canvas = document.createElement("canvas");
+  canvas.width = initialSize.width;
+  canvas.height = initialSize.height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("logo-canvas-unavailable");
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const firstAttempt = serializeCanvasWithinLimit(canvas, MAX_LOGO_DATA_URL_LENGTH);
+  if (firstAttempt) {
+    return firstAttempt;
+  }
+
+  for (let attempt = 0; attempt < LOGO_MAX_DOWNSCALE_ATTEMPTS; attempt += 1) {
+    const resizedCanvas = document.createElement("canvas");
+    resizedCanvas.width = Math.max(
+      1,
+      Math.round(canvas.width * LOGO_DOWNSCALE_FACTOR),
+    );
+    resizedCanvas.height = Math.max(
+      1,
+      Math.round(canvas.height * LOGO_DOWNSCALE_FACTOR),
+    );
+
+    const resizedCtx = resizedCanvas.getContext("2d");
+    if (!resizedCtx) {
+      throw new Error("logo-canvas-unavailable");
+    }
+    resizedCtx.clearRect(0, 0, resizedCanvas.width, resizedCanvas.height);
+    resizedCtx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+    canvas = resizedCanvas;
+
+    const candidate = serializeCanvasWithinLimit(
+      canvas,
+      MAX_LOGO_DATA_URL_LENGTH,
+    );
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  throw new Error("logo-too-large-after-optimization");
 }
 
 function normalizeSettingsDraft(input: unknown): CompanySettings | null {
@@ -661,19 +807,33 @@ export default function SettingsPage() {
   }
 
   async function onLogoUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const inputElement = event.currentTarget;
+    const file = inputElement.files?.[0];
     if (!file) {
       return;
     }
 
+    setSaveStatus("");
+    setError("");
+
+    if (!isSupportedLogoFile(file)) {
+      setError(
+        `Dieses Format wird nicht unterstützt. Erlaubt sind ${LOGO_ALLOWED_FORMATS_LABEL}.`,
+      );
+      inputElement.value = "";
+      return;
+    }
+
+    if (file.size > MAX_LOGO_UPLOAD_FILE_BYTES) {
+      setError(
+        `Die Datei ist zu groß. Maximal ${MAX_LOGO_UPLOAD_FILE_MB} MB sind erlaubt.`,
+      );
+      inputElement.value = "";
+      return;
+    }
+
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () =>
-          reject(new Error("Datei konnte nicht gelesen werden."));
-        reader.readAsDataURL(file);
-      });
+      const dataUrl = await convertLogoFileToDataUrl(file);
 
       const nextSettings: CompanySettings = {
         ...settings,
@@ -684,16 +844,26 @@ export default function SettingsPage() {
       writeSettingsDraftToSessionStorage(nextSettings);
       setIsAutosaveEnabled(true);
       setLogoPreviewRevision((prev) => prev + 1);
-      setSaveStatus("");
-      setError("");
       if (autosaveTimeoutRef.current !== null) {
         window.clearTimeout(autosaveTimeoutRef.current);
         autosaveTimeoutRef.current = null;
       }
       void persistSettings(nextSettings, "autosave");
-      event.target.value = "";
-    } catch {
-      setError("Datei konnte nicht gelesen werden.");
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "logo-too-large-after-optimization"
+      ) {
+        setError(
+          "Das Logo ist trotz automatischer Optimierung zu groß. Bitte eine kleinere Datei wählen.",
+        );
+      } else {
+        setError(
+          "Das Logo konnte nicht verarbeitet werden. Bitte PNG, JPG, JPEG, WEBP oder SVG verwenden.",
+        );
+      }
+    } finally {
+      inputElement.value = "";
     }
   }
 
@@ -1210,8 +1380,19 @@ export default function SettingsPage() {
 
             <label className="field span2">
               <span>Firmenlogo</span>
-              <input type="file" accept="image/*" onChange={onLogoUpload} />
+              <input
+                type="file"
+                accept={LOGO_UPLOAD_ACCEPT_ATTRIBUTE}
+                onChange={onLogoUpload}
+              />
             </label>
+
+            <p className="settingsLogoHint span2">
+              Erlaubte Formate: {LOGO_ALLOWED_FORMATS_LABEL}. Maximal{" "}
+              {MAX_LOGO_UPLOAD_FILE_MB} MB pro Datei. Große Logos werden
+              automatisch passend verkleinert, damit Vorschau und PDF sauber
+              bleiben.
+            </p>
 
             <div className="settingsLogoActions span2">
               <button
