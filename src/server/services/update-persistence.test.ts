@@ -13,20 +13,20 @@ import { CompanySettings } from "@/types/offer";
 
 function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySettings {
   return {
-    companyName: "COMPANY_TEST_A",
-    ownerName: "OWNER_TEST_A",
-    companyStreet: "STREET_TEST_1",
-    companyPostalCode: "00000",
-    companyCity: "CITY_TEST",
-    companyEmail: "company@example.test",
-    companyPhone: "0000000",
-    companyWebsite: "company.example.test",
-    taxNumber: "TAX_TEST_1",
-    vatId: "VAT_TEST_1",
-    companyCountry: "COUNTRY_TEST",
-    euVatNoticeText: "EU_NOTICE_TEST",
+    companyName: "Bestand GmbH",
+    ownerName: "Max Mustermann",
+    companyStreet: "Musterstraße 1",
+    companyPostalCode: "10115",
+    companyCity: "Berlin",
+    companyEmail: "info@bestand.de",
+    companyPhone: "+49 30 123456",
+    companyWebsite: "www.bestand.de",
+    taxNumber: "12/345/67890",
+    vatId: "DE123456789",
+    companyCountry: "Deutschland",
+    euVatNoticeText: "Steuerfreie innergemeinschaftliche Lieferung.",
     includeCustomerVatId: true,
-    senderCopyEmail: "copy@example.test",
+    senderCopyEmail: "intern@bestand.de",
     logoDataUrl: "data:image/png;base64,AAAA",
     pdfTableColumns: [
       { id: "position", label: "Position", visible: true, order: 0 },
@@ -112,14 +112,14 @@ describe("update persistence", () => {
               customerType: "person",
               companyName: "",
               salutation: "herr",
-              firstName: "Alex",
-              lastName: "Kunde",
-              street: "STREET_TEST_1",
-              postalCode: "00000",
-              city: "CITY_TEST",
-              customerEmail: "customer@example.test",
-              customerName: "Alex Kunde",
-              customerAddress: "STREET_TEST_1, 00000 CITY_TEST",
+              firstName: "Max",
+              lastName: "Mustermann",
+              street: "Musterstraße 1",
+              postalCode: "10115",
+              city: "Berlin",
+              customerEmail: "max@example.com",
+              customerName: "Max Mustermann",
+              customerAddress: "Musterstraße 1, 10115 Berlin",
               createdAt: "2026-03-01T10:00:00.000Z",
               updatedAt: "2026-03-01T10:00:00.000Z",
             },
@@ -144,9 +144,9 @@ describe("update persistence", () => {
               customerNumber: "KDN-000001",
               createdAt: "2026-03-05T09:00:00.000Z",
               created_at: "2026-03-05T09:00:00.000Z",
-              customerName: "Alex Kunde",
-              customerAddress: "STREET_TEST_1, 00000 CITY_TEST",
-              customerEmail: "customer@example.test",
+              customerName: "Max Mustermann",
+              customerAddress: "Musterstraße 1, 10115 Berlin",
+              customerEmail: "max@example.com",
               serviceDescription: "Malerarbeiten",
               lineItems: [],
               offer: {
@@ -162,9 +162,9 @@ describe("update persistence", () => {
               customerNumber: "KDN-000001",
               createdAt: "2026-03-06T09:00:00.000Z",
               created_at: "2026-03-06T09:00:00.000Z",
-              customerName: "Alex Kunde",
-              customerAddress: "STREET_TEST_1, 00000 CITY_TEST",
-              customerEmail: "customer@example.test",
+              customerName: "Max Mustermann",
+              customerAddress: "Musterstraße 1, 10115 Berlin",
+              customerEmail: "max@example.com",
               serviceDescription: "Malerarbeiten",
               lineItems: [],
               offer: {
@@ -193,7 +193,7 @@ describe("update persistence", () => {
     const customers = await listStoredCustomers();
     const documents = await listStoredOfferRecords();
 
-    expect(settings.companyName).toBe("COMPANY_TEST_A");
+    expect(settings.companyName).toBe("Bestand GmbH");
     expect(settings.logoDataUrl).toBe("data:image/png;base64,AAAA");
     expect(settings.lastOfferNumber).toBe("ANG-2026-123");
     expect(settings.lastInvoiceNumber).toBe("RE-2026-045");
@@ -215,12 +215,12 @@ describe("update persistence", () => {
 
     await writeFile(
       path.join(legacyDataDir, "company-settings.json"),
-      JSON.stringify(buildSettingsFixture({ companyName: "COMPANY_LEGACY" }), null, 2),
+      JSON.stringify(buildSettingsFixture({ companyName: "Legacy GmbH" }), null, 2),
       "utf8",
     );
     await writeFile(
       path.join(runtimeDataDir, "company-settings.json"),
-      JSON.stringify(buildSettingsFixture({ companyName: "COMPANY_RUNTIME" }), null, 2),
+      JSON.stringify(buildSettingsFixture({ companyName: "Runtime GmbH" }), null, 2),
       "utf8",
     );
 
@@ -231,13 +231,13 @@ describe("update persistence", () => {
 
     await ensureRuntimeDataDirReady();
     const settings = await readSettings();
-    expect(settings.companyName).toBe("COMPANY_RUNTIME");
+    expect(settings.companyName).toBe("Runtime GmbH");
 
     const runtimeSettingsRaw = await readFile(
       path.join(resolveRuntimeDataDir(), "company-settings.json"),
       "utf8",
     );
     const runtimeSettings = JSON.parse(runtimeSettingsRaw) as CompanySettings;
-    expect(runtimeSettings.companyName).toBe("COMPANY_RUNTIME");
+    expect(runtimeSettings.companyName).toBe("Runtime GmbH");
   });
 });

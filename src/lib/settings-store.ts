@@ -5,6 +5,7 @@ import {
   sanitizePdfTableColumns,
 } from "@/lib/pdf-table-config";
 import {
+  isLegacyFallbackLogoDataUrl,
   MAX_LOGO_DATA_URL_LENGTH,
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
@@ -23,17 +24,17 @@ const MAX_TERMS_TEXT_LENGTH = 3000;
 const MAX_EU_VAT_NOTICE_TEXT_LENGTH = 2000;
 
 const defaultSettings: CompanySettings = {
-  companyName: "",
-  ownerName: "",
-  companyStreet: "",
-  companyPostalCode: "",
-  companyCity: "",
-  companyEmail: "",
-  companyPhone: "",
-  companyWebsite: "",
+  companyName: "Musterbetrieb GmbH",
+  ownerName: "Max Mustermann",
+  companyStreet: "Musterstraße 1",
+  companyPostalCode: "10115",
+  companyCity: "Berlin",
+  companyEmail: "info@musterbetrieb.de",
+  companyPhone: "+49 30 123456",
+  companyWebsite: "www.musterbetrieb.de",
   taxNumber: "",
   vatId: "",
-  companyCountry: "",
+  companyCountry: "Deutschland",
   euVatNoticeText: "",
   includeCustomerVatId: false,
   senderCopyEmail: "",
@@ -43,7 +44,8 @@ const defaultSettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
-  offerTermsText: "",
+  offerTermsText:
+    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
   lastInvoiceNumber: "",
   customServiceTypes: [],
@@ -295,6 +297,22 @@ export async function readSettings(): Promise<CompanySettings> {
   }
 
   const resolvedSettings = resolveSettingsPayload(parsed);
+  const parsedLogoDataUrl =
+    typeof parsed.logoDataUrl === "string" ? parsed.logoDataUrl.trim() : "";
+  if (parsedLogoDataUrl && isLegacyFallbackLogoDataUrl(parsedLogoDataUrl)) {
+    try {
+      await writeFile(settingsPath, JSON.stringify(resolvedSettings, null, 2), "utf-8");
+    } catch (error) {
+      if (isReadonlyStorageError(error)) {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Legacy-Logo-Migration konnte nicht geschrieben werden (${code}).`,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
   volatileSettingsCache = resolvedSettings;
   return resolvedSettings;
 }

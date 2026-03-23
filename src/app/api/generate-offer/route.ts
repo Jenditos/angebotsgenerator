@@ -25,17 +25,17 @@ import {
 
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
 const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
-  companyName: "",
-  ownerName: "",
-  companyStreet: "",
-  companyPostalCode: "",
-  companyCity: "",
-  companyEmail: "",
-  companyPhone: "",
-  companyWebsite: "",
+  companyName: "Musterbetrieb GmbH",
+  ownerName: "Max Mustermann",
+  companyStreet: "Musterstraße 1",
+  companyPostalCode: "10115",
+  companyCity: "Berlin",
+  companyEmail: "info@musterbetrieb.de",
+  companyPhone: "+49 30 123456",
+  companyWebsite: "www.musterbetrieb.de",
   taxNumber: "",
   vatId: "",
-  companyCountry: "",
+  companyCountry: "Deutschland",
   euVatNoticeText: "",
   includeCustomerVatId: false,
   senderCopyEmail: "",
@@ -45,7 +45,8 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
-  offerTermsText: "",
+  offerTermsText:
+    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
   lastInvoiceNumber: "",
   customServiceTypes: [],
@@ -769,9 +770,6 @@ function buildEmailText(input: {
         : `Sehr geehrter Herr ${personName},`;
   }
 
-  const signatureLines = input.senderName.trim()
-    ? ["", input.senderName.trim()]
-    : [];
   const offerLines = [
     greeting,
     "",
@@ -783,7 +781,8 @@ function buildEmailText(input: {
     "Bei Fragen stehen wir Ihnen jederzeit gerne zur Verfügung.",
     "",
     "Mit freundlichen Grüßen",
-    ...signatureLines,
+    "",
+    input.senderName,
   ];
   const invoiceLines = [
     greeting,
@@ -794,7 +793,8 @@ function buildEmailText(input: {
     "Für Rückfragen stehen wir Ihnen gerne zur Verfügung.",
     "",
     "Mit freundlichen Grüßen",
-    ...signatureLines,
+    "",
+    input.senderName,
   ];
 
   return (input.documentType === "invoice" ? invoiceLines : offerLines).join(
@@ -1039,7 +1039,7 @@ export async function POST(request: Request) {
     const senderName =
       settings.companyName?.trim() ||
       settings.ownerName?.trim() ||
-      "";
+      "Ihr Handwerksbetrieb";
     const mailText = buildEmailText({
       documentType,
       customerType,

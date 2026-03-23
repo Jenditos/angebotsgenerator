@@ -1,27 +1,30 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
+import {
+  LEGACY_VISIORO_FALLBACK_LOGO_DATA_URL,
+  MAX_LOGO_DATA_URL_LENGTH,
+} from "@/lib/logo-config";
 import { readSettings, writeSettings } from "@/lib/settings-store";
 import { __resetRuntimeDataDirPreparationForTests } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
 
 function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySettings {
   return {
-    companyName: "COMPANY_TEST_A",
-    ownerName: "OWNER_TEST_A",
-    companyStreet: "STREET_TEST_1",
-    companyPostalCode: "00000",
-    companyCity: "CITY_TEST",
-    companyEmail: "company@example.test",
-    companyPhone: "0000000",
-    companyWebsite: "company.example.test",
-    taxNumber: "TAX_TEST_1",
-    vatId: "VAT_TEST_1",
-    companyCountry: "COUNTRY_TEST",
-    euVatNoticeText: "EU_NOTICE_TEST",
+    companyName: "Bestand GmbH",
+    ownerName: "Max Mustermann",
+    companyStreet: "Musterstraße 1",
+    companyPostalCode: "10115",
+    companyCity: "Berlin",
+    companyEmail: "info@bestand.de",
+    companyPhone: "+49 30 123456",
+    companyWebsite: "www.bestand.de",
+    taxNumber: "12/345/67890",
+    vatId: "DE123456789",
+    companyCountry: "Deutschland",
+    euVatNoticeText: "Steuerfreie innergemeinschaftliche Lieferung.",
     includeCustomerVatId: true,
-    senderCopyEmail: "copy@example.test",
+    senderCopyEmail: "intern@bestand.de",
     logoDataUrl: "data:image/png;base64,AAAA",
     pdfTableColumns: [
       { id: "position", label: "Position", visible: true, order: 0 },
@@ -69,28 +72,6 @@ describe("settings-store", () => {
     );
   });
 
-  it("returns neutral defaults when no settings file exists", async () => {
-    const dataDir = await createTempDir("settings-store-empty-defaults-");
-    process.env.DATA_DIR = dataDir;
-    await mkdir(dataDir, { recursive: true });
-
-    const loaded = await readSettings();
-    expect(loaded.companyName).toBe("");
-    expect(loaded.ownerName).toBe("");
-    expect(loaded.companyStreet).toBe("");
-    expect(loaded.companyPostalCode).toBe("");
-    expect(loaded.companyCity).toBe("");
-    expect(loaded.companyEmail).toBe("");
-    expect(loaded.companyPhone).toBe("");
-    expect(loaded.companyWebsite).toBe("");
-    expect(loaded.taxNumber).toBe("");
-    expect(loaded.vatId).toBe("");
-    expect(loaded.companyCountry).toBe("");
-    expect(loaded.senderCopyEmail).toBe("");
-    expect(loaded.logoDataUrl).toBe("");
-    expect(loaded.offerTermsText).toBe("");
-  });
-
   it("preserves existing fields on partial update", async () => {
     const dataDir = await createTempDir("settings-store-partial-");
     process.env.DATA_DIR = dataDir;
@@ -102,15 +83,15 @@ describe("settings-store", () => {
     );
 
     await writeSettings({
-      companyName: "COMPANY_TEST_B",
+      companyName: "Neu GmbH",
     });
 
     const updated = await readSettings();
-    expect(updated.companyName).toBe("COMPANY_TEST_B");
+    expect(updated.companyName).toBe("Neu GmbH");
     expect(updated.logoDataUrl).toBe("data:image/png;base64,AAAA");
     expect(updated.lastOfferNumber).toBe("ANG-2026-123");
     expect(updated.lastInvoiceNumber).toBe("RE-2026-045");
-    expect(updated.ownerName).toBe("OWNER_TEST_A");
+    expect(updated.ownerName).toBe("Max Mustermann");
   });
 
   it("does not erase logo when an invalid oversized logo payload is sent", async () => {
@@ -160,4 +141,28 @@ describe("settings-store", () => {
     expect(afterLogoDelete.logoDataUrl).toBe("");
   });
 
+  it("migrates legacy hardcoded fallback logo to empty logo", async () => {
+    const dataDir = await createTempDir("settings-store-logo-legacy-migration-");
+    process.env.DATA_DIR = dataDir;
+    await mkdir(dataDir, { recursive: true });
+    const settingsPath = path.join(dataDir, "company-settings.json");
+    await writeFile(
+      settingsPath,
+      JSON.stringify(
+        buildSettingsFixture({
+          logoDataUrl: LEGACY_VISIORO_FALLBACK_LOGO_DATA_URL,
+        }),
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const loaded = await readSettings();
+    expect(loaded.logoDataUrl).toBe("");
+
+    const persistedRaw = await readFile(settingsPath, "utf8");
+    const persisted = JSON.parse(persistedRaw) as CompanySettings;
+    expect(persisted.logoDataUrl).toBe("");
+  });
 });

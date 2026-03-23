@@ -783,7 +783,7 @@ export function OfferPdfDocument({
   const closingSignatureName =
     settings.companyName?.trim() ||
     settings.ownerName?.trim() ||
-    "";
+    "Ihr Handwerksbetrieb";
   const configuredColumns = sortPdfTableColumns(settings.pdfTableColumns).filter(
     (column) => column.visible,
   );
@@ -876,9 +876,9 @@ export function OfferPdfDocument({
               <>
                 <View style={styles.topRow}>
                   <View style={styles.topLeft}>
-                    {senderCompactLine ? (
-                      <Text style={styles.senderCompactLine}>{senderCompactLine}</Text>
-                    ) : null}
+                    <Text style={styles.senderCompactLine}>
+                      {senderCompactLine || "Handwerksbetrieb • Straße 1 • 12345 Stadt"}
+                    </Text>
                     {senderContactLine ? (
                       <Text style={styles.senderContactLine}>{senderContactLine}</Text>
                     ) : null}
@@ -1102,9 +1102,7 @@ export function OfferPdfDocument({
                         </Text>
                       ) : null}
                       <Text style={styles.closingLine}>Mit freundlichen Grüßen</Text>
-                      {closingSignatureName ? (
-                        <Text style={styles.closingSignature}>{closingSignatureName}</Text>
-                      ) : null}
+                      <Text style={styles.closingSignature}>{closingSignatureName}</Text>
                     </View>
                   </>
                 ) : null}
