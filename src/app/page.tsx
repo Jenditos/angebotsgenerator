@@ -413,17 +413,17 @@ const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 
 const fallbackCompanySettings: CompanySettings = {
-  companyName: "Musterbetrieb GmbH",
-  ownerName: "Max Mustermann",
-  companyStreet: "Musterstraße 1",
-  companyPostalCode: "10115",
-  companyCity: "Berlin",
-  companyEmail: "info@musterbetrieb.de",
-  companyPhone: "+49 30 123456",
-  companyWebsite: "www.musterbetrieb.de",
+  companyName: "",
+  ownerName: "",
+  companyStreet: "",
+  companyPostalCode: "",
+  companyCity: "",
+  companyEmail: "",
+  companyPhone: "",
+  companyWebsite: "",
   taxNumber: "",
   vatId: "",
-  companyCountry: "Deutschland",
+  companyCountry: "",
   euVatNoticeText: "",
   includeCustomerVatId: false,
   senderCopyEmail: "",
@@ -433,8 +433,7 @@ const fallbackCompanySettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
-  offerTermsText:
-    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
+  offerTermsText: "",
   lastOfferNumber: "",
   lastInvoiceNumber: "",
   customServiceTypes: [],
@@ -3000,16 +2999,19 @@ export default function HomePage() {
     companyName: string,
     offerNumber: string,
   ) {
-    const senderName = companyName.trim() || "Ihr Handwerksbetrieb";
+    const senderName = companyName.trim();
     const normalizedOfferNumber = offerNumber.trim();
+    const subject = senderName
+      ? `Ihr Angebot ${normalizedOfferNumber} von ${senderName}`
+      : `Ihr Angebot ${normalizedOfferNumber}`;
+    const signature = senderName ? `\n${senderName}` : "";
     return {
-      subject: `Ihr Angebot ${normalizedOfferNumber} von ${senderName}`,
+      subject,
       text:
         `Sehr geehrte Damen und Herren,\n\n` +
         `anbei erhalten Sie unser Angebot.\n\n` +
         `Bei Fragen stehen wir Ihnen gerne zur Verfügung.\n\n` +
-        `Mit freundlichen Grüßen\n` +
-        `${senderName}`,
+        `Mit freundlichen Grüßen${signature}`,
     };
   }
 
@@ -3284,7 +3286,7 @@ export default function HomePage() {
         const companyNameForMail =
           settingsPayload?.companyName?.trim() ||
           companySettings?.companyName?.trim() ||
-          "Ihr Handwerksbetrieb";
+          "";
         const customerEmailForMail = form.customerEmail.trim();
         setOfferMailActionState({
           payload,
@@ -3383,7 +3385,7 @@ export default function HomePage() {
               />
             </svg>
           </button>
-          <span className="pill topHeaderLogo">Visioro</span>
+          <span className="pill topHeaderLogo">App</span>
           <button
             type="button"
             className="topHeaderSettingsButton"
@@ -3965,13 +3967,7 @@ export default function HomePage() {
 
                 <h3>Anbieter</h3>
                 <p className="infoLegalProvider">
-                  VISIORO SH.P.K.
-                  <br />
-                  Rr. Rifat Berisha 10
-                  <br />
-                  10000 Prishtina, Kosovo
-                  <br />
-                  E-Mail: info@visioro.com
+                  Keine festen Anbieterdaten hinterlegt.
                 </p>
               </div>
             </section>
@@ -4092,7 +4088,7 @@ export default function HomePage() {
                       setVoiceTranscript(e.target.value);
                       setVoiceMissingFields([]);
                     }}
-                    placeholder="z. B. Max Müller, Musterstraße 5, Düsseldorf, Betonarbeiten 2 Stück à 120 Euro"
+                    placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
                   />
                 </label>
 

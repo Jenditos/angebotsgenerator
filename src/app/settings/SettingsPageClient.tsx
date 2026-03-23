@@ -39,7 +39,7 @@ const emptySettings: CompanySettings = {
   companyWebsite: "",
   taxNumber: "",
   vatId: "",
-  companyCountry: "Deutschland",
+  companyCountry: "",
   euVatNoticeText: "",
   includeCustomerVatId: false,
   senderCopyEmail: "",
@@ -49,8 +49,7 @@ const emptySettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
-  offerTermsText:
-    "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
+  offerTermsText: "",
   lastOfferNumber: "",
   lastInvoiceNumber: "",
   customServiceTypes: [],
@@ -993,8 +992,8 @@ export default function SettingsPage() {
       >
         {!isEmbedded ? (
           <header className="topHeaderMinimal">
-            <span className="pill topHeaderLogo" aria-label="Visioro">
-              Visioro
+            <span className="pill topHeaderLogo" aria-label="App">
+              App
             </span>
             <Link
               href="/"

@@ -6,7 +6,7 @@ import { createStoredOfferRecord } from "./offer-store-service";
 function createSampleInput(seed: string) {
   return {
     customerName: `Kunde ${seed}`,
-    customerAddress: "Musterstraße 1, 10115 Berlin",
+    customerAddress: "TEST_STREET_1, 00000 TEST_CITY",
     customerEmail: "kunde@example.com",
     serviceDescription: "Fliesenarbeiten",
     lineItems: [
