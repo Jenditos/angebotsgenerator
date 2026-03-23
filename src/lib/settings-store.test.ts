@@ -11,20 +11,20 @@ import { CompanySettings } from "@/types/offer";
 
 function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySettings {
   return {
-    companyName: "Bestand GmbH",
-    ownerName: "Max Mustermann",
-    companyStreet: "Musterstraße 1",
-    companyPostalCode: "10115",
-    companyCity: "Berlin",
-    companyEmail: "info@bestand.de",
-    companyPhone: "+49 30 123456",
-    companyWebsite: "www.bestand.de",
-    taxNumber: "12/345/67890",
-    vatId: "DE123456789",
-    companyCountry: "Deutschland",
-    euVatNoticeText: "Steuerfreie innergemeinschaftliche Lieferung.",
+    companyName: "COMPANY_TEST_A",
+    ownerName: "OWNER_TEST_A",
+    companyStreet: "STREET_TEST_1",
+    companyPostalCode: "00000",
+    companyCity: "CITY_TEST",
+    companyEmail: "company@example.test",
+    companyPhone: "0000000",
+    companyWebsite: "company.example.test",
+    taxNumber: "TAX_TEST_1",
+    vatId: "VAT_TEST_1",
+    companyCountry: "COUNTRY_TEST",
+    euVatNoticeText: "EU_NOTICE_TEST",
     includeCustomerVatId: true,
-    senderCopyEmail: "intern@bestand.de",
+    senderCopyEmail: "copy@example.test",
     logoDataUrl: "data:image/png;base64,AAAA",
     pdfTableColumns: [
       { id: "position", label: "Position", visible: true, order: 0 },
@@ -83,15 +83,15 @@ describe("settings-store", () => {
     );
 
     await writeSettings({
-      companyName: "Neu GmbH",
+      companyName: "COMPANY_TEST_B",
     });
 
     const updated = await readSettings();
-    expect(updated.companyName).toBe("Neu GmbH");
+    expect(updated.companyName).toBe("COMPANY_TEST_B");
     expect(updated.logoDataUrl).toBe("data:image/png;base64,AAAA");
     expect(updated.lastOfferNumber).toBe("ANG-2026-123");
     expect(updated.lastInvoiceNumber).toBe("RE-2026-045");
-    expect(updated.ownerName).toBe("Max Mustermann");
+    expect(updated.ownerName).toBe("OWNER_TEST_A");
   });
 
   it("does not erase logo when an invalid oversized logo payload is sent", async () => {

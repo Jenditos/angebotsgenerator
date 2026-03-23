@@ -39,7 +39,7 @@ const emptySettings: CompanySettings = {
   companyWebsite: "",
   taxNumber: "",
   vatId: "",
-  companyCountry: "Deutschland",
+  companyCountry: "",
   euVatNoticeText: "",
   includeCustomerVatId: false,
   senderCopyEmail: "",
