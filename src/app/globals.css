@@ -4840,3 +4840,157 @@ button.customerArchiveSectionToggle {
     padding: 10px;
   }
 }
+
+.accountMenuWrap {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+}
+
+.accountMenuTrigger {
+  position: static;
+  transform: none;
+}
+
+.accountMenuTrigger[aria-expanded="true"] {
+  border-color: rgba(67, 112, 188, 0.34);
+  background: rgba(248, 252, 255, 0.94);
+}
+
+.accountMenuPanel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(286px, calc(100vw - 24px));
+  border: 1px solid rgba(63, 110, 188, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 18px 34px rgba(31, 63, 113, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  padding: 8px;
+  display: grid;
+  gap: 2px;
+  animation: accountMenuEnter 170ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transform-origin: top right;
+}
+
+.accountMenuPanel.closing {
+  animation: accountMenuExit 130ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.accountMenuHeader {
+  margin: 0;
+  padding: 7px 8px 8px;
+  display: grid;
+  gap: 3px;
+  color: #52709f;
+  font-size: 0.73rem;
+  letter-spacing: 0.01em;
+}
+
+.accountMenuIdentity {
+  color: #1d3f73;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.accountMenuPanel .accountMenuItem {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: #244a81;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 8px 10px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.accountMenuPanel .accountMenuItem:hover:not(:disabled) {
+  border-color: rgba(70, 114, 191, 0.22);
+  background: rgba(239, 247, 255, 0.86);
+  box-shadow: none;
+}
+
+.accountMenuPanel .accountMenuItem:active:not(:disabled) {
+  border-color: rgba(70, 114, 191, 0.28);
+  background: rgba(231, 243, 255, 0.86);
+  box-shadow: none;
+}
+
+.accountMenuPanel .accountMenuLogoutItem {
+  color: #1f4d8b;
+}
+
+.accountMenuPanel .accountMenuLoginItem {
+  color: #1f4d8b;
+}
+
+.accountMenuDivider {
+  height: 1px;
+  margin: 3px 6px;
+  background: rgba(74, 118, 197, 0.2);
+}
+
+.accountTipsPopover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(340px, calc(100vw - 24px));
+  margin: 0;
+  border: 1px solid rgba(71, 117, 193, 0.24);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 30px rgba(35, 70, 130, 0.2);
+  padding: 11px 13px;
+  color: #4d6793;
+  font-size: 0.83rem;
+  line-height: 1.4;
+  z-index: 91;
+  animation: accountMenuEnter 170ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transform-origin: top right;
+}
+
+@keyframes accountMenuEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes accountMenuExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.988);
+  }
+}
+
+@media (max-width: 760px) {
+  .accountMenuWrap {
+    right: 2px;
+  }
+
+  .accountMenuPanel,
+  .accountTipsPopover {
+    width: min(304px, calc(100vw - 16px));
+  }
+}

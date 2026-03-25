@@ -78,6 +78,13 @@ type SettingsApiResponse = {
   error?: string;
 };
 
+type AccessStatusApiResponse = {
+  authenticated?: boolean;
+  user?: {
+    email?: string;
+  };
+};
+
 type CustomerArchiveDocument = {
   documentNumber: string;
   documentType: DocumentType;
@@ -1198,6 +1205,12 @@ export default function HomePage() {
   const [isClosingCustomerPicker, setIsClosingCustomerPicker] = useState(false);
   const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
+  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(
+    isSupabaseConfigured(),
+  );
+  const [accountIdentity, setAccountIdentity] = useState("");
   const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -1216,6 +1229,8 @@ export default function HomePage() {
   const archiveLoadRequestRef = useRef(0);
   const archiveCloseTimeoutRef = useRef<number | null>(null);
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
+  const accountMenuCloseTimeoutRef = useRef<number | null>(null);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -1309,6 +1324,7 @@ export default function HomePage() {
   const canOpenOfferMailDraft =
     isOfferMailActionVisible &&
     Boolean(offerMailActionState?.payload.pdfBase64?.trim());
+  const accountIdentityLabel = accountIdentity || "Nutzerkonto";
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
@@ -1437,6 +1453,39 @@ export default function HomePage() {
     }, 170);
   }
 
+  function openAccountMenu() {
+    if (accountMenuCloseTimeoutRef.current !== null) {
+      window.clearTimeout(accountMenuCloseTimeoutRef.current);
+      accountMenuCloseTimeoutRef.current = null;
+    }
+    setIsClosingAccountMenu(false);
+    setIsAccountMenuOpen(true);
+  }
+
+  function closeAccountMenu() {
+    if (!isAccountMenuOpen || isClosingAccountMenu) {
+      return;
+    }
+
+    setIsClosingAccountMenu(true);
+    if (accountMenuCloseTimeoutRef.current !== null) {
+      window.clearTimeout(accountMenuCloseTimeoutRef.current);
+    }
+    accountMenuCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsAccountMenuOpen(false);
+      setIsClosingAccountMenu(false);
+      accountMenuCloseTimeoutRef.current = null;
+    }, 140);
+  }
+
+  function toggleAccountMenu() {
+    if (isAccountMenuOpen && !isClosingAccountMenu) {
+      closeAccountMenu();
+      return;
+    }
+    openAccountMenu();
+  }
+
   function openCustomerPickerPopup() {
     if (customerPickerCloseTimeoutRef.current !== null) {
       window.clearTimeout(customerPickerCloseTimeoutRef.current);
@@ -1486,6 +1535,9 @@ export default function HomePage() {
       }
       if (infoLegalCloseTimeoutRef.current !== null) {
         window.clearTimeout(infoLegalCloseTimeoutRef.current);
+      }
+      if (accountMenuCloseTimeoutRef.current !== null) {
+        window.clearTimeout(accountMenuCloseTimeoutRef.current);
       }
       if (recognitionRef.current) {
         shouldAutoApplyVoiceRef.current = false;
@@ -1608,7 +1660,9 @@ export default function HomePage() {
       !isCustomerArchiveOpen &&
       !isInfoLegalOpen &&
       !isSettingsOverlayOpen &&
-      !isCustomerPickerOpen
+      !isCustomerPickerOpen &&
+      !isAccountMenuOpen &&
+      !isSetupHintOpen
     ) {
       return;
     }
@@ -1635,6 +1689,15 @@ export default function HomePage() {
 
       if (isCustomerPickerOpen) {
         closeCustomerPickerPopup();
+        return;
+      }
+
+      if (isSetupHintOpen) {
+        setIsSetupHintOpen(false);
+      }
+
+      if (isAccountMenuOpen) {
+        closeAccountMenu();
       }
     }
 
@@ -1649,6 +1712,9 @@ export default function HomePage() {
     isClosingSettingsOverlay,
     isCustomerPickerOpen,
     isClosingCustomerPicker,
+    isAccountMenuOpen,
+    isClosingAccountMenu,
+    isSetupHintOpen,
   ]);
 
   useEffect(() => {
@@ -1697,6 +1763,51 @@ export default function HomePage() {
     }
 
     void loadSettingsStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadAccountStatus() {
+      if (!isSupabaseConfigured()) {
+        if (mounted) {
+          setIsAuthenticatedUser(false);
+          setAccountIdentity("");
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/access/status", { cache: "no-store" });
+        if (!mounted) {
+          return;
+        }
+
+        if (!response.ok) {
+          setIsAuthenticatedUser(false);
+          setAccountIdentity("");
+          return;
+        }
+
+        const data = (await response.json()) as AccessStatusApiResponse;
+        setIsAuthenticatedUser(Boolean(data.authenticated));
+        setAccountIdentity(
+          typeof data.user?.email === "string" ? data.user.email.trim() : "",
+        );
+      } catch {
+        if (!mounted) {
+          return;
+        }
+        setIsAuthenticatedUser(false);
+        setAccountIdentity("");
+      }
+    }
+
+    void loadAccountStatus();
 
     return () => {
       mounted = false;
@@ -1762,6 +1873,31 @@ export default function HomePage() {
     document.addEventListener("mousedown", closeFloatingPanels);
     return () => document.removeEventListener("mousedown", closeFloatingPanels);
   }, []);
+
+  useEffect(() => {
+    if ((!isAccountMenuOpen && !isSetupHintOpen) || typeof document === "undefined") {
+      return;
+    }
+
+    function closeAccountUiOnOutsideClick(event: MouseEvent) {
+      const target = event.target as Node;
+      if (accountMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      if (isSetupHintOpen) {
+        setIsSetupHintOpen(false);
+      }
+
+      if (isAccountMenuOpen) {
+        closeAccountMenu();
+      }
+    }
+
+    document.addEventListener("mousedown", closeAccountUiOnOutsideClick);
+    return () =>
+      document.removeEventListener("mousedown", closeAccountUiOnOutsideClick);
+  }, [isAccountMenuOpen, isClosingAccountMenu, isSetupHintOpen]);
 
   useEffect(() => {
     const street = form.street.trim();
@@ -1997,6 +2133,35 @@ export default function HomePage() {
       setIsClosingInfoLegal(false);
       infoLegalCloseTimeoutRef.current = null;
     }, 170);
+  }
+
+  function toggleTipsFromAccountMenu() {
+    setIsSetupHintOpen((prev) => !prev);
+    closeAccountMenu();
+  }
+
+  function openInfoLegalFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    openInfoLegalModal();
+  }
+
+  function openSettingsFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    openSettingsOverlay();
+  }
+
+  function navigateToAuthFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    window.location.href = "/auth";
+  }
+
+  async function handleLogoutFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    await handleLogout();
   }
 
   async function handleLogout() {
@@ -3400,37 +3565,127 @@ export default function HomePage() {
             </svg>
           </button>
           <span className="pill topHeaderLogo">Visioro</span>
-          <button
-            type="button"
-            className="topHeaderSettingsButton"
-            aria-label="Einstellungen"
-            title="Einstellungen"
-            onClick={openSettingsOverlay}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="topHeaderIcon"
-              aria-hidden="true"
-              focusable="false"
+          <div className="accountMenuWrap" ref={accountMenuRef}>
+            <button
+              type="button"
+              className="topHeaderSettingsButton accountMenuTrigger"
+              aria-label="Account-Menü"
+              title="Account-Menü"
+              aria-haspopup="menu"
+              aria-expanded={isAccountMenuOpen}
+              onClick={toggleAccountMenu}
             >
-              <path
-                d="M9.6 3.5h4.8l.44 2.1a6.88 6.88 0 0 1 1.5.87l2.03-.75 2.4 4.15-1.6 1.45c.06.45.06.91 0 1.36l1.6 1.45-2.4 4.15-2.03-.75c-.47.35-.98.64-1.5.87l-.44 2.1H9.6l-.44-2.1a6.88 6.88 0 0 1-1.5-.87l-2.03.75-2.4-4.15 1.6-1.45a5.5 5.5 0 0 1 0-1.36l-1.6-1.45 2.4-4.15 2.03.75c.47-.35.98-.64 1.5-.87L9.6 3.5Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle
-                cx="12"
-                cy="12"
-                r="2.7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              />
-            </svg>
-          </button>
+              <svg
+                viewBox="0 0 24 24"
+                className="topHeaderIcon"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle
+                  cx="12"
+                  cy="8.4"
+                  r="3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                />
+                <path
+                  d="M5.6 18.2a6.4 6.4 0 0 1 12.8 0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            {isAccountMenuOpen ? (
+              <div
+                className={`accountMenuPanel ${isClosingAccountMenu ? "closing" : ""}`}
+                role="menu"
+                aria-label="Account-Menü"
+              >
+                {isAuthenticatedUser ? (
+                  <>
+                    <p className="accountMenuHeader">
+                      <span>Eingeloggt als</span>
+                      <strong className="accountMenuIdentity">{accountIdentityLabel}</strong>
+                    </p>
+                    <button
+                      type="button"
+                      className="accountMenuItem"
+                      role="menuitem"
+                      onClick={toggleTipsFromAccountMenu}
+                    >
+                      Tipps
+                    </button>
+                    <button
+                      type="button"
+                      className="accountMenuItem"
+                      role="menuitem"
+                      onClick={openInfoLegalFromAccountMenu}
+                    >
+                      Info &amp; Rechtliches
+                    </button>
+                    <button
+                      type="button"
+                      className="accountMenuItem"
+                      role="menuitem"
+                      onClick={openSettingsFromAccountMenu}
+                    >
+                      Einstellungen
+                    </button>
+                    <div className="accountMenuDivider" aria-hidden />
+                    <button
+                      type="button"
+                      className="accountMenuItem accountMenuLogoutItem"
+                      role="menuitem"
+                      onClick={() => void handleLogoutFromAccountMenu()}
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="accountMenuItem accountMenuLoginItem"
+                    role="menuitem"
+                    onClick={navigateToAuthFromAccountMenu}
+                  >
+                    Login / Registrieren
+                  </button>
+                )}
+              </div>
+            ) : null}
+            {isSetupHintOpen ? (
+              <p className="accountTipsPopover">
+                {!isCompanySetupComplete ? (
+                  <>
+                    Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
+                    <Link
+                      href="/settings"
+                      className="formHintLink"
+                      onClick={() => setIsSetupHintOpen(false)}
+                    >
+                      Einstellungen
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie in den{" "}
+                    <Link
+                      href="/settings"
+                      className="formHintLink"
+                      onClick={() => setIsSetupHintOpen(false)}
+                    >
+                      Einstellungen
+                    </Link>{" "}
+                    bearbeiten.
+                  </>
+                )}
+              </p>
+            ) : null}
+          </div>
         </header>
 
         {isCustomerArchiveOpen ? (
@@ -5031,76 +5286,17 @@ export default function HomePage() {
                 ) : null}
               </div>
 
-              <div className="formBottomMetaRow span2">
-                {!isCompanySetupComplete ? (
+              {!isCompanySetupComplete ? (
+                <div className="formBottomMetaRow span2">
                   <p className="formHint">
                     Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
                     <Link href="/settings" className="formHintLink">
                       Einstellungen
                     </Link>{" "}
-                    oder nutze dafür das Zahnradsymbol oben rechts.
+                    oder nutze dafür das Account-Menü oben rechts.
                   </p>
-                ) : (
-                  <div className="formHintMiniWrap">
-                    <button
-                      type="button"
-                      className="formHintMiniButton"
-                      aria-label="Tipp anzeigen"
-                      aria-expanded={isSetupHintOpen}
-                      onClick={() => setIsSetupHintOpen((prev) => !prev)}
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="formHintMiniIcon"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="8"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                        />
-                        <path
-                          d="M12 10.2v5.1"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                        <circle cx="12" cy="7.2" r="1" fill="currentColor" />
-                      </svg>
-                    </button>
-                    {isSetupHintOpen ? (
-                      <p className="formHintMiniPopover">
-                        Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie
-                        in den{" "}
-                        <Link href="/settings" className="formHintLink">
-                          Einstellungen
-                        </Link>{" "}
-                        oder über das Zahnradsymbol oben rechts bearbeiten.
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  className="ghostButton infoLegalTriggerButton"
-                  onClick={openInfoLegalModal}
-                >
-                  Info &amp; Rechtliches
-                </button>
-                <button
-                  type="button"
-                  className="ghostButton infoLegalTriggerButton"
-                  onClick={() => void handleLogout()}
-                >
-                  Logout
-                </button>
-              </div>
+                </div>
+              ) : null}
             </form>
 
             {error ? <p className="error">{error}</p> : null}
