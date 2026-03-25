@@ -59,24 +59,31 @@ export default function AuthResetPage() {
   }
 
   return (
-    <main className="page">
-      <div className="ambient ambientA" aria-hidden />
-      <div className="ambient ambientB" aria-hidden />
-      <div className="container pageSurfaceTransition">
-        <section className="hero glassCard compactHero">
-          <p className="heroEyebrow">Sicherheit</p>
-          <h1>Neues Passwort festlegen</h1>
-          <p className="heroText">
-            Lege hier dein neues Passwort fest, nachdem du den Reset-Link aus
-            der E-Mail geöffnet hast.
-          </p>
-        </section>
+    <main className="authViewport">
+      <div className="authGlow authGlowA" aria-hidden />
+      <div className="authGlow authGlowB" aria-hidden />
+      <div className="authCenterWrap">
+        <div className="authBrandBlock" aria-label="Visioro">
+          <span className="authBrandIcon" aria-hidden>
+            V
+          </span>
+          <span className="authBrandWordmark">Visioro</span>
+        </div>
 
-        <section className="glassCard formCard">
-          <form onSubmit={onSubmit} className="formGrid">
-            <label className="field">
-              <span>Neues Passwort</span>
+        <section className="authCard">
+          <header className="authCardHeader">
+            <h1 className="authHeading">Neues Passwort festlegen</h1>
+            <p className="authSubtitle">
+              Lege hier dein neues Passwort fest, nachdem du den Reset-Link aus
+              der E-Mail geöffnet hast.
+            </p>
+          </header>
+
+          <form onSubmit={onSubmit} className="authForm">
+            <label className="authField">
+              <span className="authFieldLabel">Neues Passwort</span>
               <input
+                className="authInput"
                 required
                 minLength={8}
                 type="password"
@@ -85,9 +92,10 @@ export default function AuthResetPage() {
                 onChange={(event) => setPassword(event.target.value)}
               />
             </label>
-            <label className="field">
-              <span>Passwort wiederholen</span>
+            <label className="authField">
+              <span className="authFieldLabel">Passwort wiederholen</span>
               <input
+                className="authInput"
                 required
                 minLength={8}
                 type="password"
@@ -99,7 +107,7 @@ export default function AuthResetPage() {
 
             <button
               type="submit"
-              className="primaryButton"
+              className="authPrimaryButton"
               disabled={!authReady || isSubmitting}
             >
               {isSubmitting ? "Bitte warten ..." : "Passwort speichern"}
@@ -107,14 +115,18 @@ export default function AuthResetPage() {
           </form>
 
           {!authReady ? (
-            <p className="error">
+            <p className="authError">
               Supabase ist noch nicht konfiguriert. Bitte ENV-Variablen setzen.
             </p>
           ) : null}
-          {error ? <p className="error">{error}</p> : null}
-          {!error && info ? <p className="voiceInfo">{info}</p> : null}
+          {error ? <p className="authError">{error}</p> : null}
+          {!error && info ? <p className="authInfo">{info}</p> : null}
 
-          <Link href="/auth" className="ghostButton">
+          <div className="authDivider" role="separator" aria-label="oder">
+            <span>oder</span>
+          </div>
+
+          <Link href="/auth" className="authSecondaryButton authSecondaryLink">
             Zurück zum Login
           </Link>
         </section>

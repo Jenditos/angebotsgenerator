@@ -122,57 +122,50 @@ export default function AuthPage() {
     }
   }
 
+  const isRegisterMode = mode === "register";
+  const isForgotMode = mode === "forgot";
+  const title = isRegisterMode
+    ? "Konto erstellen"
+    : isForgotMode
+      ? "Passwort zurücksetzen"
+      : "Bei Visioro anmelden";
+  const subtitle = isRegisterMode
+    ? "Starte deinen kostenlosen Testmonat sofort. Ohne Kreditkarte."
+    : isForgotMode
+      ? "Wir senden dir einen Link zum Zurücksetzen deines Passworts."
+      : "Melde dich an, um auf deine Angebote und Rechnungen zuzugreifen.";
+  const submitLabel = isSubmitting
+    ? "Bitte warten ..."
+    : isRegisterMode
+      ? "Kostenlos starten"
+      : isForgotMode
+        ? "Reset-Link senden"
+        : "Anmelden";
+
   return (
-    <main className="page">
-      <div className="ambient ambientA" aria-hidden />
-      <div className="ambient ambientB" aria-hidden />
-      <div className="container pageSurfaceTransition">
-        <section className="hero glassCard compactHero">
-          <p className="heroEyebrow">Sofort starten</p>
-          <h1>Kostenlos testen, ohne Kreditkarte</h1>
-          <p className="heroText">
-            Registriere dich mit Name, E-Mail und Passwort. Dein unverbindlicher
-            Testmonat startet automatisch und ohne Zahlungsdaten.
-          </p>
-        </section>
+    <main className="authViewport">
+      <div className="authGlow authGlowA" aria-hidden />
+      <div className="authGlow authGlowB" aria-hidden />
+      <div className="authCenterWrap">
+        <div className="authBrandBlock" aria-label="Visioro">
+          <span className="authBrandIcon" aria-hidden>
+            V
+          </span>
+          <span className="authBrandWordmark">Visioro</span>
+        </div>
 
-        <section className="glassCard formCard">
-          <div
-            className="documentModeSwitch"
-            role="tablist"
-            aria-label="Authentifizierung"
-          >
-            <button
-              type="button"
-              className={`documentModeSwitchButton ${mode === "login" ? "active" : ""}`}
-              onClick={() => setMode("login")}
-              aria-pressed={mode === "login"}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`documentModeSwitchButton ${mode === "register" ? "active" : ""}`}
-              onClick={() => setMode("register")}
-              aria-pressed={mode === "register"}
-            >
-              Registrierung
-            </button>
-            <button
-              type="button"
-              className={`documentModeSwitchButton ${mode === "forgot" ? "active" : ""}`}
-              onClick={() => setMode("forgot")}
-              aria-pressed={mode === "forgot"}
-            >
-              Passwort vergessen
-            </button>
-          </div>
+        <section className="authCard" aria-live="polite">
+          <header className="authCardHeader">
+            <h1 className="authHeading">{title}</h1>
+            <p className="authSubtitle">{subtitle}</p>
+          </header>
 
-          <form onSubmit={onSubmit} className="formGrid">
-            {mode === "register" ? (
-              <label className="field">
-                <span>Name</span>
+          <form onSubmit={onSubmit} className="authForm">
+            {isRegisterMode ? (
+              <label className="authField">
+                <span className="authFieldLabel">Name</span>
                 <input
+                  className="authInput"
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
@@ -181,9 +174,10 @@ export default function AuthPage() {
               </label>
             ) : null}
 
-            <label className="field">
-              <span>E-Mail</span>
+            <label className="authField">
+              <span className="authFieldLabel">E-Mail</span>
               <input
+                className="authInput"
                 required
                 type="email"
                 value={email}
@@ -192,52 +186,75 @@ export default function AuthPage() {
               />
             </label>
 
-            {mode !== "forgot" ? (
-              <label className="field">
-                <span>Passwort</span>
+            {!isForgotMode ? (
+              <label className="authField">
+                <span className="authFieldLabel">Passwort</span>
                 <input
+                  className="authInput"
                   required
                   type="password"
                   minLength={8}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  autoComplete={isRegisterMode ? "new-password" : "current-password"}
                 />
               </label>
             ) : null}
 
             <button
               type="submit"
-              className="primaryButton"
+              className="authPrimaryButton"
               disabled={!authReady || isSubmitting}
             >
-              {isSubmitting
-                ? "Bitte warten ..."
-                : mode === "register"
-                  ? "Jetzt kostenlos starten"
-                  : mode === "forgot"
-                    ? "Reset-Link senden"
-                    : "Einloggen"}
+              {submitLabel}
             </button>
           </form>
 
           {!authReady ? (
-            <p className="error">
+            <p className="authError">
               Supabase ist noch nicht konfiguriert. Bitte ENV-Variablen setzen.
             </p>
           ) : null}
-          {error ? <p className="error">{error}</p> : null}
-          {!error && info ? (
-            <p className="voiceInfo" role="status">
-              {info}
+          {error ? <p className="authError">{error}</p> : null}
+          {!error && info ? <p className="authInfo">{info}</p> : null}
+
+          <div className="authDivider" role="separator" aria-label="oder">
+            <span>oder</span>
+          </div>
+
+          <div className="authModeOptions" role="tablist" aria-label="Modus wechseln">
+            <button
+              type="button"
+              className={`authSecondaryButton ${mode === "login" ? "active" : ""}`}
+              onClick={() => setMode("login")}
+              aria-pressed={mode === "login"}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              className={`authSecondaryButton ${mode === "register" ? "active" : ""}`}
+              onClick={() => setMode("register")}
+              aria-pressed={mode === "register"}
+            >
+              Registrierung
+            </button>
+            <button
+              type="button"
+              className={`authSecondaryButton ${mode === "forgot" ? "active" : ""}`}
+              onClick={() => setMode("forgot")}
+              aria-pressed={mode === "forgot"}
+            >
+              Passwort vergessen
+            </button>
+          </div>
+
+          <footer className="authFooterNotes">
+            <p className="authMuted">
+              Mit der Registrierung startet ein kostenloser Testmonat ohne
+              Kreditkarte und ohne automatische Abbuchung.
             </p>
-          ) : null}
-
-          <p className="voiceInfo">
-            Mit der Registrierung startet ein kostenloser Testmonat ohne
-            Kreditkarte und ohne automatische Abbuchung.
-          </p>
-
+          </footer>
         </section>
       </div>
     </main>
