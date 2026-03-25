@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireAppAccess } from "@/lib/access/guards";
 import { readSettings, writeSettings } from "@/lib/settings-store";
 import { CompanySettings } from "@/types/offer";
 
 export async function GET() {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const settings = await readSettings();
     return NextResponse.json({ settings });
@@ -15,6 +21,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const rawBody = (await request.json()) as unknown;
     const body =

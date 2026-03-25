@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { requireAppAccess } from "@/lib/access/guards";
 import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { readSettings } from "@/lib/settings-store";
@@ -13,6 +14,11 @@ export async function GET(
   _request: Request,
   context: { params: { documentNumber: string } },
 ) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const rawDocumentNumber = decodeURIComponent(
       context.params.documentNumber ?? "",

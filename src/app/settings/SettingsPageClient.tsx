@@ -26,6 +26,8 @@ import {
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
 
 const emptySettings: CompanySettings = {
@@ -971,6 +973,17 @@ export default function SettingsPage() {
     }, 140);
   }
 
+  async function handleLogout() {
+    try {
+      if (isSupabaseConfigured()) {
+        const supabase = getSupabaseBrowserClient();
+        await supabase.auth.signOut();
+      }
+    } finally {
+      router.replace("/auth");
+    }
+  }
+
   useEffect(() => {
     return () => {
       if (leaveSettingsTimeoutRef.current !== null) {
@@ -1019,6 +1032,37 @@ export default function SettingsPage() {
                 />
               </svg>
             </Link>
+            <button
+              type="button"
+              className="topHeaderSettingsButton topHeaderArchiveButton"
+              onClick={() => void handleLogout()}
+              aria-label="Logout"
+              title="Logout"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="topHeaderIcon"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M15 7.5V6.2a2.2 2.2 0 0 0-2.2-2.2H7.2A2.2 2.2 0 0 0 5 6.2v11.6A2.2 2.2 0 0 0 7.2 20h5.6A2.2 2.2 0 0 0 15 17.8v-1.3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M10.5 12h8m-2.7-2.7L18.5 12l-2.7 2.7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </header>
         ) : null}
 

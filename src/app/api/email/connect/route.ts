@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAppAccess } from "@/lib/access/guards";
 import { getEmailConnectUrl } from "@/lib/email-oauth";
 import { EmailProvider } from "@/types/email";
 
@@ -7,6 +8,11 @@ function isProvider(value: string | null): value is EmailProvider {
 }
 
 export async function GET(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   const url = new URL(request.url);
   const providerRaw = url.searchParams.get("provider");
   const returnTo = url.searchParams.get("returnTo") || "/";

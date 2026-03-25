@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { requireAppAccess } from "@/lib/access/guards";
 import {
   listStoredCustomers,
   removeStoredCustomer,
 } from "@/server/services/customer-store-service";
 
 export async function GET() {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const customers = await listStoredCustomers();
     return NextResponse.json({ customers });
@@ -17,6 +23,11 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const url = new URL(request.url);
     const customerNumber = (url.searchParams.get("customerNumber") ?? "").trim();

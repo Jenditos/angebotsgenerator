@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAppAccess } from "@/lib/access/guards";
 import {
   buildServiceCatalog,
   createCustomService,
@@ -12,6 +13,11 @@ import { readSettings, writeSettings } from "@/lib/settings-store";
 const MIN_SERVICE_LABEL_LENGTH = 2;
 
 export async function GET(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const settings = await readSettings();
     const catalog = buildServiceCatalog(settings.customServices);
@@ -33,6 +39,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const body = (await request.json()) as {
       label?: string;

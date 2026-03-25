@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAppAccess } from "@/lib/access/guards";
 import { createDraftViaConnectedMailbox } from "@/lib/email-sender";
 import { EmailDraftPayload } from "@/types/email";
 
@@ -12,6 +13,11 @@ function isValidPayload(payload: Partial<EmailDraftPayload>): payload is EmailDr
 }
 
 export async function POST(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const body = (await request.json()) as Partial<EmailDraftPayload>;
     if (!isValidPayload(body)) {

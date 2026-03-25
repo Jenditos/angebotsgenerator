@@ -15,6 +15,8 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
@@ -1995,6 +1997,17 @@ export default function HomePage() {
       setIsClosingInfoLegal(false);
       infoLegalCloseTimeoutRef.current = null;
     }, 170);
+  }
+
+  async function handleLogout() {
+    try {
+      if (isSupabaseConfigured()) {
+        const supabase = getSupabaseBrowserClient();
+        await supabase.auth.signOut();
+      }
+    } finally {
+      window.location.href = "/auth";
+    }
   }
 
   function selectArchiveCustomer(customer: StoredCustomerRecord) {
@@ -5079,6 +5092,13 @@ export default function HomePage() {
                   onClick={openInfoLegalModal}
                 >
                   Info &amp; Rechtliches
+                </button>
+                <button
+                  type="button"
+                  className="ghostButton infoLegalTriggerButton"
+                  onClick={() => void handleLogout()}
+                >
+                  Logout
                 </button>
               </div>
             </form>

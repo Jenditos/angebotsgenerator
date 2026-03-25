@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
+import { requireAppAccess } from "@/lib/access/guards";
 import {
   MAX_LOGO_DATA_URL_LENGTH,
   sanitizeCompanyLogoDataUrl,
@@ -829,6 +830,11 @@ function adaptTextForDocumentType(
 }
 
 export async function POST(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   const requestId = randomUUID();
   let failureStage = "init";
 
