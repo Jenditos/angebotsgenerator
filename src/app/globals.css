@@ -4849,6 +4849,10 @@ button.customerArchiveSectionToggle {
   z-index: 90;
 }
 
+.topHeaderQuickSettingsButton {
+  right: 52px;
+}
+
 .accountMenuTrigger {
   position: static;
   transform: none;
@@ -4987,6 +4991,10 @@ button.customerArchiveSectionToggle {
 @media (max-width: 760px) {
   .accountMenuWrap {
     right: 2px;
+  }
+
+  .topHeaderQuickSettingsButton {
+    right: 50px;
   }
 
   .accountMenuPanel,

@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -176,10 +177,7 @@ export default function AuthPage() {
       <div className="authGlow authGlowB" aria-hidden />
       <div className="authCenterWrap">
         <div className="authBrandBlock" aria-label="Visioro">
-          <span className="authBrandIcon" aria-hidden>
-            V
-          </span>
-          <span className="authBrandWordmark">Visioro</span>
+          <VisioroLogoPill />
         </div>
 
         <section className="authCard" aria-live="polite">

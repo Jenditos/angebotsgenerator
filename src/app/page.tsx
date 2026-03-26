@@ -15,6 +15,7 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
+import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
@@ -1231,6 +1232,7 @@ export default function HomePage() {
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountMenuCloseTimeoutRef = useRef<number | null>(null);
+  const setupHintRef = useRef<HTMLDivElement | null>(null);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -1881,7 +1883,10 @@ export default function HomePage() {
 
     function closeAccountUiOnOutsideClick(event: MouseEvent) {
       const target = event.target as Node;
-      if (accountMenuRef.current?.contains(target)) {
+      if (
+        accountMenuRef.current?.contains(target) ||
+        setupHintRef.current?.contains(target)
+      ) {
         return;
       }
 
@@ -3564,7 +3569,38 @@ export default function HomePage() {
               />
             </svg>
           </button>
-          <span className="pill topHeaderLogo">Visioro</span>
+          <VisioroLogoPill />
+          <button
+            type="button"
+            className="topHeaderSettingsButton topHeaderQuickSettingsButton"
+            aria-label="Einstellungen"
+            title="Einstellungen"
+            onClick={openSettingsOverlay}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="topHeaderIcon"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M9.6 3.5h4.8l.44 2.1a6.88 6.88 0 0 1 1.5.87l2.03-.75 2.4 4.15-1.6 1.45c.06.45.06.91 0 1.36l1.6 1.45-2.4 4.15-2.03-.75c-.47.35-.98.64-1.5.87l-.44 2.1H9.6l-.44-2.1a6.88 6.88 0 0 1-1.5-.87l-2.03.75-2.4-4.15 1.6-1.45a5.5 5.5 0 0 1 0-1.36l-1.6-1.45 2.4-4.15 2.03.75c.47-.35.98-.64 1.5-.87L9.6 3.5Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="2.7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              />
+            </svg>
+          </button>
           <div className="accountMenuWrap" ref={accountMenuRef}>
             <button
               type="button"
@@ -3655,35 +3691,6 @@ export default function HomePage() {
                   </button>
                 )}
               </div>
-            ) : null}
-            {isSetupHintOpen ? (
-              <p className="accountTipsPopover">
-                {!isCompanySetupComplete ? (
-                  <>
-                    Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
-                    <Link
-                      href="/settings"
-                      className="formHintLink"
-                      onClick={() => setIsSetupHintOpen(false)}
-                    >
-                      Einstellungen
-                    </Link>
-                    .
-                  </>
-                ) : (
-                  <>
-                    Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie in den{" "}
-                    <Link
-                      href="/settings"
-                      className="formHintLink"
-                      onClick={() => setIsSetupHintOpen(false)}
-                    >
-                      Einstellungen
-                    </Link>{" "}
-                    bearbeiten.
-                  </>
-                )}
-              </p>
             ) : null}
           </div>
         </header>
@@ -5286,17 +5293,71 @@ export default function HomePage() {
                 ) : null}
               </div>
 
-              {!isCompanySetupComplete ? (
-                <div className="formBottomMetaRow span2">
-                  <p className="formHint">
-                    Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
-                    <Link href="/settings" className="formHintLink">
-                      Einstellungen
-                    </Link>{" "}
-                    oder nutze dafür das Account-Menü oben rechts.
-                  </p>
+              <div className="formBottomMetaRow span2">
+                <div className="formHintMiniWrap" ref={setupHintRef}>
+                  <button
+                    type="button"
+                    className="formHintMiniButton"
+                    aria-label="Tipp anzeigen"
+                    aria-expanded={isSetupHintOpen}
+                    onClick={() => setIsSetupHintOpen((prev) => !prev)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="formHintMiniIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <path
+                        d="M12 10.2v5.1"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                    </svg>
+                  </button>
+                  {isSetupHintOpen ? (
+                    <p className="formHintMiniPopover">
+                      {!isCompanySetupComplete ? (
+                        <>
+                          Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
+                          <Link
+                            href="/settings"
+                            className="formHintLink"
+                            onClick={() => setIsSetupHintOpen(false)}
+                          >
+                            Einstellungen
+                          </Link>
+                          .
+                        </>
+                      ) : (
+                        <>
+                          Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie
+                          in den{" "}
+                          <Link
+                            href="/settings"
+                            className="formHintLink"
+                            onClick={() => setIsSetupHintOpen(false)}
+                          >
+                            Einstellungen
+                          </Link>{" "}
+                          bearbeiten.
+                        </>
+                      )}
+                    </p>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
             </form>
 
             {error ? <p className="error">{error}</p> : null}
