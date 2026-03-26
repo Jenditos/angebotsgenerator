@@ -15,7 +15,7 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";

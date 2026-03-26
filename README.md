@@ -44,16 +44,15 @@ cp .env.example .env.local
 `.env.local`:
 
 ```env
-OPENAI_API_KEY=
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=
-APP_URL=http://localhost:3000
-OAUTH_STATE_SECRET=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-MICROSOFT_CLIENT_ID=
-MICROSOFT_CLIENT_SECRET=
-MICROSOFT_TENANT_ID=common
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_MONTHLY_PRICE_ID=
+
+NEXT_PUBLIC_APP_URL=http://localhost:3003
 ```
 
 3. Dev-Server starten:
@@ -62,7 +61,44 @@ MICROSOFT_TENANT_ID=common
 npm run dev
 ```
 
-Dann im Browser `http://localhost:3000` aufrufen.
+Dann im Browser `http://localhost:3003` aufrufen.
+
+## Supabase einrichten (Auth + Session)
+
+1. In Supabase ein neues Projekt anlegen.
+2. Unter `Authentication > Providers` den Provider `Email` aktivieren.
+3. Unter `Authentication > URL Configuration` die URLs setzen:
+   - `Site URL`: `http://localhost:3003`
+   - `Redirect URLs`: `http://localhost:3003/auth/reset`
+4. In Supabase unter `Settings > API` diese Werte kopieren und in `.env.local` eintragen:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (nur serverseitig verwenden, niemals im Client)
+
+## Wie die Integration aufgebaut ist
+
+- Browser-Client: `src/lib/supabase/client.ts`
+- ENV-Validierung und zentrale Config: `src/lib/supabase/config.ts`
+- Server-Client (Cookies/Sessions): `src/lib/supabase/server.ts`
+- Middleware-Route-Schutz: `middleware.ts`
+- Login/Registrierung/Passwort-Reset:
+  - `src/app/auth/page.tsx`
+  - `src/app/auth/reset/page.tsx`
+
+## Verbindung testen
+
+1. Dev-Server starten:
+
+```bash
+npm run dev
+```
+
+2. `http://localhost:3003/auth` öffnen und einen Testnutzer registrieren oder einloggen.
+3. Prüfen, ob Session + Auth aktiv sind:
+   - Im Browser (eingeloggt): `http://localhost:3003/api/access/status`
+   - Erwartung: JSON mit `authenticated: true` und User-Daten.
+4. Ausloggen und denselben Endpunkt erneut prüfen:
+   - Erwartung: `401` / nicht eingeloggt.
 
 ## Hinweis
 

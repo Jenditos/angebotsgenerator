@@ -26,7 +26,7 @@ import {
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
 
