@@ -2157,6 +2157,12 @@ export default function HomePage() {
     openSettingsOverlay();
   }
 
+  function openCustomerArchiveFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    openCustomerArchive();
+  }
+
   function navigateToAuthFromAccountMenu() {
     setIsSetupHintOpen(false);
     closeAccountMenu();
@@ -3570,43 +3576,12 @@ export default function HomePage() {
             </svg>
           </button>
           <VisioroLogoPill />
-          <button
-            type="button"
-            className="topHeaderSettingsButton topHeaderQuickSettingsButton"
-            aria-label="Einstellungen"
-            title="Einstellungen"
-            onClick={openSettingsOverlay}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="topHeaderIcon"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path
-                d="M9.6 3.5h4.8l.44 2.1a6.88 6.88 0 0 1 1.5.87l2.03-.75 2.4 4.15-1.6 1.45c.06.45.06.91 0 1.36l1.6 1.45-2.4 4.15-2.03-.75c-.47.35-.98.64-1.5.87l-.44 2.1H9.6l-.44-2.1a6.88 6.88 0 0 1-1.5-.87l-2.03.75-2.4-4.15 1.6-1.45a5.5 5.5 0 0 1 0-1.36l-1.6-1.45 2.4-4.15 2.03.75c.47-.35.98-.64 1.5-.87L9.6 3.5Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle
-                cx="12"
-                cy="12"
-                r="2.7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              />
-            </svg>
-          </button>
           <div className="accountMenuWrap" ref={accountMenuRef}>
             <button
               type="button"
-              className="topHeaderSettingsButton accountMenuTrigger"
-              aria-label="Account-Menü"
-              title="Account-Menü"
+              className="topHeaderSettingsButton accountMenuTrigger topHeaderMenuTrigger"
+              aria-label="Navigationsmenü"
+              title="Menü"
               aria-haspopup="menu"
               aria-expanded={isAccountMenuOpen}
               onClick={toggleAccountMenu}
@@ -3617,20 +3592,29 @@ export default function HomePage() {
                 aria-hidden="true"
                 focusable="false"
               >
-                <circle
-                  cx="12"
-                  cy="8.4"
-                  r="3.5"
+                <path
+                  d="M5.5 7.6h13"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="1.7"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
                 <path
-                  d="M5.6 18.2a6.4 6.4 0 0 1 12.8 0"
+                  d="M5.5 12h13"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="1.7"
+                  strokeWidth="1.8"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5.5 16.4h13"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
               </svg>
             </button>
@@ -3638,48 +3622,57 @@ export default function HomePage() {
               <div
                 className={`accountMenuPanel ${isClosingAccountMenu ? "closing" : ""}`}
                 role="menu"
-                aria-label="Account-Menü"
+                aria-label="Navigationsmenü"
               >
+                <p className="accountMenuHeader">
+                  <span>Nutzerbereich</span>
+                  <strong className="accountMenuIdentity">
+                    {isAuthenticatedUser ? accountIdentityLabel : "Nicht eingeloggt"}
+                  </strong>
+                </p>
+                <div className="accountMenuDivider" aria-hidden />
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
+                  onClick={openSettingsFromAccountMenu}
+                >
+                  Einstellungen
+                </button>
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
+                  onClick={openCustomerArchiveFromAccountMenu}
+                >
+                  Kundenarchiv
+                </button>
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
+                  onClick={toggleTipsFromAccountMenu}
+                >
+                  Tipps
+                </button>
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
+                  onClick={openInfoLegalFromAccountMenu}
+                >
+                  Info &amp; Rechtliches
+                </button>
+                <div className="accountMenuDivider" aria-hidden />
                 {isAuthenticatedUser ? (
-                  <>
-                    <p className="accountMenuHeader">
-                      <span>Eingeloggt als</span>
-                      <strong className="accountMenuIdentity">{accountIdentityLabel}</strong>
-                    </p>
-                    <button
-                      type="button"
-                      className="accountMenuItem"
-                      role="menuitem"
-                      onClick={toggleTipsFromAccountMenu}
-                    >
-                      Tipps
-                    </button>
-                    <button
-                      type="button"
-                      className="accountMenuItem"
-                      role="menuitem"
-                      onClick={openInfoLegalFromAccountMenu}
-                    >
-                      Info &amp; Rechtliches
-                    </button>
-                    <button
-                      type="button"
-                      className="accountMenuItem"
-                      role="menuitem"
-                      onClick={openSettingsFromAccountMenu}
-                    >
-                      Einstellungen
-                    </button>
-                    <div className="accountMenuDivider" aria-hidden />
-                    <button
-                      type="button"
-                      className="accountMenuItem accountMenuLogoutItem"
-                      role="menuitem"
-                      onClick={() => void handleLogoutFromAccountMenu()}
-                    >
-                      Logout
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    className="accountMenuItem accountMenuLogoutItem"
+                    role="menuitem"
+                    onClick={() => void handleLogoutFromAccountMenu()}
+                  >
+                    Logout
+                  </button>
                 ) : (
                   <button
                     type="button"

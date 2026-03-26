@@ -161,11 +161,6 @@ export default function AuthPage() {
         ? "Reset-Link senden"
         : "Einloggen";
 
-  function showSocialLoginInfo(provider: "Google" | "Apple") {
-    setError("");
-    setInfo(`Login mit ${provider} ist aktuell noch nicht verfügbar.`);
-  }
-
   return (
     <main className="authViewport authGithubViewport">
       <div className="authGithubCenter">
@@ -255,66 +250,6 @@ export default function AuthPage() {
           ) : null}
           {!error && info ? (
             <p className="authGithubMessage authGithubMessageInfo">{info}</p>
-          ) : null}
-
-          {!isForgotMode ? (
-            <>
-              <div className="authGithubDivider" role="separator" aria-label="oder">
-                <span>oder</span>
-              </div>
-
-              <div className="authGithubSocialStack">
-                <button
-                  type="button"
-                  className="authGithubSocialButton"
-                  onClick={() => showSocialLoginInfo("Google")}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="authGithubSocialIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M21.8 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.5a4.6 4.6 0 0 1-2.1 3v2.5h3.4c2-1.8 3-4.4 3-7.3Z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 22c2.7 0 5-0.9 6.8-2.5l-3.4-2.5c-.9.7-2.1 1.2-3.4 1.2-2.6 0-4.7-1.7-5.4-4H3v2.6A10 10 0 0 0 12 22Z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M6.6 14.2a6 6 0 0 1 0-3.8V7.8H3a10 10 0 0 0 0 8.8l3.6-2.4Z"
-                      fill="#FBBC04"
-                    />
-                    <path
-                      d="M12 5.8c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3 7.8l3.6 2.6c.7-2.3 2.8-4.6 5.4-4.6Z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                  <span>Weiter mit Google</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="authGithubSocialButton"
-                  onClick={() => showSocialLoginInfo("Apple")}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="authGithubSocialIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M15.1 6.1c.8-1 1.4-2.3 1.2-3.6-1.2.1-2.6.8-3.5 1.8-.8.9-1.4 2.2-1.3 3.4 1.3.1 2.7-.6 3.6-1.6Zm3.9 11.8c-.6 1.3-.8 1.9-1.6 3.1-1.1 1.7-2.6 3.8-4.4 3.8-1.6 0-2-.9-4.2-.9s-2.7.9-4.2.9c-1.8 0-3.2-1.8-4.3-3.5C-2.7 16.8-2 9.1 2.5 6.4c1.6-1 3.4-1.6 5.1-1.6 1.8 0 2.9.9 4.4.9 1.4 0 2.3-.9 4.3-.9 1.5 0 3 .4 4.1 1.2-3.7 2-3.1 7.2-1.4 9.6Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span>Weiter mit Apple</span>
-                </button>
-              </div>
-            </>
           ) : null}
 
           {isForgotMode ? (

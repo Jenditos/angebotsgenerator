@@ -370,7 +370,10 @@
   justify-content: center;
   min-height: 100vh;
   padding: 40px 16px;
-  background: #f6f8fa;
+  background:
+    radial-gradient(1040px 520px at 12% -10%, #e4efff 0%, transparent 64%),
+    radial-gradient(920px 460px at 88% -15%, #e3f3ff 0%, transparent 61%),
+    linear-gradient(155deg, var(--bg0), var(--bg1) 52%, var(--bg2));
 }
 
 .authGithubCenter {
@@ -390,13 +393,21 @@
 }
 
 .authGithubCard {
-  border: 1px solid #d0d7de;
+  border: 1px solid rgba(74, 122, 201, 0.26);
   border-radius: 14px;
-  background: #ffffff;
+  background: linear-gradient(
+    142deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(241, 249, 255, 0.82)
+  );
+  backdrop-filter: blur(16px) saturate(128%);
+  -webkit-backdrop-filter: blur(16px) saturate(128%);
   padding: 24px;
   display: grid;
   gap: 14px;
-  box-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 18px 36px rgba(41, 78, 141, 0.16);
 }
 
 .authGithubModeIntro {
@@ -443,22 +454,24 @@
 .authGithubCard .authGithubInput {
   width: 100%;
   min-height: 48px;
-  border: 1px solid #d0d7de;
+  border: 1px solid rgba(69, 115, 191, 0.28);
   border-radius: 10px;
   padding: 0 14px;
   font: inherit;
   font-size: 0.98rem;
   color: #1f2328;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   transition:
     border-color 0.16s ease,
-    box-shadow 0.16s ease;
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
 }
 
 .authGithubCard .authGithubInput:focus {
   outline: none;
-  border-color: #2f67c4;
-  box-shadow: 0 0 0 3px rgba(47, 103, 196, 0.18);
+  border-color: rgba(47, 103, 196, 0.8);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 3px rgba(47, 103, 196, 0.16);
 }
 
 .authGithubCard .authGithubPrimaryButton {
@@ -466,7 +479,7 @@
   min-height: 48px;
   border: 1px solid #2f67c4;
   border-radius: 10px;
-  background: #2f67c4;
+  background: linear-gradient(145deg, #2f67c4, #4a8de0);
   color: #ffffff;
   font-size: 1rem;
   font-weight: 650;
@@ -481,76 +494,13 @@
 }
 
 .authGithubCard .authGithubPrimaryButton:hover:not(:disabled) {
-  background: #2756a6;
+  background: linear-gradient(145deg, #2756a6, #3f79c4);
   border-color: #2756a6;
-  box-shadow: none;
 }
 
 .authGithubCard .authGithubPrimaryButton:disabled {
   opacity: 0.62;
   cursor: not-allowed;
-}
-
-.authGithubDivider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  font-size: 0.89rem;
-  line-height: 1;
-}
-
-.authGithubDivider::before,
-.authGithubDivider::after {
-  content: "";
-  height: 1px;
-  flex: 1;
-  background: #d8dee4;
-}
-
-.authGithubDivider span {
-  padding: 0 12px;
-}
-
-.authGithubSocialStack {
-  display: grid;
-  gap: 10px;
-}
-
-.authGithubCard .authGithubSocialButton {
-  width: 100%;
-  min-height: 48px;
-  border: 1px solid #d0d7de;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #24292f;
-  font-size: 0.98rem;
-  font-weight: 600;
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  align-items: center;
-  justify-items: center;
-  gap: 10px;
-  cursor: pointer;
-  padding: 0 14px;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  transition:
-    border-color 0.16s ease,
-    background-color 0.16s ease;
-}
-
-.authGithubCard .authGithubSocialButton:hover {
-  border-color: #bec7d2;
-  background: #f8fafc;
-  box-shadow: none;
-}
-
-.authGithubSocialIcon {
-  width: 20px;
-  height: 20px;
-  display: block;
 }
 
 .authGithubSignupHint {
@@ -641,7 +591,6 @@
   }
 
   .authGithubPrimaryButton,
-  .authGithubSocialButton,
   .authGithubInput {
     min-height: 46px;
   }
@@ -3680,7 +3629,11 @@ textarea,
   }
 
   .topHeaderSettingsButton:hover {
-    transform: translateY(-50%) scale(1.002);
+    transform: translateY(-50%);
+  }
+
+  .topHeaderMenuTrigger:hover {
+    transform: none;
   }
 
   .settingsInvoiceDueOption:hover {
@@ -3689,7 +3642,11 @@ textarea,
 }
 
 .topHeaderSettingsButton:active:not(:disabled) {
-  transform: translateY(-50%) scale(0.997);
+  transform: translateY(-50%);
+}
+
+.topHeaderMenuTrigger:active:not(:disabled) {
+  transform: none;
 }
 
 :is(button, a.primaryButton, a.ghostButton, .topHeaderSettingsButton):focus-visible {
@@ -5133,11 +5090,8 @@ button.customerArchiveSectionToggle {
   z-index: 90;
 }
 
-.topHeaderQuickSettingsButton {
-  right: 52px;
-}
-
-.accountMenuTrigger {
+.accountMenuTrigger,
+.topHeaderMenuTrigger {
   position: static;
   transform: none;
 }
@@ -5209,12 +5163,14 @@ button.customerArchiveSectionToggle {
   border-color: rgba(70, 114, 191, 0.22);
   background: rgba(239, 247, 255, 0.86);
   box-shadow: none;
+  transform: none;
 }
 
 .accountMenuPanel .accountMenuItem:active:not(:disabled) {
   border-color: rgba(70, 114, 191, 0.28);
   background: rgba(231, 243, 255, 0.86);
   box-shadow: none;
+  transform: none;
 }
 
 .accountMenuPanel .accountMenuLogoutItem {
@@ -5275,10 +5231,6 @@ button.customerArchiveSectionToggle {
 @media (max-width: 760px) {
   .accountMenuWrap {
     right: 2px;
-  }
-
-  .topHeaderQuickSettingsButton {
-    right: 50px;
   }
 
   .accountMenuPanel,
