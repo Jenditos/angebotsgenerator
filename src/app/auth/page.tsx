@@ -153,45 +153,45 @@ export default function AuthPage() {
 
   const isRegisterMode = mode === "register";
   const isForgotMode = mode === "forgot";
-  const title = isRegisterMode
-    ? "Konto erstellen"
-    : isForgotMode
-      ? "Passwort zurücksetzen"
-      : "Bei Visioro anmelden";
-  const subtitle = isRegisterMode
-    ? "Starte deinen kostenlosen Testmonat sofort. Ohne Kreditkarte."
-    : isForgotMode
-      ? "Wir senden dir einen Link zum Zurücksetzen deines Passworts."
-      : "Melde dich an, um auf deine Angebote und Rechnungen zuzugreifen.";
   const submitLabel = isSubmitting
     ? "Bitte warten ..."
     : isRegisterMode
-      ? "Kostenlos starten"
+      ? "Konto erstellen"
       : isForgotMode
         ? "Reset-Link senden"
-        : "Anmelden";
+        : "Einloggen";
+
+  function showSocialLoginInfo(provider: "Google" | "Apple") {
+    setError("");
+    setInfo(`Login mit ${provider} ist aktuell noch nicht verfügbar.`);
+  }
 
   return (
-    <main className="authViewport">
-      <div className="authGlow authGlowA" aria-hidden />
-      <div className="authGlow authGlowB" aria-hidden />
-      <div className="authCenterWrap">
-        <div className="authBrandBlock" aria-label="Visioro">
-          <VisioroLogoPill />
+    <main className="authViewport authGithubViewport">
+      <div className="authGithubCenter">
+        <div className="authGithubLogoRow" aria-label="Visioro">
+          <VisioroLogoPill className="authGithubLogo" />
         </div>
 
-        <section className="authCard" aria-live="polite">
-          <header className="authCardHeader">
-            <h1 className="authHeading">{title}</h1>
-            <p className="authSubtitle">{subtitle}</p>
-          </header>
+        <section className="authGithubCard" aria-live="polite">
+          {isRegisterMode ? (
+            <p className="authGithubModeIntro">
+              Konto erstellen
+              <span>Starte deinen kostenlosen Testmonat ohne Kreditkarte.</span>
+            </p>
+          ) : isForgotMode ? (
+            <p className="authGithubModeIntro">
+              Passwort zurücksetzen
+              <span>Wir senden dir einen Link zum Zurücksetzen.</span>
+            </p>
+          ) : null}
 
-          <form onSubmit={onSubmit} className="authForm">
+          <form onSubmit={onSubmit} className="authGithubForm">
             {isRegisterMode ? (
-              <label className="authField">
-                <span className="authFieldLabel">Name</span>
+              <label className="authGithubField">
+                <span className="authGithubLabel">Name</span>
                 <input
-                  className="authInput"
+                  className="authGithubInput"
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
@@ -200,10 +200,10 @@ export default function AuthPage() {
               </label>
             ) : null}
 
-            <label className="authField">
-              <span className="authFieldLabel">E-Mail</span>
+            <label className="authGithubField">
+              <span className="authGithubLabel">E-Mail-Adresse</span>
               <input
-                className="authInput"
+                className="authGithubInput"
                 required
                 type="email"
                 value={email}
@@ -213,10 +213,19 @@ export default function AuthPage() {
             </label>
 
             {!isForgotMode ? (
-              <label className="authField">
-                <span className="authFieldLabel">Passwort</span>
+              <>
+                <div className="authGithubPasswordRow">
+                  <span className="authGithubLabel">Passwort</span>
+                  <button
+                    type="button"
+                    className="authGithubInlineLink"
+                    onClick={() => setMode("forgot")}
+                  >
+                    Passwort vergessen?
+                  </button>
+                </div>
                 <input
-                  className="authInput"
+                  className="authGithubInput"
                   required
                   type="password"
                   minLength={8}
@@ -224,12 +233,12 @@ export default function AuthPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete={isRegisterMode ? "new-password" : "current-password"}
                 />
-              </label>
+              </>
             ) : null}
 
             <button
               type="submit"
-              className="authPrimaryButton"
+              className="authGithubPrimaryButton"
               disabled={!authReady || isSubmitting}
             >
               {submitLabel}
@@ -237,50 +246,124 @@ export default function AuthPage() {
           </form>
 
           {!authReady ? (
-            <p className="authError">
+            <p className="authGithubMessage authGithubMessageError">
               Supabase ist noch nicht konfiguriert. Bitte ENV-Variablen setzen.
             </p>
           ) : null}
-          {error ? <p className="authError">{error}</p> : null}
-          {!error && info ? <p className="authInfo">{info}</p> : null}
+          {error ? (
+            <p className="authGithubMessage authGithubMessageError">{error}</p>
+          ) : null}
+          {!error && info ? (
+            <p className="authGithubMessage authGithubMessageInfo">{info}</p>
+          ) : null}
 
-          <div className="authDivider" role="separator" aria-label="oder">
-            <span>oder</span>
-          </div>
+          {!isForgotMode ? (
+            <>
+              <div className="authGithubDivider" role="separator" aria-label="oder">
+                <span>oder</span>
+              </div>
 
-          <div className="authModeOptions" role="tablist" aria-label="Modus wechseln">
-            <button
-              type="button"
-              className={`authSecondaryButton ${mode === "login" ? "active" : ""}`}
-              onClick={() => setMode("login")}
-              aria-pressed={mode === "login"}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`authSecondaryButton ${mode === "register" ? "active" : ""}`}
-              onClick={() => setMode("register")}
-              aria-pressed={mode === "register"}
-            >
-              Registrierung
-            </button>
-            <button
-              type="button"
-              className={`authSecondaryButton ${mode === "forgot" ? "active" : ""}`}
-              onClick={() => setMode("forgot")}
-              aria-pressed={mode === "forgot"}
-            >
-              Passwort vergessen
-            </button>
-          </div>
+              <div className="authGithubSocialStack">
+                <button
+                  type="button"
+                  className="authGithubSocialButton"
+                  onClick={() => showSocialLoginInfo("Google")}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="authGithubSocialIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M21.8 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.5a4.6 4.6 0 0 1-2.1 3v2.5h3.4c2-1.8 3-4.4 3-7.3Z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 22c2.7 0 5-0.9 6.8-2.5l-3.4-2.5c-.9.7-2.1 1.2-3.4 1.2-2.6 0-4.7-1.7-5.4-4H3v2.6A10 10 0 0 0 12 22Z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M6.6 14.2a6 6 0 0 1 0-3.8V7.8H3a10 10 0 0 0 0 8.8l3.6-2.4Z"
+                      fill="#FBBC04"
+                    />
+                    <path
+                      d="M12 5.8c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3 7.8l3.6 2.6c.7-2.3 2.8-4.6 5.4-4.6Z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  <span>Weiter mit Google</span>
+                </button>
 
-          <footer className="authFooterNotes">
-            <p className="authMuted">
-              Mit der Registrierung startet ein kostenloser Testmonat ohne
-              Kreditkarte und ohne automatische Abbuchung.
+                <button
+                  type="button"
+                  className="authGithubSocialButton"
+                  onClick={() => showSocialLoginInfo("Apple")}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="authGithubSocialIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M15.1 6.1c.8-1 1.4-2.3 1.2-3.6-1.2.1-2.6.8-3.5 1.8-.8.9-1.4 2.2-1.3 3.4 1.3.1 2.7-.6 3.6-1.6Zm3.9 11.8c-.6 1.3-.8 1.9-1.6 3.1-1.1 1.7-2.6 3.8-4.4 3.8-1.6 0-2-.9-4.2-.9s-2.7.9-4.2.9c-1.8 0-3.2-1.8-4.3-3.5C-2.7 16.8-2 9.1 2.5 6.4c1.6-1 3.4-1.6 5.1-1.6 1.8 0 2.9.9 4.4.9 1.4 0 2.3-.9 4.3-.9 1.5 0 3 .4 4.1 1.2-3.7 2-3.1 7.2-1.4 9.6Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <span>Weiter mit Apple</span>
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          {isForgotMode ? (
+            <p className="authGithubSignupHint">
+              Zurück zum{" "}
+              <button
+                type="button"
+                className="authGithubInlineLink authGithubInlineLinkStrong"
+                onClick={() => setMode("login")}
+              >
+                Login
+              </button>
             </p>
-          </footer>
+          ) : mode === "login" ? (
+            <p className="authGithubSignupHint">
+              Neu bei Visioro?{" "}
+              <button
+                type="button"
+                className="authGithubInlineLink authGithubInlineLinkStrong"
+                onClick={() => setMode("register")}
+              >
+                Konto erstellen
+              </button>
+            </p>
+          ) : (
+            <p className="authGithubSignupHint">
+              Bereits bei Visioro?{" "}
+              <button
+                type="button"
+                className="authGithubInlineLink authGithubInlineLinkStrong"
+                onClick={() => setMode("login")}
+              >
+                Einloggen
+              </button>
+            </p>
+          )}
+
+          {!isForgotMode ? (
+            <button
+              type="button"
+              className="authGithubPasskeyButton"
+              onClick={() => {
+                setError("");
+                setInfo("Mit Passkey anmelden ist aktuell noch nicht verfügbar.");
+              }}
+            >
+              Mit Passkey anmelden
+            </button>
+          ) : null}
         </section>
       </div>
     </main>
