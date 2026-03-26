@@ -5,6 +5,20 @@ import { FormEvent, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
+function formatAuthErrorMessage(rawMessage: string): string {
+  const normalized = rawMessage.trim().toLowerCase();
+  if (normalized.includes("session_not_found")) {
+    return "Reset-Session ist abgelaufen. Bitte Passwort-Reset erneut anfordern.";
+  }
+  if (normalized.includes("password should be at least")) {
+    return "Das Passwort ist zu kurz. Bitte mindestens 8 Zeichen verwenden.";
+  }
+  if (normalized.includes("network")) {
+    return "Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.";
+  }
+  return rawMessage || "Passwort konnte nicht aktualisiert werden.";
+}
+
 export default function AuthResetPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,7 +61,7 @@ export default function AuthResetPage() {
     });
 
     if (updateError) {
-      setError(updateError.message);
+      setError(formatAuthErrorMessage(updateError.message));
       setIsSubmitting(false);
       return;
     }

@@ -6,6 +6,34 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type AuthMode = "login" | "register" | "forgot";
 
+function formatAuthErrorMessage(rawMessage: string): string {
+  const normalized = rawMessage.trim().toLowerCase();
+
+  if (
+    normalized.includes("invalid login credentials") ||
+    normalized.includes("invalid credentials")
+  ) {
+    return "E-Mail oder Passwort sind nicht korrekt.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Bitte bestätige zuerst deine E-Mail-Adresse.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "Für diese E-Mail existiert bereits ein Konto.";
+  }
+  if (normalized.includes("password should be at least")) {
+    return "Das Passwort ist zu kurz. Bitte mindestens 8 Zeichen verwenden.";
+  }
+  if (normalized.includes("too many requests")) {
+    return "Zu viele Versuche. Bitte kurz warten und erneut probieren.";
+  }
+  if (normalized.includes("network")) {
+    return "Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.";
+  }
+
+  return rawMessage || "Authentifizierung fehlgeschlagen.";
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("login");
@@ -63,7 +91,7 @@ export default function AuthPage() {
         });
 
         if (signUpError) {
-          setError(signUpError.message);
+          setError(formatAuthErrorMessage(signUpError.message));
           return;
         }
 
@@ -91,7 +119,7 @@ export default function AuthPage() {
         );
 
         if (resetError) {
-          setError(resetError.message);
+          setError(formatAuthErrorMessage(resetError.message));
           return;
         }
 
@@ -104,7 +132,7 @@ export default function AuthPage() {
         password,
       });
       if (signInError) {
-        setError(signInError.message);
+        setError(formatAuthErrorMessage(signInError.message));
         return;
       }
 
