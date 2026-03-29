@@ -3545,36 +3545,6 @@ export default function HomePage() {
       <div className="ambient ambientB" aria-hidden />
       <div className="container pageSurfaceTransition">
         <header className="topHeaderMinimal">
-          <button
-            type="button"
-            className="topHeaderSettingsButton topHeaderArchiveButton"
-            aria-label="Kundenarchiv öffnen"
-            title="Kundenarchiv"
-            onClick={openCustomerArchive}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="topHeaderIcon"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path
-                d="M3.8 7.1a1.6 1.6 0 0 1 1.6-1.6h4.3l1.4 1.7h7.5a1.6 1.6 0 0 1 1.6 1.6v8.6a1.6 1.6 0 0 1-1.6 1.6H5.4a1.6 1.6 0 0 1-1.6-1.6V7.1Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M3.8 10h16.4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
           <VisioroLogoPill />
           <div className="accountMenuWrap" ref={accountMenuRef}>
             <button
@@ -4972,9 +4942,9 @@ export default function HomePage() {
                                     onClick={() =>
                                       removeSelectedService(service.id)
                                     }
-                                    aria-label={`${service.label} Gruppe löschen`}
+                                    aria-label={`Alle Positionen aus ${service.label} löschen`}
                                   >
-                                    Gruppe löschen
+                                    Alle löschen
                                   </button>
                                 </td>
                               </tr>
@@ -5163,7 +5133,7 @@ export default function HomePage() {
                         className="ghostButton positionsAddRowButton"
                         onClick={addEmptyPositionRow}
                       >
-                        + Position hinzufügen
+                        + Position eintragen
                       </button>
                     </div>
                   </div>
