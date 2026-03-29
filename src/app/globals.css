@@ -5178,7 +5178,26 @@ button.customerArchiveSectionToggle {
 }
 
 .accountMenuPanel .accountMenuLoginItem {
-  color: #1f4d8b;
+  color: #1b4f91;
+  border-color: rgba(86, 136, 213, 0.34);
+  background: rgba(216, 234, 255, 0.6);
+  padding: 8px 12px;
+}
+
+.accountMenuPanel .accountMenuLoginItem:hover:not(:disabled) {
+  color: #194986;
+  border-color: rgba(78, 127, 206, 0.46);
+  background: rgba(204, 226, 253, 0.78);
+  box-shadow: none;
+  transform: none;
+}
+
+.accountMenuPanel .accountMenuLoginItem:active:not(:disabled) {
+  color: #18457d;
+  border-color: rgba(73, 121, 198, 0.5);
+  background: rgba(196, 220, 250, 0.84);
+  box-shadow: none;
+  transform: none;
 }
 
 .accountMenuDivider {
