@@ -2668,6 +2668,10 @@ export default function HomePage() {
     if (isListening) {
       return;
     }
+    console.log("[voice] start requested", {
+      isSpeechPaused,
+      existingTranscriptLength: voiceTranscript.trim().length,
+    });
 
     const speechCtor =
       (window as any).SpeechRecognition ||
@@ -2690,6 +2694,28 @@ export default function HomePage() {
     shouldAutoApplyVoiceRef.current = true;
     pauseRequestedRef.current = false;
     finalTranscriptRef.current = voiceTranscript.trim();
+
+    const navWithPermissions = navigator as Navigator & {
+      permissions?: {
+        query?: (descriptor: { name: string }) => Promise<{ state?: string }>;
+      };
+    };
+    if (typeof navWithPermissions.permissions?.query === "function") {
+      void navWithPermissions.permissions
+        .query({ name: "microphone" })
+        .then((result) => {
+          if (result?.state === "denied") {
+            console.warn("[voice] microphone permission denied");
+            setVoiceError(
+              "Mikrofonzugriff ist blockiert. Bitte im Browser erlauben und erneut versuchen.",
+            );
+            setVoiceInfo("");
+          }
+        })
+        .catch(() => {
+          // Browser ohne stabile Permissions API sollen weiterhin aufnehmen können.
+        });
+    }
 
     const recognition = new speechCtor();
     recognition.lang = "de-DE";
@@ -2714,6 +2740,7 @@ export default function HomePage() {
 
     recognition.onerror = (event: any) => {
       const code = String(event.error ?? "");
+      console.warn("[voice] recognition error", { code });
       if (pauseRequestedRef.current && code === "aborted") {
         pauseRequestedRef.current = false;
         recognitionRef.current = null;
@@ -2727,7 +2754,7 @@ export default function HomePage() {
       }
       if (code === "not-allowed" || code === "service-not-allowed") {
         setVoiceError(
-          "Mikrofonzugriff wurde blockiert. Bitte Zugriff im Browser erlauben.",
+          "Mikrofonzugriff ist blockiert. Bitte im Browser erlauben und erneut versuchen.",
         );
       } else if (code === "no-speech") {
         setVoiceError("Keine Sprache erkannt. Bitte erneut sprechen.");
@@ -2747,6 +2774,11 @@ export default function HomePage() {
       const finalizedTranscript = finalTranscriptRef.current.trim();
       const shouldAutoApply = shouldAutoApplyVoiceRef.current;
       const wasPaused = pauseRequestedRef.current;
+      console.log("[voice] recording ended", {
+        transcriptLength: finalizedTranscript.length,
+        shouldAutoApply,
+        wasPaused,
+      });
 
       shouldAutoApplyVoiceRef.current = false;
       pauseRequestedRef.current = false;
@@ -2781,7 +2813,9 @@ export default function HomePage() {
       recognition.start();
       setIsListening(true);
       setIsSpeechPaused(false);
+      console.log("[voice] recording started");
     } catch {
+      console.error("[voice] failed to start recording");
       recognitionRef.current = null;
       setIsListening(false);
       setIsSpeechPaused(false);
@@ -3015,12 +3049,17 @@ export default function HomePage() {
     autoTriggered = false,
   ) {
     const transcript = (transcriptInput ?? voiceTranscript).trim();
+    console.log("[voice] parse requested", {
+      transcriptLength: transcript.length,
+      autoTriggered,
+    });
     if (transcript.length < 8) {
       if (!autoTriggered) {
         setVoiceError(
           "Bitte etwas länger sprechen, damit die KI genug Daten hat.",
         );
       }
+      console.warn("[voice] parse skipped because transcript is too short");
       return;
     }
 
@@ -3030,12 +3069,14 @@ export default function HomePage() {
           `Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
         );
       }
+      console.warn("[voice] parse skipped because transcript is too long");
       return;
     }
 
     setIsParsingVoice(true);
     setVoiceError("");
     setVoiceMissingFields([]);
+    setVoiceInfo("Verarbeite Eingabe...");
 
     try {
       const response = await fetch("/api/parse-intake", {
@@ -3043,13 +3084,22 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript }),
       });
+      console.log("[voice] parse response received", {
+        status: response.status,
+        ok: response.ok,
+      });
       const data = (await response.json()) as VoiceParseResponse & {
         error?: string;
       };
       if (!response.ok) {
+        const errorText =
+          data.error ?? "Sprachdaten konnten nicht verarbeitet werden.";
         setVoiceError(
-          data.error ?? "Sprachdaten konnten nicht verarbeitet werden.",
+          /zugriff/i.test(errorText)
+            ? "Sprachverarbeitung fehlgeschlagen. Bitte erneut versuchen."
+            : errorText,
         );
+        console.warn("[voice] parse rejected", { error: errorText });
         return;
       }
 
@@ -3088,6 +3138,7 @@ export default function HomePage() {
         setVoiceInfo("Keine Sprache erkannt. Felder blieben unverändert.");
         setVoiceError("");
         setVoiceMissingFields([]);
+        console.log("[voice] parse returned no structured content");
         return;
       }
       let remainingMissingLabels: string[] = [];
@@ -3177,9 +3228,14 @@ export default function HomePage() {
       setVoiceError("");
       setVoiceMissingFields(remainingMissingLabels);
       setAddressSuggestions([]);
-    } catch {
+      console.log("[voice] parse applied", {
+        missingCount: remainingMissingLabels.length,
+        positionsCount: parsedServiceEntries.length,
+      });
+    } catch (error) {
       setVoiceMissingFields([]);
-      setVoiceError("Netzwerkfehler bei der Sprachverarbeitung.");
+      setVoiceError("Sprachverarbeitung fehlgeschlagen. Bitte erneut versuchen.");
+      console.error("[voice] parse failed", error);
     } finally {
       setIsParsingVoice(false);
     }

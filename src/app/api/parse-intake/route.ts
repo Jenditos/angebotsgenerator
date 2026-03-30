@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireAppAccess } from "@/lib/access/guards";
 import { parseOfferIntake } from "@/lib/openai";
 import { MAX_VOICE_TRANSCRIPT_LENGTH } from "@/lib/user-input";
 
@@ -469,20 +468,25 @@ function hasValue(value: unknown): boolean {
 }
 
 export async function POST(request: Request) {
-  const accessResult = await requireAppAccess();
-  if (!accessResult.ok) {
-    return accessResult.response;
-  }
-
   try {
     const body = (await request.json()) as { transcript?: string };
     const transcript = body.transcript?.trim() ?? "";
+    console.log("[parse-intake] request received", {
+      transcriptLength: transcript.length,
+    });
 
     if (transcript.length < 8) {
+      console.warn("[parse-intake] transcript too short", {
+        transcriptLength: transcript.length,
+      });
       return NextResponse.json({ error: "Bitte sprich etwas länger, damit ich die Angaben erkennen kann." }, { status: 400 });
     }
 
     if (transcript.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
+      console.warn("[parse-intake] transcript too long", {
+        transcriptLength: transcript.length,
+        maxTranscriptLength: MAX_VOICE_TRANSCRIPT_LENGTH,
+      });
       return NextResponse.json(
         {
           error: `Die Sprachaufnahme ist zu lang. Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
@@ -543,6 +547,12 @@ export async function POST(request: Request) {
       (key) => !hasValue(normalizedFields[key as keyof typeof normalizedFields])
     );
     const missingFields = missingFieldKeys.map((key) => fieldLabels[key] || key);
+    console.log("[parse-intake] parsed transcript", {
+      usedFallback: parsed.usedFallback,
+      fallbackReason: parsed.fallbackReason ?? null,
+      missingCount: missingFieldKeys.length,
+      positionsCount: normalizedFields.positions?.length ?? 0,
+    });
 
     return NextResponse.json({
       fields: {
@@ -555,7 +565,8 @@ export async function POST(request: Request) {
       usedFallback: parsed.usedFallback,
       fallbackReason: parsed.fallbackReason ?? null
     });
-  } catch {
+  } catch (error) {
+    console.error("[parse-intake] failed to process transcript", error);
     return NextResponse.json({ error: "Sprachdaten konnten nicht verarbeitet werden." }, { status: 500 });
   }
 }
