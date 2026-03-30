@@ -1,33 +1,35 @@
 :root {
-  --bg0: #edf4ff;
-  --bg1: #f6f9ff;
-  --bg2: #e8f0ff;
+  --bg0: #e7f1ff;
+  --bg1: #f4f8ff;
+  --bg2: #dfeaff;
   --glass: rgba(255, 255, 255, 0.78);
   --glass-strong: rgba(255, 255, 255, 0.9);
   --stroke: rgba(13, 44, 102, 0.16);
   --text: #10203a;
   --muted: #506487;
-  --primary-a: #4d8dff;
-  --primary-b: #62c7ff;
+  --primary-a: #3f7fe9;
+  --primary-b: #56b7f7;
+  --text-on-soft: #143d6f;
+  --text-on-strong: #f6fbff;
   --danger: #e54866;
   --success: #1f9d66;
   --button-radius: 12px;
   --liquid-button-bg: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.64),
-    rgba(223, 237, 255, 0.34)
+    rgba(255, 255, 255, 0.7),
+    rgba(213, 232, 255, 0.42)
   );
   --liquid-button-bg-hover: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.76),
-    rgba(230, 244, 255, 0.42)
+    rgba(255, 255, 255, 0.82),
+    rgba(222, 240, 255, 0.52)
   );
   --liquid-button-border: rgba(255, 255, 255, 0.56);
   --liquid-button-border-hover: rgba(206, 223, 246, 0.9);
   --liquid-button-border-active: rgba(196, 216, 242, 0.84);
   --liquid-button-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 10px 24px rgba(47, 86, 145, 0.16),
+    0 12px 28px rgba(43, 83, 147, 0.2),
     0 1px 0 rgba(255, 255, 255, 0.35);
   --radius-lg: 28px;
   --radius-md: 18px;
@@ -208,7 +210,8 @@
   cursor: pointer;
   transition:
     filter 0.16s ease,
-    transform 0.16s ease;
+    transform var(--interactive-transition-duration)
+      var(--interactive-transition-easing);
 }
 
 .authPrimaryButton:hover:not(:disabled) {
@@ -371,8 +374,16 @@
   min-height: 100vh;
   padding: 40px 16px;
   background:
-    radial-gradient(1040px 520px at 12% -10%, #e4efff 0%, transparent 64%),
-    radial-gradient(920px 460px at 88% -15%, #e3f3ff 0%, transparent 61%),
+    radial-gradient(
+      1040px 540px at 12% -10%,
+      rgba(167, 197, 246, 0.52) 0%,
+      transparent 66%
+    ),
+    radial-gradient(
+      920px 500px at 88% -15%,
+      rgba(159, 220, 247, 0.44) 0%,
+      transparent 63%
+    ),
     linear-gradient(155deg, var(--bg0), var(--bg1) 52%, var(--bg2));
 }
 
@@ -393,12 +404,12 @@
 }
 
 .authGithubCard {
-  border: 1px solid rgba(74, 122, 201, 0.26);
+  border: 1px solid rgba(74, 122, 201, 0.34);
   border-radius: 14px;
   background: linear-gradient(
     142deg,
-    rgba(255, 255, 255, 0.92),
-    rgba(241, 249, 255, 0.82)
+    rgba(255, 255, 255, 0.94),
+    rgba(232, 245, 255, 0.86)
   );
   backdrop-filter: blur(16px) saturate(128%);
   -webkit-backdrop-filter: blur(16px) saturate(128%);
@@ -407,7 +418,7 @@
   gap: 14px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    0 18px 36px rgba(41, 78, 141, 0.16);
+    0 22px 44px rgba(41, 78, 141, 0.21);
 }
 
 .authGithubModeIntro {
@@ -610,8 +621,16 @@ body {
   color: var(--text);
   font-family: "SF Pro Display", "Avenir Next", "Inter", "Segoe UI", sans-serif;
   background:
-    radial-gradient(1040px 520px at 12% -10%, #e4efff 0%, transparent 64%),
-    radial-gradient(920px 460px at 88% -15%, #e3f3ff 0%, transparent 61%),
+    radial-gradient(
+      1040px 540px at 12% -10%,
+      rgba(167, 197, 246, 0.54) 0%,
+      transparent 66%
+    ),
+    radial-gradient(
+      920px 500px at 88% -15%,
+      rgba(159, 220, 247, 0.46) 0%,
+      transparent 63%
+    ),
     linear-gradient(155deg, var(--bg0), var(--bg1) 52%, var(--bg2));
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -634,7 +653,7 @@ a {
   position: absolute;
   border-radius: 999px;
   filter: blur(58px);
-  opacity: 0.46;
+  opacity: 0.58;
   pointer-events: none;
   animation: drift 14s ease-in-out infinite;
 }
@@ -646,8 +665,8 @@ a {
   height: 288px;
   background: radial-gradient(
     circle,
-    rgba(151, 190, 250, 0.56) 0%,
-    rgba(146, 180, 238, 0.32) 52%,
+    rgba(146, 188, 250, 0.66) 0%,
+    rgba(132, 176, 238, 0.4) 52%,
     transparent 78%
   );
 }
@@ -659,8 +678,8 @@ a {
   height: 324px;
   background: radial-gradient(
     circle,
-    rgba(154, 214, 250, 0.52) 0%,
-    rgba(140, 187, 235, 0.3) 48%,
+    rgba(151, 216, 250, 0.62) 0%,
+    rgba(132, 182, 235, 0.38) 48%,
     transparent 78%
   );
   animation-delay: -6s;
@@ -705,12 +724,16 @@ a {
 
 .glassCard {
   border: 1px solid var(--stroke);
-  background: linear-gradient(140deg, var(--glass-strong), var(--glass) 55%);
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(235, 246, 255, 0.82) 55%
+  );
   backdrop-filter: blur(20px);
   border-radius: var(--radius-lg);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    0 22px 55px rgba(57, 97, 164, 0.16);
+    0 24px 60px rgba(52, 94, 163, 0.2);
   min-width: 0;
 }
 
@@ -1985,7 +2008,8 @@ textarea:focus {
   cursor: pointer;
   border: 1px solid transparent;
   transition:
-    transform 0.18s ease,
+    transform var(--interactive-transition-duration)
+      var(--interactive-transition-easing),
     box-shadow 0.2s ease,
     opacity 0.2s ease;
 }
@@ -1997,7 +2021,7 @@ textarea:focus {
 }
 
 .primaryButton:hover {
-  transform: translateY(-1px);
+  transform: none;
   box-shadow: 0 18px 30px rgba(58, 123, 235, 0.45);
 }
 
@@ -2074,13 +2098,17 @@ textarea:focus {
 @media (min-width: 761px) {
   .submitActionRow {
     justify-self: center;
-    width: calc((100% - var(--space-3, 13px)) / 2);
+    width: auto;
+    max-width: 100%;
+    align-items: center;
   }
 
-  .formGrid .submitActionRow .submitButton {
+  .formGrid .submitActionRow .submitButton,
+  .formGrid .submitActionRow .submitMailButton {
     grid-column: auto;
-    justify-self: stretch;
-    width: 100%;
+    justify-self: center;
+    width: fit-content;
+    max-width: 100%;
   }
 
   .formGrid .submitButton {
@@ -2097,7 +2125,7 @@ textarea:focus {
 }
 
 .ghostButton:hover {
-  transform: translateY(-1px);
+  transform: none;
   background: rgba(255, 255, 255, 0.88);
 }
 
@@ -2389,7 +2417,8 @@ textarea:focus {
   transition:
     background-color 0.18s ease,
     box-shadow 0.18s ease,
-    transform 0.18s ease,
+    transform var(--interactive-transition-duration)
+      var(--interactive-transition-easing),
     opacity 0.18s ease;
 }
 
@@ -3625,7 +3654,7 @@ textarea,
       .settingsPdfColumnsDragHandle,
       .settingsPdfColumnsToggle
     ):hover {
-    transform: translateY(-1px) scale(var(--interactive-scale-hover));
+    transform: none;
   }
 
   .topHeaderSettingsButton:hover {
@@ -3661,28 +3690,29 @@ textarea,
 button.primaryButton,
 a.primaryButton,
 button.submitButton {
-  color: #123964;
+  color: var(--text-on-strong);
   background: linear-gradient(
     148deg,
-    rgba(155, 197, 255, 0.62),
-    rgba(142, 218, 255, 0.52)
+    rgba(70, 132, 236, 0.94),
+    rgba(76, 185, 244, 0.86)
   );
-  border-color: rgba(209, 233, 255, 0.82);
+  border-color: rgba(188, 222, 255, 0.84);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 16px 30px rgba(52, 103, 185, 0.24),
+    0 18px 34px rgba(39, 93, 181, 0.3),
     0 1px 0 rgba(255, 255, 255, 0.44);
 }
 
 button.primaryButton:hover:not(:disabled),
 a.primaryButton:hover,
 button.submitButton:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: none;
   background: linear-gradient(
     148deg,
-    rgba(168, 206, 255, 0.66),
-    rgba(153, 224, 255, 0.56)
+    rgba(82, 142, 242, 0.96),
+    rgba(88, 194, 250, 0.9)
   );
+  border-color: rgba(201, 231, 255, 0.92);
 }
 
 button.ghostButton,
@@ -3699,26 +3729,27 @@ button.voiceActionButtonClear:active:not(:disabled) {
 
 button.voiceActionButtonStart {
   border-radius: 999px;
-  color: #7d2943;
+  color: var(--text-on-strong);
   background: linear-gradient(
     148deg,
-    rgba(255, 238, 244, 0.9),
-    rgba(255, 228, 238, 0.74)
+    rgba(227, 95, 130, 0.94),
+    rgba(233, 136, 167, 0.88)
   );
-  border-color: rgba(237, 181, 201, 0.8);
+  border-color: rgba(240, 189, 206, 0.9);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 14px 26px rgba(176, 63, 97, 0.22),
-    0 0 0 1px rgba(216, 101, 136, 0.2);
+    0 16px 30px rgba(177, 56, 94, 0.3),
+    0 0 0 1px rgba(210, 80, 121, 0.28);
 }
 
 button.voiceActionButtonStart:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: none;
   background: linear-gradient(
     148deg,
-    rgba(255, 244, 248, 0.94),
-    rgba(255, 235, 243, 0.8)
+    rgba(234, 104, 139, 0.96),
+    rgba(239, 145, 175, 0.9)
   );
+  border-color: rgba(246, 198, 214, 0.96);
 }
 
 .topHeaderMinimal {
@@ -3837,7 +3868,8 @@ textarea {
   .serviceSuggestionButton,
   .addressSuggestionButton {
     transition:
-      transform 0.16s ease,
+      transform var(--interactive-transition-duration)
+        var(--interactive-transition-easing),
       box-shadow 0.2s ease,
       border-color 0.2s ease,
       background-color 0.2s ease;
@@ -4153,7 +4185,7 @@ a.primaryButton,
 button.submitButton {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 11px 21px rgba(52, 103, 185, 0.24),
+    0 13px 25px rgba(39, 92, 178, 0.3),
     0 1px 0 rgba(255, 255, 255, 0.44);
 }
 
@@ -4162,22 +4194,76 @@ a.primaryButton:hover,
 button.submitButton:hover:not(:disabled) {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 12px 22px rgba(52, 103, 185, 0.24),
+    0 15px 28px rgba(39, 92, 178, 0.34),
     0 1px 0 rgba(255, 255, 255, 0.44);
 }
 
 button.voiceActionButtonStart {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 10px 18px rgba(176, 63, 97, 0.22),
-    0 0 0 1px rgba(216, 101, 136, 0.2);
+    0 12px 22px rgba(176, 57, 93, 0.3),
+    0 0 0 1px rgba(208, 77, 118, 0.28);
 }
 
 button.voiceActionButtonStart:hover:not(:disabled) {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.93),
-    0 11px 19px rgba(176, 63, 97, 0.22),
-    0 0 0 1px rgba(216, 101, 136, 0.2);
+    0 14px 25px rgba(176, 57, 93, 0.34),
+    0 0 0 1px rgba(208, 77, 118, 0.32);
+}
+
+/* CTA emphasis + desktop width tuning */
+.submitActionRow .submitButton {
+  color: var(--text-on-strong);
+  letter-spacing: 0.012em;
+}
+
+.submitActionRow .submitMailButton {
+  color: var(--text-on-soft);
+  border-color: rgba(176, 212, 252, 0.82);
+  background: linear-gradient(
+    148deg,
+    rgba(229, 242, 255, 0.92),
+    rgba(209, 233, 255, 0.82)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 11px 22px rgba(45, 92, 160, 0.19),
+    0 1px 0 rgba(255, 255, 255, 0.44);
+}
+
+.submitActionRow .submitMailButton:hover:not(:disabled) {
+  color: #103662;
+  border-color: rgba(166, 203, 247, 0.9);
+  background: linear-gradient(
+    148deg,
+    rgba(222, 239, 255, 0.95),
+    rgba(199, 227, 255, 0.86)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 13px 24px rgba(45, 92, 160, 0.23),
+    0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+@media (min-width: 761px) {
+  .submitActionRow .submitButton,
+  .submitActionRow .submitMailButton,
+  .formGrid .submitActionRow .submitButton,
+  .formGrid .submitActionRow .submitMailButton {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .submitActionRow .submitButton,
+  .formGrid .submitActionRow .submitButton {
+    min-width: clamp(236px, 24vw, 316px);
+  }
+
+  .submitActionRow .submitMailButton,
+  .formGrid .submitActionRow .submitMailButton {
+    min-width: clamp(212px, 22vw, 292px);
+  }
 }
 
 @media (max-width: 760px) {
@@ -4203,11 +4289,6 @@ button.voiceActionButtonStart:hover:not(:disabled) {
     min-height: 32px;
     right: 7px;
   }
-}
-
-.topHeaderArchiveButton {
-  left: 0;
-  right: auto;
 }
 
 .settingsOverlayBackdrop {
@@ -4893,14 +4974,15 @@ button.customerArchiveSectionToggle {
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease,
-    transform 0.18s ease,
+    transform var(--interactive-transition-duration)
+      var(--interactive-transition-easing),
     box-shadow 0.2s ease;
 }
 
 .customerArchiveDocumentLink:hover {
   border-color: rgba(72, 118, 197, 0.36);
   background: rgba(235, 245, 255, 0.94);
-  transform: translateY(-1px) scale(1.01);
+  transform: none;
 }
 
 .customerArchiveDocumentLink:active {
@@ -5060,11 +5142,6 @@ button.customerArchiveSectionToggle {
     border-radius: 16px;
     padding: 12px;
     gap: 10px;
-  }
-
-  .topHeaderArchiveButton {
-    left: 2px;
-    right: auto;
   }
 
   .settingsOverlayBackdrop {
@@ -5309,6 +5386,25 @@ button.customerArchiveSectionToggle {
   z-index: 91;
   animation: accountMenuEnter 170ms cubic-bezier(0.22, 0.61, 0.36, 1);
   transform-origin: top right;
+}
+
+/* subtle global contrast lift for elevated surfaces */
+.settingsOverlaySheet,
+.customerPickerModalSheet,
+.infoLegalSheet,
+.voiceLoginModalSheet,
+.customerArchiveSheet,
+.accountMenuPanel,
+.accountTipsPopover {
+  border-color: rgba(72, 118, 197, 0.32);
+  background: linear-gradient(
+    150deg,
+    rgba(252, 255, 255, 0.97),
+    rgba(231, 243, 255, 0.92)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 28px 60px rgba(31, 63, 113, 0.28);
 }
 
 @keyframes accountMenuEnter {

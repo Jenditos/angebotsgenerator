@@ -15,11 +15,14 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
+import { InfoLegalModal } from "@/components/InfoLegalModal";
 import { VisioroLogoPill } from "@/components/VisioroLogoPill";
+import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
+import { useDialogFocusTrap } from "@/lib/ui/use-dialog-focus-trap";
 import {
   MAX_VOICE_TRANSCRIPT_LENGTH,
   isValidEmailAddress,
@@ -1239,6 +1242,11 @@ export default function HomePage() {
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountMenuCloseTimeoutRef = useRef<number | null>(null);
   const setupHintRef = useRef<HTMLDivElement | null>(null);
+  const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
+  const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
+  const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
+  const infoLegalSheetRef = useRef<HTMLElement | null>(null);
+  const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -1333,6 +1341,27 @@ export default function HomePage() {
     isOfferMailActionVisible &&
     Boolean(offerMailActionState?.payload.pdfBase64?.trim());
   const accountIdentityLabel = accountIdentity || "Nutzerkonto";
+
+  useDialogFocusTrap({
+    isOpen: isCustomerArchiveOpen,
+    containerRef: customerArchiveSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isSettingsOverlayOpen,
+    containerRef: settingsOverlaySheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isCustomerPickerOpen,
+    containerRef: customerPickerModalSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isInfoLegalOpen,
+    containerRef: infoLegalSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isVoiceLoginModalOpen,
+    containerRef: voiceLoginModalSheetRef,
+  });
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
@@ -3806,15 +3835,16 @@ export default function HomePage() {
             className={`customerArchiveBackdrop ${isClosingCustomerArchive ? "closing" : ""}`}
             role="dialog"
             aria-modal="true"
-            aria-label="Kundenarchiv"
+            aria-labelledby="customer-archive-title"
             onClick={closeCustomerArchive}
           >
             <section
               className={`customerArchiveSheet ${isClosingCustomerArchive ? "closing" : ""}`}
               onClick={(event) => event.stopPropagation()}
+              ref={customerArchiveSheetRef}
             >
               <div className="customerArchiveHeader">
-                <strong>Kundenarchiv</strong>
+                <strong id="customer-archive-title">Kundenarchiv</strong>
                 <button
                   type="button"
                   className="customerArchiveCloseButton"
@@ -4057,79 +4087,28 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {isVoiceLoginModalOpen ? (
-          <div
-            className="voiceLoginModalBackdrop"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Login erforderlich"
-            onClick={closeVoiceLoginModal}
-          >
-            <section
-              className="voiceLoginModalSheet"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <header className="voiceLoginModalHeader">
-                <strong>Login erforderlich</strong>
-                <button
-                  type="button"
-                  className="voiceLoginModalCloseButton"
-                  aria-label="Hinweis schließen"
-                  onClick={closeVoiceLoginModal}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="topHeaderIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              </header>
-              <p className="voiceLoginModalText">
-                Für die KI-Aufnahme ist ein Login erforderlich.
-              </p>
-              <div className="voiceLoginModalActions">
-                <button
-                  type="button"
-                  className="primaryButton voiceLoginModalPrimaryButton"
-                  onClick={navigateToAuthFromVoiceLoginModal}
-                >
-                  Login / Registrieren
-                </button>
-                <button
-                  type="button"
-                  className="ghostButton voiceLoginModalCancelButton"
-                  onClick={closeVoiceLoginModal}
-                >
-                  Abbrechen
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
+        <VoiceLoginRequiredModal
+          isOpen={isVoiceLoginModalOpen}
+          onClose={closeVoiceLoginModal}
+          onLogin={navigateToAuthFromVoiceLoginModal}
+          sheetRef={voiceLoginModalSheetRef}
+        />
 
         {isSettingsOverlayOpen ? (
           <div
             className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""}`}
             role="dialog"
             aria-modal="true"
-            aria-label="Einstellungen"
+            aria-labelledby="settings-overlay-title"
             onClick={closeSettingsOverlay}
           >
             <section
               className={`settingsOverlaySheet ${isClosingSettingsOverlay ? "closing" : ""}`}
               onClick={(event) => event.stopPropagation()}
+              ref={settingsOverlaySheetRef}
             >
               <div className="settingsOverlayHeader">
-                <strong>Einstellungen</strong>
+                <strong id="settings-overlay-title">Einstellungen</strong>
                 <button
                   type="button"
                   className="settingsOverlayCloseButton"
@@ -4168,15 +4147,16 @@ export default function HomePage() {
             className={`customerPickerModalBackdrop ${isClosingCustomerPicker ? "closing" : ""}`}
             role="dialog"
             aria-modal="true"
-            aria-label="Gespeicherte Kunden"
+            aria-labelledby="customer-picker-title"
             onClick={closeCustomerPickerPopup}
           >
             <section
               className={`customerPickerModalSheet ${isClosingCustomerPicker ? "closing" : ""}`}
               onClick={(event) => event.stopPropagation()}
+              ref={customerPickerModalSheetRef}
             >
               <div className="customerPickerModalHeader">
-                <strong>Gespeicherte Kunden</strong>
+                <strong id="customer-picker-title">Gespeicherte Kunden</strong>
                 <button
                   type="button"
                   className="customerPickerModalCloseButton"
@@ -4290,136 +4270,12 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {isInfoLegalOpen ? (
-          <div
-            className={`infoLegalBackdrop ${isClosingInfoLegal ? "closing" : ""}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Info und rechtliche Hinweise"
-            onClick={closeInfoLegalModal}
-          >
-            <section
-              className={`infoLegalSheet ${isClosingInfoLegal ? "closing" : ""}`}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <header className="infoLegalHeader">
-                <h2 className="infoLegalHeading">Info &amp; Rechtliche Hinweise</h2>
-                <button
-                  type="button"
-                  className="infoLegalCloseButton"
-                  aria-label="Info-Fenster schließen"
-                  onClick={closeInfoLegalModal}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="topHeaderIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              </header>
-
-              <div className="infoLegalContent">
-                <h3>Offline-Betrieb &amp; Datenschutz</h3>
-                <p>
-                  Diese Software arbeitet überwiegend lokal. Alle Kundendaten,
-                  Angebots- und Rechnungsinformationen sowie PDF-Dateien werden
-                  primär auf dem Gerät des Nutzers gespeichert.
-                </p>
-                <p>
-                  Es findet keine automatische Weitergabe dieser Daten an den
-                  Anbieter oder Dritte statt.
-                </p>
-                <p>
-                  Sofern KI-Funktionen genutzt werden, können zur Verarbeitung
-                  Inhalte temporär an externe Dienste (z. B. OpenAI) übermittelt
-                  werden. Dabei werden keine Daten dauerhaft gespeichert oder
-                  weitergegeben.
-                </p>
-                <p>
-                  Der Nutzer ist verantwortlich für die Einhaltung der geltenden
-                  Datenschutzbestimmungen (insbesondere DSGVO), sowie für
-                  Datensicherung, sichere Passwörter und Zugriffsschutz.
-                </p>
-
-                <h3>Datenschutzrechte</h3>
-                <p>
-                  Nutzer haben im Rahmen der gesetzlichen Bestimmungen das Recht
-                  auf Auskunft, Berichtigung, Löschung und Einschränkung der
-                  Verarbeitung ihrer Daten.
-                </p>
-                <p>
-                  Bei Fragen zum Datenschutz können Sie sich jederzeit an den
-                  Anbieter wenden.
-                </p>
-
-                <h3>Lizenzprüfung &amp; Internetverbindung</h3>
-                <p>
-                  Zur Lizenzprüfung kann beim Start oder in regelmäßigen
-                  Abständen - sofern eine Internetverbindung besteht - eine
-                  anonyme Anfrage an den VISIORO-Server gesendet werden. Dabei
-                  werden ausschließlich technische Informationen wie Lizenzstatus
-                  und Zeitstempel übertragen.
-                </p>
-                <p>
-                  Es werden keine sensiblen oder personenbezogenen Daten
-                  übermittelt.
-                </p>
-                <p>
-                  Die Nutzung der Software ist auch ohne Internetverbindung
-                  möglich (mit Ausnahme von KI-Funktionen).
-                </p>
-
-                <h3>Verantwortlichkeit</h3>
-                <p>
-                  Für die Richtigkeit, Vollständigkeit und rechtliche
-                  Zulässigkeit der erstellten Angebote und Rechnungen ist
-                  ausschließlich der Nutzer verantwortlich. Der Anbieter
-                  übernimmt keine Haftung für Fehler, unvollständige Angaben
-                  oder daraus resultierende Schäden.
-                </p>
-
-                <h3>KI-Hinweis</h3>
-                <p>
-                  Die durch KI generierten Inhalte dienen lediglich als
-                  Unterstützung und müssen vom Nutzer vor Verwendung geprüft und
-                  freigegeben werden.
-                </p>
-
-                <h3>Endbenutzer-Lizenzvereinbarung (EULA)</h3>
-                <p>
-                  Diese Software darf ausschließlich im Rahmen ihrer vorgesehenen
-                  Nutzung verwendet werden. Eine Weitergabe, Vervielfältigung
-                  oder kommerzielle Weiterverwertung der Software oder ihrer
-                  Bestandteile ist ohne ausdrückliche Genehmigung untersagt.
-                </p>
-                <p>
-                  Mit der Nutzung der Software akzeptiert der Nutzer diese
-                  Bedingungen.
-                </p>
-
-                <h3>Anbieter</h3>
-                <p className="infoLegalProvider">
-                  VISIORO SH.P.K.
-                  <br />
-                  Rr. Rifat Berisha 10
-                  <br />
-                  10000 Prishtina, Kosovo
-                  <br />
-                  E-Mail: info@visioro.com
-                </p>
-              </div>
-            </section>
-          </div>
-        ) : null}
+        <InfoLegalModal
+          isOpen={isInfoLegalOpen}
+          isClosing={isClosingInfoLegal}
+          onClose={closeInfoLegalModal}
+          sheetRef={infoLegalSheetRef}
+        />
 
         <div className="documentModeSwitchTop">
           <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
