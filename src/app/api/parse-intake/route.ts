@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAppAccess } from "@/lib/access/guards";
 import { parseOfferIntake } from "@/lib/openai";
 import { MAX_VOICE_TRANSCRIPT_LENGTH } from "@/lib/user-input";
 
@@ -468,6 +469,11 @@ function hasValue(value: unknown): boolean {
 }
 
 export async function POST(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
   try {
     const body = (await request.json()) as { transcript?: string };
     const transcript = body.transcript?.trim() ?? "";

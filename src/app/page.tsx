@@ -1212,6 +1212,7 @@ export default function HomePage() {
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
+  const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(
     isSupabaseConfigured(),
   );
@@ -1524,6 +1525,19 @@ export default function HomePage() {
     }, 160);
   }
 
+  function closeVoiceLoginModal() {
+    setIsVoiceLoginModalOpen(false);
+  }
+
+  function openVoiceLoginModal() {
+    setIsVoiceLoginModalOpen(true);
+  }
+
+  function navigateToAuthFromVoiceLoginModal() {
+    setIsVoiceLoginModalOpen(false);
+    window.location.href = "/auth";
+  }
+
   useEffect(() => {
     const speechCtor =
       (window as any).SpeechRecognition ||
@@ -1633,7 +1647,8 @@ export default function HomePage() {
       isCustomerArchiveOpen ||
       isInfoLegalOpen ||
       isSettingsOverlayOpen ||
-      isCustomerPickerOpen;
+      isCustomerPickerOpen ||
+      isVoiceLoginModalOpen;
     if (!hasBlockingOverlay) {
       return;
     }
@@ -1660,6 +1675,7 @@ export default function HomePage() {
     isInfoLegalOpen,
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
+    isVoiceLoginModalOpen,
   ]);
 
   useEffect(() => {
@@ -1672,6 +1688,7 @@ export default function HomePage() {
       !isInfoLegalOpen &&
       !isSettingsOverlayOpen &&
       !isCustomerPickerOpen &&
+      !isVoiceLoginModalOpen &&
       !isAccountMenuOpen &&
       !isSetupHintOpen
     ) {
@@ -1703,6 +1720,11 @@ export default function HomePage() {
         return;
       }
 
+      if (isVoiceLoginModalOpen) {
+        closeVoiceLoginModal();
+        return;
+      }
+
       if (isSetupHintOpen) {
         setIsSetupHintOpen(false);
       }
@@ -1723,6 +1745,7 @@ export default function HomePage() {
     isClosingSettingsOverlay,
     isCustomerPickerOpen,
     isClosingCustomerPicker,
+    isVoiceLoginModalOpen,
     isAccountMenuOpen,
     isClosingAccountMenu,
     isSetupHintOpen,
@@ -2668,6 +2691,14 @@ export default function HomePage() {
     if (isListening) {
       return;
     }
+
+    if (!isAuthenticatedUser) {
+      setVoiceError("");
+      setVoiceInfo("");
+      openVoiceLoginModal();
+      return;
+    }
+
     console.log("[voice] start requested", {
       isSpeechPaused,
       existingTranscriptLength: voiceTranscript.trim().length,
@@ -3094,6 +3125,16 @@ export default function HomePage() {
       if (!response.ok) {
         const errorText =
           data.error ?? "Sprachdaten konnten nicht verarbeitet werden.";
+        if (response.status === 401) {
+          setVoiceError("Bitte zuerst einloggen, um die KI-Sprachfunktion zu nutzen.");
+          console.warn("[voice] parse rejected because user is not logged in");
+          return;
+        }
+        if (response.status === 402) {
+          setVoiceError(errorText);
+          console.warn("[voice] parse rejected because app access is not active");
+          return;
+        }
         setVoiceError(
           /zugriff/i.test(errorText)
             ? "Sprachverarbeitung fehlgeschlagen. Bitte erneut versuchen."
@@ -4011,6 +4052,65 @@ export default function HomePage() {
                     ) : null}
                   </div>
                 )}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {isVoiceLoginModalOpen ? (
+          <div
+            className="voiceLoginModalBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Login erforderlich"
+            onClick={closeVoiceLoginModal}
+          >
+            <section
+              className="voiceLoginModalSheet"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header className="voiceLoginModalHeader">
+                <strong>Login erforderlich</strong>
+                <button
+                  type="button"
+                  className="voiceLoginModalCloseButton"
+                  aria-label="Hinweis schließen"
+                  onClick={closeVoiceLoginModal}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </header>
+              <p className="voiceLoginModalText">
+                Für die KI-Aufnahme ist ein Login erforderlich.
+              </p>
+              <div className="voiceLoginModalActions">
+                <button
+                  type="button"
+                  className="primaryButton voiceLoginModalPrimaryButton"
+                  onClick={navigateToAuthFromVoiceLoginModal}
+                >
+                  Login / Registrieren
+                </button>
+                <button
+                  type="button"
+                  className="ghostButton voiceLoginModalCancelButton"
+                  onClick={closeVoiceLoginModal}
+                >
+                  Abbrechen
+                </button>
               </div>
             </section>
           </div>
