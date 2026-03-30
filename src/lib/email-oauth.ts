@@ -43,10 +43,12 @@ export type EmailCallbackResult = {
   clearCookieName?: string;
 };
 
+export function assertEmailOAuthSecretConfigured(): void {
+  getStateSecret();
+}
+
 function hasStateSecret(): boolean {
-  return Boolean(
-    process.env.EMAIL_OAUTH_SECRET?.trim() || process.env.OAUTH_STATE_SECRET?.trim(),
-  );
+  return Boolean(process.env.EMAIL_OAUTH_SECRET?.trim());
 }
 
 export function getEmailProviderAvailability() {
@@ -77,9 +79,7 @@ function getAppBaseUrl(request?: Request): string {
 }
 
 function getStateSecret(): string {
-  const secret =
-    process.env.EMAIL_OAUTH_SECRET?.trim() ||
-    process.env.OAUTH_STATE_SECRET?.trim();
+  const secret = process.env.EMAIL_OAUTH_SECRET?.trim();
   if (!secret) {
     throw new Error("EMAIL_OAUTH_SECRET ist nicht gesetzt.");
   }
@@ -437,6 +437,46 @@ export async function handleEmailCallback(
       clearCookieName: pkceCookieName,
     };
   }
+}
+
+async function revokeGoogleToken(token: string): Promise<void> {
+  const body = new URLSearchParams({ token });
+  const response = await fetch("https://oauth2.googleapis.com/revoke", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  if (!response.ok && response.status !== 400) {
+    throw new Error("Google Token-Revocation fehlgeschlagen.");
+  }
+}
+
+async function revokeMicrosoftSessions(accessToken: string): Promise<void> {
+  const response = await fetch(
+    "https://graph.microsoft.com/v1.0/me/revokeSignInSessions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Microsoft Session-Revocation fehlgeschlagen.");
+  }
+}
+
+export async function revokeEmailProviderTokens(
+  connection: EmailConnection,
+): Promise<void> {
+  if (connection.provider === "google") {
+    await revokeGoogleToken(connection.refreshToken);
+    return;
+  }
+
+  await revokeMicrosoftSessions(connection.accessToken);
 }
 
 async function refreshGoogle(connection: EmailConnection): Promise<EmailConnection> {
