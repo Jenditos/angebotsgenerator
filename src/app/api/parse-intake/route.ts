@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
 import { parseOfferIntake } from "@/lib/openai";
+import { MAX_VOICE_TRANSCRIPT_LENGTH } from "@/lib/user-input";
 
 const fieldLabels: Record<string, string> = {
   companyName: "Firma",
@@ -479,6 +480,15 @@ export async function POST(request: Request) {
 
     if (transcript.length < 8) {
       return NextResponse.json({ error: "Bitte sprich etwas länger, damit ich die Angaben erkennen kann." }, { status: 400 });
+    }
+
+    if (transcript.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: `Die Sprachaufnahme ist zu lang. Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
+        },
+        { status: 413 },
+      );
     }
 
     const parsed = await parseOfferIntake(transcript);

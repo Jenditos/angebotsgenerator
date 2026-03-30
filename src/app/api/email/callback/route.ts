@@ -2,7 +2,18 @@ import { NextResponse } from "next/server";
 import { handleEmailCallback } from "@/lib/email-oauth";
 
 export async function GET(request: Request) {
-  const path = await handleEmailCallback(request);
-  return NextResponse.redirect(new URL(path, request.url));
+  const result = await handleEmailCallback(request);
+  const response = NextResponse.redirect(new URL(result.redirectPath, request.url));
+  if (result.clearCookieName) {
+    response.cookies.set({
+      name: result.clearCookieName,
+      value: "",
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: new URL(request.url).protocol === "https:",
+      path: "/",
+    });
+  }
+  return response;
 }
-

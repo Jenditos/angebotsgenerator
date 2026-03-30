@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
 import { createDraftViaConnectedMailbox } from "@/lib/email-sender";
+import { isValidEmailAddress } from "@/lib/user-input";
 import { EmailDraftPayload } from "@/types/email";
 
 function isValidPayload(payload: Partial<EmailDraftPayload>): payload is EmailDraftPayload {
   return Boolean(
     payload.to?.trim() &&
+      isValidEmailAddress(payload.to) &&
       payload.subject?.trim() &&
       payload.text?.trim() &&
       payload.pdfBase64?.trim(),
@@ -22,7 +24,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Partial<EmailDraftPayload>;
     if (!isValidPayload(body)) {
       return NextResponse.json(
-        { ok: false, reason: "failed", info: "Ungültige Entwurfsdaten." },
+        {
+          ok: false,
+          reason: "failed",
+          info: "Ungültige Entwurfsdaten oder E-Mail-Adresse.",
+        },
         { status: 400 },
       );
     }

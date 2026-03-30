@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
-import { getEmailConnectUrl } from "@/lib/email-oauth";
+import { startEmailConnect } from "@/lib/email-oauth";
 import { EmailProvider } from "@/types/email";
 
 function isProvider(value: string | null): value is EmailProvider {
@@ -22,8 +22,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const authUrl = getEmailConnectUrl(providerRaw, request, returnTo);
-    return NextResponse.redirect(authUrl);
+    const { authUrl, pkceCookie } = startEmailConnect(providerRaw, request, returnTo);
+    const response = NextResponse.redirect(authUrl);
+    response.cookies.set(pkceCookie);
+    return response;
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Verbindung konnte nicht gestartet werden.";
     const fallback = new URL(returnTo.startsWith("/") ? returnTo : "/", request.url);

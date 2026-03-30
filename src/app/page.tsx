@@ -21,6 +21,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
+  MAX_VOICE_TRANSCRIPT_LENGTH,
+  isValidEmailAddress,
+} from "@/lib/user-input";
+import {
   CompanySettings,
   CustomerDraftGroup,
   DocumentType,
@@ -1228,6 +1232,7 @@ export default function HomePage() {
   const customerPickerCloseTimeoutRef = useRef<number | null>(null);
   const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
   const archiveLoadRequestRef = useRef(0);
+  const archiveAbortControllerRef = useRef<AbortController | null>(null);
   const archiveCloseTimeoutRef = useRef<number | null>(null);
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1534,6 +1539,10 @@ export default function HomePage() {
       }
       if (archiveCloseTimeoutRef.current !== null) {
         window.clearTimeout(archiveCloseTimeoutRef.current);
+      }
+      if (archiveAbortControllerRef.current) {
+        archiveAbortControllerRef.current.abort();
+        archiveAbortControllerRef.current = null;
       }
       if (infoLegalCloseTimeoutRef.current !== null) {
         window.clearTimeout(infoLegalCloseTimeoutRef.current);
@@ -2018,11 +2027,20 @@ export default function HomePage() {
 
   async function loadCustomerDocuments(customerNumber: string) {
     if (!customerNumber) {
+      if (archiveAbortControllerRef.current) {
+        archiveAbortControllerRef.current.abort();
+        archiveAbortControllerRef.current = null;
+      }
       setArchiveDocuments([]);
       return;
     }
     const currentLoadRequest = archiveLoadRequestRef.current + 1;
     archiveLoadRequestRef.current = currentLoadRequest;
+    if (archiveAbortControllerRef.current) {
+      archiveAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    archiveAbortControllerRef.current = controller;
 
     setArchiveError("");
     setIsArchiveDocumentsLoading(true);
@@ -2031,6 +2049,7 @@ export default function HomePage() {
     try {
       const response = await fetch(
         `/api/customer-documents?customerNumber=${encodeURIComponent(customerNumber)}`,
+        { signal: controller.signal },
       );
       const data = (await response.json()) as CustomerDocumentsApiResponse;
       if (archiveLoadRequestRef.current !== currentLoadRequest) {
@@ -2062,12 +2081,18 @@ export default function HomePage() {
             return right.documentNumber.localeCompare(left.documentNumber);
           }),
       );
-    } catch {
+    } catch (error) {
+      if ((error as { name?: string }).name === "AbortError") {
+        return;
+      }
       if (archiveLoadRequestRef.current !== currentLoadRequest) {
         return;
       }
       setArchiveError("Dokumente konnten nicht geladen werden.");
     } finally {
+      if (archiveAbortControllerRef.current === controller) {
+        archiveAbortControllerRef.current = null;
+      }
       if (archiveLoadRequestRef.current !== currentLoadRequest) {
         return;
       }
@@ -2094,6 +2119,10 @@ export default function HomePage() {
       return;
     }
 
+    if (archiveAbortControllerRef.current) {
+      archiveAbortControllerRef.current.abort();
+      archiveAbortControllerRef.current = null;
+    }
     setIsClosingCustomerArchive(true);
     if (archiveCloseTimeoutRef.current !== null) {
       window.clearTimeout(archiveCloseTimeoutRef.current);
@@ -2107,6 +2136,10 @@ export default function HomePage() {
 
   function clearArchiveCustomerSelection() {
     archiveLoadRequestRef.current += 1;
+    if (archiveAbortControllerRef.current) {
+      archiveAbortControllerRef.current.abort();
+      archiveAbortControllerRef.current = null;
+    }
     setSelectedArchiveCustomerNumber("");
     setArchiveDocuments([]);
     setArchiveError("");
@@ -2991,6 +3024,15 @@ export default function HomePage() {
       return;
     }
 
+    if (transcript.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
+      if (!autoTriggered) {
+        setVoiceError(
+          `Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
+        );
+      }
+      return;
+    }
+
     setIsParsingVoice(true);
     setVoiceError("");
     setVoiceMissingFields([]);
@@ -3230,6 +3272,10 @@ export default function HomePage() {
     const recipientEmail = options?.to?.trim() || form.customerEmail.trim();
     if (!recipientEmail) {
       return "Bitte zuerst eine Kunden-E-Mail hinterlegen.";
+    }
+
+    if (!isValidEmailAddress(recipientEmail)) {
+      return "Bitte eine gültige Kunden-E-Mail-Adresse hinterlegen.";
     }
 
     const resolvedDocumentNumber = resolveDraftDocumentNumber(payload, mode);
