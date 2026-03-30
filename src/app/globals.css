@@ -1116,13 +1116,13 @@ p {
 .voicePanel {
   display: grid;
   gap: 9px;
-  border: 1px solid rgba(67, 123, 214, 0.26);
+  border: 1px solid rgba(63, 120, 212, 0.36);
   border-radius: 16px;
   padding: 11px 12px 10px;
   background: linear-gradient(
     145deg,
-    rgba(245, 250, 255, 0.94),
-    rgba(232, 244, 255, 0.84)
+    rgba(241, 248, 255, 0.97),
+    rgba(216, 234, 253, 0.9)
   );
 }
 
@@ -1132,12 +1132,13 @@ p {
 }
 
 .voicePanelHeader strong {
-  color: #1e3d6f;
+  color: #163864;
   font-size: 0.95rem;
 }
 
 .voicePanelHeader p {
   font-size: 0.84rem;
+  color: #355887;
 }
 
 .voiceActions {
@@ -1398,10 +1399,14 @@ p {
   left: 0;
   right: 0;
   z-index: 40;
-  border: 1px solid rgba(72, 118, 197, 0.28);
+  border: 1px solid rgba(70, 116, 195, 0.36);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 18px 32px rgba(29, 67, 126, 0.18);
+  background: linear-gradient(
+    152deg,
+    rgba(250, 253, 255, 0.98),
+    rgba(228, 241, 255, 0.92)
+  );
+  box-shadow: 0 20px 36px rgba(29, 67, 126, 0.24);
   max-height: 320px;
   overflow: auto;
   display: grid;
@@ -1413,12 +1418,12 @@ p {
   margin: 0;
   padding: 8px 10px;
   font-size: 0.83rem;
-  color: #4e6995;
+  color: #355887;
 }
 
 .serviceSuggestionGroup {
   border-radius: 11px;
-  border: 1px solid rgba(72, 118, 197, 0.12);
+  border: 1px solid rgba(72, 118, 197, 0.2);
   overflow: hidden;
 }
 
@@ -1428,8 +1433,8 @@ p {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #2e538d;
-  background: rgba(234, 242, 255, 0.8);
+  color: #234a83;
+  background: rgba(223, 238, 255, 0.92);
 }
 
 .serviceSuggestionButton {
@@ -1457,7 +1462,7 @@ p {
 }
 
 .serviceSuggestionButton:hover {
-  background: rgba(231, 241, 255, 0.65);
+  background: rgba(216, 235, 255, 0.8);
 }
 
 .serviceAddCustomButton {
@@ -1491,8 +1496,12 @@ p {
 
 .positionsSearchPanel {
   padding: 10px 11px;
-  border-bottom: 1px solid rgba(66, 113, 199, 0.18);
-  background: rgba(233, 243, 255, 0.52);
+  border-bottom: 1px solid rgba(66, 113, 199, 0.28);
+  background: linear-gradient(
+    150deg,
+    rgba(227, 240, 255, 0.86),
+    rgba(211, 230, 253, 0.72)
+  );
   display: grid;
   gap: 8px;
 }
@@ -1503,7 +1512,7 @@ p {
 }
 
 .positionsSearchPanelTitle {
-  color: #2f4f80;
+  color: #214573;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -1511,7 +1520,7 @@ p {
 }
 
 .positionsSearchPanelHint {
-  color: #4d6792;
+  color: #345883;
   font-size: 0.82rem;
   line-height: 1.3;
 }
@@ -1531,9 +1540,9 @@ p {
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  border: 1px solid rgba(66, 113, 199, 0.24);
+  border: 1px solid rgba(66, 113, 199, 0.32);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(244, 250, 255, 0.9);
 }
 
 .positionsInputWrapMerged {
@@ -1560,7 +1569,7 @@ p {
   white-space: nowrap;
   border-bottom: 1px solid rgba(66, 113, 199, 0.24);
   border-right: 1px solid rgba(66, 113, 199, 0.16);
-  background: rgba(233, 243, 255, 0.78);
+  background: rgba(223, 238, 255, 0.9);
 }
 
 .positionsInputTable thead th:last-child {
@@ -1572,7 +1581,7 @@ p {
   border-bottom: 1px solid rgba(66, 113, 199, 0.16);
   border-right: 1px solid rgba(66, 113, 199, 0.16);
   vertical-align: middle;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(248, 252, 255, 0.9);
 }
 
 .positionsInputTable tbody tr:last-child td {
@@ -3732,24 +3741,33 @@ button.voiceActionButtonStart {
   color: var(--text-on-strong);
   background: linear-gradient(
     148deg,
-    rgba(227, 95, 130, 0.94),
-    rgba(233, 136, 167, 0.88)
+    rgba(219, 64, 72, 0.95),
+    rgba(233, 100, 95, 0.9)
   );
-  border-color: rgba(240, 189, 206, 0.9);
+  border-color: rgba(240, 178, 176, 0.9);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 16px 30px rgba(177, 56, 94, 0.3),
-    0 0 0 1px rgba(210, 80, 121, 0.28);
+    0 16px 30px rgba(176, 50, 59, 0.32),
+    0 0 0 1px rgba(201, 61, 70, 0.3);
 }
 
 button.voiceActionButtonStart:hover:not(:disabled) {
   transform: none;
   background: linear-gradient(
     148deg,
-    rgba(234, 104, 139, 0.96),
-    rgba(239, 145, 175, 0.9)
+    rgba(226, 72, 80, 0.97),
+    rgba(238, 113, 107, 0.92)
   );
-  border-color: rgba(246, 198, 214, 0.96);
+  border-color: rgba(245, 191, 187, 0.96);
+}
+
+button.voiceActionButtonStart:active:not(:disabled) {
+  background: linear-gradient(
+    148deg,
+    rgba(202, 52, 60, 0.98),
+    rgba(220, 89, 85, 0.93)
+  );
+  border-color: rgba(234, 170, 167, 0.96);
 }
 
 .topHeaderMinimal {
@@ -4201,15 +4219,15 @@ button.submitButton:hover:not(:disabled) {
 button.voiceActionButtonStart {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 12px 22px rgba(176, 57, 93, 0.3),
-    0 0 0 1px rgba(208, 77, 118, 0.28);
+    0 12px 22px rgba(176, 50, 59, 0.34),
+    0 0 0 1px rgba(201, 61, 70, 0.32);
 }
 
 button.voiceActionButtonStart:hover:not(:disabled) {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.93),
-    0 14px 25px rgba(176, 57, 93, 0.34),
-    0 0 0 1px rgba(208, 77, 118, 0.32);
+    0 14px 25px rgba(176, 50, 59, 0.4),
+    0 0 0 1px rgba(201, 61, 70, 0.36);
 }
 
 /* CTA emphasis + desktop width tuning */
