@@ -5573,37 +5573,41 @@ textarea {
 
 .voicePanel,
 .positionsIntegratedPanel {
-  background: var(--brand-dark) !important;
+  background: #ffffff !important;
   background-image: none !important;
-  border: 1px solid var(--brand-dark-30) !important;
-  box-shadow: 0 22px 48px var(--brand-dark-30) !important;
+  border: 1px solid var(--brand-dark-10) !important;
+  box-shadow: 0 20px 46px var(--brand-dark-30) !important;
 }
 
 .voicePanel :is(strong, p, span, .field > span, .voiceMissingLabel, .voiceMissingTag),
 .positionsIntegratedPanel :is(.positionsSearchPanelTitle, .positionsSearchPanelHint) {
-  color: #ffffff !important;
+  color: var(--brand-dark) !important;
 }
 
 .voicePanel .voiceInfo,
 .voicePanel .voiceWarning,
 .voicePanel .voiceMissingPanel {
-  border-color: var(--brand-primary-10) !important;
+  border-color: var(--brand-dark-10) !important;
   background: var(--brand-primary-10) !important;
-  color: #ffffff !important;
+  color: var(--brand-dark) !important;
 }
 
 .positionsSearchPanel,
 .positionsInputWrap,
 .positionsInputWrapMerged,
 .serviceSuggestionList {
-  background: var(--brand-dark) !important;
+  background: #ffffff !important;
   background-image: none !important;
   border-color: var(--brand-dark-10) !important;
 }
 
+.positionsSearchPanel {
+  background: var(--brand-primary-10) !important;
+}
+
 .positionsInputTable thead th {
-  background: var(--brand-dark-10) !important;
-  color: #ffffff !important;
+  background: var(--brand-primary-10) !important;
+  color: var(--brand-dark) !important;
   border-color: var(--brand-dark-10) !important;
 }
 
@@ -5626,15 +5630,15 @@ textarea {
 }
 
 .positionsInputEmpty {
-  color: #ffffff !important;
-  background: transparent !important;
+  color: var(--brand-dark) !important;
+  background: #ffffff !important;
 }
 
 .serviceSuggestionHint,
 .serviceSuggestionGroupLabel,
 .serviceSuggestionButton,
 .serviceSuggestionButton span {
-  color: #ffffff !important;
+  color: var(--brand-dark) !important;
 }
 
 .serviceSuggestionGroup {
@@ -5648,7 +5652,7 @@ textarea {
 .serviceAddCustomButton {
   background: var(--brand-primary-10) !important;
   border-color: var(--brand-dark-10) !important;
-  color: #ffffff !important;
+  color: var(--brand-dark) !important;
 }
 
 input:not([type="checkbox"]):not([type="radio"]),
@@ -5732,6 +5736,24 @@ textarea:focus,
 .positionsSearchPanelHint,
 .customerPickerHint,
 .voicePanelHeader p {
+  color: var(--brand-dark) !important;
+}
+
+.voiceInfo {
+  border-color: var(--brand-accent-a) !important;
+  background: var(--brand-primary-10) !important;
+  color: var(--brand-dark) !important;
+}
+
+.voiceWarning {
+  border-color: var(--brand-accent-b) !important;
+  background: var(--brand-primary-10) !important;
+  color: var(--brand-dark) !important;
+}
+
+.voiceMissingTag {
+  border-color: var(--brand-accent-c) !important;
+  background: #ffffff !important;
   color: var(--brand-dark) !important;
 }
 
