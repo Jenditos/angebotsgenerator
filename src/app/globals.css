@@ -5856,3 +5856,583 @@ textarea:focus,
     box-shadow: 0 14px 28px var(--brand-dark-30) !important;
   }
 }
+/* ==========================================================================
+   Reference Visual System v2 (strong layout transformation)
+   ========================================================================== */
+:root {
+  --vis-primary: #1479ff;
+  --vis-primary-10: rgba(20, 121, 255, 0.1);
+  --vis-primary-30: rgba(20, 121, 255, 0.3);
+  --vis-dark: #193b68;
+  --vis-dark-10: rgba(25, 59, 104, 0.1);
+  --vis-dark-30: rgba(25, 59, 104, 0.3);
+  --vis-accent-a: #14d2ff;
+  --vis-accent-b: #14a5ff;
+  --vis-accent-c: #14ebff;
+  --vis-white: #ffffff;
+  --vis-radius-xl: 34px;
+  --vis-radius-lg: 24px;
+  --vis-radius-md: 16px;
+  --vis-reference-hover-transform: translateY(-1px) scale(1.01);
+  --vis-reference-transition: 170ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+html,
+body {
+  background: var(--vis-white) !important;
+  color: var(--vis-dark) !important;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Inter", "SF Pro Display", sans-serif !important;
+}
+
+body {
+  background-image: none !important;
+}
+
+.page,
+.authViewport,
+.authGithubViewport {
+  background: var(--vis-white) !important;
+  background-image: none !important;
+}
+
+.page::before,
+.authViewport::before,
+.authGithubViewport::before {
+  content: "";
+  position: absolute;
+  width: min(46vw, 560px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  top: -180px;
+  left: -120px;
+  background: var(--vis-primary-10);
+  box-shadow: 0 36px 80px var(--vis-primary-30);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page::after,
+.authViewport::after,
+.authGithubViewport::after {
+  content: "";
+  position: absolute;
+  width: min(52vw, 620px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  right: -180px;
+  bottom: -280px;
+  background: var(--vis-dark-10);
+  box-shadow: 0 48px 100px var(--vis-dark-30);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient,
+.ambientA,
+.ambientB,
+.authGlow,
+.authGlowA,
+.authGlowB {
+  background: transparent !important;
+  filter: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+.container,
+.authCenterWrap,
+.authGithubCenter {
+  position: relative;
+  z-index: 1;
+}
+
+.container {
+  max-width: 1260px !important;
+  gap: 22px !important;
+}
+
+.dashboardCanvas {
+  padding-top: 8px;
+}
+
+.topHeaderMinimal {
+  min-height: 70px !important;
+  padding: 0 2px !important;
+  margin-bottom: 2px;
+}
+
+.pill {
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  box-shadow: 0 16px 34px var(--vis-dark-30) !important;
+  color: var(--vis-dark) !important;
+  border-radius: 18px !important;
+  padding: 10px 18px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+
+.authGithubLogo {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.topHeaderSettingsButton {
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+  color: var(--vis-dark) !important;
+  box-shadow: 0 14px 30px var(--vis-dark-30) !important;
+}
+
+.accountMenuPanel {
+  border: 1px solid var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  border-radius: 18px !important;
+  box-shadow: 0 22px 44px var(--vis-dark-30) !important;
+  padding: 10px !important;
+  gap: 4px !important;
+}
+
+.accountMenuHeader,
+.accountMenuIdentity,
+.accountMenuPanel .accountMenuItem {
+  color: var(--vis-dark) !important;
+}
+
+.accountMenuDivider {
+  background: var(--vis-dark-10) !important;
+}
+
+.accountMenuPanel .accountMenuLoginItem {
+  background: var(--vis-primary-10) !important;
+  border-color: rgba(20, 121, 255, 0.22) !important;
+  color: var(--vis-primary) !important;
+}
+
+.documentModeSwitch {
+  width: min(880px, 100%) !important;
+  padding: 8px !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  box-shadow: 0 18px 38px var(--vis-dark-30) !important;
+}
+
+.documentModeSwitchButton {
+  border-radius: 14px !important;
+  border-color: transparent !important;
+  color: var(--vis-dark) !important;
+  background: transparent !important;
+}
+
+.documentModeSwitchButton.active {
+  background: var(--vis-primary-10) !important;
+  border-color: rgba(20, 121, 255, 0.24) !important;
+  box-shadow: 0 10px 24px var(--vis-primary-30) !important;
+}
+
+.dashboardMainShell {
+  background: var(--vis-white) !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  border-radius: var(--vis-radius-xl) !important;
+  box-shadow: 0 28px 58px var(--vis-dark-30) !important;
+  padding: 18px !important;
+}
+
+.dashboardWorkspace {
+  gap: 0 !important;
+}
+
+.dashboardPrimaryCard {
+  position: relative;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 28px !important;
+  padding: 28px 30px 30px 132px !important;
+  background: var(--vis-white) !important;
+  overflow: hidden;
+}
+
+.dashboardPrimaryCard::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  bottom: 20px;
+  width: 88px;
+  border-radius: 28px;
+  border: 1px solid var(--vis-dark-10);
+  background: var(--vis-white);
+  box-shadow: 0 18px 38px var(--vis-dark-30);
+  pointer-events: none;
+}
+
+.dashboardPrimaryCard::after {
+  content: "";
+  position: absolute;
+  left: 54px;
+  top: 72px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--vis-primary);
+  box-shadow:
+    0 58px 0 var(--vis-primary-10),
+    0 116px 0 var(--vis-primary-10),
+    0 174px 0 var(--vis-primary-10);
+  pointer-events: none;
+}
+
+.dashboardFormGrid {
+  gap: 18px !important;
+}
+
+.customerPickerPanel {
+  margin-bottom: 18px !important;
+}
+
+.dashboardVoicePanel,
+.dashboardPositionsPanel {
+  border-radius: var(--vis-radius-lg) !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  box-shadow: 0 18px 38px var(--vis-dark-30) !important;
+}
+
+.dashboardVoicePanel {
+  padding: 20px !important;
+  background: var(--vis-primary-10) !important;
+  border-color: rgba(20, 121, 255, 0.2) !important;
+}
+
+.dashboardVoicePanel :is(strong, p, span, .field > span) {
+  color: var(--vis-dark) !important;
+}
+
+.voiceInfo,
+.voiceWarning,
+.voiceMissingPanel {
+  color: var(--vis-dark) !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+}
+
+.positionsSearchPanel {
+  background: var(--vis-primary-10) !important;
+  border-bottom: 1px solid var(--vis-dark-10) !important;
+  padding: 16px 18px 14px !important;
+}
+
+.positionsSearchPanelTitle,
+.positionsSearchPanelHint {
+  color: var(--vis-dark) !important;
+}
+
+.positionsInputWrap,
+.positionsInputWrapMerged {
+  background: var(--vis-white) !important;
+  border-top: 1px solid var(--vis-dark-10) !important;
+  margin-top: 0 !important;
+}
+
+.positionsInputTable thead th {
+  background: var(--vis-dark-10) !important;
+  color: var(--vis-dark) !important;
+  border-color: var(--vis-dark-10) !important;
+}
+
+.positionsInputTable tbody td,
+.positionsInputTable tfoot td,
+.positionsInputTableFooter,
+.positionsInputEmpty {
+  background: var(--vis-white) !important;
+  color: var(--vis-dark) !important;
+  border-color: var(--vis-dark-10) !important;
+}
+
+.positionsGroupRow td {
+  background: var(--vis-primary-10) !important;
+  color: var(--vis-dark) !important;
+}
+
+.serviceSuggestionList,
+.serviceSuggestionGroup,
+.serviceSuggestionButton,
+.serviceAddCustomButton {
+  border-color: var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+  color: var(--vis-dark) !important;
+}
+
+.serviceSuggestionButton span,
+.serviceSuggestionHint,
+.serviceSuggestionGroupLabel {
+  color: rgba(25, 59, 104, 0.75) !important;
+}
+
+.settingsInvoiceDuePanel,
+.settingsPdfColumnsPanel,
+.settingsPdfColumnsRow,
+.settingsPdfColumnsToggle,
+.settingsInvoiceDueOption,
+.settingsTaxOptionToggle,
+.logoFrame {
+  background: var(--vis-white) !important;
+  border-color: var(--vis-dark-10) !important;
+  color: var(--vis-dark) !important;
+  box-shadow: 0 14px 30px var(--vis-dark-30) !important;
+}
+
+.settingsInvoiceDueOption {
+  box-shadow: none !important;
+}
+
+.settingsInvoiceDueOption:hover:not(:has(input:checked)) {
+  border-color: var(--vis-primary) !important;
+  background: var(--vis-primary-10) !important;
+}
+
+.settingsInvoiceDueOption:has(input:checked) {
+  border-color: var(--vis-primary) !important;
+  background: var(--vis-primary-10) !important;
+  box-shadow: 0 10px 24px var(--vis-primary-30) !important;
+}
+
+.settingsPdfColumnsDragHandle,
+.settingsPdfColumnsReset,
+.settingsLogoDeleteButton,
+.settingsDeleteButton,
+.positionsGroupDeleteButton,
+.positionDeleteButton,
+.positionsDeleteButton {
+  color: var(--vis-dark) !important;
+  border-color: var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea,
+.authInput,
+.authGithubCard .authGithubInput {
+  background: var(--vis-white) !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  color: var(--vis-dark) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus,
+.authInput:focus,
+.authGithubCard .authGithubInput:focus {
+  border-color: var(--vis-primary) !important;
+  box-shadow: 0 0 0 3px var(--vis-primary-10) !important;
+}
+
+:is(
+    button.primaryButton,
+    a.primaryButton,
+    button.submitButton,
+    .submitActionRow .submitButton,
+    .voiceActionButtonStart,
+    .authPrimaryButton,
+    .authGithubCard .authGithubPrimaryButton,
+    .voiceLoginModalPrimaryButton
+  ) {
+  background: var(--vis-primary) !important;
+  background-image: none !important;
+  border: 1px solid var(--vis-primary) !important;
+  color: var(--vis-white) !important;
+  box-shadow: 0 16px 34px var(--vis-primary-30) !important;
+}
+
+:is(
+    button.ghostButton,
+    a.ghostButton,
+    .submitActionRow .submitMailButton,
+    .voiceActionButton,
+    .authSecondaryButton,
+    .voiceLoginModalCancelButton,
+    .customerPickerToggle,
+    .accountMenuPanel .accountMenuItem
+  ) {
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  color: var(--vis-dark) !important;
+  box-shadow: 0 14px 30px var(--vis-dark-30) !important;
+}
+
+.voiceActionButtonStart {
+  border-radius: 999px !important;
+}
+
+.dashboardCtaRow {
+  justify-items: center !important;
+  row-gap: 12px !important;
+}
+
+.dashboardCtaRow .submitButton,
+.dashboardCtaRow .submitMailButton {
+  width: auto !important;
+  min-width: 260px !important;
+  max-width: 360px !important;
+  justify-content: center !important;
+}
+
+.authGithubCenter {
+  width: min(100%, 470px) !important;
+}
+
+.authGithubCard,
+.authCard,
+.voiceLoginModalSheet,
+.settingsOverlaySheet,
+.customerPickerModalSheet,
+.customerArchiveSheet,
+.infoLegalSheet {
+  border: 1px solid var(--vis-dark-10) !important;
+  border-radius: var(--vis-radius-lg) !important;
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 22px 46px var(--vis-dark-30) !important;
+}
+
+.authGithubLabel,
+.authGithubModeIntro,
+.authGithubSignupHint,
+.authGithubCard .authGithubInlineLink,
+.authGithubCard .authGithubPasskeyButton {
+  color: var(--vis-dark) !important;
+}
+
+.authGithubMessageInfo,
+.authInfo,
+.success {
+  background: var(--vis-primary-10) !important;
+  border: 1px solid rgba(20, 121, 255, 0.22) !important;
+  color: var(--vis-dark) !important;
+}
+
+.authGithubMessageError,
+.authError,
+.error {
+  background: var(--vis-dark-10) !important;
+  border: 1px solid rgba(25, 59, 104, 0.22) !important;
+  color: var(--vis-dark) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(
+      button:not(:disabled),
+      a.primaryButton,
+      a.ghostButton,
+      .documentModeSwitchButton,
+      .accountMenuPanel .accountMenuItem,
+      .settingsInvoiceDueOption,
+      .settingsPdfColumnsToggle,
+      .settingsPdfColumnsDragHandle,
+      .customerPickerItem,
+      .customerArchiveCustomerButton,
+      .customerArchiveSectionToggle,
+      .customerArchiveDocumentLink,
+      .serviceSuggestionButton
+    ):hover {
+    transform: var(--vis-reference-hover-transform) !important;
+    transition:
+      transform var(--vis-reference-transition),
+      box-shadow var(--vis-reference-transition),
+      border-color var(--vis-reference-transition),
+      background-color var(--vis-reference-transition) !important;
+    border-color: var(--vis-primary) !important;
+    box-shadow: 0 16px 32px var(--vis-dark-30) !important;
+  }
+
+  :is(
+      button.primaryButton,
+      a.primaryButton,
+      button.submitButton,
+      .submitActionRow .submitButton,
+      .voiceActionButtonStart,
+      .authPrimaryButton,
+      .authGithubCard .authGithubPrimaryButton
+    ):hover {
+    background: var(--vis-accent-b) !important;
+    border-color: var(--vis-accent-b) !important;
+    box-shadow: 0 18px 36px var(--vis-primary-30) !important;
+  }
+
+  .topHeaderMenuTrigger:hover,
+  .topHeaderSettingsButton:hover {
+    transform: translateY(-50%) scale(1.01) !important;
+    border-color: var(--vis-primary) !important;
+    box-shadow: 0 16px 34px var(--vis-dark-30) !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .dashboardPrimaryCard {
+    padding: 24px !important;
+  }
+
+  .dashboardPrimaryCard::before,
+  .dashboardPrimaryCard::after {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .container {
+    gap: 16px !important;
+  }
+
+  .dashboardMainShell {
+    padding: 10px !important;
+  }
+
+  .dashboardPrimaryCard {
+    border-radius: 22px !important;
+    padding: 16px !important;
+  }
+
+  .dashboardFormGrid {
+    gap: 13px !important;
+  }
+
+  .dashboardVoicePanel,
+  .dashboardPositionsPanel {
+    border-radius: 18px !important;
+  }
+
+  .dashboardCtaRow .submitButton,
+  .dashboardCtaRow .submitMailButton {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+

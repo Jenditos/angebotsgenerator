@@ -3715,7 +3715,7 @@ export default function HomePage() {
     <main className="page">
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
-      <div className="container pageSurfaceTransition">
+      <div className="container pageSurfaceTransition dashboardCanvas">
         <header className="topHeaderMinimal">
           <VisioroLogoPill />
           <div className="accountMenuWrap" ref={accountMenuRef}>
@@ -4298,9 +4298,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div key={`${documentMode}-${modeAnimationKey}`} className="documentModeContent">
-          <section className="workspaceGrid workspaceGridSingle">
-          <article className="glassCard formCard">
+        <div
+          key={`${documentMode}-${modeAnimationKey}`}
+          className="documentModeContent dashboardMainShell"
+        >
+          <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
+          <article className="glassCard formCard dashboardPrimaryCard">
             <div className="customerPickerPanel">
               <button
                 type="button"
@@ -4311,8 +4314,8 @@ export default function HomePage() {
               </button>
             </div>
 
-            <form onSubmit={onSubmit} className="formGrid">
-              <div className="voicePanel span2">
+            <form onSubmit={onSubmit} className="formGrid dashboardFormGrid">
+              <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">
                   <strong>Per Sprache ausfüllen</strong>
                   <p>
@@ -4861,7 +4864,7 @@ export default function HomePage() {
               ) : null}
 
               <div className="field span2 positionsTableField">
-                <div className="positionsIntegratedPanel">
+                <div className="positionsIntegratedPanel dashboardPositionsPanel">
                   <div className="positionsSearchPanel">
                     <div className="positionsSearchPanelHeader">
                       <span className="positionsSearchPanelTitle">
@@ -5254,7 +5257,7 @@ export default function HomePage() {
               </label>
 
               <div
-                className="submitActionRow span2"
+                className="submitActionRow dashboardCtaRow span2"
               >
                 <button
                   className="primaryButton submitButton"
