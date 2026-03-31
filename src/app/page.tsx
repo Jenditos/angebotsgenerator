@@ -4281,11 +4281,13 @@ export default function HomePage() {
         <div className="appFrameWithSidebar">
           <aside className="appSidebar" aria-label="Schnellnavigation">
             <div className="appSidebarTop">
-              <p className="appSidebarBrand">Visioro</p>
+              <div className="appSidebarBrandWrap">
+                <VisioroLogoPill className="appSidebarBrandPill" />
+              </div>
               <div className="appSidebarNav">
                 <button
                   type="button"
-                  className="appSidebarNavItem"
+                  className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}
                   onClick={openSettingsFromAccountMenu}
                   aria-label="Einstellungen öffnen"
                   title="Einstellungen"
@@ -4315,7 +4317,7 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  className="appSidebarNavItem"
+                  className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}
                   onClick={openCustomerArchiveFromAccountMenu}
                   aria-label="Gespeicherte Kunden öffnen"
                   title="Gespeicherte Kunden"
@@ -4339,7 +4341,7 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  className="appSidebarNavItem"
+                  className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}
                   onClick={toggleTipsFromAccountMenu}
                   aria-label="Tipps anzeigen"
                   title="Tipps"
@@ -4370,7 +4372,7 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  className="appSidebarNavItem"
+                  className={`appSidebarNavItem ${isInfoLegalOpen ? "active" : ""}`}
                   onClick={openInfoLegalFromAccountMenu}
                   aria-label="Info und Rechtliches öffnen"
                   title="Info und Rechtliches"
@@ -4517,16 +4519,6 @@ export default function HomePage() {
             >
               <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
               <article className="glassCard formCard dashboardPrimaryCard">
-            <div className="customerPickerPanel">
-              <button
-                type="button"
-                className="ghostButton customerPickerToggle"
-                onClick={toggleStoredCustomers}
-              >
-                Gespeicherte Kunden
-              </button>
-            </div>
-
             <form onSubmit={onSubmit} className="formGrid dashboardFormGrid">
               <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">

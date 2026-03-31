@@ -6466,51 +6466,65 @@ textarea:focus,
 .appSidebarTop {
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: 16px;
 }
 
-.appSidebarBrand {
-  margin: 0;
-  padding: 0 4px;
-  color: var(--vis-primary);
-  font-size: 1.02rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-align: center;
+.appSidebarBrandWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.appSidebarBrandPill {
+  min-height: 44px !important;
+  padding: 10px 16px !important;
+  border-radius: 14px !important;
+  border: 0 !important;
+  background: linear-gradient(140deg, #1479ff, #14a5ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 34px rgba(20, 121, 255, 0.3) !important;
+  letter-spacing: 0.035em !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
 }
 
 .appSidebarNav {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .appSidebarNavItem,
 .appSidebarActionButton {
   width: 100%;
-  min-height: 68px;
-  border: 1px solid transparent;
+  min-height: 86px;
+  border: 1px solid var(--vis-primary-10);
   border-radius: 14px;
-  background: transparent;
+  background: var(--vis-primary-10);
   color: var(--vis-dark);
   box-shadow: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 8px;
+  gap: 8px;
+  padding: 12px 6px;
   cursor: pointer;
   text-align: center;
 }
 
+.appSidebarNavItem.active {
+  background: var(--vis-dark);
+  border-color: var(--vis-dark);
+  color: #ffffff;
+}
+
 .appSidebarNavIcon {
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  border-radius: 12px;
-  border: 1px solid var(--vis-dark-10);
-  background: var(--vis-white);
-  box-shadow: 0 10px 22px var(--vis-dark-30);
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: block;
   flex-shrink: 0;
 }
@@ -6518,7 +6532,7 @@ textarea:focus,
 .appSidebarNavLabel {
   display: block;
   color: inherit;
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -6527,15 +6541,24 @@ textarea:focus,
 @media (hover: hover) and (pointer: fine) {
   .appSidebarNavItem:hover,
   .appSidebarActionButton:hover {
-    border-color: var(--vis-dark-10) !important;
-    background: var(--vis-primary-10) !important;
+    border-color: var(--vis-primary) !important;
+    background: #ffffff !important;
     box-shadow: none !important;
+  }
+
+  .appSidebarNavItem.active:hover {
+    border-color: var(--vis-dark) !important;
+    background: var(--vis-dark) !important;
   }
 
   .appSidebarNavItem:hover .appSidebarNavIcon,
   .appSidebarActionButton:hover .appSidebarNavIcon {
-    border-color: var(--vis-primary) !important;
-    box-shadow: 0 14px 28px var(--vis-dark-30) !important;
+    color: var(--vis-primary) !important;
+    box-shadow: none !important;
+  }
+
+  .appSidebarNavItem.active:hover .appSidebarNavIcon {
+    color: #ffffff !important;
   }
 }
 
@@ -6664,6 +6687,8 @@ textarea:focus,
   }
 }
 
+button.voiceActionButton.voiceActionButtonStart,
+button.ghostButton.voiceActionButton.voiceActionButtonStart,
 .voiceActionButtonStart {
   background: var(--vis-accent-c) !important;
   border-color: var(--vis-accent-c) !important;
@@ -6672,6 +6697,8 @@ textarea:focus,
 }
 
 @media (hover: hover) and (pointer: fine) {
+  button.voiceActionButton.voiceActionButtonStart:hover:not(:disabled),
+  button.ghostButton.voiceActionButton.voiceActionButtonStart:hover:not(:disabled),
   .voiceActionButtonStart:hover:not(:disabled) {
     background: var(--vis-accent-a) !important;
     border-color: var(--vis-accent-a) !important;
