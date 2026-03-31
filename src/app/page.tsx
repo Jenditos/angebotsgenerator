@@ -1341,6 +1341,7 @@ export default function HomePage() {
     isOfferMailActionVisible &&
     Boolean(offerMailActionState?.payload.pdfBase64?.trim());
   const accountIdentityLabel = accountIdentity || "Nutzerkonto";
+  const accountIdentityInitial = accountIdentityLabel.trim().charAt(0).toUpperCase();
 
   useDialogFocusTrap({
     isOpen: isCustomerArchiveOpen,
@@ -4277,33 +4278,245 @@ export default function HomePage() {
           sheetRef={infoLegalSheetRef}
         />
 
-        <div className="documentModeSwitchTop">
-          <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
-            <button
-              type="button"
-              className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
-              aria-pressed={documentMode === "offer"}
-              onClick={() => switchDocumentMode("offer")}
-            >
-              Angebote
-            </button>
-            <button
-              type="button"
-              className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
-              aria-pressed={documentMode === "invoice"}
-              onClick={() => switchDocumentMode("invoice")}
-            >
-              Rechnungen
-            </button>
-          </div>
-        </div>
+        <div className="appFrameWithSidebar">
+          <aside className="appSidebar" aria-label="Schnellnavigation">
+            <div className="appSidebarTop">
+              <p className="appSidebarBrand">Visioro</p>
+              <div className="appSidebarNav">
+                <button
+                  type="button"
+                  className="appSidebarNavItem"
+                  onClick={openSettingsFromAccountMenu}
+                  aria-label="Einstellungen öffnen"
+                  title="Einstellungen"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="appSidebarNavIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M19 12c0-.4 0-.7-.1-1.1l1.7-1.4-1.6-2.9-2.1.7a8 8 0 0 0-1.9-1.1l-.4-2.1h-3.2l-.4 2.1a8 8 0 0 0-1.9 1.1l-2.1-.7-1.6 2.9 1.7 1.4c-.1.4-.1.7-.1 1.1s0 .7.1 1.1l-1.7 1.4 1.6 2.9 2.1-.7c.6.5 1.2.9 1.9 1.1l.4 2.1h3.2l.4-2.1c.7-.2 1.3-.6 1.9-1.1l2.1.7 1.6-2.9-1.7-1.4c.1-.4.1-.7.1-1.1Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="appSidebarNavLabel">Einstellungen</span>
+                </button>
+                <button
+                  type="button"
+                  className="appSidebarNavItem"
+                  onClick={openCustomerArchiveFromAccountMenu}
+                  aria-label="Gespeicherte Kunden öffnen"
+                  title="Gespeicherte Kunden"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="appSidebarNavIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M3.8 7.3a2.1 2.1 0 0 1 2.1-2.1H11l1.9 2.2h5.3a2.1 2.1 0 0 1 2.1 2.1v8.4a2.1 2.1 0 0 1-2.1 2.1H5.9a2.1 2.1 0 0 1-2.1-2.1V7.3Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
+                </button>
+                <button
+                  type="button"
+                  className="appSidebarNavItem"
+                  onClick={toggleTipsFromAccountMenu}
+                  aria-label="Tipps anzeigen"
+                  title="Tipps"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="appSidebarNavIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M12 4.4a5.7 5.7 0 0 0-3.7 10c.8.7 1.3 1.6 1.5 2.5h4.4c.2-.9.7-1.8 1.5-2.5A5.7 5.7 0 0 0 12 4.4Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9.4 18.3h5.2M10.1 20.1h3.8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="appSidebarNavLabel">Tipps</span>
+                </button>
+                <button
+                  type="button"
+                  className="appSidebarNavItem"
+                  onClick={openInfoLegalFromAccountMenu}
+                  aria-label="Info und Rechtliches öffnen"
+                  title="Info und Rechtliches"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="appSidebarNavIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M12 10.2v5.1"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                  </svg>
+                  <span className="appSidebarNavLabel">Info &amp; Rechtliches</span>
+                </button>
+              </div>
+            </div>
 
-        <div
-          key={`${documentMode}-${modeAnimationKey}`}
-          className="documentModeContent dashboardMainShell"
-        >
-          <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
-          <article className="glassCard formCard dashboardPrimaryCard">
+            <div className="appSidebarBottom">
+              <div className="appSidebarIdentityCard">
+                <span className="appSidebarAvatar" aria-hidden="true">
+                  {accountIdentityInitial || "U"}
+                </span>
+                <div className="appSidebarIdentityText">
+                  <strong>{isAuthenticatedUser ? accountIdentityLabel : "Nicht eingeloggt"}</strong>
+                  <span>{isAuthenticatedUser ? "Nutzerkonto" : "Gastmodus"}</span>
+                </div>
+              </div>
+              {isAuthenticatedUser ? (
+                <button
+                  type="button"
+                  className="appSidebarActionButton"
+                  onClick={() => void handleLogoutFromAccountMenu()}
+                  aria-label="Logout"
+                  title="Logout"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="appSidebarNavIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M15 7.5V6.2a2.2 2.2 0 0 0-2.2-2.2H7.2A2.2 2.2 0 0 0 5 6.2v11.6A2.2 2.2 0 0 0 7.2 20h5.6A2.2 2.2 0 0 0 15 17.8v-1.3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10.5 12h8m-2.7-2.7L18.5 12l-2.7 2.7"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="appSidebarNavLabel">Logout</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="appSidebarActionButton"
+                  onClick={navigateToAuthFromAccountMenu}
+                  aria-label="Login oder Registrierung"
+                  title="Login / Registrieren"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="appSidebarNavIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <circle
+                      cx="12"
+                      cy="8"
+                      r="3.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M6.5 18a5.5 5.5 0 0 1 11 0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M18.2 8.5h3.3m-1.65-1.65v3.3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="appSidebarNavLabel">Login / Registrieren</span>
+                </button>
+              )}
+            </div>
+          </aside>
+
+          <div className="appMainContent">
+            <div className="documentModeSwitchTop">
+              <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
+                <button
+                  type="button"
+                  className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
+                  aria-pressed={documentMode === "offer"}
+                  onClick={() => switchDocumentMode("offer")}
+                >
+                  Angebote
+                </button>
+                <button
+                  type="button"
+                  className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
+                  aria-pressed={documentMode === "invoice"}
+                  onClick={() => switchDocumentMode("invoice")}
+                >
+                  Rechnungen
+                </button>
+              </div>
+            </div>
+
+            <div
+              key={`${documentMode}-${modeAnimationKey}`}
+              className="documentModeContent dashboardMainShell"
+            >
+              <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
+              <article className="glassCard formCard dashboardPrimaryCard">
             <div className="customerPickerPanel">
               <button
                 type="button"
@@ -5390,8 +5603,10 @@ export default function HomePage() {
                 {postActionInfo}
               </p>
             ) : null}
-          </article>
-        </section>
+              </article>
+            </section>
+            </div>
+          </div>
         </div>
       </div>
     </main>

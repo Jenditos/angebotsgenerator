@@ -5898,7 +5898,7 @@ body {
 .page,
 .authViewport,
 .authGithubViewport {
-  background: var(--vis-white) !important;
+  background: var(--vis-dark-10) !important;
   background-image: none !important;
 }
 
@@ -6023,7 +6023,7 @@ body {
 
 .accountMenuPanel .accountMenuLoginItem {
   background: var(--vis-primary-10) !important;
-  border-color: rgba(20, 121, 255, 0.22) !important;
+  border-color: var(--vis-primary-10) !important;
   color: var(--vis-primary) !important;
 }
 
@@ -6046,7 +6046,7 @@ body {
 
 .documentModeSwitchButton.active {
   background: var(--vis-primary-10) !important;
-  border-color: rgba(20, 121, 255, 0.24) !important;
+  border-color: var(--vis-primary-10) !important;
   box-shadow: 0 10px 24px var(--vis-primary-30) !important;
 }
 
@@ -6122,7 +6122,7 @@ body {
 .dashboardVoicePanel {
   padding: 20px !important;
   background: var(--vis-primary-10) !important;
-  border-color: rgba(20, 121, 255, 0.2) !important;
+  border-color: var(--vis-primary-10) !important;
 }
 
 .dashboardVoicePanel :is(strong, p, span, .field > span) {
@@ -6187,7 +6187,7 @@ body {
 .serviceSuggestionButton span,
 .serviceSuggestionHint,
 .serviceSuggestionGroupLabel {
-  color: rgba(25, 59, 104, 0.75) !important;
+  color: var(--vis-dark) !important;
 }
 
 .settingsInvoiceDuePanel,
@@ -6334,7 +6334,7 @@ textarea:focus,
 .authInfo,
 .success {
   background: var(--vis-primary-10) !important;
-  border: 1px solid rgba(20, 121, 255, 0.22) !important;
+  border: 1px solid var(--vis-primary-10) !important;
   color: var(--vis-dark) !important;
 }
 
@@ -6342,7 +6342,7 @@ textarea:focus,
 .authError,
 .error {
   background: var(--vis-dark-10) !important;
-  border: 1px solid rgba(25, 59, 104, 0.22) !important;
+  border: 1px solid var(--vis-dark-10) !important;
   color: var(--vis-dark) !important;
 }
 
@@ -6436,3 +6436,210 @@ textarea:focus,
   }
 }
 
+/* ==========================================================================
+   Sidebar Navigation (reference-like left rail)
+   ========================================================================== */
+.appFrameWithSidebar {
+  display: grid;
+  grid-template-columns: 156px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.appSidebar {
+  position: sticky;
+  top: 18px;
+  min-height: calc(100vh - 96px);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 18px;
+  padding: 16px 12px 12px;
+  border-radius: 28px;
+  border: 1px solid var(--vis-dark-10);
+  background: var(--vis-white);
+  box-shadow: 0 22px 46px var(--vis-dark-30);
+}
+
+.appSidebarTop {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.appSidebarBrand {
+  margin: 0;
+  padding: 0 4px;
+  color: var(--vis-primary);
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.appSidebarNav {
+  display: grid;
+  gap: 8px;
+}
+
+.appSidebarNavItem,
+.appSidebarActionButton {
+  width: 100%;
+  min-height: 68px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--vis-dark);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.appSidebarNavIcon {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--vis-dark-10);
+  background: var(--vis-white);
+  box-shadow: 0 10px 22px var(--vis-dark-30);
+  display: block;
+  flex-shrink: 0;
+}
+
+.appSidebarNavLabel {
+  display: block;
+  color: inherit;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appSidebarNavItem:hover,
+  .appSidebarActionButton:hover {
+    border-color: var(--vis-dark-10) !important;
+    background: var(--vis-primary-10) !important;
+    box-shadow: none !important;
+  }
+
+  .appSidebarNavItem:hover .appSidebarNavIcon,
+  .appSidebarActionButton:hover .appSidebarNavIcon {
+    border-color: var(--vis-primary) !important;
+    box-shadow: 0 14px 28px var(--vis-dark-30) !important;
+  }
+}
+
+.appSidebarBottom {
+  display: grid;
+  gap: 10px;
+}
+
+.appSidebarIdentityCard {
+  border: 1px solid var(--vis-dark-10);
+  border-radius: 16px;
+  background: var(--vis-white);
+  box-shadow: 0 12px 24px var(--vis-dark-30);
+  padding: 10px 9px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.appSidebarAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--vis-primary-10);
+  border: 1px solid var(--vis-primary-10);
+  color: var(--vis-primary);
+  font-size: 0.86rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.appSidebarIdentityText {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.appSidebarIdentityText strong {
+  color: var(--vis-dark);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appSidebarIdentityText span {
+  color: var(--vis-dark);
+  font-size: 0.67rem;
+  line-height: 1.15;
+}
+
+.appMainContent {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.appFrameWithSidebar .documentModeSwitchTop {
+  justify-content: flex-start;
+}
+
+.appFrameWithSidebar .documentModeSwitch {
+  width: min(820px, 100%) !important;
+}
+
+.appFrameWithSidebar .dashboardPrimaryCard {
+  padding: 28px 30px 30px !important;
+}
+
+.appFrameWithSidebar .dashboardPrimaryCard::before,
+.appFrameWithSidebar .dashboardPrimaryCard::after {
+  display: none !important;
+}
+
+@media (min-width: 981px) {
+  .dashboardCanvas > .topHeaderMinimal {
+    display: none !important;
+  }
+
+  .dashboardCanvas {
+    padding-top: 0;
+  }
+
+  .topHeaderMenuTrigger {
+    display: none !important;
+  }
+}
+
+@media (max-width: 980px) {
+  .appFrameWithSidebar {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .appSidebar {
+    display: none;
+  }
+
+  .appMainContent {
+    gap: 14px;
+  }
+
+  .appFrameWithSidebar .documentModeSwitchTop {
+    justify-content: center;
+  }
+}
