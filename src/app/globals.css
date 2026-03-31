@@ -6441,23 +6441,26 @@ textarea:focus,
    ========================================================================== */
 .appFrameWithSidebar {
   display: grid;
-  grid-template-columns: 156px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: 172px minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid var(--vis-dark-10);
+  border-radius: 34px;
+  background: var(--vis-white);
+  box-shadow: 0 28px 58px var(--vis-dark-30);
+  overflow: hidden;
 }
 
 .appSidebar {
-  position: sticky;
-  top: 18px;
-  min-height: calc(100vh - 96px);
+  position: relative;
+  min-height: 100%;
   display: grid;
   grid-template-rows: 1fr auto;
   gap: 18px;
-  padding: 16px 12px 12px;
-  border-radius: 28px;
-  border: 1px solid var(--vis-dark-10);
+  padding: 18px 12px 14px;
+  border-right: 1px solid var(--vis-dark-10);
   background: var(--vis-white);
-  box-shadow: 0 22px 46px var(--vis-dark-30);
+  box-shadow: none;
 }
 
 .appSidebarTop {
@@ -6538,7 +6541,8 @@ textarea:focus,
 
 .appSidebarBottom {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 4px;
 }
 
 .appSidebarIdentityCard {
@@ -6591,19 +6595,33 @@ textarea:focus,
 .appMainContent {
   min-width: 0;
   display: grid;
-  gap: 16px;
+  gap: 12px;
+  background: var(--vis-primary-10);
+  padding: 14px;
 }
 
 .appFrameWithSidebar .documentModeSwitchTop {
-  justify-content: flex-start;
+  justify-content: stretch;
 }
 
 .appFrameWithSidebar .documentModeSwitch {
-  width: min(820px, 100%) !important;
+  width: 100% !important;
+  max-width: none !important;
+  box-shadow: none !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  border-radius: 18px !important;
+}
+
+.appFrameWithSidebar .dashboardMainShell {
+  border-radius: 22px !important;
+  box-shadow: none !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  padding: 14px !important;
 }
 
 .appFrameWithSidebar .dashboardPrimaryCard {
-  padding: 28px 30px 30px !important;
+  padding: 20px 22px 22px !important;
+  border-radius: 18px !important;
 }
 
 .appFrameWithSidebar .dashboardPrimaryCard::before,
@@ -6628,7 +6646,8 @@ textarea:focus,
 @media (max-width: 980px) {
   .appFrameWithSidebar {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 0;
+    border-radius: 24px;
   }
 
   .appSidebar {
@@ -6637,9 +6656,26 @@ textarea:focus,
 
   .appMainContent {
     gap: 14px;
+    padding: 10px;
   }
 
   .appFrameWithSidebar .documentModeSwitchTop {
     justify-content: center;
+  }
+}
+
+.voiceActionButtonStart {
+  background: var(--vis-accent-c) !important;
+  border-color: var(--vis-accent-c) !important;
+  color: var(--vis-dark) !important;
+  box-shadow: 0 16px 34px rgba(20, 235, 255, 0.3) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .voiceActionButtonStart:hover:not(:disabled) {
+    background: var(--vis-accent-a) !important;
+    border-color: var(--vis-accent-a) !important;
+    color: var(--vis-dark) !important;
+    box-shadow: 0 18px 36px rgba(20, 210, 255, 0.3) !important;
   }
 }
