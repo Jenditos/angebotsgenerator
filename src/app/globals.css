@@ -5495,3 +5495,286 @@ button.customerArchiveSectionToggle {
     width: min(304px, calc(100vw - 16px));
   }
 }
+
+/* ==========================================================================
+   Premium SaaS Redesign (Reference-aligned, brand-locked)
+   ========================================================================== */
+:root {
+  --brand-primary: #1479ff;
+  --brand-primary-10: rgba(20, 121, 255, 0.1);
+  --brand-primary-30: rgba(20, 121, 255, 0.3);
+  --brand-dark: #193b68;
+  --brand-dark-10: rgba(25, 59, 104, 0.1);
+  --brand-dark-30: rgba(25, 59, 104, 0.3);
+  --brand-accent-a: #14d2ff;
+  --brand-accent-b: #14a5ff;
+  --brand-accent-c: #14ebff;
+  --brand-bg: #ffffff;
+  --app-hover-transform: translateY(-1px) scale(1.01);
+}
+
+html,
+body,
+.page,
+.authViewport,
+.authGithubViewport {
+  background: var(--brand-bg) !important;
+  background-image: none !important;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Inter", "SF Pro Display", sans-serif !important;
+  color: var(--brand-dark);
+}
+
+.ambientA,
+.authGlowA {
+  background: var(--brand-primary-10) !important;
+}
+
+.ambientB,
+.authGlowB {
+  background: var(--brand-dark-10) !important;
+}
+
+.ambient,
+.authGlow {
+  opacity: 1 !important;
+}
+
+:is(
+    .glassCard,
+    .formCard,
+    .previewPanel,
+    .resultCard,
+    .authCard,
+    .authGithubCard,
+    .settingsOverlaySheet,
+    .customerPickerModalSheet,
+    .infoLegalSheet,
+    .voiceLoginModalSheet,
+    .customerArchiveSheet,
+    .customerArchiveTree,
+    .customerArchiveNode,
+    .positionsCustomCard,
+    .positionsTotals,
+    .accountMenuPanel,
+    .accountTipsPopover
+  ) {
+  background: var(--brand-bg) !important;
+  background-image: none !important;
+  border: 1px solid var(--brand-dark-10) !important;
+  box-shadow: 0 20px 46px var(--brand-dark-30) !important;
+}
+
+.voicePanel,
+.positionsIntegratedPanel {
+  background: var(--brand-dark) !important;
+  background-image: none !important;
+  border: 1px solid var(--brand-dark-30) !important;
+  box-shadow: 0 22px 48px var(--brand-dark-30) !important;
+}
+
+.voicePanel :is(strong, p, span, .field > span, .voiceMissingLabel, .voiceMissingTag),
+.positionsIntegratedPanel :is(.positionsSearchPanelTitle, .positionsSearchPanelHint) {
+  color: #ffffff !important;
+}
+
+.voicePanel .voiceInfo,
+.voicePanel .voiceWarning,
+.voicePanel .voiceMissingPanel {
+  border-color: var(--brand-primary-10) !important;
+  background: var(--brand-primary-10) !important;
+  color: #ffffff !important;
+}
+
+.positionsSearchPanel,
+.positionsInputWrap,
+.positionsInputWrapMerged,
+.serviceSuggestionList {
+  background: var(--brand-dark) !important;
+  background-image: none !important;
+  border-color: var(--brand-dark-10) !important;
+}
+
+.positionsInputTable thead th {
+  background: var(--brand-dark-10) !important;
+  color: #ffffff !important;
+  border-color: var(--brand-dark-10) !important;
+}
+
+.positionsInputTable tbody td,
+.positionsInputTable tfoot td,
+.positionDescriptionInput,
+.positionQuantityInput,
+.positionUnitSelect,
+.positionPriceInput,
+.serviceSearchInput,
+.positionsServicePicker .serviceSearchInput {
+  background: #ffffff !important;
+  color: var(--brand-dark) !important;
+  border-color: var(--brand-dark-10) !important;
+}
+
+.positionsGroupRow td {
+  background: var(--brand-primary-10) !important;
+  color: var(--brand-dark) !important;
+}
+
+.positionsInputEmpty {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+.serviceSuggestionHint,
+.serviceSuggestionGroupLabel,
+.serviceSuggestionButton,
+.serviceSuggestionButton span {
+  color: #ffffff !important;
+}
+
+.serviceSuggestionGroup {
+  border-color: var(--brand-dark-10) !important;
+}
+
+.serviceSuggestionButton:hover {
+  background: var(--brand-primary-10) !important;
+}
+
+.serviceAddCustomButton {
+  background: var(--brand-primary-10) !important;
+  border-color: var(--brand-dark-10) !important;
+  color: #ffffff !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea,
+.authInput,
+.authGithubCard .authGithubInput {
+  background: #ffffff !important;
+  border: 1px solid var(--brand-dark-10) !important;
+  color: var(--brand-dark) !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus,
+.authInput:focus,
+.authGithubCard .authGithubInput:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 4px var(--brand-primary-10) !important;
+}
+
+:is(
+    button.primaryButton,
+    a.primaryButton,
+    button.submitButton,
+    .submitActionRow .submitButton,
+    .authPrimaryButton,
+    .authGithubCard .authGithubPrimaryButton,
+    .voiceActionButtonStart,
+    .voiceLoginModalPrimaryButton
+  ) {
+  background: var(--brand-primary) !important;
+  background-image: none !important;
+  border-color: var(--brand-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px var(--brand-primary-30) !important;
+}
+
+:is(
+    button.ghostButton,
+    a.ghostButton,
+    .submitActionRow .submitMailButton,
+    .authSecondaryButton,
+    .voiceLoginModalCancelButton,
+    .positionsGroupDeleteButton,
+    .positionDeleteButton,
+    .positionsDeleteButton,
+    .settingsDeleteButton,
+    .settingsLogoDeleteButton,
+    .topHeaderSettingsButton,
+    .accountMenuPanel .accountMenuItem,
+    .accountMenuPanel .accountMenuLoginItem
+  ) {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: var(--brand-dark-10) !important;
+  color: var(--brand-dark) !important;
+  box-shadow: 0 10px 22px var(--brand-dark-30) !important;
+}
+
+.voiceActionButtonStart {
+  background: var(--brand-primary) !important;
+  border-color: var(--brand-primary) !important;
+  color: #ffffff !important;
+}
+
+.submitActionRow .submitButton {
+  background: var(--brand-primary) !important;
+  border-color: var(--brand-primary) !important;
+  color: #ffffff !important;
+}
+
+.submitActionRow .submitMailButton {
+  color: var(--brand-dark) !important;
+}
+
+.authMuted,
+.authSubtitle,
+.authGithubSignupHint,
+.authGithubModeIntro span,
+.positionsSearchPanelHint,
+.customerPickerHint,
+.voicePanelHeader p {
+  color: var(--brand-dark) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(
+      button:not(:disabled),
+      button[class]:not(:disabled),
+      a.primaryButton,
+      a.ghostButton,
+      .positionsTypeaheadList button,
+      .settingsInvoiceDueOption,
+      .settingsPdfColumnsDragHandle,
+      .settingsPdfColumnsToggle,
+      .customerArchiveDocumentLink,
+      .accountMenuPanel .accountMenuItem
+    ):hover {
+    transform: var(--app-hover-transform) !important;
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 14px 28px var(--brand-primary-30) !important;
+  }
+
+  :is(
+      button.primaryButton,
+      a.primaryButton,
+      button.submitButton,
+      .submitActionRow .submitButton,
+      .authPrimaryButton,
+      .authGithubCard .authGithubPrimaryButton,
+      .voiceActionButtonStart
+    ):hover {
+    background: var(--brand-dark) !important;
+    border-color: var(--brand-dark) !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 30px var(--brand-primary-30) !important;
+  }
+
+  .topHeaderSettingsButton:hover {
+    transform: translateY(-50%) scale(1.01) !important;
+  }
+
+  .topHeaderMenuTrigger:hover {
+    transform: var(--app-hover-transform) !important;
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 14px 28px var(--brand-primary-30) !important;
+  }
+}
