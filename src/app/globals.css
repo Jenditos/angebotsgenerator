@@ -5511,6 +5511,9 @@ button.customerArchiveSectionToggle {
   --brand-accent-c: #14ebff;
   --brand-bg: #ffffff;
   --app-hover-transform: translateY(-1px) scale(1.01);
+  --radius-app-card: 24px;
+  --space-app-lg: 22px;
+  --space-app-md: 16px;
 }
 
 html,
@@ -5520,6 +5523,29 @@ body,
 .authGithubViewport {
   background: var(--brand-bg) !important;
   background-image: none !important;
+}
+
+.page {
+  position: relative;
+}
+
+.page::before,
+.authViewport::before,
+.authGithubViewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(860px 340px at 14% -10%, var(--brand-primary-10), transparent 72%),
+    radial-gradient(920px 360px at 86% 108%, var(--brand-dark-10), transparent 74%);
+}
+
+.container,
+.authCenterWrap,
+.authGithubCenter {
+  position: relative;
+  z-index: 1;
 }
 
 body,
@@ -5568,7 +5594,22 @@ textarea {
   background: var(--brand-bg) !important;
   background-image: none !important;
   border: 1px solid var(--brand-dark-10) !important;
+  border-radius: var(--radius-app-card) !important;
   box-shadow: 0 20px 46px var(--brand-dark-30) !important;
+}
+
+.container,
+.workspaceGrid {
+  gap: var(--space-app-lg) !important;
+}
+
+.formGrid {
+  gap: var(--space-app-md) !important;
+}
+
+.sectionHeader,
+.customerPickerPanel {
+  margin-bottom: var(--space-app-md) !important;
 }
 
 .voicePanel,
@@ -5576,7 +5617,16 @@ textarea {
   background: #ffffff !important;
   background-image: none !important;
   border: 1px solid var(--brand-dark-10) !important;
+  border-radius: var(--radius-app-card) !important;
   box-shadow: 0 20px 46px var(--brand-dark-30) !important;
+}
+
+.voicePanel {
+  padding: 16px !important;
+}
+
+.positionsIntegratedPanel {
+  overflow: hidden !important;
 }
 
 .voicePanel :is(strong, p, span, .field > span, .voiceMissingLabel, .voiceMissingTag),
@@ -5603,6 +5653,7 @@ textarea {
 
 .positionsSearchPanel {
   background: var(--brand-primary-10) !important;
+  padding: 14px 14px 12px !important;
 }
 
 .positionsInputTable thead th {
@@ -5622,6 +5673,11 @@ textarea {
   background: #ffffff !important;
   color: var(--brand-dark) !important;
   border-color: var(--brand-dark-10) !important;
+}
+
+.positionsInputWrap {
+  margin-top: 0 !important;
+  border-top: 1px solid var(--brand-dark-10) !important;
 }
 
 .positionsGroupRow td {
@@ -5772,7 +5828,7 @@ textarea:focus,
     ):hover {
     transform: var(--app-hover-transform) !important;
     border-color: var(--brand-primary) !important;
-    box-shadow: 0 14px 28px var(--brand-primary-30) !important;
+    box-shadow: 0 14px 28px var(--brand-dark-30) !important;
   }
 
   :is(
@@ -5784,8 +5840,8 @@ textarea:focus,
       .authGithubCard .authGithubPrimaryButton,
       .voiceActionButtonStart
     ):hover {
-    background: var(--brand-dark) !important;
-    border-color: var(--brand-dark) !important;
+    background: var(--brand-accent-b) !important;
+    border-color: var(--brand-accent-b) !important;
     color: #ffffff !important;
     box-shadow: 0 14px 30px var(--brand-primary-30) !important;
   }
@@ -5797,6 +5853,6 @@ textarea:focus,
   .topHeaderMenuTrigger:hover {
     transform: var(--app-hover-transform) !important;
     border-color: var(--brand-primary) !important;
-    box-shadow: 0 14px 28px var(--brand-primary-30) !important;
+    box-shadow: 0 14px 28px var(--brand-dark-30) !important;
   }
 }
