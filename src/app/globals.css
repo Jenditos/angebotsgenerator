@@ -6546,7 +6546,7 @@ textarea:focus,
 
 .appSidebarNav {
   display: grid;
-  gap: 11px;
+  gap: 16px;
 }
 
 .appSidebarNavItem,
@@ -6642,7 +6642,7 @@ textarea:focus,
 
 .appSidebarBottom {
   display: grid;
-  gap: 10px;
+  gap: 16px;
   margin-top: auto;
 }
 

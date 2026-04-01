@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   FormEvent,
   Fragment,
@@ -1211,7 +1210,7 @@ export default function HomePage() {
   const [isSettingsOverlayOpen, setIsSettingsOverlayOpen] = useState(false);
   const [isClosingSettingsOverlay, setIsClosingSettingsOverlay] = useState(false);
   const [isClosingCustomerPicker, setIsClosingCustomerPicker] = useState(false);
-  const [isCompanySetupComplete, setIsCompanySetupComplete] = useState(false);
+  const [, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
@@ -4380,6 +4379,40 @@ export default function HomePage() {
                   </button>
                   <span className="appSidebarNavLabel">Tipps</span>
                 </div>
+                <div className={`appSidebarNavItem ${isInfoLegalOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={openInfoLegalFromAccountMenu}
+                    aria-label="Info und Rechtliches öffnen"
+                    title="Info und Rechtliches"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <path
+                        d="M12 10.2v5.1"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                    </svg>
+                  </button>
+                  <span className="appSidebarNavLabel">Info &amp; Rechtliches</span>
+                </div>
               </div>
             </div>
 
@@ -5489,71 +5522,6 @@ export default function HomePage() {
                 ) : null}
               </div>
 
-              <div className="formBottomMetaRow span2">
-                <div className="formHintMiniWrap" ref={setupHintRef}>
-                  <button
-                    type="button"
-                    className="formHintMiniButton"
-                    aria-label="Tipp anzeigen"
-                    aria-expanded={isSetupHintOpen}
-                    onClick={() => setIsSetupHintOpen((prev) => !prev)}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="formHintMiniIcon"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="8"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                      <path
-                        d="M12 10.2v5.1"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
-                    </svg>
-                  </button>
-                  {isSetupHintOpen ? (
-                    <p className="formHintMiniPopover">
-                      {!isCompanySetupComplete ? (
-                        <>
-                          Tipp: Hinterlege zuerst deine Firmendaten in den{" "}
-                          <Link
-                            href="/settings"
-                            className="formHintLink"
-                            onClick={() => setIsSetupHintOpen(false)}
-                          >
-                            Einstellungen
-                          </Link>
-                          .
-                        </>
-                      ) : (
-                        <>
-                          Tipp: Deine Firmendaten sind hinterlegt. Du kannst sie
-                          in den{" "}
-                          <Link
-                            href="/settings"
-                            className="formHintLink"
-                            onClick={() => setIsSetupHintOpen(false)}
-                          >
-                            Einstellungen
-                          </Link>{" "}
-                          bearbeiten.
-                        </>
-                      )}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
             </form>
 
             {error ? <p className="error">{error}</p> : null}
