@@ -6773,7 +6773,6 @@ button.primaryButton,
 a.primaryButton,
 button.submitButton,
 a.submitButton,
-.dashboardCtaRow .submitButton,
-.voiceActionButtonStart {
+.dashboardCtaRow .submitButton {
   font-size: var(--app-font-size-secondary) !important;
 }
