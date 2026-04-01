@@ -6748,3 +6748,32 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
     box-shadow: 0 18px 36px rgba(20, 121, 255, 0.3) !important;
   }
 }
+
+/* ==========================================================================
+   Global Typography Unification (two-size system only)
+   ========================================================================== */
+:root {
+  --app-font-size-primary: 14px;
+  --app-font-size-secondary: 19px;
+}
+
+body,
+body *,
+body *::before,
+body *::after {
+  font-size: var(--app-font-size-primary) !important;
+}
+
+h1,
+h2,
+.topBarTitle,
+.settingsTopBarTitle,
+.authHeading,
+button.primaryButton,
+a.primaryButton,
+button.submitButton,
+a.submitButton,
+.dashboardCtaRow .submitButton,
+.voiceActionButtonStart {
+  font-size: var(--app-font-size-secondary) !important;
+}

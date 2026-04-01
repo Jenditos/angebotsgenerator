@@ -31,7 +31,6 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             style={{
               margin: 0,
               color: "#173968",
-              fontSize: "clamp(1.4rem, 3vw, 2rem)",
               lineHeight: 1.08,
             }}
           >
