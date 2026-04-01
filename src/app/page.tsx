@@ -4287,14 +4287,14 @@ export default function HomePage() {
                 <VisioroLogoPill className="appSidebarBrandPill" />
               </div>
               <div className="appSidebarNav">
-                <button
-                  type="button"
-                  className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}
-                  onClick={openSettingsFromAccountMenu}
-                  aria-label="Einstellungen öffnen"
-                  title="Einstellungen"
-                >
-                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                <div className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={openSettingsFromAccountMenu}
+                    aria-label="Einstellungen öffnen"
+                    title="Einstellungen"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4318,17 +4318,17 @@ export default function HomePage() {
                         strokeWidth="1.55"
                       />
                     </svg>
-                  </span>
+                  </button>
                   <span className="appSidebarNavLabel">Einstellungen</span>
-                </button>
-                <button
-                  type="button"
-                  className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}
-                  onClick={openCustomerArchiveFromAccountMenu}
-                  aria-label="Gespeicherte Kunden öffnen"
-                  title="Gespeicherte Kunden"
-                >
-                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                </div>
+                <div className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={openCustomerArchiveFromAccountMenu}
+                    aria-label="Gespeicherte Kunden öffnen"
+                    title="Gespeicherte Kunden"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4344,17 +4344,17 @@ export default function HomePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </span>
+                  </button>
                   <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
-                </button>
-                <button
-                  type="button"
-                  className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}
-                  onClick={toggleTipsFromAccountMenu}
-                  aria-label="Tipps anzeigen"
-                  title="Tipps"
-                >
-                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                </div>
+                <div className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={toggleTipsFromAccountMenu}
+                    aria-label="Tipps anzeigen"
+                    title="Tipps"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4377,56 +4377,22 @@ export default function HomePage() {
                         strokeLinecap="round"
                       />
                     </svg>
-                  </span>
+                  </button>
                   <span className="appSidebarNavLabel">Tipps</span>
-                </button>
-                <button
-                  type="button"
-                  className={`appSidebarNavItem ${isInfoLegalOpen ? "active" : ""}`}
-                  onClick={openInfoLegalFromAccountMenu}
-                  aria-label="Info und Rechtliches öffnen"
-                  title="Info und Rechtliches"
-                >
-                  <span className="appSidebarNavIconWrap" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="8"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                      <path
-                        d="M12 10.2v5.1"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
-                    </svg>
-                  </span>
-                  <span className="appSidebarNavLabel">Info &amp; Rechtliches</span>
-                </button>
+                </div>
               </div>
             </div>
 
             <div className="appSidebarBottom">
               {isAuthenticatedUser ? (
-                <button
-                  type="button"
-                  className="appSidebarActionButton"
-                  onClick={() => void handleLogoutFromAccountMenu()}
-                  aria-label="Ausloggen"
-                  title="Ausloggen"
-                >
-                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                <div className="appSidebarActionButton">
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={() => void handleLogoutFromAccountMenu()}
+                    aria-label="Ausloggen"
+                    title="Ausloggen"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4450,18 +4416,18 @@ export default function HomePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </span>
+                  </button>
                   <span className="appSidebarNavLabel">Ausloggen</span>
-                </button>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  className="appSidebarActionButton"
-                  onClick={navigateToAuthFromAccountMenu}
-                  aria-label="Login oder Registrierung"
-                  title="Login / Registrieren"
-                >
-                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                <div className="appSidebarActionButton">
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={navigateToAuthFromAccountMenu}
+                    aria-label="Login oder Registrierung"
+                    title="Login / Registrieren"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4485,9 +4451,9 @@ export default function HomePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </span>
+                  </button>
                   <span className="appSidebarNavLabel">Login / Registrieren</span>
-                </button>
+                </div>
               )}
             </div>
           </aside>
@@ -5592,7 +5558,7 @@ export default function HomePage() {
 
             {error ? <p className="error">{error}</p> : null}
             {!error && postActionInfo ? (
-              <p className="voiceInfo" role="status" aria-live="polite">
+              <p className={`voiceInfo${postActionInfo === "Bitte zuerst ein Angebot erstellen." ? " postActionError" : ""}`} role="status" aria-live="polite">
                 {postActionInfo}
               </p>
             ) : null}
