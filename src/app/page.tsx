@@ -1341,7 +1341,6 @@ export default function HomePage() {
     isOfferMailActionVisible &&
     Boolean(offerMailActionState?.payload.pdfBase64?.trim());
   const accountIdentityLabel = accountIdentity || "Nutzerkonto";
-  const accountIdentityInitial = accountIdentityLabel.trim().charAt(0).toUpperCase();
 
   useDialogFocusTrap({
     isOpen: isCustomerArchiveOpen,
@@ -3673,7 +3672,10 @@ export default function HomePage() {
   }
 
   async function handleOfferMailDraftOpen() {
+    setError("");
+
     if (!offerMailActionState) {
+      setPostActionInfo("Bitte zuerst ein Angebot erstellen.");
       return;
     }
 
@@ -4292,27 +4294,31 @@ export default function HomePage() {
                   aria-label="Einstellungen öffnen"
                   title="Einstellungen"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="appSidebarNavIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    />
-                    <path
-                      d="M19 12c0-.4 0-.7-.1-1.1l1.7-1.4-1.6-2.9-2.1.7a8 8 0 0 0-1.9-1.1l-.4-2.1h-3.2l-.4 2.1a8 8 0 0 0-1.9 1.1l-2.1-.7-1.6 2.9 1.7 1.4c-.1.4-.1.7-.1 1.1s0 .7.1 1.1l-1.7 1.4 1.6 2.9 2.1-.7c.6.5 1.2.9 1.9 1.1l.4 2.1h3.2l.4-2.1c.7-.2 1.3-.6 1.9-1.1l2.1.7 1.6-2.9-1.7-1.4c.1-.4.1-.7.1-1.1Z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M9.2 4.8h5.6l4.1 4.1v5.6l-4.1 4.1H9.2l-4.1-4.1V8.9l4.1-4.1Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.55"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx="12"
+                        cy="11.9"
+                        r="2.55"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.55"
+                      />
+                    </svg>
+                  </span>
                   <span className="appSidebarNavLabel">Einstellungen</span>
                 </button>
                 <button
@@ -4322,21 +4328,23 @@ export default function HomePage() {
                   aria-label="Gespeicherte Kunden öffnen"
                   title="Gespeicherte Kunden"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="appSidebarNavIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M3.8 7.3a2.1 2.1 0 0 1 2.1-2.1H11l1.9 2.2h5.3a2.1 2.1 0 0 1 2.1 2.1v8.4a2.1 2.1 0 0 1-2.1 2.1H5.9a2.1 2.1 0 0 1-2.1-2.1V7.3Z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M3.8 7.3a2.1 2.1 0 0 1 2.1-2.1H11l1.9 2.2h5.3a2.1 2.1 0 0 1 2.1 2.1v8.4a2.1 2.1 0 0 1-2.1 2.1H5.9a2.1 2.1 0 0 1-2.1-2.1V7.3Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
                   <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
                 </button>
                 <button
@@ -4346,28 +4354,30 @@ export default function HomePage() {
                   aria-label="Tipps anzeigen"
                   title="Tipps"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="appSidebarNavIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M12 4.4a5.7 5.7 0 0 0-3.7 10c.8.7 1.3 1.6 1.5 2.5h4.4c.2-.9.7-1.8 1.5-2.5A5.7 5.7 0 0 0 12 4.4Z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M9.4 18.3h5.2M10.1 20.1h3.8"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M12 4.4a5.7 5.7 0 0 0-3.7 10c.8.7 1.3 1.6 1.5 2.5h4.4c.2-.9.7-1.8 1.5-2.5A5.7 5.7 0 0 0 12 4.4Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9.4 18.3h5.2M10.1 20.1h3.8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </span>
                   <span className="appSidebarNavLabel">Tipps</span>
                 </button>
                 <button
@@ -4377,76 +4387,71 @@ export default function HomePage() {
                   aria-label="Info und Rechtliches öffnen"
                   title="Info und Rechtliches"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="appSidebarNavIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="8"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    />
-                    <path
-                      d="M12 10.2v5.1"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                    <circle cx="12" cy="7.2" r="1" fill="currentColor" />
-                  </svg>
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <path
+                        d="M12 10.2v5.1"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                    </svg>
+                  </span>
                   <span className="appSidebarNavLabel">Info &amp; Rechtliches</span>
                 </button>
               </div>
             </div>
 
             <div className="appSidebarBottom">
-              <div className="appSidebarIdentityCard">
-                <span className="appSidebarAvatar" aria-hidden="true">
-                  {accountIdentityInitial || "U"}
-                </span>
-                <div className="appSidebarIdentityText">
-                  <strong>{isAuthenticatedUser ? accountIdentityLabel : "Nicht eingeloggt"}</strong>
-                  <span>{isAuthenticatedUser ? "Nutzerkonto" : "Gastmodus"}</span>
-                </div>
-              </div>
               {isAuthenticatedUser ? (
                 <button
                   type="button"
                   className="appSidebarActionButton"
                   onClick={() => void handleLogoutFromAccountMenu()}
-                  aria-label="Logout"
-                  title="Logout"
+                  aria-label="Ausloggen"
+                  title="Ausloggen"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="appSidebarNavIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M15 7.5V6.2a2.2 2.2 0 0 0-2.2-2.2H7.2A2.2 2.2 0 0 0 5 6.2v11.6A2.2 2.2 0 0 0 7.2 20h5.6A2.2 2.2 0 0 0 15 17.8v-1.3"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M10.5 12h8m-2.7-2.7L18.5 12l-2.7 2.7"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="appSidebarNavLabel">Logout</span>
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M15 7.5V6.2a2.2 2.2 0 0 0-2.2-2.2H7.2A2.2 2.2 0 0 0 5 6.2v11.6A2.2 2.2 0 0 0 7.2 20h5.6A2.2 2.2 0 0 0 15 17.8v-1.3"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M10.5 12h8m-2.7-2.7L18.5 12l-2.7 2.7"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <span className="appSidebarNavLabel">Ausloggen</span>
                 </button>
               ) : (
                 <button
@@ -4456,35 +4461,31 @@ export default function HomePage() {
                   aria-label="Login oder Registrierung"
                   title="Login / Registrieren"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="appSidebarNavIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <circle
-                      cx="12"
-                      cy="8"
-                      r="3.2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    />
-                    <path
-                      d="M6.5 18a5.5 5.5 0 0 1 11 0"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M18.2 8.5h3.3m-1.65-1.65v3.3"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M9 7.4V6.2A2.2 2.2 0 0 1 11.2 4h5.6A2.2 2.2 0 0 1 19 6.2v11.6a2.2 2.2 0 0 1-2.2 2.2h-5.6A2.2 2.2 0 0 1 9 17.8v-1.2"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M4.8 12h8m-2.7-2.7L12.8 12l-2.7 2.7"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
                   <span className="appSidebarNavLabel">Login / Registrieren</span>
                 </button>
               )}
@@ -5071,108 +5072,111 @@ export default function HomePage() {
               <div className="field span2 positionsTableField">
                 <div className="positionsIntegratedPanel dashboardPositionsPanel">
                   <div className="positionsSearchPanel">
-                    <div className="positionsSearchPanelHeader">
-                      <span className="positionsSearchPanelTitle">
-                        Leistung suchen
-                      </span>
-                      <span className="positionsSearchPanelHint">
-                        Direkt im Bereich Bezeichnung / Unterpunkt hinzufügen
-                      </span>
+                    <div className="positionsModuleHeader">
+                      <h3 className="positionsModuleTitle">
+                        Leistungen &amp; Positionen
+                      </h3>
                     </div>
-                    <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
-                      <input
-                        className="serviceSearchInput"
-                        value={serviceSearch}
-                        placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
-                        autoCapitalize="words"
-                        onFocus={() => setIsServiceSearchOpen(true)}
-                        onChange={(event) => {
-                          setServiceSearch(event.target.value);
-                          setIsServiceSearchOpen(true);
-                          setServiceInfo("");
-                          setServiceError("");
-                        }}
-                      />
-                      <span className="serviceSearchIndicator" aria-hidden="true">
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="serviceSearchIndicatorIcon"
-                          focusable="false"
-                        >
-                          <path
-                            d="m8 10 4-4 4 4m-8 4 4 4 4-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
+                    <div className="positionsSearchRow">
+                      <label className="positionsSearchLabel" htmlFor="positionsServiceSearch">
+                        Leistung suchen
+                      </label>
+                      <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
+                        <input
+                          id="positionsServiceSearch"
+                          className="serviceSearchInput"
+                          value={serviceSearch}
+                          placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
+                          autoCapitalize="words"
+                          onFocus={() => setIsServiceSearchOpen(true)}
+                          onChange={(event) => {
+                            setServiceSearch(event.target.value);
+                            setIsServiceSearchOpen(true);
+                            setServiceInfo("");
+                            setServiceError("");
+                          }}
+                        />
+                        <span className="serviceSearchIndicator" aria-hidden="true">
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="serviceSearchIndicatorIcon"
+                            focusable="false"
+                          >
+                            <path
+                              d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </span>
 
-                      {isServiceSearchOpen ? (
-                        <div
-                          className="serviceSuggestionList"
-                          role="listbox"
-                          aria-label="Leistungsvorschläge"
-                        >
-                          {isServiceCatalogLoading ? (
-                            <p className="serviceSuggestionHint">
-                              Leistungen werden geladen ...
-                            </p>
-                          ) : null}
+                        {isServiceSearchOpen ? (
+                          <div
+                            className="serviceSuggestionList"
+                            role="listbox"
+                            aria-label="Leistungsvorschläge"
+                          >
+                            {isServiceCatalogLoading ? (
+                              <p className="serviceSuggestionHint">
+                                Leistungen werden geladen ...
+                              </p>
+                            ) : null}
 
-                          {groupedServiceSuggestions.map(
-                            ([category, suggestions]) => (
-                              <div
-                                key={category}
-                                className="serviceSuggestionGroup"
+                            {groupedServiceSuggestions.map(
+                              ([category, suggestions]) => (
+                                <div
+                                  key={category}
+                                  className="serviceSuggestionGroup"
+                                >
+                                  <p className="serviceSuggestionGroupLabel">
+                                    {category}
+                                  </p>
+                                  {suggestions.map((service) => (
+                                    <button
+                                      key={service.id}
+                                      type="button"
+                                      className="serviceSuggestionButton"
+                                      onClick={() =>
+                                        addSelectedService(service.label)
+                                      }
+                                    >
+                                      <strong>{service.label}</strong>
+                                      {service.source === "custom" ? (
+                                        <span>Eigene Leistung</span>
+                                      ) : (
+                                        <span>Standard</span>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              ),
+                            )}
+
+                            {!isServiceCatalogLoading &&
+                            groupedServiceSuggestions.length === 0 ? (
+                              <p className="serviceSuggestionHint">
+                                Keine passenden Leistungen gefunden.
+                              </p>
+                            ) : null}
+
+                            {canCreateCustomService ? (
+                              <button
+                                type="button"
+                                className="serviceAddCustomButton"
+                                onClick={addCustomService}
+                                disabled={isAddingCustomService}
                               >
-                                <p className="serviceSuggestionGroupLabel">
-                                  {category}
-                                </p>
-                                {suggestions.map((service) => (
-                                  <button
-                                    key={service.id}
-                                    type="button"
-                                    className="serviceSuggestionButton"
-                                    onClick={() =>
-                                      addSelectedService(service.label)
-                                    }
-                                  >
-                                    <strong>{service.label}</strong>
-                                    {service.source === "custom" ? (
-                                      <span>Eigene Leistung</span>
-                                    ) : (
-                                      <span>Standard</span>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            ),
-                          )}
-
-                          {!isServiceCatalogLoading &&
-                          groupedServiceSuggestions.length === 0 ? (
-                            <p className="serviceSuggestionHint">
-                              Keine passenden Leistungen gefunden.
-                            </p>
-                          ) : null}
-
-                          {canCreateCustomService ? (
-                            <button
-                              type="button"
-                              className="serviceAddCustomButton"
-                              onClick={addCustomService}
-                              disabled={isAddingCustomService}
-                            >
-                              {isAddingCustomService
-                                ? "Eigene Leistung wird gespeichert ..."
-                                : `+ Eigene Leistung hinzufügen: "${serviceSearchValue}"`}
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
+                                {isAddingCustomService
+                                  ? "Eigene Leistung wird gespeichert ..."
+                                  : `+ Eigene Leistung hinzufügen: "${serviceSearchValue}"`}
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
@@ -5183,8 +5187,8 @@ export default function HomePage() {
                           <th>Bezeichnung / Unterpunkt</th>
                           <th>Menge</th>
                           <th>Einheit</th>
-                          <th>EP / Preis EUR</th>
-                          <th>Gesamtpreis EUR</th>
+                          <th>EP</th>
+                          <th>Gesamtpreis</th>
                           <th aria-label="Aktion" />
                         </tr>
                       </thead>
@@ -5402,19 +5406,18 @@ export default function HomePage() {
                         + Position eintragen
                       </button>
                     </div>
+                    {serviceInfo ? (
+                      <p className="voiceInfo positionsPanelInfo" role="status" aria-live="polite">
+                        {serviceInfo}
+                      </p>
+                    ) : null}
+                    {serviceError ? (
+                      <p className="voiceWarning positionsPanelWarning" role="alert">
+                        {serviceError}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
-
-                {serviceInfo ? (
-                  <p className="voiceInfo" role="status" aria-live="polite">
-                    {serviceInfo}
-                  </p>
-                ) : null}
-                {serviceError ? (
-                  <p className="voiceWarning" role="alert">
-                    {serviceError}
-                  </p>
-                ) : null}
               </div>
               <label className="field span2">
                 <span>Projektbeschreibung / Zusatzdetails (frei)</span>
@@ -5479,9 +5482,7 @@ export default function HomePage() {
                     className="ghostButton submitMailButton"
                     onClick={handleOfferMailDraftOpen}
                     disabled={
-                      !canOpenOfferMailDraft ||
-                      isPreparingOfferMailDraft ||
-                      !offerMailActionState?.customerEmail.trim()
+                      isPreparingOfferMailDraft
                     }
                     title={
                       !canOpenOfferMailDraft

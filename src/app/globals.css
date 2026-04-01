@@ -5862,6 +5862,7 @@ textarea:focus,
 :root {
   --vis-primary: #1479ff;
   --vis-primary-10: rgba(20, 121, 255, 0.1);
+  --vis-primary-soft: rgba(20, 121, 255, 0.06);
   --vis-primary-30: rgba(20, 121, 255, 0.3);
   --vis-dark: #193b68;
   --vis-dark-10: rgba(25, 59, 104, 0.1);
@@ -6121,8 +6122,13 @@ body {
 
 .dashboardVoicePanel {
   padding: 20px !important;
-  background: var(--vis-primary-10) !important;
-  border-color: var(--vis-primary-10) !important;
+  background: var(--vis-primary-soft) !important;
+  border-color: var(--vis-dark-10) !important;
+}
+
+.dashboardPositionsPanel {
+  background: var(--vis-primary-soft) !important;
+  border-color: var(--vis-dark-10) !important;
 }
 
 .dashboardVoicePanel :is(strong, p, span, .field > span) {
@@ -6138,9 +6144,38 @@ body {
 }
 
 .positionsSearchPanel {
-  background: var(--vis-primary-10) !important;
+  background: var(--vis-primary-soft) !important;
   border-bottom: 1px solid var(--vis-dark-10) !important;
-  padding: 16px 18px 14px !important;
+  padding: 18px 18px 14px !important;
+  gap: 10px !important;
+}
+
+.positionsModuleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.positionsModuleTitle {
+  margin: 0;
+  color: var(--vis-dark);
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.positionsSearchRow {
+  display: grid;
+  gap: 7px;
+}
+
+.positionsSearchLabel {
+  margin: 0;
+  color: var(--vis-dark);
+  font-size: 0.8rem;
+  line-height: 1.25;
+  font-weight: 700;
 }
 
 .positionsSearchPanelTitle,
@@ -6150,13 +6185,21 @@ body {
 
 .positionsInputWrap,
 .positionsInputWrapMerged {
-  background: var(--vis-white) !important;
+  background: transparent !important;
   border-top: 1px solid var(--vis-dark-10) !important;
   margin-top: 0 !important;
 }
 
+.positionsInputWrapMerged {
+  padding: 0 0 12px !important;
+}
+
+.positionsInputTable {
+  background: var(--vis-white) !important;
+}
+
 .positionsInputTable thead th {
-  background: var(--vis-dark-10) !important;
+  background: rgba(20, 121, 255, 0.08) !important;
   color: var(--vis-dark) !important;
   border-color: var(--vis-dark-10) !important;
 }
@@ -6171,8 +6214,17 @@ body {
 }
 
 .positionsGroupRow td {
-  background: var(--vis-primary-10) !important;
+  background: rgba(20, 121, 255, 0.08) !important;
   color: var(--vis-dark) !important;
+}
+
+.positionsInputTableFooter {
+  padding: 12px 14px 6px !important;
+}
+
+.positionsPanelInfo,
+.positionsPanelWarning {
+  margin: 8px 14px 0 !important;
 }
 
 .serviceSuggestionList,
@@ -6489,37 +6541,70 @@ textarea:focus,
 
 .appSidebarNav {
   display: grid;
-  gap: 10px;
+  gap: 11px;
 }
 
 .appSidebarNavItem,
 .appSidebarActionButton {
   width: 100%;
-  min-height: 86px;
-  border: 1px solid var(--vis-primary-10);
-  border-radius: 14px;
+  min-height: 94px;
+  border: 1px solid var(--vis-dark-10);
+  border-radius: 16px;
   background: var(--vis-primary-10);
   color: var(--vis-dark);
-  box-shadow: none;
+  box-shadow: 0 10px 20px var(--vis-dark-30);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 6px;
+  gap: 7px;
+  padding: 12px 8px;
   cursor: pointer;
   text-align: center;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
 }
 
 .appSidebarNavItem.active {
   background: var(--vis-dark);
   border-color: var(--vis-dark);
   color: #ffffff;
+  box-shadow: 0 14px 30px var(--vis-dark-30);
+}
+
+.appSidebarNavIconWrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  border: 1px solid var(--vis-dark-10);
+  background: var(--vis-white);
+  box-shadow: 0 9px 18px var(--vis-dark-30);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+.appSidebarNavItem.active .appSidebarNavIconWrap {
+  background: var(--vis-primary);
+  border-color: var(--vis-primary);
+  color: #ffffff;
+  box-shadow: 0 12px 24px var(--vis-primary-30);
 }
 
 .appSidebarNavIcon {
-  width: 27px;
-  height: 27px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -6532,7 +6617,7 @@ textarea:focus,
 .appSidebarNavLabel {
   display: block;
   color: inherit;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -6541,9 +6626,10 @@ textarea:focus,
 @media (hover: hover) and (pointer: fine) {
   .appSidebarNavItem:hover,
   .appSidebarActionButton:hover {
-    border-color: var(--vis-primary) !important;
-    background: #ffffff !important;
-    box-shadow: none !important;
+    transform: translateY(-2px);
+    border-color: rgba(20, 121, 255, 0.28) !important;
+    background: var(--vis-primary-10) !important;
+    box-shadow: 0 16px 30px var(--vis-dark-30) !important;
   }
 
   .appSidebarNavItem.active:hover {
@@ -6551,75 +6637,32 @@ textarea:focus,
     background: var(--vis-dark) !important;
   }
 
-  .appSidebarNavItem:hover .appSidebarNavIcon,
-  .appSidebarActionButton:hover .appSidebarNavIcon {
-    color: var(--vis-primary) !important;
-    box-shadow: none !important;
+  .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebarActionButton:hover .appSidebarNavIconWrap {
+    transform: translateY(-1px);
+    border-color: rgba(20, 121, 255, 0.32) !important;
+    box-shadow: 0 12px 24px var(--vis-primary-30) !important;
   }
 
-  .appSidebarNavItem.active:hover .appSidebarNavIcon {
+  .appSidebarNavItem.active:hover .appSidebarNavIconWrap {
+    background: var(--vis-primary) !important;
+    border-color: var(--vis-primary) !important;
     color: #ffffff !important;
+    box-shadow: 0 14px 26px var(--vis-primary-30) !important;
   }
 }
 
 .appSidebarBottom {
   display: grid;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.appSidebarIdentityCard {
-  border: 1px solid var(--vis-dark-10);
-  border-radius: 16px;
-  background: var(--vis-white);
-  box-shadow: 0 12px 24px var(--vis-dark-30);
-  padding: 10px 9px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
-  align-items: center;
-}
-
-.appSidebarAvatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--vis-primary-10);
-  border: 1px solid var(--vis-primary-10);
-  color: var(--vis-primary);
-  font-size: 0.86rem;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.appSidebarIdentityText {
-  min-width: 0;
-  display: grid;
-  gap: 1px;
-}
-
-.appSidebarIdentityText strong {
-  color: var(--vis-dark);
-  font-size: 0.75rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.appSidebarIdentityText span {
-  color: var(--vis-dark);
-  font-size: 0.67rem;
-  line-height: 1.15;
+  gap: 10px;
+  margin-top: auto;
 }
 
 .appMainContent {
   min-width: 0;
   display: grid;
   gap: 12px;
-  background: var(--vis-primary-10);
+  background: var(--vis-primary-soft);
   padding: 14px;
 }
 
@@ -6704,5 +6747,15 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
     border-color: var(--vis-accent-a) !important;
     color: var(--vis-dark) !important;
     box-shadow: 0 18px 36px rgba(20, 210, 255, 0.3) !important;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboardCtaRow .submitButton:hover:not(:disabled),
+  .formGrid .dashboardCtaRow .submitButton:hover:not(:disabled) {
+    background: #116fe6 !important;
+    border-color: #116fe6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 18px 36px rgba(20, 121, 255, 0.3) !important;
   }
 }
