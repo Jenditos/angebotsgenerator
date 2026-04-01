@@ -380,7 +380,7 @@ function createInitialModeSnapshot(): ModeSnapshot {
   return {
     form: createInitialForm(),
     activeCustomerNumber: "",
-    selectedServices: createDefaultSelectedServices(),
+    selectedServices: [],
     voiceTranscript: "",
     voiceInfo: "",
     voiceError: "",
@@ -425,8 +425,7 @@ const UNIT_OPTIONS = [
 
 const SERVICE_DATE_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
-const DEFAULT_MANUAL_GROUP_LABEL = "Position eintragen";
-const OFFER_REQUIRED_MESSAGE = "Bitte zuerst ein Angebot erstellen.";
+const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 
@@ -494,10 +493,10 @@ function hydrateOfferForm(value: unknown): OfferForm {
 
 function hydrateSelectedServices(value: unknown): SelectedServiceEntry[] {
   if (!Array.isArray(value)) {
-    return createDefaultSelectedServices();
+    return [];
   }
 
-  const hydratedEntries = value
+  return value
     .map((entry) => {
       if (!isObjectRecord(entry)) {
         return null;
@@ -524,14 +523,10 @@ function hydrateSelectedServices(value: unknown): SelectedServiceEntry[] {
       return {
         id: asString(entry.id) || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         label,
-        subitems: subitems.length > 0 ? subitems : [createSubitemEntry()],
+        subitems: subitems.length > 0 ? subitems : [createSubitemEntry(label)],
       };
     })
     .filter((entry): entry is SelectedServiceEntry => Boolean(entry));
-
-  return hydratedEntries.length > 0
-    ? hydratedEntries
-    : createDefaultSelectedServices();
 }
 
 function hydrateAddressSuggestions(value: unknown): AddressSuggestion[] {
@@ -782,18 +777,6 @@ function createSelectedServiceEntry(label: string): SelectedServiceEntry {
   };
 }
 
-function createManualSelectedServiceEntry(): SelectedServiceEntry {
-  return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    label: DEFAULT_MANUAL_GROUP_LABEL,
-    subitems: [createSubitemEntry()],
-  };
-}
-
-function createDefaultSelectedServices(): SelectedServiceEntry[] {
-  return [createManualSelectedServiceEntry()];
-}
-
 function selectedServiceToRequestValue(service: SelectedServiceEntry): string {
   return service.label.trim();
 }
@@ -816,10 +799,10 @@ function selectedServicesFromDraftPayload(
   groups: CustomerDraftGroup[] | undefined,
 ): SelectedServiceEntry[] {
   if (!Array.isArray(groups) || groups.length === 0) {
-    return createDefaultSelectedServices();
+    return [];
   }
 
-  const mappedGroups = groups
+  return groups
     .map((group) => {
       const label = capitalizeEntryStart(group.label?.trim() || "");
       const subitems = Array.isArray(group.subitems) ? group.subitems : [];
@@ -852,8 +835,6 @@ function selectedServicesFromDraftPayload(
       };
     })
     .filter((entry): entry is SelectedServiceEntry => Boolean(entry));
-
-  return mappedGroups.length > 0 ? mappedGroups : createDefaultSelectedServices();
 }
 
 function getSubitemUnit(subitem: ServiceSubitemEntry): string {
@@ -1188,7 +1169,7 @@ export default function HomePage() {
   const [serviceSearch, setServiceSearch] = useState("");
   const [selectedServices, setSelectedServices] = useState<
     SelectedServiceEntry[]
-  >(createDefaultSelectedServices());
+  >([]);
   const [activePriceSubitemId, setActivePriceSubitemId] = useState<
     string | null
   >(null);
@@ -1385,13 +1366,7 @@ export default function HomePage() {
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
-    setSelectedServices(
-      cloneSelectedServices(
-        snapshot.selectedServices.length > 0
-          ? snapshot.selectedServices
-          : createDefaultSelectedServices(),
-      ),
-    );
+    setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
     setVoiceTranscript(snapshot.voiceTranscript);
     setVoiceInfo(snapshot.voiceInfo);
     setVoiceError(snapshot.voiceError);
@@ -2525,11 +2500,7 @@ export default function HomePage() {
       serviceDate: "",
       paymentDueDays: draftState?.paymentDueDays || "14",
     }));
-    setSelectedServices(
-      draftSelectedServices.length > 0
-        ? draftSelectedServices
-        : createDefaultSelectedServices(),
-    );
+    setSelectedServices(draftSelectedServices);
     setActiveCustomerNumber(customer.customerNumber);
     setActivePriceSubitemId(null);
     setAddressSuggestions([]);
@@ -2586,7 +2557,7 @@ export default function HomePage() {
   function addEmptyPositionRow() {
     setSelectedServices((prev) => {
       if (prev.length === 0) {
-        return createDefaultSelectedServices();
+        return [createSelectedServiceEntry(DEFAULT_MANUAL_GROUP_LABEL)];
       }
 
       const targetService = prev[prev.length - 1];
@@ -3550,23 +3521,7 @@ export default function HomePage() {
       }
     }
 
-    const hasOnlyManualEmptyRows =
-      services.length > 0 &&
-      services.every((service) => {
-        const isManualGroup =
-          normalizeSearchValue(service.label) ===
-          normalizeSearchValue(DEFAULT_MANUAL_GROUP_LABEL);
-        const hasAnySubitemValue = service.subitems.some((subitem) =>
-          Boolean(
-            subitem.description.trim() ||
-              subitem.quantity.trim() ||
-              subitem.price.trim(),
-          ),
-        );
-        return isManualGroup && !hasAnySubitemValue;
-      });
-
-    if (services.length > 0 && positions.length === 0 && !hasOnlyManualEmptyRows) {
+    if (services.length > 0 && positions.length === 0) {
       return {
         positions: [],
         errorMessage:
@@ -3720,7 +3675,7 @@ export default function HomePage() {
     setError("");
 
     if (!offerMailActionState) {
-      setPostActionInfo(OFFER_REQUIRED_MESSAGE);
+      setPostActionInfo("Bitte zuerst ein Angebot erstellen.");
       return;
     }
 
@@ -3816,11 +3771,9 @@ export default function HomePage() {
               >
                 <p className="accountMenuHeader">
                   <span>Nutzerbereich</span>
-                  {isAuthenticatedUser ? (
-                    <strong className="accountMenuIdentity">
-                      {accountIdentityLabel}
-                    </strong>
-                  ) : null}
+                  <strong className="accountMenuIdentity">
+                    {isAuthenticatedUser ? accountIdentityLabel : "Nicht eingeloggt"}
+                  </strong>
                 </p>
                 <div className="accountMenuDivider" aria-hidden />
                 <button
@@ -4334,14 +4287,14 @@ export default function HomePage() {
                 <VisioroLogoPill className="appSidebarBrandPill" />
               </div>
               <div className="appSidebarNav">
-                <div className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}>
-                  <button
-                    type="button"
-                    className={`appSidebarNavIconButton ${isSettingsOverlayOpen ? "active" : ""}`}
-                    onClick={openSettingsFromAccountMenu}
-                    aria-label="Einstellungen öffnen"
-                    title="Einstellungen"
-                  >
+                <button
+                  type="button"
+                  className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}
+                  onClick={openSettingsFromAccountMenu}
+                  aria-label="Einstellungen öffnen"
+                  title="Einstellungen"
+                >
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4365,17 +4318,17 @@ export default function HomePage() {
                         strokeWidth="1.55"
                       />
                     </svg>
-                  </button>
+                  </span>
                   <span className="appSidebarNavLabel">Einstellungen</span>
-                </div>
-                <div className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}>
-                  <button
-                    type="button"
-                    className={`appSidebarNavIconButton ${isCustomerArchiveOpen ? "active" : ""}`}
-                    onClick={openCustomerArchiveFromAccountMenu}
-                    aria-label="Gespeicherte Kunden öffnen"
-                    title="Gespeicherte Kunden"
-                  >
+                </button>
+                <button
+                  type="button"
+                  className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}
+                  onClick={openCustomerArchiveFromAccountMenu}
+                  aria-label="Gespeicherte Kunden öffnen"
+                  title="Gespeicherte Kunden"
+                >
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4391,17 +4344,17 @@ export default function HomePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </button>
+                  </span>
                   <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
-                </div>
-                <div className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}>
-                  <button
-                    type="button"
-                    className={`appSidebarNavIconButton ${isSetupHintOpen ? "active" : ""}`}
-                    onClick={toggleTipsFromAccountMenu}
-                    aria-label="Tipps anzeigen"
-                    title="Tipps"
-                  >
+                </button>
+                <button
+                  type="button"
+                  className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}
+                  onClick={toggleTipsFromAccountMenu}
+                  aria-label="Tipps anzeigen"
+                  title="Tipps"
+                >
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4424,22 +4377,56 @@ export default function HomePage() {
                         strokeLinecap="round"
                       />
                     </svg>
-                  </button>
+                  </span>
                   <span className="appSidebarNavLabel">Tipps</span>
-                </div>
+                </button>
+                <button
+                  type="button"
+                  className={`appSidebarNavItem ${isInfoLegalOpen ? "active" : ""}`}
+                  onClick={openInfoLegalFromAccountMenu}
+                  aria-label="Info und Rechtliches öffnen"
+                  title="Info und Rechtliches"
+                >
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <path
+                        d="M12 10.2v5.1"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="12" cy="7.2" r="1" fill="currentColor" />
+                    </svg>
+                  </span>
+                  <span className="appSidebarNavLabel">Info &amp; Rechtliches</span>
+                </button>
               </div>
             </div>
 
             <div className="appSidebarBottom">
               {isAuthenticatedUser ? (
-                <div className="appSidebarActionButton">
-                  <button
-                    type="button"
-                    className="appSidebarNavIconButton"
-                    onClick={() => void handleLogoutFromAccountMenu()}
-                    aria-label="Ausloggen"
-                    title="Ausloggen"
-                  >
+                <button
+                  type="button"
+                  className="appSidebarActionButton"
+                  onClick={() => void handleLogoutFromAccountMenu()}
+                  aria-label="Ausloggen"
+                  title="Ausloggen"
+                >
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4463,18 +4450,18 @@ export default function HomePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </button>
+                  </span>
                   <span className="appSidebarNavLabel">Ausloggen</span>
-                </div>
+                </button>
               ) : (
-                <div className="appSidebarActionButton">
-                  <button
-                    type="button"
-                    className="appSidebarNavIconButton"
-                    onClick={navigateToAuthFromAccountMenu}
-                    aria-label="Login oder Registrierung"
-                    title="Login / Registrieren"
-                  >
+                <button
+                  type="button"
+                  className="appSidebarActionButton"
+                  onClick={navigateToAuthFromAccountMenu}
+                  aria-label="Login oder Registrierung"
+                  title="Login / Registrieren"
+                >
+                  <span className="appSidebarNavIconWrap" aria-hidden="true">
                     <svg
                       viewBox="0 0 24 24"
                       className="appSidebarNavIcon"
@@ -4498,9 +4485,9 @@ export default function HomePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </button>
+                  </span>
                   <span className="appSidebarNavLabel">Login / Registrieren</span>
-                </div>
+                </button>
               )}
             </div>
           </aside>
@@ -5091,6 +5078,9 @@ export default function HomePage() {
                       </h3>
                     </div>
                     <div className="positionsSearchRow">
+                      <label className="positionsSearchLabel" htmlFor="positionsServiceSearch">
+                        Leistung suchen
+                      </label>
                       <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
                         <input
                           id="positionsServiceSearch"
@@ -5145,7 +5135,7 @@ export default function HomePage() {
                                     {category}
                                   </p>
                                   {suggestions.map((service) => (
-                                  <button
+                                    <button
                                       key={service.id}
                                       type="button"
                                       className="serviceSuggestionButton"
@@ -5154,6 +5144,11 @@ export default function HomePage() {
                                       }
                                     >
                                       <strong>{service.label}</strong>
+                                      {service.source === "custom" ? (
+                                        <span>Eigene Leistung</span>
+                                      ) : (
+                                        <span>Standard</span>
+                                      )}
                                     </button>
                                   ))}
                                 </div>
@@ -5408,7 +5403,7 @@ export default function HomePage() {
                         className="ghostButton positionsAddRowButton"
                         onClick={addEmptyPositionRow}
                       >
-                        Position hinzufügen
+                        + Position eintragen
                       </button>
                     </div>
                     {serviceInfo ? (
@@ -5491,7 +5486,7 @@ export default function HomePage() {
                     }
                     title={
                       !canOpenOfferMailDraft
-                        ? OFFER_REQUIRED_MESSAGE
+                        ? "Bitte zuerst ein Angebot erstellen."
                         : offerMailActionState?.customerEmail.trim()
                         ? "Angebot per E-Mail versenden"
                         : "Für den Versand fehlt eine Kunden-E-Mail"
@@ -5597,11 +5592,7 @@ export default function HomePage() {
 
             {error ? <p className="error">{error}</p> : null}
             {!error && postActionInfo ? (
-              <p
-                className={`voiceInfo ${postActionInfo === OFFER_REQUIRED_MESSAGE ? "offerRequiredInfo" : ""}`}
-                role="status"
-                aria-live="polite"
-              >
+              <p className="voiceInfo" role="status" aria-live="polite">
                 {postActionInfo}
               </p>
             ) : null}

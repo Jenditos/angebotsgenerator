@@ -6129,7 +6129,6 @@ body {
 .dashboardPositionsPanel {
   background: var(--vis-primary-soft) !important;
   border-color: var(--vis-dark-10) !important;
-  overflow: visible !important;
 }
 
 .dashboardVoicePanel :is(strong, p, span, .field > span) {
@@ -6142,12 +6141,6 @@ body {
   color: var(--vis-dark) !important;
   border: 1px solid var(--vis-dark-10) !important;
   background: var(--vis-white) !important;
-}
-
-.offerRequiredInfo {
-  color: #d92323 !important;
-  border-color: rgba(217, 35, 35, 0.45) !important;
-  background: rgba(217, 35, 35, 0.1) !important;
 }
 
 .positionsSearchPanel {
@@ -6192,7 +6185,7 @@ body {
 
 .positionsInputWrap,
 .positionsInputWrapMerged {
-  background: var(--vis-primary-soft) !important;
+  background: transparent !important;
   border-top: 1px solid var(--vis-dark-10) !important;
   margin-top: 0 !important;
 }
@@ -6202,11 +6195,11 @@ body {
 }
 
 .positionsInputTable {
-  background: var(--vis-primary-soft) !important;
+  background: var(--vis-white) !important;
 }
 
 .positionsInputTable thead th {
-  background: var(--vis-primary-soft) !important;
+  background: rgba(20, 121, 255, 0.08) !important;
   color: var(--vis-dark) !important;
   border-color: var(--vis-dark-10) !important;
 }
@@ -6215,13 +6208,13 @@ body {
 .positionsInputTable tfoot td,
 .positionsInputTableFooter,
 .positionsInputEmpty {
-  background: var(--vis-primary-soft) !important;
+  background: var(--vis-white) !important;
   color: var(--vis-dark) !important;
   border-color: var(--vis-dark-10) !important;
 }
 
 .positionsGroupRow td {
-  background: var(--vis-primary-soft) !important;
+  background: rgba(20, 121, 255, 0.08) !important;
   color: var(--vis-dark) !important;
 }
 
@@ -6241,24 +6234,6 @@ body {
   border-color: var(--vis-dark-10) !important;
   background: var(--vis-white) !important;
   color: var(--vis-dark) !important;
-}
-
-.serviceSuggestionList {
-  max-height: min(360px, 52vh) !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 8px 8px 14px !important;
-  scroll-padding-bottom: 14px;
-  overscroll-behavior: contain;
-}
-
-.serviceSuggestionButton {
-  justify-content: flex-start !important;
-}
-
-.serviceSuggestionButton strong {
-  width: 100%;
-  text-align: left;
 }
 
 .serviceSuggestionButton span,
@@ -6535,8 +6510,8 @@ textarea:focus,
   grid-template-rows: 1fr auto;
   gap: 18px;
   padding: 18px 12px 14px;
-  border-right: 0;
-  background: #1479ff;
+  border-right: 1px solid var(--vis-dark-10);
+  background: var(--vis-white);
   box-shadow: none;
 }
 
@@ -6556,9 +6531,9 @@ textarea:focus,
   padding: 10px 16px !important;
   border-radius: 14px !important;
   border: 0 !important;
-  background: transparent !important;
+  background: linear-gradient(140deg, #1479ff, #14a5ff) !important;
   color: #ffffff !important;
-  box-shadow: none !important;
+  box-shadow: 0 16px 34px rgba(20, 121, 255, 0.3) !important;
   letter-spacing: 0.035em !important;
   font-size: 0.95rem !important;
   font-weight: 800 !important;
@@ -6571,42 +6546,55 @@ textarea:focus,
 
 .appSidebarNavItem,
 .appSidebarActionButton {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 3px 0;
+  width: 100%;
+  min-height: 72px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--vis-dark);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 4px;
+  cursor: pointer;
   text-align: center;
-  color: #ffffff;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms ease;
 }
 
 .appSidebarNavItem.active {
-  color: #ffffff;
+  color: var(--vis-dark);
 }
 
-.appSidebarNavIconButton {
-  width: 48px;
-  height: 48px;
+.appSidebarNavIconWrap {
+  width: 42px;
+  height: 42px;
   border-radius: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  display: flex;
+  border: 1px solid var(--vis-dark-10);
+  background: var(--vis-white);
+  box-shadow: 0 9px 18px var(--vis-dark-30);
+  color: inherit;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 20px rgba(20, 121, 255, 0.3);
-  cursor: pointer;
+  flex-shrink: 0;
   transition:
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 220ms ease,
     border-color 220ms ease,
-    background-color 220ms ease;
+    background-color 220ms ease,
+    color 220ms ease;
 }
 
-.appSidebarNavItem.active .appSidebarNavIconButton {
-  background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.5);
+.appSidebarNavItem.active .appSidebarNavIconWrap {
+  background: var(--vis-dark);
+  border-color: var(--vis-dark);
   color: #ffffff;
-  box-shadow: 0 12px 24px rgba(20, 121, 255, 0.3);
+  box-shadow: 0 12px 24px var(--vis-dark-30);
 }
 
 .appSidebarNavIcon {
@@ -6623,26 +6611,39 @@ textarea:focus,
 
 .appSidebarNavLabel {
   display: block;
-  color: #ffffff;
+  color: inherit;
   font-size: 0.74rem;
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: 0.01em;
-  pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .appSidebarNavIconButton:hover {
+  .appSidebarNavItem:hover,
+  .appSidebarActionButton:hover {
     transform: translateY(-1px);
-    border-color: rgba(255, 255, 255, 0.52);
-    background: rgba(255, 255, 255, 0.22);
-    box-shadow: 0 12px 24px rgba(20, 121, 255, 0.3);
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
 
-  .appSidebarNavItem.active .appSidebarNavIconButton:hover {
-    background: rgba(255, 255, 255, 0.28);
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 14px 26px rgba(20, 121, 255, 0.3);
+  .appSidebarNavItem.active:hover {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebarActionButton:hover .appSidebarNavIconWrap {
+    transform: translateY(-1px);
+    border-color: rgba(20, 121, 255, 0.32) !important;
+    box-shadow: 0 12px 24px var(--vis-primary-30) !important;
+  }
+
+  .appSidebarNavItem.active:hover .appSidebarNavIconWrap {
+    background: var(--vis-dark) !important;
+    border-color: var(--vis-dark) !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 26px var(--vis-dark-30) !important;
   }
 }
 
