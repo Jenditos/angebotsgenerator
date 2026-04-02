@@ -6634,7 +6634,8 @@ textarea:focus,
   .appSidebarNavIconWrap:hover,
   .appSidebarNavItem.active .appSidebarNavIconWrap:hover {
     transform: none !important;
-    background: #1479ff !important;
+    background-color: #1479ff !important;
+    background-image: none !important;
     border-color: #1479ff !important;
     color: #ffffff !important;
     box-shadow: 0 10px 24px var(--vis-primary-30) !important;
