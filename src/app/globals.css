@@ -6596,11 +6596,10 @@ textarea:focus,
   flex-shrink: 0;
   cursor: pointer;
   transition:
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 220ms ease,
-    border-color 220ms ease,
-    background-color 220ms ease,
-    color 220ms ease;
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .appSidebarNavItem.active .appSidebarNavIconWrap {
@@ -6635,9 +6634,9 @@ textarea:focus,
   .appSidebarNavIconWrap:hover,
   .appSidebarNavItem.active .appSidebarNavIconWrap:hover {
     transform: none !important;
-    background: rgba(20, 121, 255, 0.3) !important;
-    border-color: rgba(20, 121, 255, 0.3) !important;
-    color: #1479ff !important;
+    background: #1479ff !important;
+    border-color: #1479ff !important;
+    color: #ffffff !important;
     box-shadow: 0 10px 24px var(--vis-primary-30) !important;
   }
 }
@@ -6796,26 +6795,27 @@ a.submitButton,
   border: 1px solid var(--vis-dark-10) !important;
   color: var(--vis-dark) !important;
   box-shadow: none !important;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
 .positionsInputTable .positionDeleteButton .positionDeleteIcon {
   width: 17px;
   height: 17px;
-  transition:
-    transform var(--vis-reference-transition),
-    filter var(--vis-reference-transition);
+  transition: color 180ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .positionsInputTable .positionDeleteButton:hover {
     color: #ff3b30 !important;
-    border-color: rgba(255, 59, 48, 0.45) !important;
-    background: var(--vis-white) !important;
+    border-color: rgba(255, 59, 48, 0.5) !important;
+    background: rgba(255, 59, 48, 0.12) !important;
     box-shadow: none !important;
   }
 
   .positionsInputTable .positionDeleteButton:hover .positionDeleteIcon {
-    transform: scale(1.05);
-    filter: drop-shadow(0 2px 5px rgba(255, 59, 48, 0.3));
+    color: #ff3b30;
   }
 }
