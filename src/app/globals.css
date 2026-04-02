@@ -6011,7 +6011,7 @@ body {
   border: 1px solid var(--vis-dark-10) !important;
   background: var(--vis-white) !important;
   color: var(--vis-dark) !important;
-  box-shadow: 0 14px 30px var(--vis-dark-30) !important;
+  box-shadow: 0 9px 18px var(--vis-dark-30) !important;
 }
 
 .accountMenuPanel {
@@ -6060,7 +6060,7 @@ body {
 .documentModeSwitchButton.active {
   background: var(--vis-primary-10) !important;
   border-color: var(--vis-primary-10) !important;
-  box-shadow: 0 10px 24px var(--vis-primary-30) !important;
+  box-shadow: 0 7px 16px var(--vis-primary-30) !important;
 }
 
 .dashboardMainShell {
@@ -6329,7 +6329,7 @@ textarea:focus,
   background-image: none !important;
   border: 1px solid var(--vis-primary) !important;
   color: var(--vis-white) !important;
-  box-shadow: 0 16px 34px var(--vis-primary-30) !important;
+  box-shadow: 0 10px 22px var(--vis-primary-30) !important;
 }
 
 :is(
@@ -6346,11 +6346,15 @@ textarea:focus,
   background-image: none !important;
   border: 1px solid var(--vis-dark-10) !important;
   color: var(--vis-dark) !important;
-  box-shadow: 0 14px 30px var(--vis-dark-30) !important;
+  box-shadow: 0 9px 18px var(--vis-dark-30) !important;
 }
 
 .voiceActionButtonStart {
   border-radius: 999px !important;
+}
+
+.voicePanel .voiceActionButtonStart {
+  margin-block: 4px !important;
 }
 
 .dashboardCtaRow {
@@ -6588,7 +6592,7 @@ textarea:focus,
   border-radius: 14px;
   border: 1px solid rgba(25, 59, 104, 0.22);
   background: rgba(25, 59, 104, 0.1);
-  box-shadow: 0 6px 16px rgba(20, 121, 255, 0.3);
+  box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3);
   color: #1479ff;
   display: inline-flex;
   align-items: center;
@@ -6606,7 +6610,7 @@ textarea:focus,
   background: rgba(25, 59, 104, 0.1);
   border-color: rgba(25, 59, 104, 0.26);
   color: #1479ff;
-  box-shadow: 0 8px 18px rgba(20, 121, 255, 0.3);
+  box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3);
 }
 
 .appSidebarNavIcon {
@@ -6729,7 +6733,7 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
   background: var(--vis-accent-c) !important;
   border-color: var(--vis-accent-c) !important;
   color: var(--vis-dark) !important;
-  box-shadow: 0 16px 34px rgba(20, 235, 255, 0.3) !important;
+  box-shadow: 0 10px 22px rgba(20, 235, 255, 0.3) !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -6819,4 +6823,16 @@ a.submitButton,
   .positionsInputTable .positionDeleteButton:hover .positionDeleteIcon {
     color: #ff3b30;
   }
+}
+
+/* Targeted typography swap for voice/positions headings */
+.voicePanelHeader strong,
+.positionsModuleTitle {
+  font-size: var(--app-font-size-primary) !important;
+  font-weight: 700 !important;
+}
+
+.positionsInputTable thead th:first-child {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
 }

@@ -4541,7 +4541,9 @@ export default function HomePage() {
                 <div className="voicePanelHeader">
                   <strong>Per Sprache ausfüllen</strong>
                   <p>
-                    Sprich alle Angebotsdaten frei ein - relevante Angaben
+                    Sprich alle{" "}
+                    {isInvoiceMode ? "Rechnungsdaten" : "Angebotsdaten"} frei
+                    ein - relevante Angaben
                     werden automatisch erkannt und direkt in die Felder
                     übernommen.
                   </p>
