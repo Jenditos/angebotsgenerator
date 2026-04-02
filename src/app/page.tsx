@@ -379,7 +379,7 @@ function createInitialModeSnapshot(): ModeSnapshot {
   return {
     form: createInitialForm(),
     activeCustomerNumber: "",
-    selectedServices: [],
+    selectedServices: [createManualSelectedServiceEntry()],
     voiceTranscript: "",
     voiceInfo: "",
     voiceError: "",
@@ -492,10 +492,10 @@ function hydrateOfferForm(value: unknown): OfferForm {
 
 function hydrateSelectedServices(value: unknown): SelectedServiceEntry[] {
   if (!Array.isArray(value)) {
-    return [];
+    return [createManualSelectedServiceEntry()];
   }
 
-  return value
+  const hydratedServices = value
     .map((entry) => {
       if (!isObjectRecord(entry)) {
         return null;
@@ -526,6 +526,10 @@ function hydrateSelectedServices(value: unknown): SelectedServiceEntry[] {
       };
     })
     .filter((entry): entry is SelectedServiceEntry => Boolean(entry));
+
+  return hydratedServices.length > 0
+    ? hydratedServices
+    : [createManualSelectedServiceEntry()];
 }
 
 function hydrateAddressSuggestions(value: unknown): AddressSuggestion[] {
@@ -776,6 +780,14 @@ function createSelectedServiceEntry(label: string): SelectedServiceEntry {
   };
 }
 
+function createManualSelectedServiceEntry(): SelectedServiceEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label: DEFAULT_MANUAL_GROUP_LABEL,
+    subitems: [createSubitemEntry()],
+  };
+}
+
 function selectedServiceToRequestValue(service: SelectedServiceEntry): string {
   return service.label.trim();
 }
@@ -798,10 +810,10 @@ function selectedServicesFromDraftPayload(
   groups: CustomerDraftGroup[] | undefined,
 ): SelectedServiceEntry[] {
   if (!Array.isArray(groups) || groups.length === 0) {
-    return [];
+    return [createManualSelectedServiceEntry()];
   }
 
-  return groups
+  const selectedFromDraft = groups
     .map((group) => {
       const label = capitalizeEntryStart(group.label?.trim() || "");
       const subitems = Array.isArray(group.subitems) ? group.subitems : [];
@@ -834,6 +846,10 @@ function selectedServicesFromDraftPayload(
       };
     })
     .filter((entry): entry is SelectedServiceEntry => Boolean(entry));
+
+  return selectedFromDraft.length > 0
+    ? selectedFromDraft
+    : [createManualSelectedServiceEntry()];
 }
 
 function getSubitemUnit(subitem: ServiceSubitemEntry): string {
@@ -1168,7 +1184,7 @@ export default function HomePage() {
   const [serviceSearch, setServiceSearch] = useState("");
   const [selectedServices, setSelectedServices] = useState<
     SelectedServiceEntry[]
-  >([]);
+  >([createManualSelectedServiceEntry()]);
   const [activePriceSubitemId, setActivePriceSubitemId] = useState<
     string | null
   >(null);
@@ -2556,7 +2572,7 @@ export default function HomePage() {
   function addEmptyPositionRow() {
     setSelectedServices((prev) => {
       if (prev.length === 0) {
-        return [createSelectedServiceEntry(DEFAULT_MANUAL_GROUP_LABEL)];
+        return [createManualSelectedServiceEntry()];
       }
 
       const targetService = prev[prev.length - 1];
@@ -3770,9 +3786,11 @@ export default function HomePage() {
               >
                 <p className="accountMenuHeader">
                   <span>Nutzerbereich</span>
-                  <strong className="accountMenuIdentity">
-                    {isAuthenticatedUser ? accountIdentityLabel : "Nicht eingeloggt"}
-                  </strong>
+                  {isAuthenticatedUser ? (
+                    <strong className="accountMenuIdentity">
+                      {accountIdentityLabel}
+                    </strong>
+                  ) : null}
                 </p>
                 <div className="accountMenuDivider" aria-hidden />
                 <button
@@ -5077,13 +5095,11 @@ export default function HomePage() {
                       </h3>
                     </div>
                     <div className="positionsSearchRow">
-                      <label className="positionsSearchLabel" htmlFor="positionsServiceSearch">
-                        Leistung suchen
-                      </label>
                       <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
                         <input
                           id="positionsServiceSearch"
                           className="serviceSearchInput"
+                          aria-label="Leistung suchen"
                           value={serviceSearch}
                           placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
                           autoCapitalize="words"
@@ -5202,21 +5218,11 @@ export default function HomePage() {
                         ) : (
                           selectedServices.map((service) => (
                             <Fragment key={service.id}>
-                              <tr className="positionsGroupRow">
-                                <td colSpan={5}>{service.label}</td>
-                                <td className="positionsGroupAction">
-                                  <button
-                                    type="button"
-                                    className="positionsGroupDeleteButton"
-                                    onClick={() =>
-                                      removeSelectedService(service.id)
-                                    }
-                                    aria-label={`Alle Positionen aus ${service.label} löschen`}
-                                  >
-                                    Alle löschen
-                                  </button>
-                                </td>
-                              </tr>
+                              {service.label.trim() !== DEFAULT_MANUAL_GROUP_LABEL ? (
+                                <tr className="positionsGroupRow">
+                                  <td colSpan={6}>{service.label}</td>
+                                </tr>
+                              ) : null}
                               {service.subitems.map((subitem, index) => {
                                 const subitemTotal =
                                   calculateSubitemTotal(subitem);
@@ -5402,7 +5408,7 @@ export default function HomePage() {
                         className="ghostButton positionsAddRowButton"
                         onClick={addEmptyPositionRow}
                       >
-                        + Position eintragen
+                        +
                       </button>
                     </div>
                     {serviceInfo ? (
