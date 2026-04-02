@@ -1657,6 +1657,12 @@ p {
   white-space: nowrap;
 }
 
+.positionDeleteIcon {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
 .positionsInputEmpty {
   padding: 13px 11px !important;
   font-size: 0.84rem;
@@ -3741,6 +3747,7 @@ button.voiceActionButtonClear,
 button.voiceActionButtonClear:hover:not(:disabled),
 button.voiceActionButtonClear:active:not(:disabled) {
   border-color: rgba(206, 223, 246, 0.88);
+  font-weight: 400 !important;
 }
 
 button.voiceActionButtonStart {
@@ -6625,19 +6632,13 @@ textarea:focus,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .appSidebarNavIconWrap:hover {
-    transform: translateY(-1px) scale(1.01);
-    background: rgba(25, 59, 104, 0.1) !important;
-    border-color: rgba(25, 59, 104, 0.26) !important;
-    box-shadow: 0 10px 20px rgba(20, 121, 255, 0.3) !important;
-  }
-
+  .appSidebarNavIconWrap:hover,
   .appSidebarNavItem.active .appSidebarNavIconWrap:hover {
-    transform: translateY(-1px) scale(1.01);
-    background: rgba(25, 59, 104, 0.1) !important;
-    border-color: rgba(25, 59, 104, 0.3) !important;
+    transform: none !important;
+    background: rgba(20, 121, 255, 0.3) !important;
+    border-color: rgba(20, 121, 255, 0.3) !important;
     color: #1479ff !important;
-    box-shadow: 0 12px 22px rgba(20, 121, 255, 0.3) !important;
+    box-shadow: 0 10px 24px var(--vis-primary-30) !important;
   }
 }
 
@@ -6657,14 +6658,17 @@ textarea:focus,
 
 .appFrameWithSidebar .documentModeSwitchTop {
   justify-content: stretch;
+  margin-bottom: 12px;
 }
 
 .appFrameWithSidebar .documentModeSwitch {
   width: 100% !important;
   max-width: none !important;
   box-shadow: none !important;
-  border: 1px solid var(--vis-dark-10) !important;
-  border-radius: 18px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 .appFrameWithSidebar .dashboardMainShell {
@@ -6775,4 +6779,43 @@ button.submitButton,
 a.submitButton,
 .dashboardCtaRow .submitButton {
   font-size: var(--app-font-size-secondary) !important;
+}
+
+/* Positions table delete action: compact icon-only control */
+.positionsInputTable .positionDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 !important;
+  border-radius: 10px;
+  background: var(--vis-white) !important;
+  border: 1px solid var(--vis-dark-10) !important;
+  color: var(--vis-dark) !important;
+  box-shadow: none !important;
+}
+
+.positionsInputTable .positionDeleteButton .positionDeleteIcon {
+  width: 17px;
+  height: 17px;
+  transition:
+    transform var(--vis-reference-transition),
+    filter var(--vis-reference-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .positionsInputTable .positionDeleteButton:hover {
+    color: #ff3b30 !important;
+    border-color: rgba(255, 59, 48, 0.45) !important;
+    background: var(--vis-white) !important;
+    box-shadow: none !important;
+  }
+
+  .positionsInputTable .positionDeleteButton:hover .positionDeleteIcon {
+    transform: scale(1.05);
+    filter: drop-shadow(0 2px 5px rgba(255, 59, 48, 0.3));
+  }
 }

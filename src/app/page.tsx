@@ -4510,31 +4510,30 @@ export default function HomePage() {
           </aside>
 
           <div className="appMainContent">
-            <div className="documentModeSwitchTop">
-              <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
-                <button
-                  type="button"
-                  className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
-                  aria-pressed={documentMode === "offer"}
-                  onClick={() => switchDocumentMode("offer")}
-                >
-                  Angebote
-                </button>
-                <button
-                  type="button"
-                  className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
-                  aria-pressed={documentMode === "invoice"}
-                  onClick={() => switchDocumentMode("invoice")}
-                >
-                  Rechnungen
-                </button>
-              </div>
-            </div>
-
             <div
               key={`${documentMode}-${modeAnimationKey}`}
               className="documentModeContent dashboardMainShell"
             >
+              <div className="documentModeSwitchTop">
+                <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
+                  <button
+                    type="button"
+                    className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
+                    aria-pressed={documentMode === "offer"}
+                    onClick={() => switchDocumentMode("offer")}
+                  >
+                    Angebote
+                  </button>
+                  <button
+                    type="button"
+                    className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
+                    aria-pressed={documentMode === "invoice"}
+                    onClick={() => switchDocumentMode("invoice")}
+                  >
+                    Rechnungen
+                  </button>
+                </div>
+              </div>
               <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
               <article className="glassCard formCard dashboardPrimaryCard">
             <form onSubmit={onSubmit} className="formGrid dashboardFormGrid">
@@ -5391,7 +5390,45 @@ export default function HomePage() {
                                       }
                                       aria-label={`Position ${index + 1} für ${service.label} löschen`}
                                     >
-                                      Löschen
+                                      <svg
+                                        viewBox="0 0 24 24"
+                                        className="positionDeleteIcon"
+                                        aria-hidden="true"
+                                        focusable="false"
+                                      >
+                                        <path
+                                          d="M3 6h18"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M8 6V4h8v2"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M19 6 18 20H6L5 6"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M10 11v6M14 11v6"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
                                     </button>
                                   </td>
                                   </tr>
@@ -5416,7 +5453,8 @@ export default function HomePage() {
                         {serviceInfo}
                       </p>
                     ) : null}
-                    {serviceError ? (
+                    {serviceError &&
+                    !/^nicht eingeloggt\.?$/i.test(serviceError.trim()) ? (
                       <p className="voiceWarning positionsPanelWarning" role="alert">
                         {serviceError}
                       </p>
