@@ -4519,7 +4519,7 @@ export default function HomePage() {
           <div className="appMainContent">
             <div
               key={`${documentMode}-${modeAnimationKey}`}
-              className="documentModeContent dashboardMainShell"
+              className="documentModeContent"
             >
               <div className="documentModeSwitchTop">
                 <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">

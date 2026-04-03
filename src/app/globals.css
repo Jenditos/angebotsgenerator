@@ -8340,31 +8340,24 @@ body,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .appSidebar .appSidebarNavItem:not(.active):hover .appSidebarNavIconWrap,
-  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap,
   .appSidebar .appSidebarNavIconWrap:hover {
-    background: rgba(25, 59, 104, 0.1) !important;
+    background: #1479ff !important;
+    background-color: #1479ff !important;
     background-image: none !important;
-    border-color: rgba(25, 59, 104, 0.22) !important;
-    color: #1479ff !important;
+    border-color: #1479ff !important;
+    color: #ffffff !important;
     box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
     transform: none !important;
     opacity: 1 !important;
   }
 
-  .appSidebar .appSidebarNavItem.active:hover .appSidebarNavIconWrap {
-    background: rgba(25, 59, 104, 0.1) !important;
-    border-color: rgba(25, 59, 104, 0.26) !important;
-    color: #1479ff !important;
+  .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap:hover {
     box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
-    transform: none !important;
-    opacity: 1 !important;
   }
 
-  .appSidebar .appSidebarNavItem:hover .appSidebarNavIcon,
-  .appSidebar .appSidebarActionButton:hover .appSidebarNavIcon,
   .appSidebar .appSidebarNavIconWrap:hover .appSidebarNavIcon {
-    color: #1479ff !important;
+    color: #ffffff !important;
+    fill: #ffffff !important;
   }
 }
 
