@@ -165,7 +165,7 @@ export default function AuthPage() {
       <div className="authGithubCenter">
         <div className="authGithubLogoRow" aria-label="Visioro">
           <img
-            src="/visioro-logo.png"
+            src="/visioro-logo.svg"
             alt="Visioro"
             className="authGithubLogoImage"
           />

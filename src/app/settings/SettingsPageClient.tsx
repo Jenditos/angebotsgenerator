@@ -28,6 +28,7 @@ import {
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
 
 const emptySettings: CompanySettings = {
@@ -1007,9 +1008,7 @@ export default function SettingsPage() {
       >
         {!isEmbedded ? (
           <header className="topHeaderMinimal">
-            <span className="pill topHeaderLogo" aria-label="Visioro">
-              Visioro
-            </span>
+            <VisioroLogoPill />
             <Link
               href="/"
               className={`topHeaderSettingsButton topHeaderBackButton ${isLeavingSettings ? "isNavigating" : ""}`}

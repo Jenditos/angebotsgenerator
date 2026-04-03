@@ -7,5 +7,13 @@ export function VisioroLogoPill({ className = "" }: VisioroLogoPillProps) {
     ? `pill topHeaderLogo ${className}`
     : "pill topHeaderLogo";
 
-  return <span className={logoClassName}>Visioro</span>;
+  return (
+    <span className={logoClassName} aria-label="Visioro">
+      <img
+        src="/visioro-logo.svg"
+        alt="Visioro"
+        className="topHeaderLogoImage"
+      />
+    </span>
+  );
 }

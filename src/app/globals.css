@@ -867,6 +867,14 @@ a {
   justify-content: center;
 }
 
+.topHeaderLogoImage {
+  display: block;
+  height: 24px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
 .topHeaderSettingsButton {
   position: absolute;
   right: 0;
