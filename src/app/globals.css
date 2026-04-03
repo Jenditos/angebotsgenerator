@@ -6533,7 +6533,7 @@ textarea:focus,
   display: grid;
   grid-template-rows: 1fr auto;
   gap: 18px;
-  padding: 14px 12px 14px;
+  padding: 28px 12px 14px;
   border-right: none;
   background: #ffffff;
   box-shadow: none;
@@ -6542,7 +6542,7 @@ textarea:focus,
 .appSidebarTop {
   display: grid;
   align-content: start;
-  gap: 32px;
+  gap: 64px;
 }
 
 .appSidebarBrandWrap {
@@ -6635,7 +6635,7 @@ textarea:focus,
 
 .appSidebarNavLabel {
   display: block;
-  color: var(--vis-dark);
+  color: var(--vis-dark) !important;
   font-size: 0.44rem;
   line-height: 1.2;
   font-weight: 700;

@@ -391,6 +391,7 @@ export default function SettingsPage() {
   const settingsSaveRequestRef = useRef(0);
   const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const hasLocalLogoChangeRef = useRef(false);
+  const isNotLoggedInError = /^nicht eingeloggt\.?$/i.test(error.trim());
 
   const persistSettings = useCallback(
     async (
@@ -1570,7 +1571,11 @@ export default function SettingsPage() {
             </button>
           </form>
           {saveStatus ? <p className="success">{saveStatus}</p> : null}
-          {error ? <p className="error">{error}</p> : null}
+          {error ? (
+            <p className={isNotLoggedInError ? "voiceInfo postActionError" : "error"}>
+              {error}
+            </p>
+          ) : null}
         </section>
       </div>
     </main>
