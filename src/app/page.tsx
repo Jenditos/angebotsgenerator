@@ -4302,7 +4302,7 @@ export default function HomePage() {
             <div className="appSidebarTop">
               <div className="appSidebarBrandWrap">
                 <img
-                  src="/visioro-logo.svg"
+                  src="/visioro-logo.png"
                   alt="Visioro"
                   className="appSidebarBrandPill"
                 />

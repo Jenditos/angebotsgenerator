@@ -6565,13 +6565,15 @@ textarea:focus,
 .appSidebarBrandWrap {
   display: flex;
   justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .appSidebarBrandPill {
   display: block;
-  height: 36px;
+  height: 42px;
   width: auto;
-  max-width: 132px;
+  max-width: 152px;
   object-fit: contain;
   border: 0 !important;
   border-radius: 0 !important;
