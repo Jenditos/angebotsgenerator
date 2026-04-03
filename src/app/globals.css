@@ -8292,3 +8292,31 @@ body,
     opacity: 1 !important;
   }
 }
+
+/* ==========================================================================
+   Targeted UI corrections
+   ========================================================================== */
+/* 1) Red hints/errors: text-only (no box/background/border/shadow) */
+:is(
+    .authError,
+    .authGithubMessageError,
+    .error,
+    .voiceWarning,
+    .positionsPanelWarning,
+    .voiceInfo.postActionError,
+    .customerArchiveSheet .voiceWarning,
+    .customerPickerModalSheet .voiceWarning
+  ) {
+  color: #ff3b30 !important;
+  border: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* 2) Leistungen & Positionen: keep top radius visually intact */
+.positionsIntegratedPanel.dashboardPositionsPanel {
+  overflow: hidden !important;
+}
