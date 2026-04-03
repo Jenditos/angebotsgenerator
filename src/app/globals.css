@@ -6166,7 +6166,7 @@ body {
 .positionsSearchPanel {
   background: var(--vis-primary-soft) !important;
   border-bottom: 1px solid var(--vis-dark-10) !important;
-  padding: 18px 18px 14px !important;
+  padding: 18px var(--positions-module-axis-inline, 14px) 14px !important;
   gap: 10px !important;
 }
 
@@ -6205,7 +6205,7 @@ body {
 
 .positionsInputWrap,
 .positionsInputWrapMerged {
-  background: transparent !important;
+  background: var(--vis-primary-soft) !important;
   border-top: 1px solid var(--vis-dark-10) !important;
   margin-top: 0 !important;
 }
@@ -6215,11 +6215,11 @@ body {
 }
 
 .positionsInputTable {
-  background: var(--vis-white) !important;
+  background: var(--vis-primary-soft) !important;
 }
 
 .positionsInputTable thead th {
-  background: rgba(20, 121, 255, 0.08) !important;
+  background: var(--vis-primary-soft) !important;
   color: var(--vis-dark) !important;
   border-color: var(--vis-dark-10) !important;
 }
@@ -6228,18 +6228,35 @@ body {
 .positionsInputTable tfoot td,
 .positionsInputTableFooter,
 .positionsInputEmpty {
-  background: var(--vis-white) !important;
+  background: var(--vis-primary-soft) !important;
   color: var(--vis-dark) !important;
   border-color: var(--vis-dark-10) !important;
 }
 
 .positionsGroupRow td {
-  background: rgba(20, 121, 255, 0.08) !important;
+  background: var(--vis-primary-soft) !important;
   color: var(--vis-dark) !important;
 }
 
 .positionsInputTableFooter {
-  padding: 12px 14px 6px !important;
+  padding: 12px var(--positions-module-axis-inline, 14px) 6px !important;
+}
+
+.positionsIntegratedPanel {
+  --positions-module-axis-inline: 14px;
+  background: var(--vis-primary-soft) !important;
+}
+
+.positionsSearchRow,
+.positionsServicePicker {
+  width: 100%;
+}
+
+.positionsInputTable thead th:first-child,
+.positionsInputTable tbody td:first-child,
+.positionsGroupRow td,
+.positionsInputEmpty {
+  padding-left: var(--positions-module-axis-inline, 14px) !important;
 }
 
 .positionsPanelInfo,
@@ -6582,7 +6599,7 @@ textarea:focus,
   justify-content: center;
   gap: 8px;
   padding: 5px 9px;
-  cursor: default;
+  cursor: pointer;
   text-align: center;
   min-height: unset;
 }
@@ -6631,6 +6648,7 @@ textarea:focus,
   box-shadow: none;
   display: block;
   flex-shrink: 0;
+  pointer-events: none;
   transition: color 180ms ease;
 }
 
@@ -6645,10 +6663,7 @@ textarea:focus,
 
 @media (hover: hover) and (pointer: fine) {
   .appSidebarNavItem:hover .appSidebarNavIconWrap,
-  .appSidebarActionButton:hover .appSidebarNavIconWrap,
-  .appSidebarNavIconWrap:hover,
-  .appSidebarNavItem.active:hover .appSidebarNavIconWrap,
-  .appSidebarNavItem.active .appSidebarNavIconWrap:hover {
+  .appSidebarActionButton:hover .appSidebarNavIconWrap {
     transform: none !important;
     background-color: #1479ff !important;
     background-image: none !important;
@@ -6658,10 +6673,7 @@ textarea:focus,
   }
 
   .appSidebarNavItem:hover .appSidebarNavIcon,
-  .appSidebarActionButton:hover .appSidebarNavIcon,
-  .appSidebarNavIconWrap:hover .appSidebarNavIcon,
-  .appSidebarNavItem.active:hover .appSidebarNavIcon,
-  .appSidebarNavItem.active .appSidebarNavIconWrap:hover .appSidebarNavIcon {
+  .appSidebarActionButton:hover .appSidebarNavIcon {
     color: #ffffff !important;
   }
 }
