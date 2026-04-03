@@ -7881,3 +7881,86 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
     padding: 16px !important;
   }
 }
+
+/* ==========================================================================
+   Targeted: Logo + Global Background
+   ========================================================================== */
+.appSidebarBrandWrap {
+  width: calc(100% + 56px) !important;
+  margin-inline: -28px !important;
+  padding-bottom: 12px !important;
+}
+
+.appSidebarBrandPill {
+  width: min(198px, 100%) !important;
+  height: auto !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+}
+
+.authGithubLogoRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+}
+
+.authGithubLogoImage {
+  display: block;
+  width: min(198px, 78vw);
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+html,
+body,
+.page,
+.authViewport,
+.authGithubViewport,
+.appFrameWithSidebar,
+.appMainContent,
+.settingsEmbeddedPage,
+.settingsEmbeddedContainer {
+  background: #ffffff !important;
+  background-image: none !important;
+}
+
+.page::before,
+.page::after,
+.authViewport::before,
+.authViewport::after,
+.authGithubViewport::before,
+.authGithubViewport::after {
+  content: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+:is(.ambient, .ambientA, .ambientB, .authGlow, .authGlowA, .authGlowB) {
+  display: none !important;
+}
+
+:is(
+    .settingsOverlayBackdrop,
+    .customerPickerModalBackdrop,
+    .infoLegalBackdrop,
+    .voiceLoginModalBackdrop,
+    .customerArchiveBackdrop
+  ) {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (max-width: 980px) {
+  .authGithubLogoRow {
+    margin-top: 4px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .authGithubLogoImage {
+    width: min(168px, 74vw);
+  }
+}

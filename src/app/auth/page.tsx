@@ -1,7 +1,6 @@
 "use client";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -165,7 +164,11 @@ export default function AuthPage() {
     <main className="authViewport authGithubViewport">
       <div className="authGithubCenter">
         <div className="authGithubLogoRow" aria-label="Visioro">
-          <VisioroLogoPill className="authGithubLogo" />
+          <img
+            src="/visioro-logo.png"
+            alt="Visioro"
+            className="authGithubLogoImage"
+          />
         </div>
 
         <section className="authGithubCard" aria-live="polite">
