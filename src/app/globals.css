@@ -7447,3 +7447,88 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
     padding: var(--pad-panel-sm) !important;
   }
 }
+
+/* ==========================================================================
+   Targeted Layout + Spacing Corrections
+   ========================================================================== */
+:root {
+  --targeted-pad-main: 24px;
+  --targeted-pad-mid: 20px;
+  --targeted-pad-compact: 16px;
+}
+
+/* 1) More breathing room in main containers/cards */
+.appFrameWithSidebar .dashboardMainShell {
+  padding: var(--targeted-pad-compact) !important;
+}
+
+.appFrameWithSidebar .dashboardPrimaryCard,
+.formCard,
+.authGithubCard,
+.settingsOverlaySheet,
+.customerPickerModalSheet,
+.infoLegalSheet,
+.customerArchiveSheet {
+  padding: var(--targeted-pad-main) !important;
+}
+
+.voicePanel,
+.recipientType,
+.accountMenuPanel {
+  padding: var(--targeted-pad-mid) !important;
+}
+
+.positionsSearchPanel {
+  padding: var(--targeted-pad-main) var(--positions-module-axis-inline, 16px)
+    16px !important;
+}
+
+.positionsInputWrapMerged {
+  padding: 16px 0 24px !important;
+}
+
+/* 2) "Kundenart" title no longer cramped */
+.recipientType > span {
+  display: block;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+/* 3) Align Angebote/Rechnungen axis with container content below */
+.appFrameWithSidebar .documentModeSwitchTop {
+  padding-inline: var(--targeted-pad-main);
+  margin-bottom: 16px;
+}
+
+.appFrameWithSidebar .documentModeSwitch {
+  width: 100% !important;
+}
+
+/* 4) Remove all shadow from "+" button */
+.positionsAddRowButton,
+.ghostButton.positionsAddRowButton,
+.positionsAddRowButton:hover,
+.positionsAddRowButton:active,
+.positionsAddRowButton:focus,
+.positionsAddRowButton:focus-visible {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+@media (max-width: 980px) {
+  .appFrameWithSidebar .documentModeSwitchTop {
+    padding-inline: var(--targeted-pad-compact);
+  }
+
+  .appFrameWithSidebar .dashboardPrimaryCard,
+  .formCard,
+  .authGithubCard,
+  .settingsOverlaySheet,
+  .customerPickerModalSheet,
+  .infoLegalSheet,
+  .customerArchiveSheet,
+  .voicePanel,
+  .recipientType {
+    padding: var(--targeted-pad-compact) !important;
+  }
+}
