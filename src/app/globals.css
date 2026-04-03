@@ -6802,34 +6802,359 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
 }
 
 /* ==========================================================================
-   Global Typography Unification (two-size system only)
+   Product Typography + Spacing System (final)
    ========================================================================== */
 :root {
-  --app-font-size-primary: 14px;
-  --app-font-size-secondary: 19px;
+  /* Typography tokens */
+  --text-title-size: 18px;
+  --text-title-line: 24px;
+  --text-title-weight: 600;
+
+  --text-label-size: 14px;
+  --text-label-line: 20px;
+  --text-label-weight: 600;
+  --text-label-weight-regular: 500;
+
+  --text-body-size: 14px;
+  --text-body-line: 20px;
+  --text-body-weight: 400;
+  --text-body-weight-regular: 500;
+
+  --text-color-strong: var(--vis-dark, #193b68);
+  --text-color-muted: var(--muted, #506487);
+
+  /* 4/8 spacing system */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+
+  /* Legacy compatibility mappings */
+  --space-app-md: var(--space-4);
+  --space-app-lg: var(--space-5);
+  --type-heading: var(--text-title-size);
+  --type-label: var(--text-label-size);
+  --type-body: var(--text-body-size);
+  --type-micro: var(--text-label-size);
 }
 
-body,
-body *,
-body *::before,
-body *::after {
-  font-size: var(--app-font-size-primary) !important;
+/* Reusable utility classes */
+.text-title {
+  font-size: var(--text-title-size) !important;
+  line-height: var(--text-title-line) !important;
+  font-weight: var(--text-title-weight) !important;
+  color: var(--text-color-strong) !important;
 }
 
-h1,
-h2,
-.topBarTitle,
-.settingsTopBarTitle,
-.authHeading,
-button.primaryButton,
-a.primaryButton,
-button.submitButton,
-a.submitButton,
-.dashboardCtaRow .submitButton {
-  font-size: var(--app-font-size-secondary) !important;
+.text-label {
+  font-size: var(--text-label-size) !important;
+  line-height: var(--text-label-line) !important;
+  font-weight: var(--text-label-weight) !important;
+  color: var(--text-color-strong) !important;
 }
 
-/* Positions table delete action: compact icon-only control */
+.text-body {
+  font-size: var(--text-body-size) !important;
+  line-height: var(--text-body-line) !important;
+  font-weight: var(--text-body-weight) !important;
+  color: var(--text-color-muted) !important;
+}
+
+.space-1 {
+  gap: var(--space-1) !important;
+}
+
+.space-2 {
+  gap: var(--space-2) !important;
+}
+
+.space-3 {
+  gap: var(--space-3) !important;
+}
+
+.space-4 {
+  gap: var(--space-4) !important;
+}
+
+.space-5 {
+  gap: var(--space-5) !important;
+}
+
+.space-6 {
+  gap: var(--space-6) !important;
+}
+
+/* Title stage: 18/24, 600 */
+:is(
+    h1,
+    h2,
+    .topBarTitle,
+    .settingsTopBarTitle,
+    .voicePanelHeader strong,
+    .positionsModuleTitle,
+    .customerArchiveHeader strong,
+    .customerArchiveDetailHeader strong,
+    .settingsOverlayHeader strong,
+    .customerPickerModalHeader strong,
+    .infoLegalHeading,
+    .authGithubModeIntro
+  ) {
+  font-size: var(--text-title-size) !important;
+  line-height: var(--text-title-line) !important;
+  font-weight: var(--text-title-weight) !important;
+  color: var(--text-color-strong) !important;
+  letter-spacing: 0 !important;
+}
+
+/* Label stage: 14/20, 600 */
+:is(
+    .field > span,
+    .recipientType > span,
+    .positionsInputTable thead th,
+    .positionsTable thead th,
+    .positionsTableHeaderLikeRecipient,
+    .appSidebarNavLabel,
+    .authGithubLabel,
+    .settingsPdfColumnsField > span,
+    .settingsInvoiceDueField > span,
+    .settingsTaxOptionsField > span,
+    .settingsPdfColumnsToggle,
+    .serviceSuggestionGroupLabel,
+    .customerArchiveGroupLabel,
+    .customerArchiveSectionMeta,
+    .customerArchiveCustomerHead span,
+    .customerPickerItemHeader span,
+    .voiceMissingLabel,
+    .heroEyebrow
+  ) {
+  font-size: var(--text-label-size) !important;
+  line-height: var(--text-label-line) !important;
+  font-weight: var(--text-label-weight) !important;
+  color: var(--text-color-strong) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* Body stage: 14/20 */
+:is(
+    p,
+    .heroText,
+    .voicePanelHeader p,
+    .voiceInfo,
+    .voiceWarning,
+    .error,
+    .customerPickerHint,
+    .customerArchiveHint,
+    .customerArchiveHintCompact,
+    .authGithubSignupHint,
+    .authGithubModeIntro span,
+    .authGithubMessage,
+    .settingsPdfColumnsHint,
+    .settingsInvoiceDueHint,
+    .settingsLogoHint,
+    .settingsInvoiceDueCustom,
+    .settingsInvoiceDueCustomInputWrap em,
+    .serviceSuggestionHint,
+    .serviceSuggestionButton span,
+    .customerArchiveDocumentMeta span,
+    .customerArchiveDetailHeader span,
+    .customerArchiveDetailHeader p,
+    .customerArchiveCustomerButton p
+  ) {
+  font-size: var(--text-body-size) !important;
+  line-height: var(--text-body-line) !important;
+  font-weight: var(--text-body-weight) !important;
+}
+
+/* Input and form typography */
+:is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    .authGithubCard .authGithubInput
+  ) {
+  font-size: var(--text-body-size) !important;
+  line-height: var(--text-body-line) !important;
+  font-weight: var(--text-body-weight) !important;
+  color: var(--text-color-strong) !important;
+}
+
+:is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    .authGithubCard .authGithubInput
+  )::placeholder {
+  font-size: var(--text-body-size) !important;
+  line-height: var(--text-body-line) !important;
+  color: var(--text-color-muted) !important;
+}
+
+/* Button typography */
+:is(
+    button,
+    a.primaryButton,
+    a.ghostButton,
+    .authGithubCard .authGithubInlineLink,
+    .authGithubCard .authGithubPasskeyButton
+  ) {
+  font-size: var(--text-label-size) !important;
+  line-height: var(--text-label-line) !important;
+}
+
+:is(
+    .ghostButton,
+    .voiceActionButton,
+    .documentModeSwitchButton,
+    .recipientTypeButton,
+    .customerPickerToggle,
+    .customerPickerItem,
+    .serviceSuggestionButton,
+    .addressSuggestionButton,
+    .customerArchiveCustomerButton,
+    .customerArchiveSectionToggle,
+    .customerArchiveDocumentLink,
+    .settingsInvoiceDueOption,
+    .settingsPdfColumnsDragHandle,
+    .settingsPdfColumnsToggle,
+    .authGithubCard .authGithubInlineLink,
+    .authGithubCard .authGithubPasskeyButton
+  ) {
+  font-weight: var(--text-label-weight-regular) !important;
+}
+
+:is(
+    .primaryButton,
+    .submitButton,
+    .authPrimaryButton,
+    .authGithubCard .authGithubPrimaryButton
+  ) {
+  font-size: var(--text-label-size) !important;
+  line-height: var(--text-label-line) !important;
+  font-weight: var(--text-label-weight) !important;
+}
+
+/* Table headers: unified and non-uppercase */
+:is(.positionsInputTable thead th, .positionsTable thead th, .positionsTableHeaderLikeRecipient) {
+  font-size: var(--text-label-size) !important;
+  line-height: var(--text-label-line) !important;
+  font-weight: var(--text-label-weight) !important;
+  color: var(--text-color-strong) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.positionsTableHeadingTypo {
+  font-size: var(--text-title-size) !important;
+  line-height: var(--text-title-line) !important;
+  font-weight: var(--text-title-weight) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Spacing rhythm */
+.container,
+.workspaceGrid,
+.dashboardWorkspace,
+.authGithubCenter {
+  gap: var(--space-5) !important;
+}
+
+.formGrid,
+.dashboardFormGrid,
+.authGithubForm {
+  gap: var(--space-4) !important;
+}
+
+.field,
+.authGithubField {
+  gap: var(--space-2) !important;
+}
+
+.voicePanelHeader,
+.positionsModuleHeader,
+.customerArchiveHeader,
+.customerArchiveDetailHeader,
+.settingsOverlayHeader,
+.customerPickerModalHeader,
+.infoLegalHeader {
+  gap: var(--space-3) !important;
+}
+
+.recipientTypeButtons,
+.voiceActions,
+.submitActionRow,
+.dashboardCtaRow,
+.positionsSearchRow,
+.settingsLogoActions {
+  gap: var(--space-3) !important;
+}
+
+:is(
+    .voiceInfo,
+    .voiceWarning,
+    .error,
+    .settingsPdfColumnsHint,
+    .settingsInvoiceDueHint,
+    .serviceSuggestionHint,
+    .authGithubMessage
+  ) {
+  margin-top: var(--space-2) !important;
+}
+
+/* Sidebar typography + spacing */
+.appSidebar {
+  padding: var(--space-5) var(--space-4) var(--space-5) !important;
+  gap: var(--space-5) !important;
+}
+
+.appSidebarTop {
+  gap: var(--space-8) !important;
+}
+
+.appSidebarNav,
+.appSidebarBottom {
+  gap: var(--space-5) !important;
+}
+
+.appSidebarNavItem,
+.appSidebarActionButton {
+  gap: var(--space-2) !important;
+  padding: var(--space-2) !important;
+}
+
+.appSidebarNavLabel {
+  font-size: var(--text-label-size) !important;
+  line-height: var(--text-label-line) !important;
+  font-weight: var(--text-label-weight) !important;
+  color: var(--text-color-strong) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* Login alignment with system */
+.authGithubCard {
+  padding: var(--space-5) !important;
+  gap: var(--space-4) !important;
+}
+
+.authGithubForm {
+  gap: var(--space-4) !important;
+}
+
+.authGithubField {
+  gap: var(--space-2) !important;
+}
+
+.authGithubPasswordRow {
+  gap: var(--space-3) !important;
+}
+
+/* Keep compact table delete control behavior */
 .positionsInputTable .positionDeleteButton {
   display: inline-flex;
   align-items: center;
@@ -6866,41 +7191,5 @@ a.submitButton,
 
   .positionsInputTable .positionDeleteButton:hover .positionDeleteIcon {
     color: #ff3b30;
-  }
-}
-
-/* Targeted typography alignment with "Menge" table heading */
-.positionsModuleTitle,
-.positionsInputTable thead th:first-child {
-  font-size: var(--type-micro) !important;
-  font-family: "Inter", "SF Pro Display", sans-serif !important;
-  font-weight: 700 !important;
-}
-
-.positionsTableHeadingTypo {
-  font-size: var(--type-micro) !important;
-  font-family: "Inter", "SF Pro Display", sans-serif !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.03em !important;
-  text-transform: uppercase !important;
-}
-
-.positionsTableHeaderLikeRecipient {
-  font-family: inherit !important;
-  font-size: 0.84rem !important;
-  font-weight: 700 !important;
-  color: #1e3b69 !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
-}
-
-@media (max-width: 760px) {
-  .positionsModuleTitle,
-  .positionsInputTable thead th:first-child {
-    font-size: 0.76rem !important;
-  }
-
-  .positionsTableHeadingTypo {
-    font-size: 0.76rem !important;
   }
 }
