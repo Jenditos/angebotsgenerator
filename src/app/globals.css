@@ -8320,3 +8320,64 @@ body,
 .positionsIntegratedPanel.dashboardPositionsPanel {
   overflow: hidden !important;
 }
+
+/* ==========================================================================
+   Sidebar-only final adjustments
+   ========================================================================== */
+/* Small sidebar icons: fixed default blue and no hover visual change */
+.appSidebar .appSidebarNavIconWrap,
+.appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap {
+  color: #1479ff !important;
+}
+
+.appSidebar .appSidebarNavIcon {
+  color: #1479ff !important;
+}
+
+.appSidebar .appSidebarNavIconWrap,
+.appSidebar .appSidebarNavIcon {
+  transition: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appSidebar .appSidebarNavItem:not(.active):hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarNavIconWrap:hover {
+    background: rgba(25, 59, 104, 0.1) !important;
+    background-image: none !important;
+    border-color: rgba(25, 59, 104, 0.22) !important;
+    color: #1479ff !important;
+    box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .appSidebar .appSidebarNavItem.active:hover .appSidebarNavIconWrap {
+    background: rgba(25, 59, 104, 0.1) !important;
+    border-color: rgba(25, 59, 104, 0.26) !important;
+    color: #1479ff !important;
+    box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIcon,
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIcon,
+  .appSidebar .appSidebarNavIconWrap:hover .appSidebarNavIcon {
+    color: #1479ff !important;
+  }
+}
+
+/* Sidebar brand logo: much smaller and fully contained */
+.appSidebarBrandWrap {
+  width: 100% !important;
+  margin-inline: 0 !important;
+}
+
+.appSidebarBrandPill {
+  width: min(112px, 78%) !important;
+  max-width: 112px !important;
+  height: auto !important;
+  margin-inline: auto !important;
+  object-fit: contain !important;
+}
