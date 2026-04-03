@@ -7532,3 +7532,352 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
     padding: var(--targeted-pad-compact) !important;
   }
 }
+
+/* ==========================================================================
+   Shadow Safety Layout (global overflow + spacing correction)
+   ========================================================================== */
+:root {
+  --shadow-safe-gap-md: 16px;
+  --shadow-safe-gap-lg: 24px;
+  --shadow-safe-pad-md: 16px;
+  --shadow-safe-pad-lg: 24px;
+}
+
+/* Open clipping parents where elevated cards are nested */
+.page,
+.dashboardPrimaryCard,
+.positionsIntegratedPanel {
+  overflow: visible !important;
+}
+
+/* Preserve horizontal clipping, allow vertical breathing on auth pages */
+.authViewport,
+.authGithubViewport {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Keep enough separation between major containers so shadows do not collide */
+.container,
+.workspaceGrid,
+.dashboardWorkspace,
+.appMainContent,
+.authGithubCenter,
+.settingsEmbeddedContainer {
+  gap: var(--shadow-safe-gap-lg) !important;
+}
+
+.dashboardFormGrid {
+  column-gap: var(--shadow-safe-gap-md) !important;
+  row-gap: var(--shadow-safe-gap-lg) !important;
+}
+
+.documentModeSwitchTop {
+  margin-bottom: var(--shadow-safe-gap-md) !important;
+}
+
+.submitActionRow,
+.dashboardCtaRow {
+  margin-top: var(--shadow-safe-gap-md) !important;
+}
+
+/* Add card/panel inner space so content never sits against shadow edges */
+.formCard,
+.authGithubCard,
+.settingsOverlaySheet,
+.customerPickerModalSheet,
+.infoLegalSheet,
+.customerArchiveSheet,
+.appFrameWithSidebar .dashboardPrimaryCard {
+  padding: var(--shadow-safe-pad-lg) !important;
+}
+
+.appFrameWithSidebar .dashboardMainShell,
+.voicePanel,
+.recipientType,
+.accountMenuPanel,
+.voiceLoginModalSheet {
+  padding: var(--shadow-safe-pad-md) !important;
+}
+
+.positionsSearchPanel {
+  padding: var(--shadow-safe-pad-lg) var(--positions-module-axis-inline, 16px)
+    var(--shadow-safe-pad-md) !important;
+}
+
+.positionsInputWrapMerged {
+  padding: var(--shadow-safe-pad-md) 0 var(--shadow-safe-pad-lg) !important;
+}
+
+@media (max-width: 980px) {
+  .container,
+  .workspaceGrid,
+  .dashboardWorkspace,
+  .appMainContent,
+  .authGithubCenter {
+    gap: var(--shadow-safe-gap-md) !important;
+  }
+
+  .dashboardFormGrid {
+    row-gap: var(--shadow-safe-gap-md) !important;
+    column-gap: var(--shadow-safe-gap-md) !important;
+  }
+
+  .formCard,
+  .authGithubCard,
+  .settingsOverlaySheet,
+  .customerPickerModalSheet,
+  .infoLegalSheet,
+  .customerArchiveSheet,
+  .voicePanel,
+  .recipientType,
+  .appFrameWithSidebar .dashboardPrimaryCard,
+  .appFrameWithSidebar .dashboardMainShell,
+  .voiceLoginModalSheet {
+    padding: var(--shadow-safe-pad-md) !important;
+  }
+
+  .positionsSearchPanel {
+    padding: var(--shadow-safe-pad-md) var(--positions-module-axis-inline, 16px)
+      var(--shadow-safe-pad-md) !important;
+  }
+
+  .positionsInputWrapMerged {
+    padding: var(--shadow-safe-pad-md) 0 var(--shadow-safe-pad-md) !important;
+  }
+}
+
+/* ==========================================================================
+   Sidebar Targeted Design Adjustments
+   ========================================================================== */
+.appSidebarNav,
+.appSidebarBottom {
+  gap: 28px !important;
+}
+
+.appSidebarNavItem,
+.appSidebarActionButton {
+  gap: 12px !important;
+}
+
+.appSidebarNavIconWrap {
+  transition:
+    background-color 0s linear,
+    border-color 0s linear,
+    color 140ms ease,
+    box-shadow 140ms ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebarActionButton:hover .appSidebarNavIconWrap,
+  .appSidebarNavIconWrap:hover {
+    background: #1479ff !important;
+    background-color: #1479ff !important;
+    background-image: none !important;
+    border-color: #1479ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+    opacity: 1 !important;
+  }
+
+  .appSidebarNavItem:hover .appSidebarNavIcon,
+  .appSidebarActionButton:hover .appSidebarNavIcon,
+  .appSidebarNavIconWrap:hover .appSidebarNavIcon {
+    color: #ffffff !important;
+  }
+}
+
+/* ==========================================================================
+   Cross-Context Design Consistency Sweep (final priority)
+   ========================================================================== */
+:is(
+    .settingsOverlayBackdrop,
+    .customerPickerModalBackdrop,
+    .infoLegalBackdrop,
+    .voiceLoginModalBackdrop,
+    .customerArchiveBackdrop
+  ) {
+  background: rgba(12, 31, 58, 0.28) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  padding: 24px !important;
+}
+
+:is(
+    .settingsOverlaySheet,
+    .customerPickerModalSheet,
+    .infoLegalSheet,
+    .voiceLoginModalSheet,
+    .customerArchiveSheet,
+    .accountMenuPanel,
+    .accountTipsPopover,
+    .authGithubCard,
+    .authCard
+  ) {
+  border: 1px solid var(--vis-dark-10) !important;
+  border-radius: var(--vis-radius-lg) !important;
+  background: var(--vis-white) !important;
+  background-image: none !important;
+  box-shadow: 0 22px 46px var(--vis-dark-30) !important;
+  color: var(--vis-dark) !important;
+}
+
+:is(
+    .settingsOverlaySheet,
+    .customerPickerModalSheet,
+    .infoLegalSheet,
+    .voiceLoginModalSheet,
+    .customerArchiveSheet,
+    .authGithubCard,
+    .authCard
+  ) {
+  padding: 24px !important;
+  gap: 16px !important;
+}
+
+:is(.accountMenuPanel, .accountTipsPopover) {
+  padding: 16px !important;
+}
+
+:is(
+    .settingsOverlayHeader,
+    .customerPickerModalHeader,
+    .voiceLoginModalHeader,
+    .customerArchiveHeader,
+    .authCardHeader
+  ) {
+  gap: 12px !important;
+  margin-bottom: 16px !important;
+}
+
+:is(
+    .settingsOverlayHeader,
+    .customerPickerModalHeader,
+    .voiceLoginModalHeader,
+    .customerArchiveHeader
+  ) {
+  padding: 0 !important;
+}
+
+.infoLegalHeader {
+  gap: 12px !important;
+  padding: 0 0 12px !important;
+  margin-bottom: 12px !important;
+  border-bottom: 1px solid var(--vis-dark-10) !important;
+}
+
+:is(
+    .settingsOverlayCloseButton,
+    .customerPickerModalCloseButton,
+    .infoLegalCloseButton,
+    .voiceLoginModalCloseButton,
+    .customerArchiveCloseButton
+  ) {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  color: var(--vis-dark) !important;
+}
+
+:is(.settingsOverlayFrameWrap, .customerPickerListModal, .customerArchiveTree) {
+  border: 1px solid var(--vis-dark-10) !important;
+  border-radius: var(--vis-radius-md) !important;
+  background: var(--vis-white) !important;
+  padding: 16px !important;
+}
+
+.infoLegalContent {
+  gap: 12px !important;
+  padding: 0 4px 4px !important;
+}
+
+:is(.authCenterWrap, .authGithubCenter, .settingsEmbeddedContainer) {
+  gap: 24px !important;
+}
+
+:is(.authForm, .authGithubForm) {
+  gap: 16px !important;
+}
+
+:is(.authField, .authGithubField) {
+  gap: 8px !important;
+}
+
+:is(
+    .serviceSuggestionList,
+    .addressSuggestions,
+    .accountMenuPanel,
+    .accountTipsPopover
+  ) {
+  border-color: var(--vis-dark-10) !important;
+  background: var(--vis-white) !important;
+}
+
+:is(
+    .accountMenuPanel .accountMenuItem,
+    .customerPickerItem,
+    .customerArchiveBackButton,
+    .customerArchiveSectionToggle,
+    .customerArchiveDocumentItem.customerArchiveDocumentLink
+  ) {
+  border: 1px solid var(--vis-dark-10) !important;
+  border-radius: 12px !important;
+  background: var(--vis-white) !important;
+  color: var(--vis-dark) !important;
+  box-shadow: none !important;
+}
+
+:is(.authError, .authGithubMessageError, .customerArchiveSheet .voiceWarning) {
+  color: #ff3b30 !important;
+  border-color: rgba(255, 59, 48, 0.32) !important;
+  background: rgba(255, 59, 48, 0.1) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(
+      .accountMenuPanel .accountMenuItem,
+      .customerPickerItem,
+      .customerArchiveBackButton,
+      .customerArchiveSectionToggle,
+      .customerArchiveDocumentItem.customerArchiveDocumentLink
+    ):hover:not(:disabled) {
+    background: var(--vis-primary-10) !important;
+    border-color: var(--vis-primary) !important;
+    color: var(--vis-dark) !important;
+    box-shadow: 0 10px 24px var(--vis-primary-30) !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 980px) {
+  :is(
+      .settingsOverlayBackdrop,
+      .customerPickerModalBackdrop,
+      .infoLegalBackdrop,
+      .voiceLoginModalBackdrop,
+      .customerArchiveBackdrop
+    ) {
+    padding: 16px !important;
+    padding-top: calc(16px + env(safe-area-inset-top)) !important;
+  }
+
+  :is(
+      .settingsOverlaySheet,
+      .customerPickerModalSheet,
+      .infoLegalSheet,
+      .voiceLoginModalSheet,
+      .customerArchiveSheet,
+      .accountMenuPanel,
+      .accountTipsPopover,
+      .authGithubCard,
+      .authCard
+    ) {
+    padding: 16px !important;
+  }
+
+  .settingsEmbeddedContainer {
+    padding: 16px !important;
+  }
+}
