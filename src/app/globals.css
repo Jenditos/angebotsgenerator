@@ -6155,6 +6155,14 @@ body {
   background: var(--vis-white) !important;
 }
 
+.voiceInfo.postActionError {
+  color: #ff3b30 !important;
+  border: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 .positionsSearchPanel {
   background: var(--vis-primary-soft) !important;
   border-bottom: 1px solid var(--vis-dark-10) !important;
@@ -6525,7 +6533,7 @@ textarea:focus,
   display: grid;
   grid-template-rows: 1fr auto;
   gap: 18px;
-  padding: 18px 12px 14px;
+  padding: 14px 12px 14px;
   border-right: none;
   background: #ffffff;
   box-shadow: none;
@@ -6534,7 +6542,7 @@ textarea:focus,
 .appSidebarTop {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 32px;
 }
 
 .appSidebarBrandWrap {
@@ -6627,7 +6635,7 @@ textarea:focus,
 
 .appSidebarNavLabel {
   display: block;
-  color: #1a1a1a;
+  color: var(--vis-dark);
   font-size: 0.44rem;
   line-height: 1.2;
   font-weight: 700;
@@ -6825,14 +6833,17 @@ a.submitButton,
   }
 }
 
-/* Targeted typography swap for voice/positions headings */
-.voicePanelHeader strong,
-.positionsModuleTitle {
-  font-size: var(--app-font-size-primary) !important;
+/* Targeted typography alignment with "Menge" table heading */
+.positionsModuleTitle,
+.positionsInputTable thead th:first-child {
+  font-size: var(--type-micro) !important;
+  font-family: "Inter", "SF Pro Display", sans-serif !important;
   font-weight: 700 !important;
 }
 
-.positionsInputTable thead th:first-child {
-  font-size: 1rem !important;
-  font-weight: 800 !important;
+@media (max-width: 760px) {
+  .positionsModuleTitle,
+  .positionsInputTable thead th:first-child {
+    font-size: 0.76rem !important;
+  }
 }
