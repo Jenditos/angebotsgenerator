@@ -8340,9 +8340,9 @@ body,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  /* Prevent parent/text hover from triggering icon-button hover visuals */
-  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap,
-  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap {
+  /* Parent/text hover stays neutral; only the icon square itself may turn blue */
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover),
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap:not(:hover) {
     background: rgba(25, 59, 104, 0.1) !important;
     background-image: none !important;
     border-color: rgba(25, 59, 104, 0.22) !important;
@@ -8352,20 +8352,24 @@ body,
     opacity: 1 !important;
   }
 
-  .appSidebar .appSidebarNavItem.active:hover .appSidebarNavIconWrap,
-  .appSidebar .appSidebarActionButton.active:hover .appSidebarNavIconWrap {
+  .appSidebar .appSidebarNavItem.active:hover .appSidebarNavIconWrap:not(:hover),
+  .appSidebar .appSidebarActionButton.active:hover .appSidebarNavIconWrap:not(:hover) {
     border-color: rgba(25, 59, 104, 0.26) !important;
     box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
   }
 
-  .appSidebar .appSidebarNavItem:hover .appSidebarNavIcon,
-  .appSidebar .appSidebarActionButton:hover .appSidebarNavIcon {
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover) .appSidebarNavIcon,
+  .appSidebar
+    .appSidebarActionButton:hover
+    .appSidebarNavIconWrap:not(:hover)
+    .appSidebarNavIcon {
     color: #1479ff !important;
     fill: #1479ff !important;
   }
 
   /* Hover visual only on the small visible icon square itself */
-  .appSidebar .appSidebarNavIconWrap:hover {
+  .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
+  .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
     background: #1479ff !important;
     background-color: #1479ff !important;
     background-image: none !important;
@@ -8376,7 +8380,8 @@ body,
     opacity: 1 !important;
   }
 
-  .appSidebar .appSidebarNavIconWrap:hover .appSidebarNavIcon {
+  .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover .appSidebarNavIcon,
+  .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover .appSidebarNavIcon {
     color: #ffffff !important;
     fill: #ffffff !important;
   }
@@ -8422,6 +8427,9 @@ body,
   .appFrameWithSidebar .documentModeSwitchTop {
     padding-inline: 6px !important;
     margin-bottom: 12px !important;
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
   }
 
   .appFrameWithSidebar .dashboardPrimaryCard,
@@ -8453,4 +8461,69 @@ body,
     padding-left: 10px !important;
     padding-right: 10px !important;
   }
+
+  .appFrameWithSidebar .submitActionRow.dashboardCtaRow {
+    position: static !important;
+    bottom: auto !important;
+    z-index: auto !important;
+  }
+
+  .appFrameWithSidebar .submitActionRow.dashboardCtaRow .submitButton,
+  .appFrameWithSidebar .submitActionRow.dashboardCtaRow .submitMailButton {
+    position: static !important;
+    bottom: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Global targeted shadow cleanup (requested)
+   ========================================================================== */
+.positionsIntegratedPanel,
+.dashboardPositionsPanel,
+.positionsIntegratedPanel.dashboardPositionsPanel,
+.positionsIntegratedPanel:hover,
+.dashboardPositionsPanel:hover,
+.positionsIntegratedPanel.dashboardPositionsPanel:hover,
+.positionsIntegratedPanel:active,
+.dashboardPositionsPanel:active,
+.positionsIntegratedPanel:focus-within,
+.dashboardPositionsPanel:focus-within {
+  box-shadow: none !important;
+}
+
+.recipientType,
+.recipientType:hover,
+.recipientType:active,
+.recipientType:focus-within {
+  box-shadow: none !important;
+}
+
+.recipientTypeButton,
+.recipientTypeButton:hover,
+.recipientTypeButton:active,
+.recipientTypeButton:focus,
+.recipientTypeButton:focus-visible,
+.recipientTypeButton[aria-pressed="true"],
+.recipientTypeButton.active,
+button.recipientTypeButton.active {
+  box-shadow: none !important;
+}
+
+.documentModeSwitch,
+.documentModeSwitch:hover,
+.documentModeSwitch:active,
+.documentModeSwitch:focus-within {
+  box-shadow: none !important;
+}
+
+.documentModeSwitchButton,
+.documentModeSwitchButton:hover,
+.documentModeSwitchButton:active,
+.documentModeSwitchButton:focus,
+.documentModeSwitchButton:focus-visible,
+.documentModeSwitchButton[aria-pressed="true"],
+.documentModeSwitchButton.active,
+button.documentModeSwitchButton[aria-pressed="true"],
+button.documentModeSwitchButton.active {
+  box-shadow: none !important;
 }
