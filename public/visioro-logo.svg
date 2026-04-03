@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="228" height="44" viewBox="0 0 228 44" fill="none">
+  <defs>
+    <linearGradient id="visioroMarkBg" x1="5" y1="5" x2="39" y2="39" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8ED2FF"/>
+      <stop offset="0.45" stop-color="#49A8FF"/>
+      <stop offset="1" stop-color="#1479FF"/>
+    </linearGradient>
+    <linearGradient id="visioroWordFill" x1="56" y1="8" x2="210" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6BC5FF"/>
+      <stop offset="0.6" stop-color="#1E8CFF"/>
+      <stop offset="1" stop-color="#1479FF"/>
+    </linearGradient>
+    <linearGradient id="visioroGloss" x1="12" y1="6" x2="34" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="visioroMarkGlow" x="0" y="0" width="44" height="44" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="1.2" result="effect1_foregroundBlur"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#visioroMarkGlow)">
+    <rect x="5" y="5" width="34" height="34" rx="11" fill="url(#visioroMarkBg)"/>
+    <path d="M12.5 11.5C17.8 12 22.3 12.3 27.2 13.1C30.4 13.6 32.1 14.6 32.1 16.7C32.1 19.1 29.9 20.2 26.9 20.2C22.2 20.2 18.4 18.5 12 17.5" stroke="url(#visioroGloss)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M14 14.6L22 30L30 14.6" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="53" y="30" fill="url(#visioroWordFill)" font-size="27" font-family="SF Pro Display, Inter, Arial, sans-serif" font-weight="700" letter-spacing="0.01em">
+    Visioro
+  </text>
+</svg>

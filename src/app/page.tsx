@@ -4301,7 +4301,11 @@ export default function HomePage() {
           <aside className="appSidebar" aria-label="Schnellnavigation">
             <div className="appSidebarTop">
               <div className="appSidebarBrandWrap">
-                <VisioroLogoPill className="appSidebarBrandPill" />
+                <img
+                  src="/visioro-logo.svg"
+                  alt="Visioro"
+                  className="appSidebarBrandPill"
+                />
               </div>
               <div className="appSidebarNav">
                 <div className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}>
