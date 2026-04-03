@@ -15,7 +15,6 @@ import {
   searchServices,
 } from "@/lib/service-catalog";
 import { InfoLegalModal } from "@/components/InfoLegalModal";
-import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -3735,7 +3734,11 @@ export default function HomePage() {
       <div className="ambient ambientB" aria-hidden />
       <div className="container pageSurfaceTransition dashboardCanvas">
         <header className="topHeaderMinimal">
-          <VisioroLogoPill />
+          <img
+            src="/visioro-logo.png"
+            alt="Visioro"
+            className="topHeaderMobileBrandLogo"
+          />
           <div className="accountMenuWrap" ref={accountMenuRef}>
             <button
               type="button"
