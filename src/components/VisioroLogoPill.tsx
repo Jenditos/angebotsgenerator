@@ -10,7 +10,7 @@ export function VisioroLogoPill({ className = "" }: VisioroLogoPillProps) {
   return (
     <span className={logoClassName} aria-label="Visioro">
       <img
-        src="/visioro-logo.svg"
+        src="/visioro-logo.png"
         alt="Visioro"
         className="topHeaderLogoImage"
       />
