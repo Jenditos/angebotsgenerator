@@ -5204,11 +5204,11 @@ export default function HomePage() {
                     <table className="positionsInputTable">
                       <thead>
                         <tr>
-                          <th className="positionsTableHeadingTypo">Bezeichnung / Unterpunkt</th>
-                          <th>Menge</th>
-                          <th>Einheit</th>
-                          <th>EP</th>
-                          <th>Gesamtpreis</th>
+                          <th className="positionsTableHeaderLikeRecipient">Bezeichnung / Unterpunkt</th>
+                          <th className="positionsTableHeaderLikeRecipient">Menge</th>
+                          <th className="positionsTableHeaderLikeRecipient">Einheit</th>
+                          <th className="positionsTableHeaderLikeRecipient">EP</th>
+                          <th className="positionsTableHeaderLikeRecipient">Gesamtpreis</th>
                           <th aria-label="Aktion" />
                         </tr>
                       </thead>

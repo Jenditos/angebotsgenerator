@@ -2941,6 +2941,10 @@ textarea:focus {
     font-size: 0.9rem;
   }
 
+  .positionsTableHeaderLikeRecipient {
+    font-size: 0.9rem !important;
+  }
+
   .settingsPdfColumnsRow {
     grid-template-columns: auto 1fr;
     justify-items: stretch;
@@ -6566,14 +6570,16 @@ textarea:focus,
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
+  width: calc(100% + 24px);
+  margin-inline: -12px;
+  padding-bottom: 6px;
 }
 
 .appSidebarBrandPill {
   display: block;
-  height: 67.2px;
-  width: auto;
-  max-width: 243.2px;
+  width: min(181.4px, 100%);
+  height: auto;
+  max-width: 100%;
   object-fit: contain;
   border: 0 !important;
   border-radius: 0 !important;
@@ -6877,6 +6883,15 @@ a.submitButton,
   font-weight: 700 !important;
   letter-spacing: 0.03em !important;
   text-transform: uppercase !important;
+}
+
+.positionsTableHeaderLikeRecipient {
+  font-family: inherit !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  color: #1e3b69 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
 }
 
 @media (max-width: 760px) {
