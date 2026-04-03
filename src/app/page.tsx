@@ -5091,8 +5091,8 @@ export default function HomePage() {
                 <div className="positionsIntegratedPanel dashboardPositionsPanel">
                   <div className="positionsSearchPanel">
                     <div className="positionsModuleHeader">
-                      <h3 className="positionsModuleTitle">
-                        Leistungen &amp; Positionen
+                      <h3 className="positionsModuleTitle positionsTableHeadingTypo">
+                        LEISTUNGEN &amp; POSITIONEN
                       </h3>
                     </div>
                     <div className="positionsSearchRow">
@@ -5200,7 +5200,7 @@ export default function HomePage() {
                     <table className="positionsInputTable">
                       <thead>
                         <tr>
-                          <th>Bezeichnung / Unterpunkt</th>
+                          <th className="positionsTableHeadingTypo">Bezeichnung / Unterpunkt</th>
                           <th>Menge</th>
                           <th>Einheit</th>
                           <th>EP</th>
