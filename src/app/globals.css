@@ -8340,6 +8340,31 @@ body,
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* Prevent parent/text hover from triggering icon-button hover visuals */
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap {
+    background: rgba(25, 59, 104, 0.1) !important;
+    background-image: none !important;
+    border-color: rgba(25, 59, 104, 0.22) !important;
+    color: #1479ff !important;
+    box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .appSidebar .appSidebarNavItem.active:hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarActionButton.active:hover .appSidebarNavIconWrap {
+    border-color: rgba(25, 59, 104, 0.26) !important;
+    box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
+  }
+
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIcon,
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIcon {
+    color: #1479ff !important;
+    fill: #1479ff !important;
+  }
+
+  /* Hover visual only on the small visible icon square itself */
   .appSidebar .appSidebarNavIconWrap:hover {
     background: #1479ff !important;
     background-color: #1479ff !important;
@@ -8349,10 +8374,6 @@ body,
     box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
     transform: none !important;
     opacity: 1 !important;
-  }
-
-  .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap:hover {
-    box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
   }
 
   .appSidebar .appSidebarNavIconWrap:hover .appSidebarNavIcon {
@@ -8373,4 +8394,63 @@ body,
   height: auto !important;
   margin-inline: auto !important;
   object-fit: contain !important;
+}
+
+/* ==========================================================================
+   Mobile layout cleanup (phone only)
+   ========================================================================== */
+@media (max-width: 760px) {
+  /* Remove the extra white outer wrapper surface on the start page */
+  .appFrameWithSidebar {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Broader mobile content area: reduce horizontal insets */
+  .page {
+    padding-inline: 6px !important;
+  }
+
+  .appMainContent {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+
+  .appFrameWithSidebar .documentModeSwitchTop {
+    padding-inline: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .appFrameWithSidebar .dashboardPrimaryCard,
+  .formCard,
+  .voicePanel,
+  .recipientType,
+  .settingsOverlaySheet,
+  .customerPickerModalSheet,
+  .infoLegalSheet,
+  .customerArchiveSheet,
+  .voiceLoginModalSheet {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .positionsSearchPanel,
+  .positionsInputTableFooter {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  :is(
+      .settingsOverlayBackdrop,
+      .customerPickerModalBackdrop,
+      .infoLegalBackdrop,
+      .voiceLoginModalBackdrop,
+      .customerArchiveBackdrop
+    ) {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
 }
