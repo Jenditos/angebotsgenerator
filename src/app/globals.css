@@ -7193,3 +7193,257 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
     color: #ff3b30;
   }
 }
+
+/* ==========================================================================
+   Spacing Structure System (layout-only refinement)
+   ========================================================================== */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+
+  --pad-panel-sm: var(--space-4);
+  --pad-panel-md: var(--space-5);
+  --pad-panel-lg: var(--space-6);
+}
+
+/* Global rhythm */
+.container,
+.workspaceGrid,
+.dashboardWorkspace,
+.authGithubCenter {
+  gap: var(--space-5) !important;
+}
+
+.formGrid,
+.dashboardFormGrid,
+.authGithubForm {
+  gap: var(--space-4) !important;
+}
+
+.field,
+.authGithubField {
+  gap: var(--space-2) !important;
+}
+
+.voicePanelHeader,
+.positionsModuleHeader,
+.customerArchiveHeader,
+.customerArchiveDetailHeader,
+.settingsOverlayHeader,
+.customerPickerModalHeader,
+.infoLegalHeader {
+  gap: var(--space-3) !important;
+}
+
+.recipientTypeButtons,
+.voiceActions,
+.submitActionRow,
+.dashboardCtaRow,
+.positionsSearchRow,
+.settingsLogoActions {
+  gap: var(--space-3) !important;
+}
+
+/* Container/panel breathing room */
+.formCard,
+.dashboardPrimaryCard,
+.voicePanel,
+.authGithubCard,
+.settingsOverlaySheet,
+.customerPickerModalSheet,
+.infoLegalSheet,
+.customerArchiveSheet {
+  padding: var(--pad-panel-md) !important;
+}
+
+.accountMenuPanel {
+  padding: var(--pad-panel-sm) !important;
+}
+
+.positionsIntegratedPanel {
+  --positions-module-axis-inline: var(--space-4);
+}
+
+/* Vertical structure inside key blocks */
+.voicePanelHeader {
+  margin-bottom: var(--space-3) !important;
+}
+
+.voiceActions {
+  margin-top: var(--space-2) !important;
+  margin-bottom: var(--space-2) !important;
+}
+
+.submitActionRow,
+.dashboardCtaRow {
+  margin-top: var(--space-4) !important;
+}
+
+.submitActionRow .submitButton,
+.submitActionRow .submitMailButton {
+  margin-top: var(--space-2) !important;
+}
+
+:is(
+    .voiceInfo,
+    .voiceWarning,
+    .error,
+    .settingsPdfColumnsHint,
+    .settingsInvoiceDueHint,
+    .serviceSuggestionHint,
+    .authGithubMessage,
+    .positionsPanelInfo,
+    .positionsPanelWarning
+  ) {
+  margin-top: var(--space-2) !important;
+  margin-bottom: 0 !important;
+}
+
+/* Positions module spacing and table rhythm */
+.positionsSearchPanel {
+  padding: var(--space-5) var(--positions-module-axis-inline, var(--space-4))
+    var(--space-4) !important;
+  gap: var(--space-4) !important;
+}
+
+.positionsModuleHeader {
+  margin-bottom: var(--space-3) !important;
+}
+
+.positionsSearchRow {
+  gap: var(--space-3) !important;
+}
+
+.positionsInputWrapMerged {
+  padding: var(--space-3) 0 var(--space-4) !important;
+}
+
+.positionsInputTable thead th {
+  padding-top: var(--space-3) !important;
+  padding-bottom: var(--space-3) !important;
+}
+
+.positionsInputTable tbody td,
+.positionsInputTable tfoot td {
+  padding: var(--space-3) var(--space-2) !important;
+}
+
+.positionsInputTableFooter {
+  padding: var(--space-4) var(--positions-module-axis-inline, var(--space-4))
+    var(--space-2) !important;
+  margin-top: var(--space-3) !important;
+}
+
+.positionsAddRowButton {
+  margin-top: var(--space-2) !important;
+}
+
+.positionsInputTable :is(
+    .positionDescriptionInput,
+    .positionQuantityInput,
+    .positionUnitSelect,
+    .positionPriceInput
+  ) {
+  padding-inline: var(--space-3) !important;
+}
+
+/* Sidebar spacing and icon-label alignment */
+.appSidebar {
+  padding: var(--space-6) var(--space-4) var(--space-5) !important;
+  gap: var(--space-5) !important;
+}
+
+.appSidebarTop {
+  gap: var(--space-8) !important;
+}
+
+.appSidebarBrandWrap {
+  padding-top: var(--space-2) !important;
+  padding-bottom: var(--space-4) !important;
+}
+
+.appSidebarNav,
+.appSidebarBottom {
+  gap: var(--space-5) !important;
+}
+
+.appSidebarNavItem,
+.appSidebarActionButton {
+  gap: var(--space-2) !important;
+  padding: var(--space-2) !important;
+  min-height: 72px;
+}
+
+.appSidebarNavIconWrap {
+  margin: 0 auto;
+}
+
+.appSidebarNavLabel {
+  margin-top: 0 !important;
+}
+
+/* Login page spacing */
+.authGithubLogoRow {
+  margin-top: var(--space-2) !important;
+  margin-bottom: var(--space-3) !important;
+}
+
+.authGithubCard {
+  padding: var(--pad-panel-md) !important;
+  gap: var(--space-4) !important;
+}
+
+.authGithubForm {
+  gap: var(--space-4) !important;
+}
+
+.authGithubField {
+  gap: var(--space-2) !important;
+}
+
+.authGithubPasswordRow {
+  gap: var(--space-2) !important;
+  margin-top: var(--space-1) !important;
+}
+
+.authGithubCard .authGithubPrimaryButton {
+  margin-top: var(--space-2) !important;
+}
+
+.authGithubSignupHint {
+  margin-top: var(--space-3) !important;
+}
+
+/* Modal/dialog internals */
+.settingsOverlayHeader,
+.customerPickerModalHeader,
+.infoLegalHeader,
+.customerArchiveHeader {
+  margin-bottom: var(--space-4) !important;
+}
+
+.settingsOverlayFrameWrap,
+.customerPickerResults,
+.customerArchiveTree,
+.infoLegalContent {
+  margin-top: var(--space-2) !important;
+}
+
+@media (max-width: 980px) {
+  .formCard,
+  .dashboardPrimaryCard,
+  .voicePanel,
+  .authGithubCard,
+  .settingsOverlaySheet,
+  .customerPickerModalSheet,
+  .infoLegalSheet,
+  .customerArchiveSheet {
+    padding: var(--pad-panel-sm) !important;
+  }
+}
