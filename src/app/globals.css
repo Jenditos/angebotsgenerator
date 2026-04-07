@@ -8644,32 +8644,26 @@ button.documentModeSwitchButton.active {
   border-top: 0 !important;
 }
 
-/* 1) Default state color for Angebote/Rechnungen + Privatperson/Firma */
-.appFrameWithSidebar
-  .documentModeSwitchButton:not(.active):not([aria-pressed="true"]):not(
-    :hover
-  ):not(:focus):not(:focus-visible),
-.appFrameWithSidebar .recipientTypeButton:not(.active):not(
-    [aria-pressed="true"]
-  ):not(:hover):not(:focus):not(:focus-visible) {
-  border: 0 !important;
-  outline: none !important;
-  background: rgba(25, 59, 104, 0.1) !important;
-  background-image: none !important;
-}
-
-/* Hover parity with "Angebot erstellen" button for the four selection/toggle buttons */
+/* 1) Match Angebote/Rechnungen + Privatperson/Firma + Felder leeren to CTA button */
 .appFrameWithSidebar .documentModeSwitchButton,
-.appFrameWithSidebar .recipientTypeButton {
+.appFrameWithSidebar .recipientTypeButton,
+.appFrameWithSidebar .voiceActionButtonClear {
+  border: 1px solid #1479ff !important;
+  outline: none !important;
+  background: #1479ff !important;
+  background-color: #1479ff !important;
   background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(20, 121, 255, 0.3) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .appFrameWithSidebar .documentModeSwitchButton:hover,
-  .appFrameWithSidebar .recipientTypeButton:hover {
-    border: 0 !important;
+  .appFrameWithSidebar .recipientTypeButton:hover,
+  .appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
+    border: 1px solid #116fe6 !important;
     outline: none !important;
     background: #116fe6 !important;
     background-color: #116fe6 !important;
