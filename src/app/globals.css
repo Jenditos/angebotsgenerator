@@ -8717,6 +8717,8 @@ button.documentModeSwitchButton.active {
 }
 
 .appFrameWithSidebar .dashboardVoicePanel {
+  position: relative !important;
+  overflow: visible !important;
   border: 1px solid #1479ff !important;
   background: #1479ff !important;
   background-image: none !important;
@@ -8725,6 +8727,16 @@ button.documentModeSwitchButton.active {
 
 .appFrameWithSidebar .dashboardVoicePanel :is(strong, p, span, .field > span) {
   color: #ffffff !important;
+}
+
+.appFrameWithSidebar .voiceActions {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.appFrameWithSidebar .voiceActionButtonClear {
+  position: relative !important;
+  z-index: 3 !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
