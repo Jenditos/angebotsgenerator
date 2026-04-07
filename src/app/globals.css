@@ -798,11 +798,7 @@ a {
 
 .documentModeSwitchButton.active {
   border-color: rgba(140, 177, 234, 0.82);
-  background: linear-gradient(
-    150deg,
-    rgba(246, 251, 255, 0.86),
-    rgba(222, 238, 255, 0.52)
-  );
+  background: rgba(234, 243, 255, 0.98);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
     inset 0 0 0 1px rgba(123, 167, 236, 0.32),
@@ -810,11 +806,7 @@ a {
 }
 
 .documentModeSwitchButton:not(.active):hover {
-  background: linear-gradient(
-    150deg,
-    rgba(248, 252, 255, 0.72),
-    rgba(228, 243, 255, 0.42)
-  );
+  background: rgba(248, 252, 255, 0.72);
 }
 
 .documentModeContent {
@@ -3335,8 +3327,8 @@ a.ghostButton,
     opacity 0.2s ease;
 }
 
-button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
-button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
+button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
+button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
 .positionsTypeaheadList button:hover,
 a.primaryButton:hover,
 a.ghostButton:hover,
@@ -3349,8 +3341,8 @@ a.ghostButton:hover,
     0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-button:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
-button[class]:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
+button:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
+button[class]:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
 .positionsTypeaheadList button:active,
 a.primaryButton:active,
 a.ghostButton:active,
@@ -8668,14 +8660,15 @@ button.documentModeSwitchButton.active {
 
 /* Hover parity with "Einstellungen" button (exact visual behavior) */
 .appFrameWithSidebar .documentModeSwitchButton,
-.appFrameWithSidebar .recipientTypeButton,
-.appFrameWithSidebar .voiceActionButtonClear {
+.appFrameWithSidebar .recipientTypeButton {
   transition: none !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .appFrameWithSidebar .documentModeSwitchButton:hover,
-.appFrameWithSidebar .recipientTypeButton:hover,
-.appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
+.appFrameWithSidebar .recipientTypeButton:hover {
   border: 0 !important;
   outline: none !important;
   background: #1479ff !important;
