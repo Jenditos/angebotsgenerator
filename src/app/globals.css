@@ -8443,6 +8443,7 @@ body,
   }
 
   .appMainContent {
+    background: transparent !important;
     padding-left: 6px !important;
     padding-right: 6px !important;
   }
@@ -8496,6 +8497,11 @@ body,
     position: static !important;
     bottom: auto !important;
   }
+}
+
+/* Start page: remove residual panel behind mode toggle buttons */
+.appFrameWithSidebar .appMainContent {
+  background: transparent !important;
 }
 
 /* ==========================================================================
