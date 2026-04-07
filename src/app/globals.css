@@ -8324,14 +8324,35 @@ body,
 /* ==========================================================================
    Sidebar-only final adjustments
    ========================================================================== */
-/* Small sidebar icons: fixed default blue and no hover visual change */
-.appSidebar .appSidebarNavIconWrap,
-.appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap {
+/* Small sidebar/menu icon buttons: clear default, hover and active states */
+.appSidebar .appSidebarNavIconWrap {
+  border: 0 !important;
+  outline: none !important;
+  background: rgba(25, 59, 104, 0.1) !important;
+  background-image: none !important;
   color: #1479ff !important;
+  box-shadow: none !important;
 }
 
 .appSidebar .appSidebarNavIcon {
   color: #1479ff !important;
+  fill: #1479ff !important;
+}
+
+.appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap,
+.appSidebar .appSidebarActionButton.active .appSidebarNavIconWrap {
+  border: 0 !important;
+  outline: none !important;
+  background: #1479ff !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+}
+
+.appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap .appSidebarNavIcon,
+.appSidebar .appSidebarActionButton.active .appSidebarNavIconWrap .appSidebarNavIcon {
+  color: #ffffff !important;
+  fill: #ffffff !important;
 }
 
 .appSidebar .appSidebarNavIconWrap,
@@ -8340,22 +8361,17 @@ body,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  /* Parent/text hover stays neutral; only the icon square itself may turn blue */
+  /* Parent/text hover stays default; only the icon square reacts */
   .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover),
   .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap:not(:hover) {
+    border: 0 !important;
+    outline: none !important;
     background: rgba(25, 59, 104, 0.1) !important;
     background-image: none !important;
-    border-color: rgba(25, 59, 104, 0.22) !important;
     color: #1479ff !important;
-    box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
+    box-shadow: none !important;
     transform: none !important;
     opacity: 1 !important;
-  }
-
-  .appSidebar .appSidebarNavItem.active:hover .appSidebarNavIconWrap:not(:hover),
-  .appSidebar .appSidebarActionButton.active:hover .appSidebarNavIconWrap:not(:hover) {
-    border-color: rgba(25, 59, 104, 0.26) !important;
-    box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
   }
 
   .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover) .appSidebarNavIcon,
@@ -8367,15 +8383,15 @@ body,
     fill: #1479ff !important;
   }
 
-  /* Hover visual only on the small visible icon square itself */
   .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
   .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
+    border: 0 !important;
+    outline: none !important;
     background: #1479ff !important;
     background-color: #1479ff !important;
     background-image: none !important;
-    border-color: #1479ff !important;
     color: #ffffff !important;
-    box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
     transform: none !important;
     opacity: 1 !important;
   }
@@ -8601,5 +8617,53 @@ button.documentModeSwitchButton.active {
     a.primaryButton,
     a.ghostButton
   ):is(:hover, :active, :focus, :focus-visible, :disabled) {
+  background-image: none !important;
+}
+
+/* ==========================================================================
+   Start Page targeted fixes (order kept as requested)
+   ========================================================================== */
+/* 1) Angebote / Rechnungen: keep hover & active shadow fully visible */
+.appFrameWithSidebar .documentModeSwitchTop {
+  overflow: visible !important;
+  position: relative;
+  z-index: 3;
+}
+
+.appFrameWithSidebar .documentModeSwitch {
+  overflow: visible !important;
+}
+
+.appFrameWithSidebar .documentModeSwitchButton {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appFrameWithSidebar .documentModeSwitchButton:hover,
+  .appFrameWithSidebar .documentModeSwitchButton.active,
+  .appFrameWithSidebar .documentModeSwitchButton[aria-pressed="true"] {
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+  }
+}
+
+/* 2A) Leistungen & Positionen: remove only the disturbing top edge on middle section */
+.dashboardPositionsPanel .positionsInputWrap.positionsInputWrapMerged {
+  border-top: 0 !important;
+}
+
+/* 2B) Leistungen & Positionen: align full module surface to "Per Sprache ausfüllen" */
+.dashboardPositionsPanel,
+.dashboardPositionsPanel .positionsSearchPanel,
+.dashboardPositionsPanel .positionsInputWrap,
+.dashboardPositionsPanel .positionsInputWrapMerged,
+.dashboardPositionsPanel .positionsInputTable,
+.dashboardPositionsPanel .positionsInputTable thead th,
+.dashboardPositionsPanel .positionsInputTable tbody td,
+.dashboardPositionsPanel .positionsInputTable tfoot td,
+.dashboardPositionsPanel .positionsInputTableFooter,
+.dashboardPositionsPanel .positionsInputEmpty,
+.dashboardPositionsPanel .positionsGroupRow td {
+  background: var(--vis-primary-soft) !important;
   background-image: none !important;
 }
