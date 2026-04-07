@@ -8318,30 +8318,27 @@ body,
    ========================================================================== */
 /* Small sidebar/menu icon buttons: clear default, hover and active states */
 .appSidebar .appSidebarNavIconWrap {
-  border: 1px solid #1479ff !important;
+  border: 0 !important;
   outline: none !important;
-  border-radius: var(--button-radius) !important;
-  background: #1479ff !important;
-  background-color: #1479ff !important;
+  background: rgba(25, 59, 104, 0.1) !important;
   background-image: none !important;
-  color: #ffffff !important;
-  box-shadow: 0 10px 22px rgba(20, 121, 255, 0.3) !important;
+  color: #1479ff !important;
+  box-shadow: none !important;
 }
 
 .appSidebar .appSidebarNavIcon {
-  color: #ffffff !important;
-  fill: #ffffff !important;
+  color: #1479ff !important;
+  fill: #1479ff !important;
 }
 
 .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap,
 .appSidebar .appSidebarActionButton.active .appSidebarNavIconWrap {
-  border: 1px solid #1479ff !important;
+  border: 0 !important;
   outline: none !important;
   background: #1479ff !important;
-  background-color: #1479ff !important;
   background-image: none !important;
   color: #ffffff !important;
-  box-shadow: 0 10px 22px rgba(20, 121, 255, 0.3) !important;
+  box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
 }
 
 .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap .appSidebarNavIcon,
@@ -8350,16 +8347,9 @@ body,
   fill: #ffffff !important;
 }
 
-.appSidebar .appSidebarNavIconWrap {
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    opacity 0.2s ease !important;
-}
-
+.appSidebar .appSidebarNavIconWrap,
 .appSidebar .appSidebarNavIcon {
-  transition: color 0.2s ease !important;
+  transition: none !important;
 }
 
 .appSidebar .appSidebarNavItem,
@@ -8376,13 +8366,12 @@ body,
   /* Parent/text hover stays default; only the icon square reacts */
   .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover),
   .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap:not(:hover) {
-    border: 1px solid #1479ff !important;
+    border: 0 !important;
     outline: none !important;
-    background: #1479ff !important;
-    background-color: #1479ff !important;
+    background: rgba(25, 59, 104, 0.1) !important;
     background-image: none !important;
-    color: #ffffff !important;
-    box-shadow: 0 10px 22px rgba(20, 121, 255, 0.3) !important;
+    color: #1479ff !important;
+    box-shadow: none !important;
     transform: none !important;
     opacity: 1 !important;
   }
@@ -8392,8 +8381,8 @@ body,
     .appSidebarActionButton:hover
     .appSidebarNavIconWrap:not(:hover)
     .appSidebarNavIcon {
-    color: #ffffff !important;
-    fill: #ffffff !important;
+    color: #1479ff !important;
+    fill: #1479ff !important;
   }
 
   .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
