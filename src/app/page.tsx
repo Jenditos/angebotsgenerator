@@ -1153,7 +1153,6 @@ function normalizeAddressSuggestion(
 
 export default function HomePage() {
   const [documentMode, setDocumentMode] = useState<DocumentMode>("offer");
-  const [modeAnimationKey, setModeAnimationKey] = useState(0);
   const [form, setForm] = useState<OfferForm>(initialForm);
   const [error, setError] = useState("");
   const [postActionInfo, setPostActionInfo] = useState("");
@@ -1413,70 +1412,6 @@ export default function HomePage() {
       serviceError,
       addressSuggestions: addressSuggestions.map((suggestion) => ({ ...suggestion })),
     };
-  }
-
-  function storeCurrentModeSnapshot(mode: DocumentMode) {
-    modeSnapshotsRef.current[mode] = createCurrentModeSnapshot();
-  }
-
-  function switchDocumentMode(nextMode: DocumentMode) {
-    if (nextMode === documentMode) {
-      return;
-    }
-
-    storeCurrentModeSnapshot(documentMode);
-    const nextSnapshot = modeSnapshotsRef.current[nextMode];
-    if (nextSnapshot) {
-      applyModeSnapshot(nextSnapshot);
-    } else {
-      applyModeSnapshot(createInitialModeSnapshot());
-    }
-
-    if (recognitionRef.current) {
-      shouldAutoApplyVoiceRef.current = false;
-      pauseRequestedRef.current = false;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      setIsListening(false);
-    }
-    setIsSpeechPaused(false);
-    setActivePriceSubitemId(null);
-
-    setDocumentMode(nextMode);
-    setModeAnimationKey((value) => value + 1);
-  }
-
-  function resetCurrentInputs() {
-    const confirmed = window.confirm(
-      `Möchtest du wirklich alle Eingaben im aktuellen ${singularDocumentLabel.toLowerCase()} löschen?`,
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    if (recognitionRef.current) {
-      shouldAutoApplyVoiceRef.current = false;
-      pauseRequestedRef.current = false;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-
-    finalTranscriptRef.current = "";
-    setIsListening(false);
-    setIsSpeechPaused(false);
-    setIsAddressLoading(false);
-    setIsCustomerPickerOpen(false);
-    setCustomerSearch("");
-    setCustomersError("");
-    setDeletingCustomerNumber(null);
-    setError("");
-    setPostActionInfo("");
-    setOfferMailActionState(null);
-    setIsPreparingOfferMailDraft(false);
-
-    const resetSnapshot = createInitialModeSnapshot();
-    modeSnapshotsRef.current[documentMode] = resetSnapshot;
-    applyModeSnapshot(resetSnapshot);
   }
 
   function openSettingsOverlay() {
@@ -4518,27 +4453,13 @@ export default function HomePage() {
 
           <div className="appMainContent">
             <div
-              key={`${documentMode}-${modeAnimationKey}`}
+              key={documentMode}
               className="documentModeContent"
             >
               <div className="documentModeSwitchTop">
-                <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
-                  <button
-                    type="button"
-                    className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
-                    aria-pressed={documentMode === "offer"}
-                    onClick={() => switchDocumentMode("offer")}
-                  >
-                    Angebote
-                  </button>
-                  <button
-                    type="button"
-                    className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
-                    aria-pressed={documentMode === "invoice"}
-                    onClick={() => switchDocumentMode("invoice")}
-                  >
-                    Rechnungen
-                  </button>
+                <div className="documentModeSwitch" aria-hidden="true">
+                  <div className="documentModeSwitchGap" />
+                  <div className="documentModeSwitchGap" />
                 </div>
               </div>
               <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
@@ -4605,14 +4526,7 @@ export default function HomePage() {
                       KI-Aufnahme starten
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="ghostButton voiceActionButton voiceActionButtonClear"
-                    onClick={resetCurrentInputs}
-                    disabled={isSubmitting}
-                  >
-                    Felder leeren
-                  </button>
+                  <div className="voiceActionButtonClearGap" aria-hidden="true" />
                 </div>
 
                 <label className="field">
@@ -4662,29 +4576,11 @@ export default function HomePage() {
 
               <div
                 className="recipientType span2"
-                role="group"
-                aria-label="Kundenart"
               >
                 <span>Kundenart</span>
                 <div className="recipientTypeButtons">
-                  <button
-                    type="button"
-                    className={`recipientTypeButton ${form.customerType === "person" ? "active" : ""}`}
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, customerType: "person" }))
-                    }
-                  >
-                    Privatperson
-                  </button>
-                  <button
-                    type="button"
-                    className={`recipientTypeButton ${form.customerType === "company" ? "active" : ""}`}
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, customerType: "company" }))
-                    }
-                  >
-                    Firma
-                  </button>
+                  <div className="recipientTypeButtonGap" />
+                  <div className="recipientTypeButtonGap" />
                 </div>
               </div>
 
