@@ -8697,17 +8697,18 @@ button.documentModeSwitchButton.active {
 
 .appFrameWithSidebar .voiceActionButtonClear {
   border: 0 !important;
-  background: rgba(25, 59, 104, 0.1) !important;
+  background: #193b68 !important;
+  background-color: #193b68 !important;
   background-image: none !important;
-  color: #1479ff !important;
+  color: #ffffff !important;
   box-shadow: none !important;
 }
 
 .appFrameWithSidebar .voiceActionButtonClear:active:not(:disabled) {
   border: 0 !important;
-  background: rgba(25, 59, 104, 0.1) !important;
-  background-color: rgba(25, 59, 104, 0.1) !important;
-  color: #1479ff !important;
+  background: #193b68 !important;
+  background-color: #193b68 !important;
+  color: #ffffff !important;
   box-shadow: none !important;
 }
 
@@ -8760,10 +8761,10 @@ button.documentModeSwitchButton.active {
   .appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
     border: 0 !important;
     outline: none !important;
-    background: rgba(25, 59, 104, 0.1) !important;
-    background-color: rgba(25, 59, 104, 0.1) !important;
+    background: #193b68 !important;
+    background-color: #193b68 !important;
     background-image: none !important;
-    color: #1479ff !important;
+    color: #ffffff !important;
     box-shadow: none !important;
     transform: none !important;
     opacity: 1 !important;
