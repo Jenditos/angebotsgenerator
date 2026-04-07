@@ -8674,6 +8674,13 @@ button.documentModeSwitchButton.active {
   color: #1f3f72 !important;
 }
 
+.appFrameWithSidebar .voiceActionButtonClear:active:not(:disabled) {
+  border-color: #1479ff !important;
+  background: #1479ff !important;
+  background-color: #1479ff !important;
+  color: #ffffff !important;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .appFrameWithSidebar .documentModeSwitchButton:hover,
   .appFrameWithSidebar .recipientTypeButton:hover,
