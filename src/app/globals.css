@@ -8807,3 +8807,43 @@ button.documentModeSwitchButton.active {
   background: transparent !important;
   background-image: none !important;
 }
+
+/* Settings: remove all shadows */
+.settingsPageTransition,
+.settingsPageTransition *,
+.settingsPageTransition::before,
+.settingsPageTransition::after,
+.settingsPageTransition *::before,
+.settingsPageTransition *::after,
+.settingsEmbeddedContainer,
+.settingsEmbeddedContainer *,
+.settingsEmbeddedContainer::before,
+.settingsEmbeddedContainer::after,
+.settingsEmbeddedContainer *::before,
+.settingsEmbeddedContainer *::after,
+.settingsOverlayBackdrop,
+.settingsOverlayBackdrop *,
+.settingsOverlayBackdrop::before,
+.settingsOverlayBackdrop::after,
+.settingsOverlayBackdrop *::before,
+.settingsOverlayBackdrop *::after,
+.settingsOverlaySheet,
+.settingsOverlaySheet *,
+.settingsOverlaySheet::before,
+.settingsOverlaySheet::after,
+.settingsOverlaySheet *::before,
+.settingsOverlaySheet *::after,
+.settingsOverlayFrameWrap,
+.settingsOverlayFrameWrap *,
+.settingsOverlayFrameWrap::before,
+.settingsOverlayFrameWrap::after,
+.settingsOverlayFrameWrap *::before,
+.settingsOverlayFrameWrap *::after,
+.settingsOverlayFrame,
+.settingsOverlayFrame *,
+.settingsOverlayFrame::before,
+.settingsOverlayFrame::after,
+.settingsOverlayFrame *::before,
+.settingsOverlayFrame *::after {
+  box-shadow: none !important;
+}
