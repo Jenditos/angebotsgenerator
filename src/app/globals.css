@@ -8660,6 +8660,14 @@ button.documentModeSwitchButton.active {
 }
 
 /* 1) Angebote/Rechnungen + Privatperson/Firma: active + hover in #1479ff */
+.appFrameWithSidebar .recipientType {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  padding: 0 !important;
+}
+
 .appFrameWithSidebar .documentModeSwitchButton,
 .appFrameWithSidebar .recipientTypeButton {
   border: 1px solid rgba(25, 59, 104, 0.2) !important;
