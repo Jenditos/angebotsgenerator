@@ -1066,7 +1066,7 @@ export default function SettingsPage() {
           </header>
         ) : null}
 
-        <section className="hero glassCard compactHero">
+        <section className="hero glassCard compactHero settingsSetupHero">
           <p className="heroEyebrow">Einmal einrichten</p>
           <h1>Diese Daten erscheinen auf jedem Angebot</h1>
           <p className="heroText">

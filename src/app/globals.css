@@ -8729,6 +8729,30 @@ button.documentModeSwitchButton.active {
   color: #ffffff !important;
 }
 
+.settingsPageTransition .settingsSetupHero {
+  position: relative !important;
+  overflow: visible !important;
+  border: 1px solid #1479ff !important;
+  background: #1479ff !important;
+  background-image: none !important;
+}
+
+.settingsPageTransition .settingsSetupHero :is(.heroEyebrow, h1, .heroText) {
+  color: #ffffff !important;
+}
+
+.settingsPageTransition .settingsDeleteButton,
+.settingsPageTransition .settingsPdfColumnsReset,
+.settingsPageTransition .settingsDeleteButton:hover,
+.settingsPageTransition .settingsPdfColumnsReset:hover,
+.settingsPageTransition .settingsDeleteButton:active,
+.settingsPageTransition .settingsPdfColumnsReset:active,
+.settingsPageTransition .settingsDeleteButton:focus-visible,
+.settingsPageTransition .settingsPdfColumnsReset:focus-visible {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 .appFrameWithSidebar .voiceActions {
   position: relative !important;
   z-index: 2 !important;
