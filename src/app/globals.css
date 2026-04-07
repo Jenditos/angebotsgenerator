@@ -8652,8 +8652,25 @@ button.documentModeSwitchButton.active {
   border-top: 0 !important;
 }
 
-/* 2B) Leistungen & Positionen: align full module surface to "Per Sprache ausfüllen" */
-.dashboardPositionsPanel,
+/* 1) Default state color for Angebote/Rechnungen + Privatperson/Firma */
+.appFrameWithSidebar
+  .documentModeSwitchButton:not(.active):not([aria-pressed="true"]):not(
+    :hover
+  ):not(:focus):not(:focus-visible),
+.appFrameWithSidebar .recipientTypeButton:not(.active):not(
+    [aria-pressed="true"]
+  ):not(:hover):not(:focus):not(:focus-visible) {
+  border: 0 !important;
+  outline: none !important;
+  background: rgba(25, 59, 104, 0.1) !important;
+  background-image: none !important;
+}
+
+/* 2B) Leistungen & Positionen: single visible surface (no stacked blue layers) */
+.dashboardPositionsPanel {
+  background: var(--vis-primary-soft) !important;
+}
+
 .dashboardPositionsPanel .positionsSearchPanel,
 .dashboardPositionsPanel .positionsInputWrap,
 .dashboardPositionsPanel .positionsInputWrapMerged,
@@ -8664,6 +8681,6 @@ button.documentModeSwitchButton.active {
 .dashboardPositionsPanel .positionsInputTableFooter,
 .dashboardPositionsPanel .positionsInputEmpty,
 .dashboardPositionsPanel .positionsGroupRow td {
-  background: var(--vis-primary-soft) !important;
+  background: transparent !important;
   background-image: none !important;
 }
