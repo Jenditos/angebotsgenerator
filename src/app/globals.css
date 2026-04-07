@@ -8871,3 +8871,22 @@ button.documentModeSwitchButton.active {
 .settingsOverlayFrame *::after {
   box-shadow: none !important;
 }
+
+/* Auth inline links: keep text-only on hover (no button block) */
+.authGithubCard .authGithubInlineLink,
+.authGithubCard .authGithubInlineLinkStrong,
+.authGithubCard .authGithubInlineLink:hover,
+.authGithubCard .authGithubInlineLinkStrong:hover,
+.authGithubCard .authGithubInlineLink:active,
+.authGithubCard .authGithubInlineLinkStrong:active,
+.authGithubCard .authGithubInlineLink:focus,
+.authGithubCard .authGithubInlineLinkStrong:focus,
+.authGithubCard .authGithubInlineLink:focus-visible,
+.authGithubCard .authGithubInlineLinkStrong:focus-visible {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
