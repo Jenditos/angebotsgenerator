@@ -8352,6 +8352,16 @@ body,
   transition: none !important;
 }
 
+.appSidebar .appSidebarNavItem,
+.appSidebar .appSidebarActionButton,
+.appSidebar .appSidebarNavLabel {
+  cursor: default !important;
+}
+
+.appSidebar .appSidebarNavIconWrap {
+  cursor: pointer !important;
+}
+
 @media (hover: hover) and (pointer: fine) {
   /* Parent/text hover stays default; only the icon square reacts */
   .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover),
