@@ -8682,8 +8682,36 @@ button.documentModeSwitchButton.active {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .appFrameWithSidebar .documentModeSwitchButton:hover,
-  .appFrameWithSidebar .recipientTypeButton:hover,
+  .appFrameWithSidebar .documentModeSwitchButton:not(.active):not(
+      [aria-pressed="true"]
+    ):hover,
+  .appFrameWithSidebar .recipientTypeButton:not(.active):not(
+      [aria-pressed="true"]
+    ):hover {
+    border: 1px solid #1479ff !important;
+    outline: none !important;
+    background: rgba(25, 59, 104, 0.1) !important;
+    background-color: rgba(25, 59, 104, 0.1) !important;
+    background-image: none !important;
+    color: #1f3f72 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .appFrameWithSidebar .documentModeSwitchButton.active:hover,
+  .appFrameWithSidebar .documentModeSwitchButton[aria-pressed="true"]:hover,
+  .appFrameWithSidebar .recipientTypeButton.active:hover,
+  .appFrameWithSidebar .recipientTypeButton[aria-pressed="true"]:hover {
+    border-color: #1479ff !important;
+    background: #1479ff !important;
+    background-color: #1479ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
   .appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
     border: 1px solid #1479ff !important;
     outline: none !important;
