@@ -3335,8 +3335,8 @@ a.ghostButton,
     opacity 0.2s ease;
 }
 
-button:hover:not(:disabled),
-button[class]:hover:not(:disabled),
+button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
+button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
 .positionsTypeaheadList button:hover,
 a.primaryButton:hover,
 a.ghostButton:hover,
@@ -3349,8 +3349,8 @@ a.ghostButton:hover,
     0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-button:active:not(:disabled),
-button[class]:active:not(:disabled),
+button:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
+button[class]:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.voiceActionButtonClear),
 .positionsTypeaheadList button:active,
 a.primaryButton:active,
 a.ghostButton:active,
@@ -8673,20 +8673,18 @@ button.documentModeSwitchButton.active {
   transition: none !important;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .appFrameWithSidebar .documentModeSwitchButton:hover,
-  .appFrameWithSidebar .recipientTypeButton:hover,
-  .appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
-    border: 0 !important;
-    outline: none !important;
-    background: #1479ff !important;
-    background-color: #1479ff !important;
-    background-image: none !important;
-    color: #ffffff !important;
-    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
-    transform: none !important;
-    opacity: 1 !important;
-  }
+.appFrameWithSidebar .documentModeSwitchButton:hover,
+.appFrameWithSidebar .recipientTypeButton:hover,
+.appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
+  border: 0 !important;
+  outline: none !important;
+  background: #1479ff !important;
+  background-color: #1479ff !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 /* 2B) Leistungen & Positionen: single visible surface (no stacked blue layers) */
