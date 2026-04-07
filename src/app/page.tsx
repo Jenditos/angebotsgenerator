@@ -1414,6 +1414,68 @@ export default function HomePage() {
     };
   }
 
+  function storeCurrentModeSnapshot(mode: DocumentMode) {
+    modeSnapshotsRef.current[mode] = createCurrentModeSnapshot();
+  }
+
+  function switchDocumentMode(nextMode: DocumentMode) {
+    if (nextMode === documentMode) {
+      return;
+    }
+
+    storeCurrentModeSnapshot(documentMode);
+    const nextSnapshot = modeSnapshotsRef.current[nextMode];
+    if (nextSnapshot) {
+      applyModeSnapshot(nextSnapshot);
+    } else {
+      applyModeSnapshot(createInitialModeSnapshot());
+    }
+
+    if (recognitionRef.current) {
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsListening(false);
+    }
+    setIsSpeechPaused(false);
+    setActivePriceSubitemId(null);
+    setDocumentMode(nextMode);
+  }
+
+  function resetCurrentInputs() {
+    const confirmed = window.confirm(
+      `Möchtest du wirklich alle Eingaben im aktuellen ${singularDocumentLabel.toLowerCase()} löschen?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    if (recognitionRef.current) {
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    finalTranscriptRef.current = "";
+    setIsListening(false);
+    setIsSpeechPaused(false);
+    setIsAddressLoading(false);
+    setIsCustomerPickerOpen(false);
+    setCustomerSearch("");
+    setCustomersError("");
+    setDeletingCustomerNumber(null);
+    setError("");
+    setPostActionInfo("");
+    setOfferMailActionState(null);
+    setIsPreparingOfferMailDraft(false);
+
+    const resetSnapshot = createInitialModeSnapshot();
+    modeSnapshotsRef.current[documentMode] = resetSnapshot;
+    applyModeSnapshot(resetSnapshot);
+  }
+
   function openSettingsOverlay() {
     if (settingsOverlayCloseTimeoutRef.current !== null) {
       window.clearTimeout(settingsOverlayCloseTimeoutRef.current);
@@ -1561,9 +1623,21 @@ export default function HomePage() {
       if (rawState) {
         const persisted = hydratePersistedHomeState(JSON.parse(rawState));
         if (persisted) {
-          modeSnapshotsRef.current = persisted.modeSnapshots;
-          setDocumentMode(persisted.documentMode);
-          applyModeSnapshot(persisted.modeSnapshots[persisted.documentMode]);
+          const offerSnapshot = persisted.modeSnapshots.offer;
+          const normalizedOfferSnapshot: ModeSnapshot = {
+            ...offerSnapshot,
+            form: {
+              ...offerSnapshot.form,
+              customerType: "person",
+            },
+          };
+
+          modeSnapshotsRef.current = {
+            ...persisted.modeSnapshots,
+            offer: normalizedOfferSnapshot,
+          };
+          setDocumentMode("offer");
+          applyModeSnapshot(normalizedOfferSnapshot);
         }
       }
     } catch {
@@ -4457,9 +4531,23 @@ export default function HomePage() {
               className="documentModeContent"
             >
               <div className="documentModeSwitchTop">
-                <div className="documentModeSwitch" aria-hidden="true">
-                  <div className="documentModeSwitchGap" />
-                  <div className="documentModeSwitchGap" />
+                <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
+                  <button
+                    type="button"
+                    className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
+                    aria-pressed={documentMode === "offer"}
+                    onClick={() => switchDocumentMode("offer")}
+                  >
+                    Angebote
+                  </button>
+                  <button
+                    type="button"
+                    className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
+                    aria-pressed={documentMode === "invoice"}
+                    onClick={() => switchDocumentMode("invoice")}
+                  >
+                    Rechnungen
+                  </button>
                 </div>
               </div>
               <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
@@ -4526,7 +4614,14 @@ export default function HomePage() {
                       KI-Aufnahme starten
                     </button>
                   )}
-                  <div className="voiceActionButtonClearGap" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="ghostButton voiceActionButton voiceActionButtonClear"
+                    onClick={resetCurrentInputs}
+                    disabled={isSubmitting}
+                  >
+                    Felder leeren
+                  </button>
                 </div>
 
                 <label className="field">
@@ -4576,11 +4671,31 @@ export default function HomePage() {
 
               <div
                 className="recipientType span2"
+                role="group"
+                aria-label="Kundenart"
               >
                 <span>Kundenart</span>
                 <div className="recipientTypeButtons">
-                  <div className="recipientTypeButtonGap" />
-                  <div className="recipientTypeButtonGap" />
+                  <button
+                    type="button"
+                    className={`recipientTypeButton ${form.customerType === "person" ? "active" : ""}`}
+                    aria-pressed={form.customerType === "person"}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, customerType: "person" }))
+                    }
+                  >
+                    Privatperson
+                  </button>
+                  <button
+                    type="button"
+                    className={`recipientTypeButton ${form.customerType === "company" ? "active" : ""}`}
+                    aria-pressed={form.customerType === "company"}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, customerType: "company" }))
+                    }
+                  >
+                    Firma
+                  </button>
                 </div>
               </div>
 
