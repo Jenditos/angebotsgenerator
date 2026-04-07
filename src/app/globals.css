@@ -8349,7 +8349,12 @@ body,
 
 .appSidebar .appSidebarNavIconWrap,
 .appSidebar .appSidebarNavIcon {
-  transition: none !important;
+  transition:
+    transform var(--vis-reference-transition),
+    box-shadow var(--vis-reference-transition),
+    border-color var(--vis-reference-transition),
+    background-color var(--vis-reference-transition),
+    color var(--vis-reference-transition) !important;
 }
 
 .appSidebar .appSidebarNavItem,
@@ -8394,7 +8399,7 @@ body,
     background-image: none !important;
     color: #ffffff !important;
     box-shadow: 0 18px 36px rgba(20, 121, 255, 0.3) !important;
-    transform: none !important;
+    transform: var(--vis-reference-hover-transform) !important;
     opacity: 1 !important;
   }
 
