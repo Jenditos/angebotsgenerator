@@ -8668,13 +8668,15 @@ button.documentModeSwitchButton.active {
 
 /* Hover parity with "Einstellungen" button (exact visual behavior) */
 .appFrameWithSidebar .documentModeSwitchButton,
-.appFrameWithSidebar .recipientTypeButton {
+.appFrameWithSidebar .recipientTypeButton,
+.appFrameWithSidebar .voiceActionButtonClear {
   transition: none !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .appFrameWithSidebar .documentModeSwitchButton:hover,
-  .appFrameWithSidebar .recipientTypeButton:hover {
+  .appFrameWithSidebar .recipientTypeButton:hover,
+  .appFrameWithSidebar .voiceActionButtonClear:hover:not(:disabled) {
     border: 0 !important;
     outline: none !important;
     background: #1479ff !important;
