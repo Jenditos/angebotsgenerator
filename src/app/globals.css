@@ -8889,4 +8889,6 @@ button.documentModeSwitchButton.active {
   box-shadow: none !important;
   filter: none !important;
   transform: none !important;
+  text-decoration: none !important;
+  color: #2f67c4 !important;
 }
