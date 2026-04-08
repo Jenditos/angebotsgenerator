@@ -322,7 +322,7 @@ function buildServiceDateCalendarDays(
 
 function createInitialForm(): OfferForm {
   return {
-    customerType: "person",
+    customerType: "company",
     companyName: "",
     salutation: "herr",
     firstName: "",
@@ -470,7 +470,7 @@ function hydrateOfferForm(value: unknown): OfferForm {
   }
 
   return {
-    customerType: value.customerType === "company" ? "company" : "person",
+    customerType: value.customerType === "person" ? "person" : "company",
     companyName: asString(value.companyName),
     salutation: value.salutation === "frau" ? "frau" : "herr",
     firstName: asString(value.firstName),
@@ -1628,7 +1628,7 @@ export default function HomePage() {
             ...offerSnapshot,
             form: {
               ...offerSnapshot.form,
-              customerType: "person",
+              customerType: "company",
             },
           };
 
@@ -4678,16 +4678,6 @@ export default function HomePage() {
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
-                    className={`recipientTypeButton ${form.customerType === "person" ? "active" : ""}`}
-                    aria-pressed={form.customerType === "person"}
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, customerType: "person" }))
-                    }
-                  >
-                    Privatperson
-                  </button>
-                  <button
-                    type="button"
                     className={`recipientTypeButton ${form.customerType === "company" ? "active" : ""}`}
                     aria-pressed={form.customerType === "company"}
                     onClick={() =>
@@ -4695,6 +4685,16 @@ export default function HomePage() {
                     }
                   >
                     Firma
+                  </button>
+                  <button
+                    type="button"
+                    className={`recipientTypeButton ${form.customerType === "person" ? "active" : ""}`}
+                    aria-pressed={form.customerType === "person"}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, customerType: "person" }))
+                    }
+                  >
+                    Privatperson
                   </button>
                 </div>
               </div>
