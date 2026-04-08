@@ -58,6 +58,7 @@ type OfferMailActionState = {
   payload: ApiResponse;
   customerEmail: string;
   companyName: string;
+  mode: DocumentMode;
 };
 
 type EmailDraftApiResponse =
@@ -1349,10 +1350,15 @@ export default function HomePage() {
   );
   const isInvoiceMode = documentMode === "invoice";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
-  const isOfferMailActionVisible = !isInvoiceMode;
+  const createDocumentFirstInfo = isInvoiceMode
+    ? "Bitte zuerst eine Rechnung erstellen."
+    : "Bitte zuerst ein Angebot erstellen.";
   const canOpenOfferMailDraft =
-    isOfferMailActionVisible &&
-    Boolean(offerMailActionState?.payload.pdfBase64?.trim());
+    Boolean(offerMailActionState?.payload.pdfBase64?.trim()) &&
+    offerMailActionState?.mode === documentMode;
+  const isCreateDocumentHint =
+    postActionInfo === "Bitte zuerst ein Angebot erstellen." ||
+    postActionInfo === "Bitte zuerst eine Rechnung erstellen.";
   const accountIdentityLabel = accountIdentity || "Nutzerkonto";
 
   useDialogFocusTrap({
@@ -3667,26 +3673,25 @@ export default function HomePage() {
         );
         downloadPdfFile(file);
       }
-      if (payloadMode === "offer") {
-        const companyNameForMail =
-          settingsPayload?.companyName?.trim() ||
-          companySettings?.companyName?.trim() ||
-          "";
-        const customerEmailForMail = form.customerEmail.trim();
-        setOfferMailActionState({
-          payload,
-          customerEmail: customerEmailForMail,
-          companyName: companyNameForMail,
-        });
-        setPostActionInfo(
-          customerEmailForMail
-            ? "Angebot wurde erstellt. Du kannst es jetzt per E-Mail versenden."
-            : "Angebot wurde erstellt. Für den Versand bitte zuerst eine Kunden-E-Mail angeben.",
-        );
-      } else {
-        const info = await openMailDraftWithDocument(payload, payloadMode);
-        setPostActionInfo(info);
-      }
+      const companyNameForMail =
+        settingsPayload?.companyName?.trim() ||
+        companySettings?.companyName?.trim() ||
+        "";
+      const customerEmailForMail = form.customerEmail.trim();
+      const createdDocumentLabel =
+        payloadMode === "invoice" ? "Rechnung" : "Angebot";
+      const createdDocumentPronoun = payloadMode === "invoice" ? "sie" : "es";
+      setOfferMailActionState({
+        payload,
+        customerEmail: customerEmailForMail,
+        companyName: companyNameForMail,
+        mode: payloadMode,
+      });
+      setPostActionInfo(
+        customerEmailForMail
+          ? `${createdDocumentLabel} wurde erstellt. Du kannst ${createdDocumentPronoun} jetzt per E-Mail versenden.`
+          : `${createdDocumentLabel} wurde erstellt. Für den Versand bitte zuerst eine Kunden-E-Mail angeben.`,
+      );
     } catch {
       setError("Netzwerkfehler. Bitte erneut versuchen.");
     } finally {
@@ -3697,11 +3702,12 @@ export default function HomePage() {
   async function handleOfferMailDraftOpen() {
     setError("");
 
-    if (!offerMailActionState) {
-      setPostActionInfo("Bitte zuerst ein Angebot erstellen.");
+    if (!offerMailActionState || offerMailActionState.mode !== documentMode) {
+      setPostActionInfo(createDocumentFirstInfo);
       return;
     }
 
+    const mailMode = offerMailActionState.mode;
     const recipientEmail = offerMailActionState.customerEmail.trim();
     if (!recipientEmail) {
       setPostActionInfo("Bitte zuerst eine Kunden-E-Mail hinterlegen.");
@@ -3709,26 +3715,41 @@ export default function HomePage() {
     }
 
     if (!offerMailActionState.payload.pdfBase64?.trim()) {
-      setPostActionInfo("Kein PDF vorhanden. Bitte Angebot zuerst neu erstellen.");
+      setPostActionInfo(
+        mailMode === "invoice"
+          ? "Kein PDF vorhanden. Bitte Rechnung zuerst neu erstellen."
+          : "Kein PDF vorhanden. Bitte Angebot zuerst neu erstellen.",
+      );
       return;
     }
 
     setError("");
     setIsPreparingOfferMailDraft(true);
     try {
-      const draft = buildOfferMailDraftContent(
-        offerMailActionState.companyName,
-        resolveOfferReferenceNumber(offerMailActionState.payload),
-      );
-      const info = await openMailDraftWithDocument(
-        offerMailActionState.payload,
-        "offer",
-        {
-          to: recipientEmail,
-          subject: draft.subject,
-          text: draft.text,
-        },
-      );
+      let info = "";
+      if (mailMode === "offer") {
+        const draft = buildOfferMailDraftContent(
+          offerMailActionState.companyName,
+          resolveOfferReferenceNumber(offerMailActionState.payload),
+        );
+        info = await openMailDraftWithDocument(
+          offerMailActionState.payload,
+          "offer",
+          {
+            to: recipientEmail,
+            subject: draft.subject,
+            text: draft.text,
+          },
+        );
+      } else {
+        info = await openMailDraftWithDocument(
+          offerMailActionState.payload,
+          "invoice",
+          {
+            to: recipientEmail,
+          },
+        );
+      }
       setPostActionInfo(info);
     } catch {
       setPostActionInfo("Mail-Entwurf konnte nicht geöffnet werden.");
@@ -5539,58 +5560,56 @@ export default function HomePage() {
                     ? `${singularDocumentLabel} wird erstellt...`
                     : `${singularDocumentLabel} erstellen`}
                 </button>
-                {isOfferMailActionVisible ? (
-                  <button
-                    type="button"
-                    className="ghostButton submitMailButton"
-                    onClick={handleOfferMailDraftOpen}
-                    disabled={
-                      isPreparingOfferMailDraft
-                    }
-                    title={
-                      !canOpenOfferMailDraft
-                        ? "Bitte zuerst ein Angebot erstellen."
-                        : offerMailActionState?.customerEmail.trim()
-                        ? "Angebot per E-Mail versenden"
-                        : "Für den Versand fehlt eine Kunden-E-Mail"
-                    }
+                <button
+                  type="button"
+                  className="ghostButton submitMailButton"
+                  onClick={handleOfferMailDraftOpen}
+                  disabled={
+                    isPreparingOfferMailDraft
+                  }
+                  title={
+                    !canOpenOfferMailDraft
+                      ? createDocumentFirstInfo
+                      : offerMailActionState?.customerEmail.trim()
+                      ? `${singularDocumentLabel} per E-Mail versenden`
+                      : "Für den Versand fehlt eine Kunden-E-Mail"
+                  }
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="submitMailButtonIcon"
+                    aria-hidden="true"
+                    focusable="false"
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="submitMailButtonIcon"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <path
-                        d="M3 11.5 20 3l-5.1 18.1-3.6-6.1-6.3-3.5Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="m20 3-8.7 12"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="submitMailButtonLabel">
-                      {isPreparingOfferMailDraft
-                        ? "Mail wird geöffnet..."
-                        : "Per E-Mail senden"}
-                    </span>
-                  </button>
-                ) : null}
+                    <path
+                      d="M3 11.5 20 3l-5.1 18.1-3.6-6.1-6.3-3.5Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="m20 3-8.7 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="submitMailButtonLabel">
+                    {isPreparingOfferMailDraft
+                      ? "Mail wird geöffnet..."
+                      : "Per E-Mail senden"}
+                  </span>
+                </button>
               </div>
 
             </form>
 
             {error ? <p className="error">{error}</p> : null}
             {!error && postActionInfo ? (
-              <p className={`voiceInfo${postActionInfo === "Bitte zuerst ein Angebot erstellen." ? " postActionError" : ""}`} role="status" aria-live="polite">
+              <p className={`voiceInfo${isCreateDocumentHint ? " postActionError" : ""}`} role="status" aria-live="polite">
                 {postActionInfo}
               </p>
             ) : null}
