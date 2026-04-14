@@ -1417,6 +1417,9 @@ export default function SettingsPage() {
 
             <label className="field span2">
               <span>Hinweis / Bedingungen im PDF</span>
+              <small className="settingsExampleHint">
+                Der voreingestellte Text ist ein Beispiel und kann frei angepasst werden.
+              </small>
               <textarea
                 rows={4}
                 value={settings.offerTermsText}
@@ -1558,9 +1561,14 @@ export default function SettingsPage() {
               </div>
             ) : null}
 
-            <button type="submit" className="primaryButton submitButton">
-              Einstellungen speichern
-            </button>
+            <div className="submitActionRow dashboardCtaRow span2 settingsSaveActionRow">
+              <button
+                type="submit"
+                className="primaryButton submitButton settingsSaveButton"
+              >
+                Einstellungen speichern
+              </button>
+            </div>
             <button
               type="button"
               className="ghostButton settingsDeleteButton"

@@ -8947,3 +8947,51 @@ button.documentModeSwitchButton.active {
     padding: 0 !important;
   }
 }
+
+/* Settings: terms text is example + interaction tuning for PDF columns */
+.settingsExampleHint {
+  margin-top: 2px;
+  color: #4f6892;
+  font-size: 0.79rem;
+  line-height: 1.35;
+}
+
+.settingsPdfColumnsToggle,
+.settingsPdfColumnsToggle:hover,
+.settingsPdfColumnsToggle:active,
+.settingsPdfColumnsToggle:focus,
+.settingsPdfColumnsToggle:focus-visible,
+.settingsPdfColumnsToggle:focus-within {
+  transform: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+button.settingsPdfColumnsDragHandle,
+button.settingsPdfColumnsDragHandle:hover,
+button.settingsPdfColumnsDragHandle:active,
+button.settingsPdfColumnsDragHandle:focus,
+button.settingsPdfColumnsDragHandle:focus-visible {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Settings: save button should match "Angebot erstellen" button */
+.settingsPageTransition .settingsSaveActionRow .settingsSaveButton {
+  color: var(--text-on-strong) !important;
+  border-color: rgba(133, 179, 238, 0.9) !important;
+  background: #1f4f8f !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 15px 28px rgba(25, 58, 108, 0.34),
+    0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  letter-spacing: 0.012em !important;
+}
+
+.settingsPageTransition .settingsSaveActionRow .settingsSaveButton:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 15px 28px rgba(39, 92, 178, 0.34),
+    0 1px 0 rgba(255, 255, 255, 0.44) !important;
+}
