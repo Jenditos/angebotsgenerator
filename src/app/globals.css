@@ -8513,6 +8513,10 @@ body,
   .appFrameWithSidebar .appMainContent {
     background: rgba(20, 121, 255, 0.05) !important;
   }
+
+  .appFrameWithSidebar .dashboardPrimaryCard {
+    background: transparent !important;
+  }
 }
 
 @media (max-width: 980px) {
