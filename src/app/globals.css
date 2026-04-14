@@ -8977,21 +8977,36 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   filter: none !important;
 }
 
-/* Settings: save button should match "Angebot erstellen" button */
-.settingsPageTransition .settingsSaveActionRow .settingsSaveButton {
-  color: var(--text-on-strong) !important;
-  border-color: rgba(133, 179, 238, 0.9) !important;
-  background: #1f4f8f !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 15px 28px rgba(25, 58, 108, 0.34),
-    0 1px 0 rgba(255, 255, 255, 0.18) !important;
-  letter-spacing: 0.012em !important;
+/* Settings: secondary actions use same button setup as "Per E-Mail senden" */
+.settingsPdfColumnsActions {
+  display: flex;
+  justify-content: flex-start;
 }
 
-.settingsPageTransition .settingsSaveActionRow .settingsSaveButton:hover:not(:disabled) {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 15px 28px rgba(39, 92, 178, 0.34),
-    0 1px 0 rgba(255, 255, 255, 0.44) !important;
+.settingsSecondaryActionsRow {
+  margin-top: 0 !important;
+}
+
+.settingsSecondaryActionButton {
+  justify-content: center;
+}
+
+.settingsPdfColumnsActions .settingsSecondaryActionButton {
+  width: auto;
+  min-width: 260px;
+  max-width: 360px;
+}
+
+.settingsAuthMessage {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+@media (max-width: 760px) {
+  .settingsPdfColumnsActions .settingsSecondaryActionButton {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
 }

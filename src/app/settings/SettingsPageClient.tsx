@@ -1513,13 +1513,17 @@ export default function SettingsPage() {
                   })}
                 </div>
 
-                <button
-                  type="button"
-                  className="ghostButton settingsPdfColumnsReset"
-                  onClick={resetPdfColumns}
-                >
-                  Standardspalten wiederherstellen
-                </button>
+                <div className="settingsPdfColumnsActions">
+                  <button
+                    type="button"
+                    className="ghostButton submitMailButton settingsSecondaryActionButton settingsPdfColumnsResetButton"
+                    onClick={resetPdfColumns}
+                  >
+                    <span className="submitMailButtonLabel">
+                      Standardspalten wiederherstellen
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1569,17 +1573,25 @@ export default function SettingsPage() {
                 Einstellungen speichern
               </button>
             </div>
-            <button
-              type="button"
-              className="ghostButton settingsDeleteButton"
-              onClick={resetSettings}
-            >
-              Einstellungen löschen
-            </button>
+            <div className="submitActionRow dashboardCtaRow span2 settingsSecondaryActionsRow">
+              <button
+                type="button"
+                className="ghostButton submitMailButton settingsSecondaryActionButton settingsDeleteActionButton"
+                onClick={resetSettings}
+              >
+                <span className="submitMailButtonLabel">Einstellungen löschen</span>
+              </button>
+            </div>
           </form>
           {saveStatus ? <p className="success">{saveStatus}</p> : null}
           {error ? (
-            <p className={isNotLoggedInError ? "voiceInfo postActionError" : "error"}>
+            <p
+              className={
+                isNotLoggedInError
+                  ? "voiceInfo postActionError settingsAuthMessage"
+                  : "error"
+              }
+            >
               {error}
             </p>
           ) : null}
