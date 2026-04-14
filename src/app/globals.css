@@ -8963,7 +8963,11 @@ button.documentModeSwitchButton.active {
 .settingsPdfColumnsToggle:focus-visible,
 .settingsPdfColumnsToggle:focus-within {
   transform: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
+  padding: 0 !important;
   transition: none !important;
 }
 
@@ -8980,7 +8984,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 /* Settings: secondary actions use same button setup as "Per E-Mail senden" */
 .settingsPdfColumnsActions {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .settingsSecondaryActionsRow {
@@ -9001,6 +9005,13 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   margin-left: 0 !important;
   padding-left: 0 !important;
   text-align: left !important;
+}
+
+.settingsPageTransition button:hover:not(:disabled),
+.settingsPageTransition button[class]:hover:not(:disabled),
+.settingsPageTransition a.primaryButton:hover,
+.settingsPageTransition a.ghostButton:hover {
+  box-shadow: none !important;
 }
 
 @media (max-width: 760px) {
