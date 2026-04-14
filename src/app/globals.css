@@ -8991,11 +8991,8 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   margin-top: 0 !important;
 }
 
-.settingsSecondaryActionButton {
+.settingsPdfColumnsActions .submitMailButton {
   justify-content: center;
-}
-
-.settingsPdfColumnsActions .settingsSecondaryActionButton {
   width: auto;
   min-width: 260px;
   max-width: 360px;
@@ -9024,8 +9021,17 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  color: inherit !important;
   transform: none !important;
   transition: none !important;
+}
+
+.settingsPageTransition .settingsPdfColumnsToggle span,
+.settingsPageTransition .settingsPdfColumnsToggle:hover span,
+.settingsPageTransition .settingsPdfColumnsToggle:active span,
+.settingsPageTransition .settingsPdfColumnsToggle:focus span {
+  color: inherit !important;
+  text-decoration: none !important;
 }
 
 .settingsPageTransition .settingsInvoiceDuePanel,
@@ -9048,7 +9054,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 @media (max-width: 760px) {
-  .settingsPdfColumnsActions .settingsSecondaryActionButton {
+  .settingsPdfColumnsActions .submitMailButton {
     width: 100%;
     min-width: 0;
     max-width: none;
