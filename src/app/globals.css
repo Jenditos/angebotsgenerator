@@ -9040,8 +9040,11 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 .settingsPageTransition .settingsInvoiceDueOptions {
-  padding-top: 2px;
-  padding-bottom: 2px;
+  flex-wrap: wrap;
+  overflow: visible !important;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  row-gap: 6px;
 }
 
 @media (max-width: 760px) {
