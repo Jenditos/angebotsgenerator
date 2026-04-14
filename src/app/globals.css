@@ -8514,6 +8514,10 @@ body,
     background: rgba(20, 121, 255, 0.05) !important;
   }
 
+  .appFrameWithSidebar .documentModeSwitchTop {
+    padding-top: var(--targeted-pad-main) !important;
+  }
+
   .appFrameWithSidebar .dashboardPrimaryCard {
     background: transparent !important;
   }
