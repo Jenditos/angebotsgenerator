@@ -71,6 +71,33 @@ function sortPdfColumns(
   return [...columns].sort((a, b) => a.order - b.order);
 }
 
+function SubmitMailActionIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="submitMailButtonIcon"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M3 11.5 20 3l-5.1 18.1-3.6-6.1-6.3-3.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m20 3-8.7 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -1498,7 +1525,9 @@ export default function SettingsPage() {
                               )
                             }
                           />
-                          <span>Sichtbar</span>
+                          <span className="settingsPdfColumnsVisibleLabel">
+                            Sichtbar
+                          </span>
                         </label>
 
                         <input
@@ -1513,34 +1542,13 @@ export default function SettingsPage() {
                   })}
                 </div>
 
-                <div className="settingsPdfColumnsActions">
+                <div className="submitActionRow dashboardCtaRow settingsPdfColumnsActions">
                   <button
                     type="button"
                     className="ghostButton submitMailButton"
                     onClick={resetPdfColumns}
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="submitMailButtonIcon"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <path
-                        d="M3 11.5 20 3l-5.1 18.1-3.6-6.1-6.3-3.5Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="m20 3-8.7 12"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
+                    <SubmitMailActionIcon />
                     <span className="submitMailButtonLabel">
                       Standardspalten wiederherstellen
                     </span>
@@ -1601,28 +1609,7 @@ export default function SettingsPage() {
                 className="ghostButton submitMailButton"
                 onClick={resetSettings}
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="submitMailButtonIcon"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  <path
-                    d="M3 11.5 20 3l-5.1 18.1-3.6-6.1-6.3-3.5Z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="m20 3-8.7 12"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                <SubmitMailActionIcon />
                 <span className="submitMailButtonLabel">Einstellungen löschen</span>
               </button>
             </div>

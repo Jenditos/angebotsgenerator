@@ -6451,7 +6451,6 @@ textarea:focus,
       .documentModeSwitchButton,
       .accountMenuPanel .accountMenuItem,
       .settingsInvoiceDueOption,
-      .settingsPdfColumnsToggle,
       .settingsPdfColumnsDragHandle,
       .customerPickerItem,
       .customerArchiveCustomerButton,
@@ -8968,6 +8967,16 @@ button.documentModeSwitchButton.active {
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 0 !important;
+  transition: none !important;
+}
+
+.settingsPdfColumnsVisibleLabel,
+.settingsPdfColumnsToggle:hover .settingsPdfColumnsVisibleLabel,
+.settingsPdfColumnsToggle:active .settingsPdfColumnsVisibleLabel,
+.settingsPdfColumnsToggle:focus .settingsPdfColumnsVisibleLabel,
+.settingsPdfColumnsToggle:focus-visible .settingsPdfColumnsVisibleLabel {
+  color: inherit !important;
+  text-decoration: none !important;
   transition: none !important;
 }
 
