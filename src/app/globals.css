@@ -8507,7 +8507,7 @@ body,
 
   .appFrameWithSidebar .appSidebar {
     background: #ffffff !important;
-    border-right: 1px solid rgba(20, 121, 255, 0.12) !important;
+    border-right: 1px solid rgba(20, 121, 255, 0.08) !important;
   }
 
   .appFrameWithSidebar .appMainContent {
@@ -8683,7 +8683,12 @@ button.documentModeSwitchButton.active {
 
 /* 2A) Leistungen & Positionen: remove only the disturbing top edge on middle section */
 .dashboardPositionsPanel .positionsInputWrap.positionsInputWrapMerged {
+  border: 0 !important;
   border-top: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* 1) Angebote/Rechnungen + Privatperson/Firma: active + hover in #1479ff */
@@ -8930,11 +8935,11 @@ button.documentModeSwitchButton.active {
 
 /* Positions table: reduce excessive bottom area below the "+" row section */
 .dashboardPositionsPanel .positionsInputWrapMerged {
-  padding-bottom: 12px !important;
+  padding: 0 !important;
 }
 
 @media (max-width: 980px) {
   .dashboardPositionsPanel .positionsInputWrapMerged {
-    padding-bottom: 8px !important;
+    padding: 0 !important;
   }
 }
