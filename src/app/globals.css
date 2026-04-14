@@ -9036,6 +9036,12 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 .settingsPageTransition .settingsInvoiceDueOption:focus-within,
 .settingsPageTransition .settingsInvoiceDueOption:has(input:checked) {
   box-shadow: none !important;
+  transform: none !important;
+}
+
+.settingsPageTransition .settingsInvoiceDueOptions {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 @media (max-width: 760px) {
