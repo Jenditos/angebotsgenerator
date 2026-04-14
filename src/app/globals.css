@@ -8502,7 +8502,7 @@ body,
 /* Start page: subtle split between white sidebar and tinted content area */
 @media (min-width: 981px) {
   .appFrameWithSidebar {
-    background: #ffffff !important;
+    background: transparent !important;
   }
 
   .appFrameWithSidebar .appSidebar {
@@ -8511,7 +8511,7 @@ body,
   }
 
   .appFrameWithSidebar .appMainContent {
-    background: rgba(20, 121, 255, 0.1) !important;
+    background: rgba(20, 121, 255, 0.05) !important;
   }
 }
 
