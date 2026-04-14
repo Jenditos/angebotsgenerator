@@ -8842,7 +8842,7 @@ button.documentModeSwitchButton.active {
 
 /* 2B) Leistungen & Positionen: single visible surface (no stacked blue layers) */
 .dashboardPositionsPanel {
-  background: var(--vis-primary-soft) !important;
+  background: rgba(20, 121, 255, 0.11) !important;
 }
 
 .dashboardPositionsPanel .positionsSearchPanel,
