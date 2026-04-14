@@ -8984,7 +8984,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 /* Settings: secondary actions use same button setup as "Per E-Mail senden" */
 .settingsPdfColumnsActions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .settingsSecondaryActionsRow {
@@ -9011,6 +9011,30 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 .settingsPageTransition button[class]:hover:not(:disabled),
 .settingsPageTransition a.primaryButton:hover,
 .settingsPageTransition a.ghostButton:hover {
+  box-shadow: none !important;
+}
+
+.settingsPageTransition .settingsPdfColumnsToggle,
+.settingsPageTransition .settingsPdfColumnsToggle:hover,
+.settingsPageTransition .settingsPdfColumnsToggle:active,
+.settingsPageTransition .settingsPdfColumnsToggle:focus,
+.settingsPageTransition .settingsPdfColumnsToggle:focus-visible,
+.settingsPageTransition .settingsPdfColumnsToggle:focus-within {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+.settingsPageTransition .settingsInvoiceDuePanel,
+.settingsPageTransition .settingsInvoiceDuePanel:hover,
+.settingsPageTransition .settingsInvoiceDueOption,
+.settingsPageTransition .settingsInvoiceDueOption:hover,
+.settingsPageTransition .settingsInvoiceDueOption:active,
+.settingsPageTransition .settingsInvoiceDueOption:focus-within,
+.settingsPageTransition .settingsInvoiceDueOption:has(input:checked) {
   box-shadow: none !important;
 }
 
