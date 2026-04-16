@@ -62,6 +62,8 @@ export type CustomService = {
   createdAt: string;
 };
 
+export type IbanVerificationStatus = "not_checked" | "valid";
+
 export type CompanySettings = {
   companyName: string;
   ownerName: string;
@@ -73,6 +75,10 @@ export type CompanySettings = {
   companyEmail: string;
   companyPhone: string;
   companyWebsite: string;
+  companyIban: string;
+  companyBic: string;
+  companyBankName: string;
+  ibanVerificationStatus: IbanVerificationStatus;
   taxNumber: string;
   vatId: string;
   companyCountry: string;

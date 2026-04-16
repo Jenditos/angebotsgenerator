@@ -2260,6 +2260,50 @@ textarea:focus {
   padding: 14px;
 }
 
+.settingsSectionCard {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(74, 118, 196, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 12px;
+  display: grid;
+  gap: 11px;
+}
+
+.settingsSectionHeader {
+  display: grid;
+  gap: 2px;
+}
+
+.settingsSectionTitle {
+  margin: 0;
+  color: #1d3f72;
+  font-size: 1.02rem;
+}
+
+.settingsSectionSubtitle {
+  margin: 0;
+  color: #4b6793;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.settingsSectionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.settingsSectionGrid > * {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .settingsSectionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .settingsPdfColumnsField > span {
   margin-bottom: 6px;
 }
@@ -2379,6 +2423,42 @@ textarea:focus {
 
 .settingsTaxOptionsField > span {
   margin-bottom: 4px;
+}
+
+.settingsIbanMeta {
+  display: grid;
+  gap: 2px;
+}
+
+.settingsIbanStatus {
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.settingsIbanStatus.isNeutral {
+  color: #556f99;
+}
+
+.settingsIbanStatus.isValid {
+  color: #226844;
+}
+
+.settingsIbanHint {
+  display: none;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.settingsIbanHint.isVisible {
+  display: block;
+}
+
+.settingsIbanHint.isValid {
+  color: #2d6947;
+}
+
+.settingsIbanHint.isInvalid {
+  color: #9a2d45;
 }
 
 .settingsTaxOptionToggle {
@@ -3489,6 +3569,7 @@ button.positionsDeleteButton {
 .voicePanel,
 .recipientType,
 .customerPickerList,
+.settingsSectionCard,
 .settingsInvoiceDuePanel,
 .settingsPdfColumnsPanel,
 .positionsInputWrap,
@@ -3500,6 +3581,7 @@ button.positionsDeleteButton {
 .voicePanel,
 .recipientType,
 .customerPickerList,
+.settingsSectionCard,
 .settingsInvoiceDuePanel,
 .settingsPdfColumnsPanel,
 .positionsInputWrap,
@@ -6284,6 +6366,7 @@ body {
 }
 
 .settingsInvoiceDuePanel,
+.settingsSectionCard,
 .settingsPdfColumnsPanel,
 .settingsPdfColumnsRow,
 .settingsPdfColumnsToggle,
@@ -9000,21 +9083,14 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   margin-top: 0 !important;
 }
 
-.settingsPdfColumnsActions .submitMailButton {
-  justify-content: center;
-  width: auto;
-  min-width: 260px;
-  max-width: 360px;
-}
-
 .settingsAuthMessage {
   margin-left: 0 !important;
   padding-left: 0 !important;
   text-align: left !important;
 }
 
-.settingsPageTransition button:hover:not(:disabled),
-.settingsPageTransition button[class]:hover:not(:disabled),
+.settingsPageTransition button:hover:not(:disabled):not(.submitMailButton),
+.settingsPageTransition button[class]:hover:not(:disabled):not(.submitMailButton),
 .settingsPageTransition a.primaryButton:hover,
 .settingsPageTransition a.ghostButton:hover {
   box-shadow: none !important;
@@ -9060,12 +9136,4 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   padding: 4px 6px;
   margin: -4px -6px;
   row-gap: 6px;
-}
-
-@media (max-width: 760px) {
-  .settingsPdfColumnsActions .submitMailButton {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
 }

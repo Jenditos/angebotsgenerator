@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
+import {
+  normalizeBicInput,
+  validateIbanInput,
+} from "@/lib/iban";
 import { readSettings, writeSettings } from "@/lib/settings-store";
 import { CompanySettings } from "@/types/offer";
 
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
         | "companyEmail"
         | "companyPhone"
         | "companyWebsite"
+        | "companyBankName"
         | "taxNumber"
         | "vatId"
         | "companyCountry"
@@ -71,6 +76,7 @@ export async function POST(request: Request) {
     maybeAssignString("companyEmail");
     maybeAssignString("companyPhone");
     maybeAssignString("companyWebsite");
+    maybeAssignString("companyBankName");
     maybeAssignString("taxNumber");
     maybeAssignString("vatId");
     maybeAssignString("companyCountry");
@@ -80,6 +86,33 @@ export async function POST(request: Request) {
     maybeAssignString("offerTermsText");
     maybeAssignString("lastOfferNumber");
     maybeAssignString("lastInvoiceNumber");
+
+    if (typeof body.companyIban === "string") {
+      const trimmedIban = body.companyIban.trim();
+      if (!trimmedIban) {
+        sanitized.companyIban = "";
+        sanitized.ibanVerificationStatus = "not_checked";
+      } else {
+        const ibanValidation = validateIbanInput(trimmedIban);
+        if (!ibanValidation.isValid) {
+          return NextResponse.json({ error: ibanValidation.message }, { status: 400 });
+        }
+        sanitized.companyIban = ibanValidation.formatted;
+        sanitized.ibanVerificationStatus = "valid";
+      }
+    }
+
+    if (typeof body.companyBic === "string") {
+      sanitized.companyBic = normalizeBicInput(body.companyBic);
+    }
+
+    if (
+      typeof body.companyIban !== "string" &&
+      (body.ibanVerificationStatus === "not_checked" ||
+        body.ibanVerificationStatus === "valid")
+    ) {
+      sanitized.ibanVerificationStatus = body.ibanVerificationStatus;
+    }
 
     if (typeof body.vatRate !== "undefined") {
       const vatRate = Number(body.vatRate);

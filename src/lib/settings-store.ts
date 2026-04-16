@@ -10,6 +10,11 @@ import {
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
 import { sanitizeCustomServices } from "@/lib/service-catalog";
+import {
+  formatIbanForDisplay,
+  normalizeBicInput,
+  validateIbanInput,
+} from "@/lib/iban";
 import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
 
@@ -22,6 +27,7 @@ const MIN_VAT_RATE = 0;
 const MAX_VAT_RATE = 100;
 const MAX_TERMS_TEXT_LENGTH = 3000;
 const MAX_EU_VAT_NOTICE_TEXT_LENGTH = 2000;
+const MAX_BANK_NAME_LENGTH = 120;
 
 const defaultSettings: CompanySettings = {
   companyName: "",
@@ -32,6 +38,10 @@ const defaultSettings: CompanySettings = {
   companyEmail: "",
   companyPhone: "",
   companyWebsite: "",
+  companyIban: "",
+  companyBic: "",
+  companyBankName: "",
+  ibanVerificationStatus: "not_checked",
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -201,6 +211,14 @@ function resolveSettingsPayload(
     .trim()
     .split(/\s+/);
   const legacyCity = legacyCityParts.join(" ").trim();
+  const resolvedCompanyIban = formatIbanForDisplay(
+    asTrimmedString(parsed.companyIban, defaultSettings.companyIban),
+  );
+  const resolvedIbanValidation = validateIbanInput(resolvedCompanyIban);
+  const resolvedIbanStatus =
+    parsed.ibanVerificationStatus === "valid" && resolvedIbanValidation.isValid
+      ? "valid"
+      : "not_checked";
 
   return {
     companyName: asTrimmedString(parsed.companyName, defaultSettings.companyName),
@@ -224,6 +242,15 @@ function resolveSettingsPayload(
       typeof parsed.companyWebsite === "string"
         ? parsed.companyWebsite.trim()
         : defaultSettings.companyWebsite,
+    companyIban: resolvedCompanyIban,
+    companyBic: normalizeBicInput(
+      asTrimmedString(parsed.companyBic, defaultSettings.companyBic),
+    ),
+    companyBankName: asTrimmedString(
+      parsed.companyBankName,
+      defaultSettings.companyBankName,
+    ).slice(0, MAX_BANK_NAME_LENGTH),
+    ibanVerificationStatus: resolvedIbanStatus,
     taxNumber: asTrimmedString(parsed.taxNumber, defaultSettings.taxNumber),
     vatId: asTrimmedString(parsed.vatId, defaultSettings.vatId),
     companyCountry: asTrimmedString(
@@ -328,6 +355,20 @@ export async function writeSettings(
   );
   const nextLogo =
     nextLogoRaw.length <= MAX_LOGO_DATA_URL_LENGTH ? nextLogoRaw : current.logoDataUrl;
+  const nextIban = formatIbanForDisplay(
+    resolveStringUpdate(current.companyIban, payload.companyIban),
+  );
+  const nextIbanValidation = validateIbanInput(nextIban);
+  const nextIbanVerificationStatus = nextIbanValidation.isValid
+    ? "valid"
+    : "not_checked";
+  const nextBic = normalizeBicInput(
+    resolveStringUpdate(current.companyBic, payload.companyBic),
+  );
+  const nextBankName = resolveStringUpdate(
+    current.companyBankName,
+    payload.companyBankName,
+  ).slice(0, MAX_BANK_NAME_LENGTH);
 
   const next: CompanySettings = {
     companyName: resolveStringUpdate(current.companyName, payload.companyName),
@@ -344,6 +385,10 @@ export async function writeSettings(
       current.companyWebsite,
       payload.companyWebsite,
     ),
+    companyIban: nextIban,
+    companyBic: nextBic,
+    companyBankName: nextBankName,
+    ibanVerificationStatus: nextIbanVerificationStatus,
     taxNumber: resolveStringUpdate(current.taxNumber, payload.taxNumber),
     vatId: resolveStringUpdate(current.vatId, payload.vatId),
     companyCountry: resolveStringUpdate(

@@ -7,6 +7,11 @@ import {
   MAX_LOGO_DATA_URL_LENGTH,
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
+import {
+  formatIbanForDisplay,
+  normalizeBicInput,
+  validateIbanInput,
+} from "@/lib/iban";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
@@ -34,6 +39,10 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   companyEmail: "",
   companyPhone: "",
   companyWebsite: "",
+  companyIban: "",
+  companyBic: "",
+  companyBankName: "",
+  ibanVerificationStatus: "not_checked",
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -116,6 +125,12 @@ function resolveCompanySettings(
     };
   }
 
+  const resolvedCompanyIban =
+    typeof payload.companyIban === "string"
+      ? formatIbanForDisplay(payload.companyIban)
+      : FALLBACK_COMPANY_SETTINGS.companyIban;
+  const resolvedIbanValidation = validateIbanInput(resolvedCompanyIban);
+
   return {
     companyName:
       typeof payload.companyName === "string"
@@ -149,6 +164,19 @@ function resolveCompanySettings(
       typeof payload.companyWebsite === "string"
         ? payload.companyWebsite.trim()
         : FALLBACK_COMPANY_SETTINGS.companyWebsite,
+    companyIban: resolvedCompanyIban,
+    companyBic:
+      typeof payload.companyBic === "string"
+        ? normalizeBicInput(payload.companyBic)
+        : FALLBACK_COMPANY_SETTINGS.companyBic,
+    companyBankName:
+      typeof payload.companyBankName === "string"
+        ? payload.companyBankName.trim()
+        : FALLBACK_COMPANY_SETTINGS.companyBankName,
+    ibanVerificationStatus:
+      payload.ibanVerificationStatus === "valid" && resolvedIbanValidation.isValid
+        ? "valid"
+        : "not_checked",
     taxNumber:
       typeof payload.taxNumber === "string"
         ? payload.taxNumber.trim()
@@ -993,9 +1021,24 @@ export async function POST(request: Request) {
         : personName;
     const customerAddress = `${street}, ${postalCode} ${city}`;
     const settings = resolveCompanySettings(body.settings);
+    const ibanValidation = validateIbanInput(settings.companyIban);
+    if (!ibanValidation.isValid) {
+      return NextResponse.json(
+        {
+          error:
+            "Bitte hinterlegen Sie in den Einstellungen eine gültige IBAN, bevor Dokumente erstellt werden.",
+        },
+        { status: 400 },
+      );
+    }
+    const validatedSettings: CompanySettings = {
+      ...settings,
+      companyIban: ibanValidation.formatted,
+      ibanVerificationStatus: "valid",
+    };
     const paymentDueDays =
       documentType === "invoice"
-        ? parsePaymentDueDays(settings.invoicePaymentDueDays)
+        ? parsePaymentDueDays(validatedSettings.invoicePaymentDueDays)
         : requestedPaymentDueDays;
     const now = new Date();
     const generatedCreatedAt = now.toISOString();
@@ -1036,16 +1079,16 @@ export async function POST(request: Request) {
       );
     }
     const safeSettings = {
-      ...settings,
+      ...validatedSettings,
       logoDataUrl:
-        typeof settings.logoDataUrl === "string" &&
-        settings.logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH
-          ? settings.logoDataUrl
+        typeof validatedSettings.logoDataUrl === "string" &&
+        validatedSettings.logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH
+          ? validatedSettings.logoDataUrl
           : "",
     };
     const senderName =
-      settings.companyName?.trim() ||
-      settings.ownerName?.trim() ||
+      validatedSettings.companyName?.trim() ||
+      validatedSettings.ownerName?.trim() ||
       "";
     const mailText = buildEmailText({
       documentType,
@@ -1135,8 +1178,8 @@ export async function POST(request: Request) {
         serviceDescription: composedServiceDescription,
         lineItems,
         offer,
-        configuredLastOfferNumber: settings.lastOfferNumber,
-        configuredLastInvoiceNumber: settings.lastInvoiceNumber,
+        configuredLastOfferNumber: validatedSettings.lastOfferNumber,
+        configuredLastInvoiceNumber: validatedSettings.lastInvoiceNumber,
         referenceDate: now,
       });
       generatedDocumentNumber = storedDocument.offerNumber;
@@ -1161,21 +1204,28 @@ export async function POST(request: Request) {
       projectDetails: serviceDescription,
       lineItems,
       settings: {
-        companyName: settings.companyName,
-        ownerName: settings.ownerName,
-        companyStreet: settings.companyStreet,
-        companyPostalCode: settings.companyPostalCode,
-        companyCity: settings.companyCity,
-        companyEmail: settings.companyEmail,
-        companyPhone: settings.companyPhone,
-        companyWebsite: settings.companyWebsite,
-        senderCopyEmail: settings.senderCopyEmail,
-        logoDataUrlPresent: Boolean(settings.logoDataUrl),
-        pdfTableColumnsCount: settings.pdfTableColumns.length,
-        vatRate: settings.vatRate,
-        offerValidityDays: settings.offerValidityDays,
-        invoicePaymentDueDays: settings.invoicePaymentDueDays,
-        offerTermsTextLength: settings.offerTermsText.length,
+        companyName: validatedSettings.companyName,
+        ownerName: validatedSettings.ownerName,
+        companyStreet: validatedSettings.companyStreet,
+        companyPostalCode: validatedSettings.companyPostalCode,
+        companyCity: validatedSettings.companyCity,
+        companyEmail: validatedSettings.companyEmail,
+        companyPhone: validatedSettings.companyPhone,
+        companyWebsite: validatedSettings.companyWebsite,
+        companyIbanPresent: Boolean(validatedSettings.companyIban),
+        companyIbanLast4: validatedSettings.companyIban
+          .replace(/\s+/g, "")
+          .slice(-4),
+        companyBicPresent: Boolean(validatedSettings.companyBic),
+        companyBankNamePresent: Boolean(validatedSettings.companyBankName),
+        ibanVerificationStatus: validatedSettings.ibanVerificationStatus,
+        senderCopyEmail: validatedSettings.senderCopyEmail,
+        logoDataUrlPresent: Boolean(validatedSettings.logoDataUrl),
+        pdfTableColumnsCount: validatedSettings.pdfTableColumns.length,
+        vatRate: validatedSettings.vatRate,
+        offerValidityDays: validatedSettings.offerValidityDays,
+        invoicePaymentDueDays: validatedSettings.invoicePaymentDueDays,
+        offerTermsTextLength: validatedSettings.offerTermsText.length,
       },
     });
 

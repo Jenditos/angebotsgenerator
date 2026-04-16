@@ -329,6 +329,22 @@ const styles = StyleSheet.create({
     lineHeight: 1.35,
     marginBottom: 0,
   },
+  paymentInfoSection: {
+    borderTop: `1 solid ${theme.border}`,
+    paddingTop: 5,
+    marginTop: 3,
+    marginBottom: 4,
+  },
+  paymentInfoLead: {
+    color: theme.textMuted,
+    lineHeight: 1.3,
+    marginBottom: 2.2,
+  },
+  paymentInfoLine: {
+    color: theme.text,
+    lineHeight: 1.28,
+    marginBottom: 1,
+  },
   closingSection: {
     marginTop: 1,
   },
@@ -607,6 +623,25 @@ function toTableHeaderLabel(
   }
 }
 
+function buildPaymentInformationLines(settings: CompanySettings): string[] {
+  const iban = (settings.companyIban || "").trim();
+  const bic = (settings.companyBic || "").trim();
+  const bankName = (settings.companyBankName || "").trim();
+  const lines: string[] = [];
+
+  if (iban) {
+    lines.push(`IBAN: ${iban}`);
+  }
+  if (bic) {
+    lines.push(`BIC: ${bic}`);
+  }
+  if (bankName) {
+    lines.push(`Bank: ${bankName}`);
+  }
+
+  return lines;
+}
+
 function sortColumnsForClassicLayout<T extends { id: PdfTableColumnId }>(
   columns: T[],
 ): T[] {
@@ -708,6 +743,8 @@ export function OfferPdfDocument({
 
   const senderCompactLine = buildSenderCompactLine(settings);
   const senderContactLine = buildSenderContactLine(settings);
+  const paymentInformationLines = buildPaymentInformationLines(settings);
+  const shouldRenderPaymentInformation = paymentInformationLines.length > 0;
   const closingSignatureName =
     settings.companyName?.trim() ||
     settings.ownerName?.trim() ||
@@ -1020,6 +1057,20 @@ export function OfferPdfDocument({
                           Zahlungsbedingungen / Hinweise
                         </Text>
                         <Text style={styles.noteText}>{notesText}</Text>
+                      </View>
+                    ) : null}
+
+                    {shouldRenderPaymentInformation ? (
+                      <View style={styles.paymentInfoSection}>
+                        <Text style={styles.noteTitle}>Zahlungsinformationen</Text>
+                        <Text style={styles.paymentInfoLead}>
+                          Bitte überweisen Sie den Betrag auf folgendes Konto:
+                        </Text>
+                        {paymentInformationLines.map((line, lineIndex) => (
+                          <Text key={`payment-info-${lineIndex}`} style={styles.paymentInfoLine}>
+                            {line}
+                          </Text>
+                        ))}
                       </View>
                     ) : null}
 

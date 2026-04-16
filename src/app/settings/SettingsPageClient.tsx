@@ -15,6 +15,11 @@ import {
   useState,
 } from "react";
 import {
+  formatIbanForDisplay,
+  normalizeBicInput,
+  validateIbanInput,
+} from "@/lib/iban";
+import {
   LOGO_ALLOWED_FORMATS_LABEL,
   LOGO_UPLOAD_ACCEPT_ATTRIBUTE,
   MAX_LOGO_DATA_URL_LENGTH,
@@ -29,7 +34,11 @@ import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { VisioroLogoPill } from "@/components/VisioroLogoPill";
-import { CompanySettings, PdfTableColumnConfig } from "@/types/offer";
+import {
+  CompanySettings,
+  IbanVerificationStatus,
+  PdfTableColumnConfig,
+} from "@/types/offer";
 
 const emptySettings: CompanySettings = {
   companyName: "",
@@ -40,6 +49,10 @@ const emptySettings: CompanySettings = {
   companyEmail: "",
   companyPhone: "",
   companyWebsite: "",
+  companyIban: "",
+  companyBic: "",
+  companyBankName: "",
+  ibanVerificationStatus: "not_checked",
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -71,33 +84,6 @@ function sortPdfColumns(
   return [...columns].sort((a, b) => a.order - b.order);
 }
 
-function SubmitMailActionIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="submitMailButtonIcon"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M3 11.5 20 3l-5.1 18.1-3.6-6.1-6.3-3.5Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m20 3-8.7 12"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -113,6 +99,10 @@ function asNumber(value: unknown, fallback: number): number {
 
 function asBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function resolveIbanVerificationStatus(value: unknown): IbanVerificationStatus {
+  return value === "valid" ? "valid" : "not_checked";
 }
 
 function validateWebsiteInput(rawValue: string): {
@@ -291,6 +281,9 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
   const pdfTableColumns = Array.isArray(input.pdfTableColumns)
     ? (input.pdfTableColumns as PdfTableColumnConfig[])
     : getDefaultPdfTableColumns();
+  const formattedIban = formatIbanForDisplay(asString(input.companyIban));
+  const ibanValidation = validateIbanInput(formattedIban);
+  const draftIbanStatus = resolveIbanVerificationStatus(input.ibanVerificationStatus);
 
   return {
     companyName: asString(input.companyName),
@@ -301,6 +294,13 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
     companyEmail: asString(input.companyEmail),
     companyPhone: asString(input.companyPhone),
     companyWebsite: asString(input.companyWebsite),
+    companyIban: formattedIban,
+    companyBic: normalizeBicInput(asString(input.companyBic)),
+    companyBankName: asString(input.companyBankName),
+    ibanVerificationStatus:
+      draftIbanStatus === "valid" && ibanValidation.isValid
+        ? "valid"
+        : "not_checked",
     taxNumber: asString(input.taxNumber),
     vatId: asString(input.vatId),
     companyCountry: asString(input.companyCountry, emptySettings.companyCountry),
@@ -398,6 +398,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
+  const [ibanFieldTouched, setIbanFieldTouched] = useState(false);
   const [isSettingsHydrated, setIsSettingsHydrated] = useState(false);
   const [isAutosaveEnabled, setIsAutosaveEnabled] = useState(false);
   const [invoiceDuePreset, setInvoiceDuePreset] =
@@ -420,6 +421,12 @@ export default function SettingsPage() {
   const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const hasLocalLogoChangeRef = useRef(false);
   const isNotLoggedInError = /^nicht eingeloggt\.?$/i.test(error.trim());
+  const ibanValidation = useMemo(
+    () => validateIbanInput(settings.companyIban),
+    [settings.companyIban],
+  );
+  const ibanStatusLabel =
+    settings.ibanVerificationStatus === "valid" ? "gültig" : "nicht geprüft";
 
   const persistSettings = useCallback(
     async (
@@ -444,11 +451,32 @@ export default function SettingsPage() {
           }
         }
 
+        let nextIban = formatIbanForDisplay(nextSettings.companyIban);
+        let nextIbanVerificationStatus: IbanVerificationStatus = "not_checked";
+
+        if (mode !== "reset") {
+          const ibanValidation = validateIbanInput(nextSettings.companyIban);
+          if (!ibanValidation.isValid) {
+            if (mode !== "autosave") {
+              setSaveStatus("");
+              setError(ibanValidation.message);
+              setIbanFieldTouched(true);
+            }
+            return false;
+          }
+
+          nextIban = ibanValidation.formatted;
+          nextIbanVerificationStatus = "valid";
+        }
+
         const payloadSettings: CompanySettings = {
           ...nextSettings,
           companyWebsite: websiteValidation.isValid
             ? websiteValidation.normalized
             : nextSettings.companyWebsite.trim(),
+          companyIban: nextIban,
+          companyBic: normalizeBicInput(nextSettings.companyBic),
+          ibanVerificationStatus: nextIbanVerificationStatus,
         };
 
         try {
@@ -855,6 +883,23 @@ export default function SettingsPage() {
     setSettings((prev) => ({ ...prev, invoicePaymentDueDays: normalized }));
   }
 
+  function handleIbanInputChange(rawValue: string) {
+    const formattedValue = formatIbanForDisplay(rawValue);
+    setSettings((prev) => ({
+      ...prev,
+      companyIban: formattedValue,
+      ibanVerificationStatus: "not_checked",
+    }));
+  }
+
+  function handleBicInputChange(rawValue: string) {
+    const normalizedValue = normalizeBicInput(rawValue);
+    setSettings((prev) => ({
+      ...prev,
+      companyBic: normalizedValue,
+    }));
+  }
+
   async function onLogoUpload(event: ChangeEvent<HTMLInputElement>) {
     const inputElement = event.currentTarget;
     const file = inputElement.files?.[0];
@@ -948,6 +993,7 @@ export default function SettingsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setIbanFieldTouched(true);
     await persistSettings(settings, "manual");
   }
 
@@ -969,6 +1015,7 @@ export default function SettingsPage() {
     setSettings(resetTarget);
     setInvoiceDuePreset(toInvoiceDuePreset(resetTarget.invoicePaymentDueDays));
     setCustomInvoiceDueDays("");
+    setIbanFieldTouched(false);
     setError("");
     setSaveStatus("");
     writeSettingsDraftToSessionStorage(resetTarget);
@@ -1095,7 +1142,7 @@ export default function SettingsPage() {
 
         <section className="hero glassCard compactHero settingsSetupHero">
           <p className="heroEyebrow">Einmal einrichten</p>
-          <h1>Diese Daten erscheinen auf jedem Angebot</h1>
+          <h1>Diese Daten erscheinen auf jedem Angebot und jeder Rechnung</h1>
           <p className="heroText">
             Dein Logo sowie deine Kontakt- und Firmendaten werden automatisch in
             PDF und Mail-Entwurf übernommen.
@@ -1104,496 +1151,599 @@ export default function SettingsPage() {
 
         <section className="glassCard formCard">
           <form onSubmit={onSubmit} className="formGrid">
-            <label className="field">
-              <span>Firmenname</span>
-              <input
-                required
-                value={settings.companyName}
-                autoCapitalize="words"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyName: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Ansprechpartner</span>
-              <input
-                required
-                value={settings.ownerName}
-                autoCapitalize="words"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    ownerName: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field span2">
-              <span>Firmenadresse</span>
-              <input
-                required
-                value={settings.companyStreet}
-                autoCapitalize="words"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyStreet: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>PLZ</span>
-              <input
-                required
-                value={settings.companyPostalCode}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyPostalCode: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Ort</span>
-              <input
-                required
-                value={settings.companyCity}
-                autoCapitalize="words"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyCity: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Firmen-E-Mail</span>
-              <input
-                required
-                type="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                value={settings.companyEmail}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyEmail: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Telefon</span>
-              <input
-                type="tel"
-                autoComplete="tel"
-                value={settings.companyPhone}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyPhone: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Website</span>
-              <input
-                type="text"
-                inputMode="url"
-                autoCapitalize="none"
-                autoCorrect="off"
-                value={settings.companyWebsite}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyWebsite: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field span2">
-              <span>Interne Kopie per E-Mail (optional)</span>
-              <input
-                type="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                value={settings.senderCopyEmail}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    senderCopyEmail: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>MwSt. (%) für PDF</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={settings.vatRate}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    vatRate: Number(e.target.value),
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Angebotsgültigkeit (Tage)</span>
-              <input
-                type="number"
-                min="1"
-                max="365"
-                step="1"
-                value={settings.offerValidityDays}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    offerValidityDays: Number(e.target.value),
-                  }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Steuernummer</span>
-              <input
-                value={settings.taxNumber}
-                autoCapitalize="characters"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    taxNumber: e.target.value,
-                  }))
-                }
-                placeholder="z. B. 12/345/67890"
-              />
-            </label>
-
-            <label className="field">
-              <span>USt-IdNr.</span>
-              <input
-                value={settings.vatId}
-                autoCapitalize="characters"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    vatId: e.target.value,
-                  }))
-                }
-                placeholder="z. B. DE123456789"
-              />
-            </label>
-
-            <label className="field span2">
-              <span>Standard-Land / Unternehmenssitz</span>
-              <input
-                value={settings.companyCountry}
-                autoCapitalize="words"
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    companyCountry: e.target.value,
-                  }))
-                }
-                placeholder="z. B. Deutschland"
-              />
-            </label>
-
-            <div className="field span2 settingsInvoiceDueField">
-              <span>Zahlungsfrist für Rechnungen</span>
-              <div className="settingsInvoiceDuePanel">
-                <p className="settingsInvoiceDueHint">
-                  Lege fest, welches Zahlungsziel standardmäßig in Rechnungen
-                  verwendet wird.
+            <div className="settingsSectionCard span2">
+              <div className="settingsSectionHeader">
+                <h2 className="settingsSectionTitle">Firmendaten</h2>
+                <p className="settingsSectionSubtitle">
+                  Diese Daten werden auf Angeboten und Rechnungen als Absender
+                  verwendet.
                 </p>
-                <div className="settingsInvoiceDueOptions" role="radiogroup" aria-label="Zahlungsfrist auswählen">
-                  <label className="settingsInvoiceDueOption">
-                    <input
-                      type="radio"
-                      name="invoiceDuePreset"
-                      checked={invoiceDuePreset === "immediate"}
-                      onChange={() => applyInvoiceDuePreset("immediate")}
-                    />
-                    <span>Sofort fällig</span>
-                  </label>
-                  <label className="settingsInvoiceDueOption">
-                    <input
-                      type="radio"
-                      name="invoiceDuePreset"
-                      checked={invoiceDuePreset === "seven"}
-                      onChange={() => applyInvoiceDuePreset("seven")}
-                    />
-                    <span>7 Tage</span>
-                  </label>
-                  <label className="settingsInvoiceDueOption">
-                    <input
-                      type="radio"
-                      name="invoiceDuePreset"
-                      checked={invoiceDuePreset === "fourteen"}
-                      onChange={() => applyInvoiceDuePreset("fourteen")}
-                    />
-                    <span>14 Tage</span>
-                  </label>
-                </div>
-                <label className="settingsInvoiceDueCustom">
-                  <span>Eigene Frist</span>
-                  <div className="settingsInvoiceDueCustomInputWrap">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={customInvoiceDueDays}
-                      onChange={(event) =>
-                        handleCustomInvoiceDueDaysInput(event.target.value)
-                      }
-                      placeholder="z. B. 30"
-                    />
-                    <em>Tage</em>
-                  </div>
-                </label>
               </div>
-            </div>
+              <div className="settingsSectionGrid">
+                <label className="field">
+                  <span>Firmenname</span>
+                  <input
+                    required
+                    value={settings.companyName}
+                    autoCapitalize="words"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyName: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-            <label className="field span2">
-              <span>Steuerhinweis für EU-/Auslandsfälle (optional)</span>
-              <textarea
-                rows={3}
-                value={settings.euVatNoticeText}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    euVatNoticeText: e.target.value,
-                  }))
-                }
-                placeholder="z. B. Reverse-Charge-Hinweis oder Hinweis zur Steuerbefreiung"
-              />
-            </label>
+                <label className="field">
+                  <span>Inhaber / Ansprechpartner</span>
+                  <input
+                    required
+                    value={settings.ownerName}
+                    autoCapitalize="words"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        ownerName: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-            <div className="field span2 settingsTaxOptionsField">
-              <span>Dokumentenoptionen (Vorbereitung)</span>
-              <label className="settingsTaxOptionToggle">
-                <input
-                  type="checkbox"
-                  checked={settings.includeCustomerVatId}
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      includeCustomerVatId: e.target.checked,
-                    }))
-                  }
-                />
-                <span>
-                  Kunden-USt-IdNr. auf Dokumenten berücksichtigen (für
-                  EU-/Auslandsfälle)
-                </span>
-              </label>
-            </div>
+                <label className="field span2">
+                  <span>Adresse</span>
+                  <input
+                    required
+                    value={settings.companyStreet}
+                    autoCapitalize="words"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyStreet: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-            <label className="field">
-              <span>Letzte Angebotsnummer</span>
-              <input
-                value={settings.lastOfferNumber}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    lastOfferNumber: e.target.value,
-                  }))
-                }
-                placeholder="z. B. ANG-2026-025"
-              />
-            </label>
+                <label className="field">
+                  <span>PLZ</span>
+                  <input
+                    required
+                    value={settings.companyPostalCode}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyPostalCode: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-            <label className="field">
-              <span>Letzte Rechnungsnummer</span>
-              <input
-                value={settings.lastInvoiceNumber}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    lastInvoiceNumber: e.target.value,
-                  }))
-                }
-                placeholder="z. B. RE-2026-025"
-              />
-            </label>
+                <label className="field">
+                  <span>Ort</span>
+                  <input
+                    required
+                    value={settings.companyCity}
+                    autoCapitalize="words"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyCity: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-            <label className="field span2">
-              <span>Hinweis / Bedingungen im PDF</span>
-              <small className="settingsExampleHint">
-                Der voreingestellte Text ist ein Beispiel und kann frei angepasst werden.
-              </small>
-              <textarea
-                rows={4}
-                value={settings.offerTermsText}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    offerTermsText: e.target.value,
-                  }))
-                }
-                placeholder="z. B. Zahlungsbedingungen oder Angebotsbedingungen"
-              />
-            </label>
+                <label className="field">
+                  <span>Telefonnummer</span>
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    value={settings.companyPhone}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyPhone: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-            <div className="field span2 settingsPdfColumnsField">
-              <span>PDF-Tabellenspalten</span>
-              <div className="settingsPdfColumnsPanel">
-                <p className="settingsPdfColumnsHint">
-                  Lege fest, welche Spalten im Angebots-PDF sichtbar sind und in
-                  welcher Reihenfolge sie erscheinen.
+                <label className="field">
+                  <span>Firmen-E-Mail</span>
+                  <input
+                    required
+                    type="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    value={settings.companyEmail}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyEmail: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Website</span>
+                  <input
+                    type="text"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    value={settings.companyWebsite}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyWebsite: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="field span2">
+                  <span>Interne Kopie per E-Mail (optional)</span>
+                  <input
+                    type="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    value={settings.senderCopyEmail}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        senderCopyEmail: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="field span2">
+                  <span>Firmenlogo</span>
+                  <input
+                    type="file"
+                    accept={LOGO_UPLOAD_ACCEPT_ATTRIBUTE}
+                    onChange={onLogoUpload}
+                  />
+                </label>
+
+                <p className="settingsLogoHint span2">
+                  Erlaubte Formate: {LOGO_ALLOWED_FORMATS_LABEL}. Maximal{" "}
+                  {MAX_LOGO_UPLOAD_FILE_MB} MB pro Datei. Große Logos werden
+                  automatisch passend verkleinert, damit Vorschau und PDF sauber
+                  bleiben.
                 </p>
-                <div className="settingsPdfColumnsList">
-                  {orderedPdfColumns.map((column) => {
-                    const isDraggingRow = draggingPdfColumnId === column.id;
-                    const isDragTarget =
-                      draggingPdfColumnId !== null &&
-                      dragOverPdfColumnId === column.id &&
-                      !isDraggingRow;
-                    const isDropBefore =
-                      isDragTarget && dragOverPdfColumnPosition === "before";
-                    const isDropAfter =
-                      isDragTarget && dragOverPdfColumnPosition === "after";
 
-                    return (
-                      <div
-                        key={column.id}
-                        className={`settingsPdfColumnsRow ${isDraggingRow ? "settingsPdfColumnsRowDragging" : ""} ${isDragTarget ? "settingsPdfColumnsRowDragTarget" : ""} ${isDropBefore ? "settingsPdfColumnsRowDropBefore" : ""} ${isDropAfter ? "settingsPdfColumnsRowDropAfter" : ""}`}
-                        data-pdf-column-id={column.id}
-                        onDragOver={(event) =>
-                          handlePdfColumnDragOver(event, column.id)
-                        }
-                        onDrop={(event) =>
-                          handlePdfColumnDrop(event, column.id)
-                        }
-                      >
-                        <button
-                          type="button"
-                          className={`settingsPdfColumnsDragHandle ${isDraggingRow ? "settingsPdfColumnsDragHandleDragging" : ""}`}
-                          draggable
-                          onDragStart={(event) =>
-                            handlePdfColumnDragStart(event, column.id)
-                          }
-                          onDragEnd={() => {
-                            setDraggingPdfColumnId(null);
-                            setDragOverPdfColumnId(null);
-                            setDragOverPdfColumnPosition("after");
-                          }}
-                          onPointerDown={(event) =>
-                            handlePdfColumnTouchStart(event, column.id)
-                          }
-                          onPointerMove={handlePdfColumnTouchMove}
-                          onPointerUp={handlePdfColumnTouchEnd}
-                          onPointerCancel={handlePdfColumnTouchEnd}
-                          aria-label={`${column.label} per Drag-and-Drop verschieben`}
-                        >
-                          ⋮⋮
-                        </button>
-
-                        <label className="settingsPdfColumnsToggle">
-                          <input
-                            type="checkbox"
-                            checked={column.visible}
-                            onChange={(event) =>
-                              togglePdfColumnVisibility(
-                                column.id,
-                                event.target.checked,
-                              )
-                            }
-                          />
-                          <span className="settingsPdfColumnsVisibleLabel">
-                            Sichtbar
-                          </span>
-                        </label>
-
-                        <input
-                          value={column.label}
-                          onChange={(event) =>
-                            updatePdfColumnLabel(column.id, event.target.value)
-                          }
-                          placeholder="Spaltenname"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="submitActionRow dashboardCtaRow settingsPdfColumnsActions">
+                <div className="settingsLogoActions span2">
                   <button
                     type="button"
-                    className="ghostButton submitMailButton"
-                    onClick={resetPdfColumns}
+                    className="ghostButton settingsLogoDeleteButton"
+                    onClick={deleteLogo}
+                    disabled={!settings.logoDataUrl}
                   >
-                    <SubmitMailActionIcon />
-                    <span className="submitMailButtonLabel">
-                      Standardspalten wiederherstellen
-                    </span>
+                    Logo löschen
                   </button>
+                </div>
+
+                {settings.logoDataUrl ? (
+                  <div className="logoFrame span2">
+                    <img
+                      key={logoPreviewRevision}
+                      src={settings.logoDataUrl}
+                      alt="Logo Vorschau"
+                      className="logoPreview"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="settingsSectionCard span2">
+              <div className="settingsSectionHeader">
+                <h2 className="settingsSectionTitle">Steuerliche Angaben</h2>
+                <p className="settingsSectionSubtitle">
+                  Angaben für korrekte Ausweisung von Steuerinformationen in den
+                  Dokumenten.
+                </p>
+              </div>
+              <div className="settingsSectionGrid">
+                <label className="field">
+                  <span>MwSt. (%) für PDF</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={settings.vatRate}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        vatRate: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Steuernummer</span>
+                  <input
+                    value={settings.taxNumber}
+                    autoCapitalize="characters"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        taxNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. 12/345/67890"
+                  />
+                </label>
+
+                <label className="field">
+                  <span>USt-IdNr.</span>
+                  <input
+                    value={settings.vatId}
+                    autoCapitalize="characters"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        vatId: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. DE123456789"
+                  />
+                </label>
+
+                <label className="field span2">
+                  <span>Standard-Land / Unternehmenssitz</span>
+                  <input
+                    value={settings.companyCountry}
+                    autoCapitalize="words"
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyCountry: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. Deutschland"
+                  />
+                </label>
+
+                <label className="field span2">
+                  <span>Steuerhinweis für EU-/Auslandsfälle (optional)</span>
+                  <textarea
+                    rows={3}
+                    value={settings.euVatNoticeText}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        euVatNoticeText: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. Reverse-Charge-Hinweis oder Hinweis zur Steuerbefreiung"
+                  />
+                </label>
+
+                <div className="field span2 settingsTaxOptionsField">
+                  <span>Dokumentenoptionen (Vorbereitung)</span>
+                  <label className="settingsTaxOptionToggle">
+                    <input
+                      type="checkbox"
+                      checked={settings.includeCustomerVatId}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          includeCustomerVatId: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      Kunden-USt-IdNr. auf Dokumenten berücksichtigen (für
+                      EU-/Auslandsfälle)
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
 
-            <label className="field span2">
-              <span>Firmenlogo</span>
-              <input
-                type="file"
-                accept={LOGO_UPLOAD_ACCEPT_ATTRIBUTE}
-                onChange={onLogoUpload}
-              />
-            </label>
+            <div className="settingsSectionCard span2">
+              <div className="settingsSectionHeader">
+                <h2 className="settingsSectionTitle">
+                  Bankverbindung / Zahlungsdaten
+                </h2>
+                <p className="settingsSectionSubtitle">
+                  Diese Informationen werden im unteren Bereich von Angebot und
+                  Rechnung ausgegeben.
+                </p>
+              </div>
+              <div className="settingsSectionGrid">
+                <label className="field span2 settingsIbanField">
+                  <span>IBAN</span>
+                  <input
+                    required
+                    value={settings.companyIban}
+                    inputMode="text"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    placeholder="z. B. DE89 3704 0044 0532 0130 00"
+                    onChange={(event) => handleIbanInputChange(event.target.value)}
+                    onBlur={() => setIbanFieldTouched(true)}
+                  />
+                  <div className="settingsIbanMeta">
+                    <small
+                      className={`settingsIbanStatus ${settings.ibanVerificationStatus === "valid" ? "isValid" : "isNeutral"}`}
+                    >
+                      Status: {ibanStatusLabel}
+                    </small>
+                    <small
+                      className={`settingsIbanHint ${ibanValidation.isValid ? "isValid" : "isInvalid"} ${ibanFieldTouched || settings.companyIban.trim().length > 0 ? "isVisible" : ""}`}
+                    >
+                      {ibanFieldTouched || settings.companyIban.trim().length > 0
+                        ? ibanValidation.message
+                        : "Die IBAN wird lokal auf Format, Länge und Prüfziffer geprüft."}
+                    </small>
+                  </div>
+                </label>
 
-            <p className="settingsLogoHint span2">
-              Erlaubte Formate: {LOGO_ALLOWED_FORMATS_LABEL}. Maximal{" "}
-              {MAX_LOGO_UPLOAD_FILE_MB} MB pro Datei. Große Logos werden
-              automatisch passend verkleinert, damit Vorschau und PDF sauber
-              bleiben.
-            </p>
+                <label className="field">
+                  <span>BIC (optional)</span>
+                  <input
+                    value={settings.companyBic}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    placeholder="z. B. COBADEFFXXX"
+                    onChange={(event) => handleBicInputChange(event.target.value)}
+                  />
+                </label>
 
-            <div className="settingsLogoActions span2">
-              <button
-                type="button"
-                className="ghostButton settingsLogoDeleteButton"
-                onClick={deleteLogo}
-                disabled={!settings.logoDataUrl}
-              >
-                Logo löschen
-              </button>
+                <label className="field">
+                  <span>Bankname (optional)</span>
+                  <input
+                    value={settings.companyBankName}
+                    autoCapitalize="words"
+                    placeholder="z. B. Musterbank AG"
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        companyBankName: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <div className="field span2 settingsInvoiceDueField">
+                  <span>Zahlungsziel für Rechnungen</span>
+                  <div className="settingsInvoiceDuePanel">
+                    <p className="settingsInvoiceDueHint">
+                      Lege fest, welches Zahlungsziel standardmäßig in Rechnungen
+                      verwendet wird.
+                    </p>
+                    <div
+                      className="settingsInvoiceDueOptions"
+                      role="radiogroup"
+                      aria-label="Zahlungsfrist auswählen"
+                    >
+                      <label className="settingsInvoiceDueOption">
+                        <input
+                          type="radio"
+                          name="invoiceDuePreset"
+                          checked={invoiceDuePreset === "immediate"}
+                          onChange={() => applyInvoiceDuePreset("immediate")}
+                        />
+                        <span>Sofort fällig</span>
+                      </label>
+                      <label className="settingsInvoiceDueOption">
+                        <input
+                          type="radio"
+                          name="invoiceDuePreset"
+                          checked={invoiceDuePreset === "seven"}
+                          onChange={() => applyInvoiceDuePreset("seven")}
+                        />
+                        <span>7 Tage</span>
+                      </label>
+                      <label className="settingsInvoiceDueOption">
+                        <input
+                          type="radio"
+                          name="invoiceDuePreset"
+                          checked={invoiceDuePreset === "fourteen"}
+                          onChange={() => applyInvoiceDuePreset("fourteen")}
+                        />
+                        <span>14 Tage</span>
+                      </label>
+                    </div>
+                    <label className="settingsInvoiceDueCustom">
+                      <span>Eigene Frist</span>
+                      <div className="settingsInvoiceDueCustomInputWrap">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={customInvoiceDueDays}
+                          onChange={(event) =>
+                            handleCustomInvoiceDueDaysInput(event.target.value)
+                          }
+                          placeholder="z. B. 30"
+                        />
+                        <em>Tage</em>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {settings.logoDataUrl ? (
-              <div className="logoFrame span2">
-                <img
-                  key={logoPreviewRevision}
-                  src={settings.logoDataUrl}
-                  alt="Logo Vorschau"
-                  className="logoPreview"
-                />
+            <div className="settingsSectionCard span2">
+              <div className="settingsSectionHeader">
+                <h2 className="settingsSectionTitle">Dokumente & Layout</h2>
+                <p className="settingsSectionSubtitle">
+                  Steuerung für Nummernkreise, Hinweise und PDF-Tabellenlayout.
+                </p>
               </div>
-            ) : null}
+              <div className="settingsSectionGrid">
+                <label className="field">
+                  <span>Angebotsgültigkeit (Tage)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    step="1"
+                    value={settings.offerValidityDays}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        offerValidityDays: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Letzte Angebotsnummer</span>
+                  <input
+                    value={settings.lastOfferNumber}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        lastOfferNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. ANG-2026-025"
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Letzte Rechnungsnummer</span>
+                  <input
+                    value={settings.lastInvoiceNumber}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        lastInvoiceNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. RE-2026-025"
+                  />
+                </label>
+
+                <label className="field span2">
+                  <span>Hinweis / Bedingungen im PDF</span>
+                  <small className="settingsExampleHint">
+                    Der voreingestellte Text ist ein Beispiel und kann frei
+                    angepasst werden.
+                  </small>
+                  <textarea
+                    rows={4}
+                    value={settings.offerTermsText}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        offerTermsText: e.target.value,
+                      }))
+                    }
+                    placeholder="z. B. Zahlungsbedingungen oder Angebotsbedingungen"
+                  />
+                </label>
+
+                <div className="field span2 settingsPdfColumnsField">
+                  <span>PDF-Tabellenspalten</span>
+                  <div className="settingsPdfColumnsPanel">
+                    <p className="settingsPdfColumnsHint">
+                      Lege fest, welche Spalten im Angebots-PDF sichtbar sind und
+                      in welcher Reihenfolge sie erscheinen.
+                    </p>
+                    <div className="settingsPdfColumnsList">
+                      {orderedPdfColumns.map((column) => {
+                        const isDraggingRow = draggingPdfColumnId === column.id;
+                        const isDragTarget =
+                          draggingPdfColumnId !== null &&
+                          dragOverPdfColumnId === column.id &&
+                          !isDraggingRow;
+                        const isDropBefore =
+                          isDragTarget && dragOverPdfColumnPosition === "before";
+                        const isDropAfter =
+                          isDragTarget && dragOverPdfColumnPosition === "after";
+
+                        return (
+                          <div
+                            key={column.id}
+                            className={`settingsPdfColumnsRow ${isDraggingRow ? "settingsPdfColumnsRowDragging" : ""} ${isDragTarget ? "settingsPdfColumnsRowDragTarget" : ""} ${isDropBefore ? "settingsPdfColumnsRowDropBefore" : ""} ${isDropAfter ? "settingsPdfColumnsRowDropAfter" : ""}`}
+                            data-pdf-column-id={column.id}
+                            onDragOver={(event) =>
+                              handlePdfColumnDragOver(event, column.id)
+                            }
+                            onDrop={(event) =>
+                              handlePdfColumnDrop(event, column.id)
+                            }
+                          >
+                            <button
+                              type="button"
+                              className={`settingsPdfColumnsDragHandle ${isDraggingRow ? "settingsPdfColumnsDragHandleDragging" : ""}`}
+                              draggable
+                              onDragStart={(event) =>
+                                handlePdfColumnDragStart(event, column.id)
+                              }
+                              onDragEnd={() => {
+                                setDraggingPdfColumnId(null);
+                                setDragOverPdfColumnId(null);
+                                setDragOverPdfColumnPosition("after");
+                              }}
+                              onPointerDown={(event) =>
+                                handlePdfColumnTouchStart(event, column.id)
+                              }
+                              onPointerMove={handlePdfColumnTouchMove}
+                              onPointerUp={handlePdfColumnTouchEnd}
+                              onPointerCancel={handlePdfColumnTouchEnd}
+                              aria-label={`${column.label} per Drag-and-Drop verschieben`}
+                            >
+                              ⋮⋮
+                            </button>
+
+                            <label className="settingsPdfColumnsToggle">
+                              <input
+                                type="checkbox"
+                                checked={column.visible}
+                                onChange={(event) =>
+                                  togglePdfColumnVisibility(
+                                    column.id,
+                                    event.target.checked,
+                                  )
+                                }
+                              />
+                              <span className="settingsPdfColumnsVisibleLabel">
+                                Sichtbar
+                              </span>
+                            </label>
+
+                            <input
+                              value={column.label}
+                              onChange={(event) =>
+                                updatePdfColumnLabel(column.id, event.target.value)
+                              }
+                              placeholder="Spaltenname"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="submitActionRow dashboardCtaRow settingsPdfColumnsActions">
+                      <button
+                        type="button"
+                        className="ghostButton submitMailButton"
+                        onClick={resetPdfColumns}
+                      >
+                        <span className="submitMailButtonLabel">
+                          Standardspalten wiederherstellen
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="submitActionRow dashboardCtaRow span2 settingsSaveActionRow">
               <button
@@ -1609,7 +1759,6 @@ export default function SettingsPage() {
                 className="ghostButton submitMailButton"
                 onClick={resetSettings}
               >
-                <SubmitMailActionIcon />
                 <span className="submitMailButtonLabel">Einstellungen löschen</span>
               </button>
             </div>

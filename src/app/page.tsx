@@ -19,6 +19,7 @@ import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
+import { formatIbanForDisplay, normalizeBicInput } from "@/lib/iban";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { useDialogFocusTrap } from "@/lib/ui/use-dialog-focus-trap";
 import {
@@ -437,6 +438,10 @@ const fallbackCompanySettings: CompanySettings = {
   companyEmail: "",
   companyPhone: "",
   companyWebsite: "",
+  companyIban: "",
+  companyBic: "",
+  companyBankName: "",
+  ibanVerificationStatus: "not_checked",
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -644,6 +649,18 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
       value.companyWebsite,
       fallbackCompanySettings.companyWebsite,
     ),
+    companyIban: formatIbanForDisplay(
+      asString(value.companyIban, fallbackCompanySettings.companyIban),
+    ),
+    companyBic: normalizeBicInput(
+      asString(value.companyBic, fallbackCompanySettings.companyBic),
+    ),
+    companyBankName: asString(
+      value.companyBankName,
+      fallbackCompanySettings.companyBankName,
+    ),
+    ibanVerificationStatus:
+      value.ibanVerificationStatus === "valid" ? "valid" : "not_checked",
     taxNumber: asString(value.taxNumber, fallbackCompanySettings.taxNumber),
     vatId: asString(value.vatId, fallbackCompanySettings.vatId),
     companyCountry: asString(
@@ -739,6 +756,7 @@ function hasCompletedCompanySettings(settings: CompanySettings | undefined): boo
     settings.companyCity,
     settings.companyEmail,
     settings.companyPhone,
+    settings.companyIban,
   ];
 
   return requiredValues.every((value) => value.trim().length > 0);
