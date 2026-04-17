@@ -9137,6 +9137,14 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   transform: none !important;
 }
 
+.settingsPageTransition .settingsInvoiceDuePanel,
+.settingsPageTransition .settingsInvoiceDuePanel:hover {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
 .settingsPageTransition .settingsInvoiceDueOptions {
   flex-wrap: wrap;
   overflow: visible !important;
@@ -9147,6 +9155,15 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 
 /* Settings sections: remove the large outer frame around section content */
 .settingsPageTransition .settingsSectionCard {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* Settings: remove the container around the PDF columns hint block */
+.settingsPageTransition .settingsPdfColumnsPanel {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
