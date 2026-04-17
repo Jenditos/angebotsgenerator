@@ -9153,8 +9153,8 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   row-gap: 6px;
 }
 
-/* Settings sections: remove the large outer frame around section content */
-.settingsPageTransition .settingsSectionCard {
+/* Settings: remove only the outer shell around all sections */
+.settingsPageTransition .formCard {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
