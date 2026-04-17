@@ -9148,9 +9148,9 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 .settingsPageTransition .settingsInvoiceDueOptions {
   flex-wrap: wrap;
   overflow: visible !important;
-  padding: 4px 6px;
-  margin: -4px -6px;
-  row-gap: 6px;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  row-gap: 8px;
 }
 
 /* Settings: remove only the outer shell around all sections */
@@ -9173,33 +9173,33 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 
 /* Settings: add more breathing room for better readability */
 .settingsPageTransition .formGrid {
-  gap: 20px !important;
+  gap: 24px !important;
 }
 
 .settingsPageTransition .settingsSectionCard {
-  padding: 16px !important;
-  gap: 14px !important;
+  padding: 20px !important;
+  gap: 18px !important;
 }
 
 .settingsPageTransition .settingsSectionHeader {
-  gap: 6px !important;
+  gap: 8px !important;
 }
 
 .settingsPageTransition .settingsSectionGrid {
-  gap: 16px !important;
+  gap: 20px !important;
 }
 
 .settingsPageTransition .field {
-  gap: 8px !important;
+  gap: 10px !important;
 }
 
 .settingsPageTransition .settingsPdfColumnsPanel,
 .settingsPageTransition .settingsInvoiceDuePanel {
-  gap: 12px !important;
+  gap: 14px !important;
 }
 
 .settingsPageTransition .settingsPdfColumnsActions {
-  margin-top: 8px !important;
+  margin-top: 12px !important;
 }
 
 /* Settings popup: remove only the outer frame around embedded settings content */
