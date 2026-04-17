@@ -5540,8 +5540,7 @@ button.customerArchiveSectionToggle {
       a.ghostButton,
       .customerArchiveDocumentLink,
       .settingsInvoiceDueOption,
-      .settingsPdfColumnsDragHandle,
-      .settingsPdfColumnsToggle
+      .settingsPdfColumnsDragHandle
     ):hover {
     transform: none !important;
     background: var(--liquid-button-bg-hover) !important;
@@ -5920,7 +5919,6 @@ textarea:focus,
       .positionsTypeaheadList button,
       .settingsInvoiceDueOption,
       .settingsPdfColumnsDragHandle,
-      .settingsPdfColumnsToggle,
       .customerArchiveDocumentLink,
       .accountMenuPanel .accountMenuItem
     ):hover {
