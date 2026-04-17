@@ -9171,6 +9171,37 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   padding: 0 !important;
 }
 
+/* Settings: add more breathing room for better readability */
+.settingsPageTransition .formGrid {
+  gap: 20px !important;
+}
+
+.settingsPageTransition .settingsSectionCard {
+  padding: 16px !important;
+  gap: 14px !important;
+}
+
+.settingsPageTransition .settingsSectionHeader {
+  gap: 6px !important;
+}
+
+.settingsPageTransition .settingsSectionGrid {
+  gap: 16px !important;
+}
+
+.settingsPageTransition .field {
+  gap: 8px !important;
+}
+
+.settingsPageTransition .settingsPdfColumnsPanel,
+.settingsPageTransition .settingsInvoiceDuePanel {
+  gap: 12px !important;
+}
+
+.settingsPageTransition .settingsPdfColumnsActions {
+  margin-top: 8px !important;
+}
+
 /* Settings popup: remove only the outer frame around embedded settings content */
 .settingsOverlayFrameWrap {
   border: 0 !important;
