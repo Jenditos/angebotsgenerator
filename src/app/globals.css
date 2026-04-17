@@ -9153,3 +9153,12 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   border-radius: 0 !important;
   padding: 0 !important;
 }
+
+/* Settings popup: remove only the outer frame around embedded settings content */
+.settingsOverlayFrameWrap {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
