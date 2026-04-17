@@ -9144,3 +9144,12 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   margin: -4px -6px;
   row-gap: 6px;
 }
+
+/* Settings overlay: remove the two rear surface containers behind settings content */
+.settingsOverlaySheet,
+.settingsOverlayFrameWrap {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
