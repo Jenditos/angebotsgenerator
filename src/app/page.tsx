@@ -410,6 +410,37 @@ const VOICE_FIELD_LABELS: Record<string, string> = {
   materialCost: "Materialkosten",
 };
 
+const ACCOUNT_TIPS: Array<{ title: string; text: string }> = [
+  {
+    title: "Angebote mit Frist absichern",
+    text: "Angebote sind grundsaetzlich bindend. Setze eine klare Annahmefrist (z. B. 14 Tage), damit Preise und Konditionen nicht unbefristet offen bleiben (§ 145, § 148 BGB).",
+  },
+  {
+    title: "Leistungen eindeutig beschreiben",
+    text: "Beschreibe Positionen so konkret, dass Umfang und Art der Leistung spaeter nachvollziehbar sind. Das reduziert Rueckfragen und Nachtragsdiskussionen.",
+  },
+  {
+    title: "Rechnungspflichtangaben vollstaendig halten",
+    text: "Pruefe vor Versand die Kernangaben wie Rechnungsnummer, Leistungsdatum, Leistungsbeschreibung, Steuerangaben sowie Name/Anschrift von dir und dem Kunden (§ 14 Abs. 4 UStG).",
+  },
+  {
+    title: "Kleinunternehmer-Hinweis aktiv nutzen",
+    text: "Wenn du nach § 19 UStG abrechnest, muss die Rechnung den Hinweis auf die Steuerbefreiung enthalten (vgl. § 34a UStDV).",
+  },
+  {
+    title: "E-Rechnung im Blick behalten",
+    text: "Im B2B-Bereich gilt seit 01.01.2025 die E-Rechnungspflicht mit Uebergangsregeln. Plane dein Rechnungsformat daher fruehzeitig ein.",
+  },
+  {
+    title: "Zahlungsziel klar formulieren",
+    text: "Lege ein eindeutiges Faelligkeitsdatum oder eine feste Frist fest (z. B. 14 Tage netto), damit offene Posten leichter nachverfolgt werden koennen.",
+  },
+  {
+    title: "Rechnungen archivieren",
+    text: "Stelle sicher, dass Ausgangs- und Eingangsrechnungen steuerkonform aufbewahrt werden. Fuer Unternehmer gelten 8 Jahre Aufbewahrungsfrist (§ 14b UStG).",
+  },
+];
+
 const UNIT_OPTIONS = [
   "Stück",
   "m",
@@ -4569,6 +4600,36 @@ export default function HomePage() {
               key={documentMode}
               className="documentModeContent"
             >
+              {isSetupHintOpen ? (
+                <section
+                  className="glassCard dashboardTipsPanel"
+                  ref={setupHintRef}
+                  aria-label="Tipps fuer Angebot und Rechnung"
+                >
+                  <div className="dashboardTipsHeader">
+                    <strong>Tipps fuer Angebot &amp; Rechnung</strong>
+                    <button
+                      type="button"
+                      className="ghostButton dashboardTipsCloseButton"
+                      onClick={() => setIsSetupHintOpen(false)}
+                    >
+                      Schliessen
+                    </button>
+                  </div>
+                  <ul className="dashboardTipsList">
+                    {ACCOUNT_TIPS.map((tip) => (
+                      <li key={tip.title} className="dashboardTipsItem">
+                        <strong>{tip.title}</strong>
+                        <p>{tip.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="dashboardTipsMeta">
+                    Kurzuebersicht auf Basis oeffentlicher Quellen, keine
+                    Rechtsberatung.
+                  </p>
+                </section>
+              ) : null}
               <div className="documentModeSwitchTop">
                 <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
                   <button
