@@ -2592,7 +2592,15 @@ textarea:focus {
 }
 
 .settingsPdfColumnsReset {
+  justify-self: start;
+  align-self: start;
   width: auto;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .settingsDeleteButton {
@@ -9074,7 +9082,8 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 /* Settings: secondary actions use same button setup as "Per E-Mail senden" */
 .settingsPdfColumnsActions {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  margin-top: 2px;
 }
 
 .settingsSecondaryActionsRow {

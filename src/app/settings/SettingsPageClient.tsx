@@ -1729,15 +1729,13 @@ export default function SettingsPage() {
                       })}
                     </div>
 
-                    <div className="submitActionRow dashboardCtaRow settingsPdfColumnsActions">
+                    <div className="settingsPdfColumnsActions">
                       <button
                         type="button"
-                        className="ghostButton submitMailButton"
+                        className="ghostButton settingsPdfColumnsReset"
                         onClick={resetPdfColumns}
                       >
-                        <span className="submitMailButtonLabel">
-                          Standardspalten wiederherstellen
-                        </span>
+                        Spalten zurücksetzen
                       </button>
                     </div>
                   </div>
