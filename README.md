@@ -68,12 +68,20 @@ Dann im Browser `http://localhost:3003` aufrufen.
 1. In Supabase ein neues Projekt anlegen.
 2. Unter `Authentication > Providers` den Provider `Email` aktivieren.
 3. Unter `Authentication > URL Configuration` die URLs setzen:
-   - `Site URL`: `http://localhost:3003`
-   - `Redirect URLs`: `http://localhost:3003/auth/reset`
-4. In Supabase unter `Settings > API` diese Werte kopieren und in `.env.local` eintragen:
+   - `Site URL`: `http://localhost:3003` (oder deine echte öffentliche App-Domain)
+   - `Redirect URLs`:
+     - `http://localhost:3003/auth/callback`
+     - `http://localhost:3003/auth/reset`
+4. In Supabase SQL Editor die Migration `supabase/migrations/202603250001_user_access.sql` ausführen, damit die Tabelle `public.user_access` + RLS-Policies existieren.
+5. In Supabase unter `Settings > API` diese Werte kopieren und in `.env.local` eintragen:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (nur serverseitig verwenden, niemals im Client)
+
+Optional, aber empfohlen für robuste E-Mail-Bestätigung:
+- Unter `Authentication > Email Templates` kann der Bestätigungslink auf den App-Callback zeigen, z. B.:
+  - Signup: `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup`
+  - Recovery: `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/auth/reset`
 
 ## Wie die Integration aufgebaut ist
 
@@ -83,6 +91,7 @@ Dann im Browser `http://localhost:3003` aufrufen.
 - Middleware-Route-Schutz: `middleware.ts`
 - Login/Registrierung/Passwort-Reset:
   - `src/app/auth/page.tsx`
+  - `src/app/auth/callback/page.tsx`
   - `src/app/auth/reset/page.tsx`
 
 ## Verbindung testen

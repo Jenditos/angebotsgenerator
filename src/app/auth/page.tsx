@@ -34,6 +34,34 @@ function formatAuthErrorMessage(rawMessage: string): string {
   return rawMessage || "Authentifizierung fehlgeschlagen.";
 }
 
+function resolveAuthCallbackUrl(): string {
+  const envBase = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+  if (envBase) {
+    return `${envBase.replace(/\/+$/, "")}/auth/callback`;
+  }
+
+  return `${window.location.origin}/auth/callback`;
+}
+
+async function readApiErrorMessage(response: Response): Promise<string> {
+  try {
+    const payload = (await response.json()) as { error?: unknown } | null;
+    if (payload && typeof payload.error === "string" && payload.error.trim()) {
+      return payload.error.trim();
+    }
+  } catch {
+    // Ignore JSON parse errors and use fallback below.
+  }
+
+  if (response.status === 401) {
+    return "Sitzung konnte serverseitig nicht bestätigt werden. Bitte erneut einloggen.";
+  }
+  if (response.status >= 500) {
+    return "Testzugang konnte serverseitig nicht initialisiert werden.";
+  }
+  return "Testzugang konnte nicht gestartet werden.";
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("login");
@@ -57,7 +85,7 @@ export default function AuthPage() {
       method: "POST",
     });
     if (!response.ok) {
-      throw new Error("Testzugang konnte nicht gestartet werden.");
+      throw new Error(await readApiErrorMessage(response));
     }
   }
 
@@ -87,6 +115,7 @@ export default function AuthPage() {
             data: {
               full_name: trimmedName,
             },
+            emailRedirectTo: resolveAuthCallbackUrl(),
           },
         });
 
@@ -110,7 +139,7 @@ export default function AuthPage() {
       }
 
       if (mode === "forgot") {
-        const resetRedirect = `${window.location.origin}/auth/reset`;
+        const resetRedirect = `${resolveAuthCallbackUrl()}?next=%2Fauth%2Freset`;
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(
           email.trim(),
           {
@@ -140,6 +169,7 @@ export default function AuthPage() {
       router.replace("/");
       router.refresh();
     } catch (submitError) {
+      console.error("[auth] submit failed", submitError);
       setError(
         submitError instanceof Error
           ? submitError.message
