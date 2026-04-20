@@ -9299,7 +9299,9 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 
 .intakePrimaryActions {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
   position: relative;
   gap: 10px;
 }
@@ -9326,7 +9328,8 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 button.intakePrimaryActionButtonPrimary {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  min-width: 220px;
   color: var(--vis-dark) !important;
   border-color: var(--vis-accent-c) !important;
   background: var(--vis-accent-c) !important;
@@ -9406,11 +9409,13 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   text-align: left;
   font-size: 0.79rem;
   font-weight: 700;
+  box-shadow: none !important;
   cursor: pointer;
 }
 
 .photoScanQuickMenuItem:hover:not(:disabled) {
   background: #e6f2ff;
+  box-shadow: none !important;
 }
 
 .photoScanQuickMenuItem:disabled {
