@@ -9620,7 +9620,7 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 .submitActionRow .submitMailButton:hover:not(:disabled),
 .submitActionRow .submitMailButton:active:not(:disabled),
 .submitActionRow .submitMailButton:focus-visible {
-  border-color: var(--vis-dark-10) !important;
+  border-color: #1479ff !important;
   background: #ffffff !important;
   color: var(--vis-dark) !important;
   box-shadow: none !important;
