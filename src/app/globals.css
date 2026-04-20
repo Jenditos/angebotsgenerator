@@ -9429,32 +9429,36 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   line-height: 1.45;
 }
 
-.formSecondaryActions {
-  display: flex;
-  justify-content: flex-start;
+.voiceTranscriptFieldBody {
+  position: relative;
 }
 
-.formResetTextAction {
+.voiceTranscriptTextareaWithResetAction {
+  padding-bottom: 36px !important;
+}
+
+.voiceTranscriptResetAction {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
   border: 0;
-  background: transparent;
-  padding: 0;
-  color: rgba(196, 218, 248, 0.9);
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.3;
-  text-decoration: underline;
-  text-decoration-color: rgba(196, 218, 248, 0.56);
-  text-underline-offset: 3px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4b678f;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border-radius: 8px;
+  padding: 4px 8px;
   cursor: pointer;
 }
 
-.formResetTextAction:hover:not(:disabled) {
-  color: #edf6ff;
-  text-decoration-color: rgba(237, 246, 255, 0.9);
+.voiceTranscriptResetAction:hover:not(:disabled) {
+  background: #ffffff;
+  color: #234b78;
 }
 
-.formResetTextAction:disabled {
-  opacity: 0.55;
+.voiceTranscriptResetAction:disabled {
+  opacity: 0.58;
   cursor: not-allowed;
 }
 

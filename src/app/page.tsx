@@ -386,6 +386,7 @@ type ModeSnapshot = {
   activeCustomerNumber: string;
   selectedServices: SelectedServiceEntry[];
   intakeInputMode: IntakeInputMode;
+  hasUsedPrimaryVoiceIntake: boolean;
   voiceTranscript: string;
   voiceInfo: string;
   voiceError: string;
@@ -421,6 +422,7 @@ function createInitialModeSnapshot(): ModeSnapshot {
     activeCustomerNumber: "",
     selectedServices: [createManualSelectedServiceEntry()],
     intakeInputMode: "voice",
+    hasUsedPrimaryVoiceIntake: false,
     voiceTranscript: "",
     voiceInfo: "",
     voiceError: "",
@@ -653,6 +655,7 @@ function hydrateModeSnapshot(value: unknown): ModeSnapshot {
     activeCustomerNumber: asString(value.activeCustomerNumber),
     selectedServices: hydrateSelectedServices(value.selectedServices),
     intakeInputMode: value.intakeInputMode === "photo" ? "photo" : "voice",
+    hasUsedPrimaryVoiceIntake: value.hasUsedPrimaryVoiceIntake === true,
     voiceTranscript: asString(value.voiceTranscript),
     voiceInfo: asString(value.voiceInfo),
     voiceError: asString(value.voiceError),
@@ -1345,6 +1348,8 @@ export default function HomePage() {
   const [isSpeechPaused, setIsSpeechPaused] = useState(false);
   const [intakeInputMode, setIntakeInputMode] =
     useState<IntakeInputMode>("voice");
+  const [hasUsedPrimaryVoiceIntake, setHasUsedPrimaryVoiceIntake] =
+    useState(false);
   const [isPhotoScanSheetOpen, setIsPhotoScanSheetOpen] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isParsingVoice, setIsParsingVoice] = useState(false);
@@ -1572,6 +1577,7 @@ export default function HomePage() {
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
     setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
     setIntakeInputMode(snapshot.intakeInputMode);
+    setHasUsedPrimaryVoiceIntake(snapshot.hasUsedPrimaryVoiceIntake);
     setVoiceTranscript(snapshot.voiceTranscript);
     setVoiceInfo(snapshot.voiceInfo);
     setVoiceError(snapshot.voiceError);
@@ -1597,6 +1603,7 @@ export default function HomePage() {
       activeCustomerNumber,
       selectedServices: cloneSelectedServices(selectedServices),
       intakeInputMode,
+      hasUsedPrimaryVoiceIntake,
       voiceTranscript,
       voiceInfo,
       voiceError,
@@ -1894,6 +1901,7 @@ export default function HomePage() {
     serviceInfo,
     serviceSearch,
     intakeInputMode,
+    hasUsedPrimaryVoiceIntake,
     photoError,
     photoInfo,
     voiceError,
@@ -3008,6 +3016,7 @@ export default function HomePage() {
   }
 
   function startPrimaryVoiceIntake() {
+    setHasUsedPrimaryVoiceIntake(true);
     setIsPhotoScanSheetOpen(false);
     switchIntakeMode("voice");
     startSpeechInput();
@@ -5422,16 +5431,28 @@ export default function HomePage() {
 
                     <label className="field">
                       <span>Gesprochener Text</span>
-                      <textarea
-                        className="voiceTranscriptTextarea"
-                        rows={3}
-                        value={voiceTranscript}
-                        onChange={(e) => {
-                          setVoiceTranscript(e.target.value);
-                          setVoiceMissingFields([]);
-                        }}
-                        placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
-                      />
+                      <div className="voiceTranscriptFieldBody">
+                        <textarea
+                          className={`voiceTranscriptTextarea ${hasUsedPrimaryVoiceIntake ? "voiceTranscriptTextareaWithResetAction" : ""}`}
+                          rows={3}
+                          value={voiceTranscript}
+                          onChange={(e) => {
+                            setVoiceTranscript(e.target.value);
+                            setVoiceMissingFields([]);
+                          }}
+                          placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
+                        />
+                        {hasUsedPrimaryVoiceIntake ? (
+                          <button
+                            type="button"
+                            className="voiceTranscriptResetAction"
+                            onClick={resetCurrentInputs}
+                            disabled={isSubmitting || isAnyIntakeProcessing}
+                          >
+                            Felder leeren
+                          </button>
+                        ) : null}
+                      </div>
                     </label>
 
                     {!speechSupported ? (
@@ -6785,17 +6806,6 @@ export default function HomePage() {
                       ? "Mail wird geöffnet..."
                       : "Per E-Mail senden"}
                   </span>
-                </button>
-              </div>
-
-              <div className="formSecondaryActions span2">
-                <button
-                  type="button"
-                  className="formResetTextAction"
-                  onClick={resetCurrentInputs}
-                  disabled={isSubmitting || isAnyIntakeProcessing}
-                >
-                  Felder leeren
                 </button>
               </div>
 
