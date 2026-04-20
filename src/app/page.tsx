@@ -5328,7 +5328,7 @@ export default function HomePage() {
                     onClick={startPrimaryVoiceIntake}
                     disabled={isAnyIntakeProcessing}
                   >
-                    Aufnahme starten
+                    KI-Aufnahme starten
                   </button>
                   <button
                     type="button"
