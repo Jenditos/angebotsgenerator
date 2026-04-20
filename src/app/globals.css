@@ -9298,8 +9298,8 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 .intakePrimaryActions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  align-items: stretch;
   gap: 10px;
 }
 
@@ -9325,6 +9325,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 button.intakePrimaryActionButtonPrimary {
+  flex: 1 1 auto;
   color: var(--vis-dark) !important;
   border-color: var(--vis-accent-c) !important;
   background: var(--vis-accent-c) !important;
@@ -9333,21 +9334,32 @@ button.intakePrimaryActionButtonPrimary {
 
 button.intakePrimaryActionButtonPrimary:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: var(--vis-accent-a) !important;
-  border-color: var(--vis-accent-a) !important;
+  background: var(--vis-accent-c) !important;
+  border-color: var(--vis-accent-c) !important;
   color: var(--vis-dark) !important;
-  box-shadow: 0 18px 36px rgba(20, 210, 255, 0.3) !important;
+  box-shadow: 0 10px 22px rgba(20, 235, 255, 0.3) !important;
 }
 
 button.intakePrimaryActionButtonSecondary {
-  color: #dcefff;
-  border-color: rgba(191, 219, 255, 0.54);
-  background: rgba(227, 241, 255, 0.12);
+  flex: 0 0 48px;
+  width: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #d8eeff;
+  border-color: rgba(191, 219, 255, 0.62);
+  background: rgba(227, 241, 255, 0.14);
 }
 
 button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
-  background: rgba(227, 241, 255, 0.2);
-  border-color: rgba(191, 219, 255, 0.72);
+  background: rgba(227, 241, 255, 0.14);
+  border-color: rgba(191, 219, 255, 0.62);
+}
+
+.intakePhotoScanIcon {
+  width: 20px;
+  height: 20px;
 }
 
 .intakeFlowHint {
@@ -9492,10 +9504,6 @@ button.photoScanSheetActionSecondary:hover:not(:disabled) {
 }
 
 @media (max-width: 700px) {
-  .intakePrimaryActions {
-    grid-template-columns: 1fr;
-  }
-
   .photoScanSheetBackdrop {
     padding: 0 8px max(8px, env(safe-area-inset-bottom, 0px));
   }

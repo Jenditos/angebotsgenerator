@@ -5335,8 +5335,32 @@ export default function HomePage() {
                     className="intakePrimaryActionButton intakePrimaryActionButtonSecondary"
                     onClick={openPhotoScanSheet}
                     disabled={isAnyIntakeProcessing}
+                    aria-label="Foto scannen"
+                    title="Foto scannen"
                   >
-                    Foto scannen
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="intakePhotoScanIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M4.6 8.4h2.9l1.3-2h6.4l1.3 2h2.9a1.8 1.8 0 0 1 1.8 1.8v7.8a1.8 1.8 0 0 1-1.8 1.8H4.6A1.8 1.8 0 0 1 2.8 18V10.2a1.8 1.8 0 0 1 1.8-1.8Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx="12"
+                        cy="14"
+                        r="3.2"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                    </svg>
                   </button>
                 </div>
 
