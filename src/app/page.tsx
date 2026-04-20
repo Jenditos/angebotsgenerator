@@ -1345,6 +1345,7 @@ export default function HomePage() {
   const [isSpeechPaused, setIsSpeechPaused] = useState(false);
   const [intakeInputMode, setIntakeInputMode] =
     useState<IntakeInputMode>("voice");
+  const [isPhotoScanSheetOpen, setIsPhotoScanSheetOpen] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [isParsingPhoto, setIsParsingPhoto] = useState(false);
@@ -1440,6 +1441,7 @@ export default function HomePage() {
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
+  const photoScanSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
   const isAnyIntakeProcessing = isParsingVoice || isParsingPhoto;
@@ -1556,6 +1558,10 @@ export default function HomePage() {
     containerRef: customerPickerModalSheetRef,
   });
   useDialogFocusTrap({
+    isOpen: isPhotoScanSheetOpen,
+    containerRef: photoScanSheetRef,
+  });
+  useDialogFocusTrap({
     isOpen: isInfoLegalOpen,
     containerRef: infoLegalSheetRef,
   });
@@ -1638,6 +1644,7 @@ export default function HomePage() {
     setIsParsingPhoto(false);
     setPhotoReviewDraft(null);
     setPhotoPreviewDataUrl("");
+    setIsPhotoScanSheetOpen(false);
     setIsSpeechPaused(false);
     setActivePriceSubitemId(null);
     setDocumentMode(nextMode);
@@ -1674,6 +1681,7 @@ export default function HomePage() {
     setPostActionInfo("");
     setOfferMailActionState(null);
     setIsPreparingOfferMailDraft(false);
+    setIsPhotoScanSheetOpen(false);
 
     const resetSnapshot = createInitialModeSnapshot();
     modeSnapshotsRef.current[documentMode] = resetSnapshot;
@@ -1908,6 +1916,7 @@ export default function HomePage() {
       isInfoLegalOpen ||
       isSettingsOverlayOpen ||
       isCustomerPickerOpen ||
+      isPhotoScanSheetOpen ||
       isVoiceLoginModalOpen;
     if (!hasBlockingOverlay) {
       return;
@@ -1935,6 +1944,7 @@ export default function HomePage() {
     isInfoLegalOpen,
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
+    isPhotoScanSheetOpen,
     isVoiceLoginModalOpen,
   ]);
 
@@ -1948,6 +1958,7 @@ export default function HomePage() {
       !isInfoLegalOpen &&
       !isSettingsOverlayOpen &&
       !isCustomerPickerOpen &&
+      !isPhotoScanSheetOpen &&
       !isVoiceLoginModalOpen &&
       !isAccountMenuOpen &&
       !isSetupHintOpen
@@ -1980,6 +1991,11 @@ export default function HomePage() {
         return;
       }
 
+      if (isPhotoScanSheetOpen) {
+        closePhotoScanSheet();
+        return;
+      }
+
       if (isVoiceLoginModalOpen) {
         closeVoiceLoginModal();
         return;
@@ -2005,6 +2021,7 @@ export default function HomePage() {
     isClosingSettingsOverlay,
     isCustomerPickerOpen,
     isClosingCustomerPicker,
+    isPhotoScanSheetOpen,
     isVoiceLoginModalOpen,
     isAccountMenuOpen,
     isClosingAccountMenu,
@@ -2965,6 +2982,24 @@ export default function HomePage() {
     setVoiceMissingFields([]);
   }
 
+  function startPrimaryVoiceIntake() {
+    switchIntakeMode("voice");
+    startSpeechInput();
+  }
+
+  function openPhotoScanSheet() {
+    if (isAnyIntakeProcessing) {
+      return;
+    }
+    setPhotoError("");
+    setPhotoInfo("");
+    setIsPhotoScanSheetOpen(true);
+  }
+
+  function closePhotoScanSheet() {
+    setIsPhotoScanSheetOpen(false);
+  }
+
   function startSpeechInput() {
     if (isListening || isParsingPhoto) {
       return;
@@ -3912,10 +3947,13 @@ export default function HomePage() {
     if (!isAuthenticatedUser) {
       setPhotoError("");
       setPhotoInfo("");
+      setIsPhotoScanSheetOpen(false);
       openVoiceLoginModal();
       return;
     }
 
+    switchIntakeMode("photo");
+    setIsPhotoScanSheetOpen(false);
     setPhotoError("");
     setPhotoInfo("");
     photoCaptureInputRef.current?.click();
@@ -3929,10 +3967,13 @@ export default function HomePage() {
     if (!isAuthenticatedUser) {
       setPhotoError("");
       setPhotoInfo("");
+      setIsPhotoScanSheetOpen(false);
       openVoiceLoginModal();
       return;
     }
 
+    switchIntakeMode("photo");
+    setIsPhotoScanSheetOpen(false);
     setPhotoError("");
     setPhotoInfo("");
     photoUploadInputRef.current?.click();
@@ -4745,6 +4786,53 @@ export default function HomePage() {
           sheetRef={voiceLoginModalSheetRef}
         />
 
+        {isPhotoScanSheetOpen ? (
+          <div
+            className="photoScanSheetBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="photo-scan-sheet-title"
+            onClick={closePhotoScanSheet}
+          >
+            <section
+              className="photoScanSheet"
+              onClick={(event) => event.stopPropagation()}
+              ref={photoScanSheetRef}
+            >
+              <div className="photoScanSheetHandle" aria-hidden="true" />
+              <div className="photoScanSheetHeader">
+                <strong id="photo-scan-sheet-title">Foto scannen</strong>
+                <p>Wähle, wie du das Foto erfassen möchtest.</p>
+              </div>
+              <div className="photoScanSheetActions">
+                <button
+                  type="button"
+                  className="photoScanSheetAction photoScanSheetActionPrimary"
+                  onClick={triggerPhotoCaptureInput}
+                  disabled={isAnyIntakeProcessing}
+                >
+                  Foto aufnehmen
+                </button>
+                <button
+                  type="button"
+                  className="photoScanSheetAction photoScanSheetActionSecondary"
+                  onClick={triggerPhotoUploadInput}
+                  disabled={isAnyIntakeProcessing}
+                >
+                  Foto hochladen
+                </button>
+                <button
+                  type="button"
+                  className="photoScanSheetCancelAction"
+                  onClick={closePhotoScanSheet}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
         {isSettingsOverlayOpen ? (
           <div
             className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""}`}
@@ -5213,87 +5301,97 @@ export default function HomePage() {
                   </p>
                 </div>
 
-                <div className="intakeModeSwitch" role="group" aria-label="Erfassungsmethode">
+                <input
+                  ref={photoCaptureInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={onPhotoInputChange}
+                  style={{ display: "none" }}
+                />
+                <input
+                  ref={photoUploadInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onPhotoInputChange}
+                  style={{ display: "none" }}
+                />
+
+                <div
+                  className="intakePrimaryActions"
+                  role="group"
+                  aria-label="Per KI erfassen"
+                >
                   <button
                     type="button"
-                    className={`intakeModeSwitchButton ${intakeInputMode === "voice" ? "active" : ""}`}
-                    aria-pressed={intakeInputMode === "voice"}
-                    onClick={() => switchIntakeMode("voice")}
+                    className="intakePrimaryActionButton intakePrimaryActionButtonPrimary"
+                    onClick={startPrimaryVoiceIntake}
                     disabled={isAnyIntakeProcessing}
                   >
                     Aufnahme starten
                   </button>
                   <button
                     type="button"
-                    className={`intakeModeSwitchButton ${intakeInputMode === "photo" ? "active" : ""}`}
-                    aria-pressed={intakeInputMode === "photo"}
-                    onClick={() => switchIntakeMode("photo")}
+                    className="intakePrimaryActionButton intakePrimaryActionButtonSecondary"
+                    onClick={openPhotoScanSheet}
                     disabled={isAnyIntakeProcessing}
                   >
-                    Per Foto
+                    Foto scannen
                   </button>
                 </div>
 
                 {intakeInputMode === "voice" ? (
                   <>
-                    <div className="voiceActions">
-                      {isListening ? (
-                        <>
-                          <button
-                            type="button"
-                            className="ghostButton voiceActionButton voiceActionButtonPause"
-                            onClick={pauseSpeechInput}
-                            disabled={!speechSupported || isAnyIntakeProcessing}
-                          >
-                            Pause
-                          </button>
-                          <button
-                            type="button"
-                            className="ghostButton voiceActionButton voiceActionButtonStop"
-                            onClick={stopSpeechInput}
-                            disabled={!speechSupported || isAnyIntakeProcessing}
-                          >
-                            Aufnahme stoppen
-                          </button>
-                        </>
-                      ) : isSpeechPaused ? (
-                        <>
-                          <button
-                            type="button"
-                            className="ghostButton voiceActionButton voiceActionButtonResume"
-                            onClick={startSpeechInput}
-                            disabled={!speechSupported || isAnyIntakeProcessing}
-                          >
-                            Fortsetzen
-                          </button>
-                          <button
-                            type="button"
-                            className="ghostButton voiceActionButton voiceActionButtonStop"
-                            onClick={stopSpeechInput}
-                            disabled={!speechSupported || isAnyIntakeProcessing}
-                          >
-                            Aufnahme stoppen
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="ghostButton voiceActionButton voiceActionButtonStart"
-                          onClick={startSpeechInput}
-                          disabled={!speechSupported || isAnyIntakeProcessing}
-                        >
-                          KI-Aufnahme starten
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonClear"
-                        onClick={resetCurrentInputs}
-                        disabled={isSubmitting || isAnyIntakeProcessing}
-                      >
-                        Felder leeren
-                      </button>
-                    </div>
+                    {isListening || isSpeechPaused ? (
+                      <div className="voiceActions">
+                        {isListening ? (
+                          <>
+                            <button
+                              type="button"
+                              className="ghostButton voiceActionButton voiceActionButtonPause"
+                              onClick={pauseSpeechInput}
+                              disabled={!speechSupported || isAnyIntakeProcessing}
+                            >
+                              Pause
+                            </button>
+                            <button
+                              type="button"
+                              className="ghostButton voiceActionButton voiceActionButtonStop"
+                              onClick={stopSpeechInput}
+                              disabled={!speechSupported || isAnyIntakeProcessing}
+                            >
+                              Aufnahme stoppen
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="ghostButton voiceActionButton voiceActionButtonResume"
+                              onClick={startSpeechInput}
+                              disabled={!speechSupported || isAnyIntakeProcessing}
+                            >
+                              Fortsetzen
+                            </button>
+                            <button
+                              type="button"
+                              className="ghostButton voiceActionButton voiceActionButtonStop"
+                              onClick={stopSpeechInput}
+                              disabled={!speechSupported || isAnyIntakeProcessing}
+                            >
+                              Aufnahme stoppen
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {!isListening && !isSpeechPaused ? (
+                      <p className="intakeFlowHint">
+                        Starte die Aufnahme über den Button oben. Die
+                        erkannten Inhalte werden automatisch übernommen.
+                      </p>
+                    ) : null}
 
                     <label className="field">
                       <span>Gesprochener Text</span>
@@ -5341,48 +5439,12 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <input
-                      ref={photoCaptureInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={onPhotoInputChange}
-                      style={{ display: "none" }}
-                    />
-                    <input
-                      ref={photoUploadInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={onPhotoInputChange}
-                      style={{ display: "none" }}
-                    />
-
-                    <div className="voiceActions">
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonPhoto"
-                        onClick={triggerPhotoCaptureInput}
-                        disabled={isAnyIntakeProcessing}
-                      >
-                        Foto aufnehmen
-                      </button>
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonPhotoUpload"
-                        onClick={triggerPhotoUploadInput}
-                        disabled={isAnyIntakeProcessing}
-                      >
-                        Foto hochladen
-                      </button>
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonClear"
-                        onClick={resetCurrentInputs}
-                        disabled={isSubmitting || isAnyIntakeProcessing}
-                      >
-                        Felder leeren
-                      </button>
-                    </div>
+                    {!photoPreviewDataUrl && !photoInfo && !photoError ? (
+                      <p className="intakeFlowHint">
+                        Nutze oben „Foto scannen“, um ein Bild aufzunehmen oder
+                        hochzuladen.
+                      </p>
+                    ) : null}
 
                     {photoPreviewDataUrl ? (
                       <div className="photoPreviewWrap">
@@ -6696,6 +6758,17 @@ export default function HomePage() {
                       ? "Mail wird geöffnet..."
                       : "Per E-Mail senden"}
                   </span>
+                </button>
+              </div>
+
+              <div className="formSecondaryActions span2">
+                <button
+                  type="button"
+                  className="formResetTextAction"
+                  onClick={resetCurrentInputs}
+                  disabled={isSubmitting || isAnyIntakeProcessing}
+                >
+                  Felder leeren
                 </button>
               </div>
 
