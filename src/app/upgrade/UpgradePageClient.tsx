@@ -54,8 +54,15 @@ export default function UpgradePageClient() {
           return;
         }
 
-        if (!response.ok || !payload.authenticated) {
+        if (response.status === 401 || !payload.authenticated) {
           router.replace("/auth");
+          return;
+        }
+
+        if (!response.ok) {
+          setError(
+            payload.error || "Testzugang ist aktuell nicht vollständig eingerichtet.",
+          );
           return;
         }
 

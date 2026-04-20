@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import {
+  classifyUserAccessError,
+  logUserAccessError,
+} from "@/lib/access/access-errors";
+import {
   MONTHLY_PRICE_CENTS,
   STRIPE_MONTHLY_PRICE_ID,
   STRIPE_SECRET_KEY,
@@ -54,12 +58,15 @@ export async function POST(request: Request) {
       });
       customerId = customer.id;
 
-      await authResult.supabase
+      const { error: userAccessUpdateError } = await authResult.supabase
         .from("user_access")
         .update({
           stripe_customer_id: customerId,
         })
         .eq("user_id", authResult.user.id);
+      if (userAccessUpdateError) {
+        throw userAccessUpdateError;
+      }
     }
 
     const baseUrl = resolveAppBaseUrl(request);
@@ -112,10 +119,17 @@ export async function POST(request: Request) {
     return NextResponse.json({
       url: session.url,
     });
-  } catch {
+  } catch (error) {
+    logUserAccessError("POST /api/billing/create-checkout-session", error, {
+      userId: authResult.user.id,
+    });
+    const classifiedError = classifyUserAccessError(
+      error,
+      "Checkout konnte nicht gestartet werden.",
+    );
     return NextResponse.json(
-      { error: "Checkout konnte nicht gestartet werden." },
-      { status: 500 },
+      { error: classifiedError.publicMessage },
+      { status: classifiedError.status },
     );
   }
 }

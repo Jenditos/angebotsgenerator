@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  classifyUserAccessError,
+  logUserAccessError,
+} from "@/lib/access/access-errors";
 import { buildAccessState, ensureUserAccessRecord } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
 
@@ -23,10 +27,17 @@ export async function GET() {
       access: accessRecord,
       state: buildAccessState(accessRecord),
     });
-  } catch {
+  } catch (error) {
+    logUserAccessError("GET /api/access/status", error, {
+      userId: authResult.user.id,
+    });
+    const classifiedError = classifyUserAccessError(
+      error,
+      "Zugriffsstatus konnte nicht geladen werden.",
+    );
     return NextResponse.json(
-      { error: "Zugriffsstatus konnte nicht geladen werden." },
-      { status: 500 },
+      { error: classifiedError.publicMessage },
+      { status: classifiedError.status },
     );
   }
 }

@@ -1,4 +1,8 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
+import {
+  isUserAccessSetupError,
+  toUserAccessSetupError,
+} from "@/lib/access/access-errors";
 
 export const ACCESS_TABLE = "user_access";
 export const TRIAL_DURATION_DAYS = 30;
@@ -76,6 +80,9 @@ export async function readUserAccessRecord(
     .maybeSingle();
 
   if (error) {
+    if (isUserAccessSetupError(error)) {
+      throw toUserAccessSetupError(error);
+    }
     throw error;
   }
 
@@ -123,6 +130,9 @@ export async function ensureUserAccessRecord(
         return recovered;
       }
     }
+    if (isUserAccessSetupError(error)) {
+      throw toUserAccessSetupError(error);
+    }
     throw error;
   }
 
@@ -142,4 +152,3 @@ export function buildAccessState(record: UserAccessRecord) {
     canUseApp: trialActive || hasSubscription,
   };
 }
-

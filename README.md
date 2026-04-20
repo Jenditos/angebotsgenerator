@@ -77,6 +77,13 @@ Dann im Browser `http://localhost:3003` aufrufen.
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (nur serverseitig verwenden, niemals im Client)
+5. Danach Supabase-Migrationen ausführen, damit `user_access` angelegt ist:
+
+```bash
+supabase db push
+```
+
+Wenn die Supabase CLI lokal nicht installiert ist, kann die Migration alternativ über den SQL-Editor ausgeführt werden (`supabase/migrations/*.sql`).
 
 Optional, aber empfohlen für robuste E-Mail-Bestätigung:
 - Unter `Authentication > Email Templates` kann der Bestätigungslink auf den App-Callback zeigen, z. B.:

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import {
+  classifyUserAccessError,
+  logUserAccessError,
+} from "@/lib/access/access-errors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MONTHLY_PLAN_ID } from "@/lib/access/user-access";
 import {
@@ -35,7 +39,13 @@ async function updateByUserId(
   patch: Record<string, unknown>,
 ): Promise<void> {
   const admin = createSupabaseAdminClient();
-  await admin.from("user_access").update(patch).eq("user_id", userId);
+  const { error } = await admin
+    .from("user_access")
+    .update(patch)
+    .eq("user_id", userId);
+  if (error) {
+    throw error;
+  }
 }
 
 async function updateByCustomerId(
@@ -43,7 +53,13 @@ async function updateByCustomerId(
   patch: Record<string, unknown>,
 ): Promise<void> {
   const admin = createSupabaseAdminClient();
-  await admin.from("user_access").update(patch).eq("stripe_customer_id", customerId);
+  const { error } = await admin
+    .from("user_access")
+    .update(patch)
+    .eq("stripe_customer_id", customerId);
+  if (error) {
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
@@ -130,10 +146,17 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch {
+  } catch (error) {
+    logUserAccessError("POST /api/stripe/webhook", error, {
+      eventType: event.type,
+    });
+    const classifiedError = classifyUserAccessError(
+      error,
+      "Webhook konnte nicht verarbeitet werden.",
+    );
     return NextResponse.json(
-      { error: "Webhook konnte nicht verarbeitet werden." },
-      { status: 500 },
+      { error: classifiedError.publicMessage },
+      { status: classifiedError.status },
     );
   }
 }

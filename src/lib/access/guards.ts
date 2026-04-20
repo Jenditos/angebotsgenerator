@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import {
+  classifyUserAccessError,
+  logUserAccessError,
+} from "@/lib/access/access-errors";
+import {
   canUseApp,
   ensureUserAccessRecord,
   UserAccessRecord,
@@ -73,12 +77,19 @@ export async function requireAppAccess(): Promise<
       authResult.supabase,
       authResult.user,
     );
-  } catch {
+  } catch (error) {
+    logUserAccessError("requireAppAccess.ensureUserAccessRecord", error, {
+      userId: authResult.user.id,
+    });
+    const classifiedError = classifyUserAccessError(
+      error,
+      "Zugriff konnte aktuell nicht geprüft werden. Bitte später erneut versuchen.",
+    );
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "Zugriff konnte nicht geprüft werden." },
-        { status: 500 },
+        { error: classifiedError.publicMessage },
+        { status: classifiedError.status },
       ),
     };
   }

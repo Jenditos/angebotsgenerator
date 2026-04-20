@@ -84,8 +84,11 @@ export default function AuthPage() {
     const response = await fetch("/api/access/bootstrap", {
       method: "POST",
     });
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
     if (!response.ok) {
-      throw new Error(await readApiErrorMessage(response));
+      throw new Error(payload.error || "Testzugang konnte nicht gestartet werden.");
     }
   }
 

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { logUserAccessError } from "@/lib/access/access-errors";
 import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -55,7 +56,11 @@ export async function middleware(request: NextRequest) {
     if (accessRecord) {
       canOpenApp = canUseApp(accessRecord);
     }
-  } catch {
+  } catch (error) {
+    logUserAccessError("middleware.readUserAccessRecord", error, {
+      userId: user.id,
+      pathname,
+    });
     canOpenApp = false;
   }
 
