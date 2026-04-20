@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -72,7 +72,44 @@ async function bootstrapTrial(): Promise<void> {
   }
 }
 
-export default function AuthCallbackPage() {
+function AuthCallbackShell({
+  status,
+  error,
+}: {
+  status: string;
+  error: string;
+}) {
+  return (
+    <main className="authViewport authGithubViewport">
+      <div className="authGithubCenter">
+        <section className="authGithubCard" aria-live="polite">
+          <p className="authGithubModeIntro">
+            Authentifizierung
+            <span>{status}</span>
+          </p>
+
+          {error ? (
+            <>
+              <p className="authGithubMessage authGithubMessageError">{error}</p>
+              <p className="authGithubSignupHint">
+                Zurück zum{" "}
+                <Link href="/auth" className="authGithubInlineLink authGithubInlineLinkStrong">
+                  Login
+                </Link>
+              </p>
+            </>
+          ) : (
+            <p className="authGithubMessage authGithubMessageInfo">
+              Bitte einen Moment warten ...
+            </p>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState("Bestätigungslink wird verarbeitet ...");
@@ -187,32 +224,17 @@ export default function AuthCallbackPage() {
     };
   }, [authReady, router, searchParamString, supabase]);
 
-  return (
-    <main className="authViewport authGithubViewport">
-      <div className="authGithubCenter">
-        <section className="authGithubCard" aria-live="polite">
-          <p className="authGithubModeIntro">
-            Authentifizierung
-            <span>{status}</span>
-          </p>
+  return <AuthCallbackShell status={status} error={error} />;
+}
 
-          {error ? (
-            <>
-              <p className="authGithubMessage authGithubMessageError">{error}</p>
-              <p className="authGithubSignupHint">
-                Zurück zum{" "}
-                <Link href="/auth" className="authGithubInlineLink authGithubInlineLinkStrong">
-                  Login
-                </Link>
-              </p>
-            </>
-          ) : (
-            <p className="authGithubMessage authGithubMessageInfo">
-              Bitte einen Moment warten ...
-            </p>
-          )}
-        </section>
-      </div>
-    </main>
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthCallbackShell status="Bestätigungslink wird verarbeitet ..." error="" />
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
