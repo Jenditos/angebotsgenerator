@@ -9607,3 +9607,22 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
     grid-template-columns: 1fr;
   }
 }
+
+/* "Per E-Mail senden": subtle input-like outline without elevation */
+.submitActionRow .submitMailButton {
+  border: 1px solid var(--vis-dark-10) !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  color: var(--vis-dark) !important;
+  box-shadow: none !important;
+}
+
+.submitActionRow .submitMailButton:hover:not(:disabled),
+.submitActionRow .submitMailButton:active:not(:disabled),
+.submitActionRow .submitMailButton:focus-visible {
+  border-color: var(--vis-dark-10) !important;
+  background: #ffffff !important;
+  color: var(--vis-dark) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
