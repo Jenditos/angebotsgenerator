@@ -1441,7 +1441,8 @@ export default function HomePage() {
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
-  const photoScanSheetRef = useRef<HTMLElement | null>(null);
+  const photoScanMenuRef = useRef<HTMLDivElement | null>(null);
+  const photoScanTriggerButtonRef = useRef<HTMLButtonElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
   const isAnyIntakeProcessing = isParsingVoice || isParsingPhoto;
@@ -1556,10 +1557,6 @@ export default function HomePage() {
   useDialogFocusTrap({
     isOpen: isCustomerPickerOpen,
     containerRef: customerPickerModalSheetRef,
-  });
-  useDialogFocusTrap({
-    isOpen: isPhotoScanSheetOpen,
-    containerRef: photoScanSheetRef,
   });
   useDialogFocusTrap({
     isOpen: isInfoLegalOpen,
@@ -1916,7 +1913,6 @@ export default function HomePage() {
       isInfoLegalOpen ||
       isSettingsOverlayOpen ||
       isCustomerPickerOpen ||
-      isPhotoScanSheetOpen ||
       isVoiceLoginModalOpen;
     if (!hasBlockingOverlay) {
       return;
@@ -1944,7 +1940,6 @@ export default function HomePage() {
     isInfoLegalOpen,
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
-    isPhotoScanSheetOpen,
     isVoiceLoginModalOpen,
   ]);
 
@@ -2027,6 +2022,36 @@ export default function HomePage() {
     isClosingAccountMenu,
     isSetupHintOpen,
   ]);
+
+  useEffect(() => {
+    if (!isPhotoScanSheetOpen || typeof window === "undefined") {
+      return;
+    }
+
+    function closeOnOutsidePointer(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+
+      if (photoScanMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      if (photoScanTriggerButtonRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsPhotoScanSheetOpen(false);
+    }
+
+    window.addEventListener("mousedown", closeOnOutsidePointer);
+    window.addEventListener("touchstart", closeOnOutsidePointer);
+    return () => {
+      window.removeEventListener("mousedown", closeOnOutsidePointer);
+      window.removeEventListener("touchstart", closeOnOutsidePointer);
+    };
+  }, [isPhotoScanSheetOpen]);
 
   useEffect(() => {
     if (!isServiceDateRangePickerOpen || typeof window === "undefined") {
@@ -2983,6 +3008,7 @@ export default function HomePage() {
   }
 
   function startPrimaryVoiceIntake() {
+    setIsPhotoScanSheetOpen(false);
     switchIntakeMode("voice");
     startSpeechInput();
   }
@@ -2993,7 +3019,7 @@ export default function HomePage() {
     }
     setPhotoError("");
     setPhotoInfo("");
-    setIsPhotoScanSheetOpen(true);
+    setIsPhotoScanSheetOpen((prev) => !prev);
   }
 
   function closePhotoScanSheet() {
@@ -4786,53 +4812,6 @@ export default function HomePage() {
           sheetRef={voiceLoginModalSheetRef}
         />
 
-        {isPhotoScanSheetOpen ? (
-          <div
-            className="photoScanSheetBackdrop"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="photo-scan-sheet-title"
-            onClick={closePhotoScanSheet}
-          >
-            <section
-              className="photoScanSheet"
-              onClick={(event) => event.stopPropagation()}
-              ref={photoScanSheetRef}
-            >
-              <div className="photoScanSheetHandle" aria-hidden="true" />
-              <div className="photoScanSheetHeader">
-                <strong id="photo-scan-sheet-title">Foto scannen</strong>
-                <p>Wähle, wie du das Foto erfassen möchtest.</p>
-              </div>
-              <div className="photoScanSheetActions">
-                <button
-                  type="button"
-                  className="photoScanSheetAction photoScanSheetActionPrimary"
-                  onClick={triggerPhotoCaptureInput}
-                  disabled={isAnyIntakeProcessing}
-                >
-                  Foto aufnehmen
-                </button>
-                <button
-                  type="button"
-                  className="photoScanSheetAction photoScanSheetActionSecondary"
-                  onClick={triggerPhotoUploadInput}
-                  disabled={isAnyIntakeProcessing}
-                >
-                  Foto hochladen
-                </button>
-                <button
-                  type="button"
-                  className="photoScanSheetCancelAction"
-                  onClick={closePhotoScanSheet}
-                >
-                  Abbrechen
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
-
         {isSettingsOverlayOpen ? (
           <div
             className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""}`}
@@ -5337,6 +5316,9 @@ export default function HomePage() {
                     disabled={isAnyIntakeProcessing}
                     aria-label="Foto scannen"
                     title="Foto scannen"
+                    aria-expanded={isPhotoScanSheetOpen}
+                    aria-haspopup="menu"
+                    ref={photoScanTriggerButtonRef}
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -5362,6 +5344,34 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
+
+                  {isPhotoScanSheetOpen ? (
+                    <div
+                      className="photoScanQuickMenu"
+                      role="menu"
+                      aria-label="Fotooptionen"
+                      ref={photoScanMenuRef}
+                    >
+                      <button
+                        type="button"
+                        className="photoScanQuickMenuItem"
+                        role="menuitem"
+                        onClick={triggerPhotoCaptureInput}
+                        disabled={isAnyIntakeProcessing}
+                      >
+                        Foto aufnehmen
+                      </button>
+                      <button
+                        type="button"
+                        className="photoScanQuickMenuItem"
+                        role="menuitem"
+                        onClick={triggerPhotoUploadInput}
+                        disabled={isAnyIntakeProcessing}
+                      >
+                        Foto hochladen
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {intakeInputMode === "voice" ? (
