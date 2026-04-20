@@ -5420,13 +5420,6 @@ export default function HomePage() {
                       </div>
                     ) : null}
 
-                    {!isListening && !isSpeechPaused ? (
-                      <p className="intakeFlowHint">
-                        Starte die Aufnahme über den Button oben. Die
-                        erkannten Inhalte werden automatisch übernommen.
-                      </p>
-                    ) : null}
-
                     <label className="field">
                       <span>Gesprochener Text</span>
                       <textarea
