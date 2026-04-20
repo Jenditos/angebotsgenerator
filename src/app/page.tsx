@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChangeEvent,
   FormEvent,
   Fragment,
   useEffect,
@@ -138,6 +139,41 @@ type VoiceParseResponse = {
   shouldAutofillServiceDescription?: boolean;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error" | null;
+  inputMode?: "voice" | "photo";
+  sourceText?: string | null;
+};
+
+type IntakeInputMode = "voice" | "photo";
+
+type PhotoReviewPositionDraft = {
+  id: string;
+  group: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  unitPrice: string;
+};
+
+type PhotoReviewDraft = {
+  customerType: "person" | "company";
+  companyName: string;
+  salutation: "herr" | "frau";
+  firstName: string;
+  lastName: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  customerEmail: string;
+  serviceDescription: string;
+  hours: string;
+  hourlyRate: string;
+  materialCost: string;
+  positions: PhotoReviewPositionDraft[];
+  missingFieldKeys: string[];
+  missingFieldLabels: string[];
+  usedFallback: boolean;
+  fallbackReason?: "no_api_key" | "model_error" | null;
+  sourceText: string;
 };
 
 type NominatimItem = {
@@ -349,10 +385,13 @@ type ModeSnapshot = {
   form: OfferForm;
   activeCustomerNumber: string;
   selectedServices: SelectedServiceEntry[];
+  intakeInputMode: IntakeInputMode;
   voiceTranscript: string;
   voiceInfo: string;
   voiceError: string;
   voiceMissingFields: string[];
+  photoInfo: string;
+  photoError: string;
   error: string;
   postActionInfo: string;
   serviceSearch: string;
@@ -381,10 +420,13 @@ function createInitialModeSnapshot(): ModeSnapshot {
     form: createInitialForm(),
     activeCustomerNumber: "",
     selectedServices: [createManualSelectedServiceEntry()],
+    intakeInputMode: "voice",
     voiceTranscript: "",
     voiceInfo: "",
     voiceError: "",
     voiceMissingFields: [],
+    photoInfo: "",
+    photoError: "",
     error: "",
     postActionInfo: "",
     serviceSearch: "",
@@ -455,6 +497,9 @@ const UNIT_OPTIONS = [
 ];
 
 const SERVICE_DATE_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const MAX_LOCAL_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
+const PHOTO_MAX_DIMENSION = 1920;
+const PHOTO_JPEG_QUALITY = 0.88;
 
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
@@ -607,12 +652,15 @@ function hydrateModeSnapshot(value: unknown): ModeSnapshot {
     form: hydrateOfferForm(value.form),
     activeCustomerNumber: asString(value.activeCustomerNumber),
     selectedServices: hydrateSelectedServices(value.selectedServices),
+    intakeInputMode: value.intakeInputMode === "photo" ? "photo" : "voice",
     voiceTranscript: asString(value.voiceTranscript),
     voiceInfo: asString(value.voiceInfo),
     voiceError: asString(value.voiceError),
     voiceMissingFields: Array.isArray(value.voiceMissingFields)
       ? value.voiceMissingFields.map((entry) => asString(entry)).filter(Boolean)
       : [],
+    photoInfo: asString(value.photoInfo),
+    photoError: asString(value.photoError),
     error: asString(value.error),
     postActionInfo: asString(value.postActionInfo),
     serviceSearch: asString(value.serviceSearch),
@@ -1157,6 +1205,79 @@ function hasVoiceFieldValue(key: string, form: OfferForm): boolean {
   }
 }
 
+function resolveRemainingMissingVoiceLabels(
+  missingFieldKeys: string[] | undefined,
+  nextForm: OfferForm,
+): string[] {
+  return (missingFieldKeys ?? [])
+    .filter((key) => {
+      if (key === "companyName") {
+        return (
+          nextForm.customerType === "company" &&
+          !hasVoiceFieldValue(key, nextForm)
+        );
+      }
+
+      if (key === "salutation" || key === "firstName" || key === "lastName") {
+        return (
+          nextForm.customerType === "person" &&
+          !hasVoiceFieldValue(key, nextForm)
+        );
+      }
+
+      return !hasVoiceFieldValue(key, nextForm);
+    })
+    .map((key) => VOICE_FIELD_LABELS[key] ?? key);
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("file_read_failed"));
+    reader.onload = () => {
+      const result =
+        typeof reader.result === "string" ? reader.result.trim() : "";
+      if (!result) {
+        reject(new Error("file_read_empty"));
+        return;
+      }
+      resolve(result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("image_load_failed"));
+    image.src = dataUrl;
+  });
+}
+
+async function preparePhotoDataUrl(file: File): Promise<string> {
+  const inputDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImageFromDataUrl(inputDataUrl);
+  const longestSide = Math.max(image.width, image.height);
+  const resizeFactor =
+    longestSide > PHOTO_MAX_DIMENSION ? PHOTO_MAX_DIMENSION / longestSide : 1;
+  const targetWidth = Math.max(1, Math.round(image.width * resizeFactor));
+  const targetHeight = Math.max(1, Math.round(image.height * resizeFactor));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return inputDataUrl;
+  }
+
+  context.drawImage(image, 0, 0, targetWidth, targetHeight);
+  const optimized = canvas.toDataURL("image/jpeg", PHOTO_JPEG_QUALITY);
+  return optimized?.startsWith("data:image/") ? optimized : inputDataUrl;
+}
+
 function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
   const quantity = parseLocaleNumber(subitem.quantity);
   const price = parseLocaleNumber(subitem.price);
@@ -1222,11 +1343,19 @@ export default function HomePage() {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechPaused, setIsSpeechPaused] = useState(false);
+  const [intakeInputMode, setIntakeInputMode] =
+    useState<IntakeInputMode>("voice");
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isParsingVoice, setIsParsingVoice] = useState(false);
+  const [isParsingPhoto, setIsParsingPhoto] = useState(false);
   const [voiceInfo, setVoiceInfo] = useState("");
   const [voiceError, setVoiceError] = useState("");
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
+  const [photoInfo, setPhotoInfo] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [photoPreviewDataUrl, setPhotoPreviewDataUrl] = useState("");
+  const [photoReviewDraft, setPhotoReviewDraft] =
+    useState<PhotoReviewDraft | null>(null);
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
   const [serviceSearch, setServiceSearch] = useState("");
@@ -1291,9 +1420,12 @@ export default function HomePage() {
     invoice: createInitialModeSnapshot(),
   });
   const shouldAutoApplyVoiceRef = useRef(false);
+  const photoParseRequestRef = useRef(0);
   const pauseRequestedRef = useRef(false);
   const servicePickerRef = useRef<HTMLDivElement | null>(null);
   const serviceDateRangePickerRef = useRef<HTMLDivElement | null>(null);
+  const photoCaptureInputRef = useRef<HTMLInputElement | null>(null);
+  const photoUploadInputRef = useRef<HTMLInputElement | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsOverlayCloseTimeoutRef = useRef<number | null>(null);
   const customerPickerCloseTimeoutRef = useRef<number | null>(null);
@@ -1310,6 +1442,7 @@ export default function HomePage() {
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
+  const isAnyIntakeProcessing = isParsingVoice || isParsingPhoto;
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -1435,10 +1568,15 @@ export default function HomePage() {
     setForm({ ...snapshot.form });
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
     setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
+    setIntakeInputMode(snapshot.intakeInputMode);
     setVoiceTranscript(snapshot.voiceTranscript);
     setVoiceInfo(snapshot.voiceInfo);
     setVoiceError(snapshot.voiceError);
     setVoiceMissingFields([...snapshot.voiceMissingFields]);
+    setPhotoInfo(snapshot.photoInfo);
+    setPhotoError(snapshot.photoError);
+    setPhotoReviewDraft(null);
+    setPhotoPreviewDataUrl("");
     setError(snapshot.error);
     setPostActionInfo(snapshot.postActionInfo);
     setServiceSearch(snapshot.serviceSearch);
@@ -1455,10 +1593,13 @@ export default function HomePage() {
       form: { ...form },
       activeCustomerNumber,
       selectedServices: cloneSelectedServices(selectedServices),
+      intakeInputMode,
       voiceTranscript,
       voiceInfo,
       voiceError,
       voiceMissingFields: [...voiceMissingFields],
+      photoInfo,
+      photoError,
       error,
       postActionInfo,
       serviceSearch,
@@ -1493,6 +1634,10 @@ export default function HomePage() {
       recognitionRef.current = null;
       setIsListening(false);
     }
+    photoParseRequestRef.current += 1;
+    setIsParsingPhoto(false);
+    setPhotoReviewDraft(null);
+    setPhotoPreviewDataUrl("");
     setIsSpeechPaused(false);
     setActivePriceSubitemId(null);
     setDocumentMode(nextMode);
@@ -1514,8 +1659,12 @@ export default function HomePage() {
     }
 
     finalTranscriptRef.current = "";
+    photoParseRequestRef.current += 1;
     setIsListening(false);
     setIsSpeechPaused(false);
+    setIsParsingPhoto(false);
+    setPhotoReviewDraft(null);
+    setPhotoPreviewDataUrl("");
     setIsAddressLoading(false);
     setIsCustomerPickerOpen(false);
     setCustomerSearch("");
@@ -1665,6 +1814,7 @@ export default function HomePage() {
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
+      photoParseRequestRef.current += 1;
     };
   }, []);
 
@@ -1738,6 +1888,9 @@ export default function HomePage() {
     serviceError,
     serviceInfo,
     serviceSearch,
+    intakeInputMode,
+    photoError,
+    photoInfo,
     voiceError,
     voiceInfo,
     voiceMissingFields,
@@ -2794,8 +2947,26 @@ export default function HomePage() {
     }
   }
 
+  function switchIntakeMode(nextMode: IntakeInputMode) {
+    setIntakeInputMode(nextMode);
+    if (nextMode === "voice") {
+      setPhotoError("");
+      return;
+    }
+    if (recognitionRef.current) {
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsListening(false);
+      setIsSpeechPaused(false);
+    }
+    setVoiceError("");
+    setVoiceMissingFields([]);
+  }
+
   function startSpeechInput() {
-    if (isListening) {
+    if (isListening || isParsingPhoto) {
       return;
     }
 
@@ -3220,7 +3391,7 @@ export default function HomePage() {
       const response = await fetch("/api/parse-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({ inputMode: "voice", transcript }),
       });
       console.log("[voice] parse response received", {
         status: response.status,
@@ -3327,25 +3498,10 @@ export default function HomePage() {
           materialCost: numberToInput(fields.materialCost) ?? prev.materialCost,
         };
 
-        remainingMissingLabels = (data.missingFieldKeys ?? [])
-          .filter((key) => {
-            if (key === "companyName") {
-              return (
-                nextForm.customerType === "company" &&
-                !hasVoiceFieldValue(key, nextForm)
-              );
-            }
-
-            if (key === "salutation" || key === "firstName" || key === "lastName") {
-              return (
-                nextForm.customerType === "person" &&
-                !hasVoiceFieldValue(key, nextForm)
-              );
-            }
-
-            return !hasVoiceFieldValue(key, nextForm);
-          })
-          .map((key) => VOICE_FIELD_LABELS[key] ?? key);
+        remainingMissingLabels = resolveRemainingMissingVoiceLabels(
+          data.missingFieldKeys,
+          nextForm,
+        );
 
         return nextForm;
       });
@@ -3387,6 +3543,399 @@ export default function HomePage() {
     } finally {
       setIsParsingVoice(false);
     }
+  }
+
+  function createPhotoReviewPositionDraft(
+    position?: ParsedVoicePosition,
+  ): PhotoReviewPositionDraft {
+    const quantity =
+      typeof position?.quantity === "number" &&
+      Number.isFinite(position.quantity) &&
+      position.quantity > 0
+        ? sanitizeQuantityInput(toDecimalInputValue(position.quantity))
+        : "";
+    const unitPrice =
+      typeof position?.unitPrice === "number" &&
+      Number.isFinite(position.unitPrice) &&
+      position.unitPrice >= 0
+        ? sanitizePriceInput(toDecimalInputValue(position.unitPrice))
+        : "";
+
+    return {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      group: capitalizeEntryStart(position?.group ?? ""),
+      description: capitalizeEntryStart(position?.description ?? ""),
+      quantity,
+      unit: normalizeVoiceUnit(position?.unit),
+      unitPrice,
+    };
+  }
+
+  function updatePhotoReviewPosition(
+    positionId: string,
+    field: "group" | "description" | "quantity" | "unit" | "unitPrice",
+    value: string,
+  ) {
+    setPhotoReviewDraft((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        positions: prev.positions.map((position) => {
+          if (position.id !== positionId) {
+            return position;
+          }
+
+          if (field === "group") {
+            return { ...position, group: capitalizeEntryStart(value) };
+          }
+          if (field === "description") {
+            return { ...position, description: capitalizeEntryStart(value) };
+          }
+          if (field === "quantity") {
+            return { ...position, quantity: sanitizeQuantityInput(value) };
+          }
+          if (field === "unit") {
+            return { ...position, unit: normalizeVoiceUnit(value) };
+          }
+          return { ...position, unitPrice: sanitizePriceInput(value) };
+        }),
+      };
+    });
+  }
+
+  function addPhotoReviewPosition() {
+    setPhotoReviewDraft((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      return {
+        ...prev,
+        positions: [...prev.positions, createPhotoReviewPositionDraft()],
+      };
+    });
+  }
+
+  function removePhotoReviewPosition(positionId: string) {
+    setPhotoReviewDraft((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextPositions = prev.positions.filter(
+        (position) => position.id !== positionId,
+      );
+      return {
+        ...prev,
+        positions: nextPositions,
+      };
+    });
+  }
+
+  function dismissPhotoReview() {
+    setPhotoReviewDraft(null);
+    setPhotoInfo("Foto-Erkennung verworfen. Felder blieben unverändert.");
+    setPhotoError("");
+  }
+
+  function applyPhotoReview() {
+    if (!photoReviewDraft) {
+      return;
+    }
+
+    const normalizedPositions = photoReviewDraft.positions
+      .map((position): ParsedVoicePosition | null => {
+        const description = capitalizeEntryStart(position.description.trim());
+        const quantity = parseLocaleNumber(position.quantity);
+        if (!description || !Number.isFinite(quantity) || quantity <= 0) {
+          return null;
+        }
+
+        const unitPriceParsed = parseLocaleNumber(position.unitPrice);
+        const normalizedPosition: ParsedVoicePosition = {
+          description,
+          quantity,
+          unit: normalizeVoiceUnit(position.unit),
+        };
+        const group = capitalizeEntryStart(position.group.trim());
+        if (group) {
+          normalizedPosition.group = group;
+        }
+        if (Number.isFinite(unitPriceParsed) && unitPriceParsed >= 0) {
+          normalizedPosition.unitPrice = unitPriceParsed;
+        }
+        return normalizedPosition;
+      })
+      .filter((position): position is ParsedVoicePosition => position !== null);
+
+    const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+      normalizedPositions,
+    );
+    let remainingMissingLabels: string[] = [];
+
+    setForm((prev) => {
+      const nextForm = {
+        ...prev,
+        customerType: photoReviewDraft.customerType,
+        companyName: photoReviewDraft.companyName.trim()
+          ? capitalizeEntryStart(photoReviewDraft.companyName)
+          : prev.companyName,
+        salutation: photoReviewDraft.salutation,
+        firstName: photoReviewDraft.firstName.trim()
+          ? capitalizeEntryStart(photoReviewDraft.firstName)
+          : prev.firstName,
+        lastName: photoReviewDraft.lastName.trim()
+          ? capitalizeEntryStart(photoReviewDraft.lastName)
+          : prev.lastName,
+        street: photoReviewDraft.street.trim()
+          ? capitalizeEntryStart(photoReviewDraft.street)
+          : prev.street,
+        postalCode: photoReviewDraft.postalCode.trim() || prev.postalCode,
+        city: photoReviewDraft.city.trim()
+          ? capitalizeEntryStart(photoReviewDraft.city)
+          : prev.city,
+        customerEmail: photoReviewDraft.customerEmail.trim() || prev.customerEmail,
+        serviceDescription: photoReviewDraft.serviceDescription.trim()
+          ? capitalizeEntryStart(photoReviewDraft.serviceDescription)
+          : prev.serviceDescription,
+        hours: sanitizeQuantityInput(photoReviewDraft.hours) || prev.hours,
+        hourlyRate:
+          sanitizePriceInput(photoReviewDraft.hourlyRate) || prev.hourlyRate,
+        materialCost:
+          sanitizePriceInput(photoReviewDraft.materialCost) || prev.materialCost,
+      };
+
+      remainingMissingLabels = resolveRemainingMissingVoiceLabels(
+        photoReviewDraft.missingFieldKeys,
+        nextForm,
+      );
+
+      return nextForm;
+    });
+
+    if (parsedServiceEntries.length > 0) {
+      setSelectedServices(parsedServiceEntries);
+      setServiceSearch("");
+      setIsServiceSearchOpen(false);
+    }
+
+    setVoiceMissingFields(remainingMissingLabels);
+    setAddressSuggestions([]);
+    setPhotoReviewDraft(null);
+    setPhotoError("");
+    setPhotoInfo(
+      remainingMissingLabels.length > 0
+        ? `Daten übernommen. Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
+        : "Daten übernommen. Alle Kernfelder wurden erkannt.",
+    );
+  }
+
+  async function handlePhotoFileSelection(file: File) {
+    if (!isAuthenticatedUser) {
+      setPhotoError("");
+      setPhotoInfo("");
+      openVoiceLoginModal();
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Bitte ein gültiges Bild auswählen.");
+      setPhotoInfo("");
+      return;
+    }
+
+    if (file.size > MAX_LOCAL_PHOTO_FILE_BYTES) {
+      setPhotoError(
+        `Das Foto ist zu groß. Bitte auf maximal ${Math.round(
+          MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
+        ).toLocaleString("de-DE")} MB reduzieren.`,
+      );
+      setPhotoInfo("");
+      return;
+    }
+
+    if (recognitionRef.current) {
+      shouldAutoApplyVoiceRef.current = false;
+      pauseRequestedRef.current = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setIsListening(false);
+      setIsSpeechPaused(false);
+    }
+
+    const parseRequestId = photoParseRequestRef.current + 1;
+    photoParseRequestRef.current = parseRequestId;
+
+    setIsParsingPhoto(true);
+    setPhotoReviewDraft(null);
+    setPhotoError("");
+    setPhotoInfo("Foto wird verarbeitet ...");
+    setVoiceMissingFields([]);
+
+    try {
+      const preparedPhotoDataUrl = await preparePhotoDataUrl(file);
+      if (parseRequestId !== photoParseRequestRef.current) {
+        return;
+      }
+
+      setPhotoPreviewDataUrl(preparedPhotoDataUrl);
+      setPhotoInfo("Informationen werden mit KI analysiert ...");
+
+      const response = await fetch("/api/parse-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrl: preparedPhotoDataUrl,
+        }),
+      });
+      if (parseRequestId !== photoParseRequestRef.current) {
+        return;
+      }
+
+      const data = (await response.json()) as VoiceParseResponse & {
+        error?: string;
+      };
+      if (!response.ok) {
+        const errorText = data.error ?? "Fotodaten konnten nicht verarbeitet werden.";
+        if (response.status === 401) {
+          setPhotoError("Bitte zuerst einloggen, um die KI-Fotofunktion zu nutzen.");
+          return;
+        }
+        if (response.status === 402) {
+          setPhotoError(errorText);
+          return;
+        }
+        setPhotoError(errorText);
+        return;
+      }
+
+      const fields = data.fields;
+      const sourceText = typeof data.sourceText === "string" ? data.sourceText : "";
+      const safeServiceDescription = sanitizeServiceDescription(
+        fields.serviceDescription,
+        sourceText,
+      );
+      const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+        fields.positions,
+      );
+      const hasRecognizedStructuredContent =
+        parsedServiceEntries.length > 0 ||
+        Boolean(fields.companyName?.trim()) ||
+        Boolean(fields.firstName?.trim()) ||
+        Boolean(fields.lastName?.trim()) ||
+        Boolean(fields.street?.trim()) ||
+        Boolean(fields.postalCode?.trim()) ||
+        Boolean(fields.city?.trim()) ||
+        Boolean(fields.customerEmail?.trim()) ||
+        Boolean(safeServiceDescription?.trim()) ||
+        (typeof fields.hours === "number" &&
+          Number.isFinite(fields.hours) &&
+          fields.hours > 0) ||
+        (typeof fields.hourlyRate === "number" &&
+          Number.isFinite(fields.hourlyRate) &&
+          fields.hourlyRate > 0) ||
+        (typeof fields.materialCost === "number" &&
+          Number.isFinite(fields.materialCost) &&
+          fields.materialCost > 0);
+
+      if (!hasRecognizedStructuredContent) {
+        setPhotoReviewDraft(null);
+        setPhotoInfo("Keine relevanten Daten erkannt.");
+        setPhotoError("");
+        return;
+      }
+
+      const reviewDraft: PhotoReviewDraft = {
+        customerType: fields.customerType === "company" ? "company" : "person",
+        companyName: fields.companyName ?? "",
+        salutation: fields.salutation === "frau" ? "frau" : "herr",
+        firstName: fields.firstName ?? "",
+        lastName: fields.lastName ?? "",
+        street: fields.street ?? "",
+        postalCode: fields.postalCode ?? "",
+        city: fields.city ?? "",
+        customerEmail: fields.customerEmail ?? "",
+        serviceDescription: safeServiceDescription ?? "",
+        hours: numberToInput(fields.hours) ?? "",
+        hourlyRate: numberToInput(fields.hourlyRate) ?? "",
+        materialCost: numberToInput(fields.materialCost) ?? "",
+        positions: Array.isArray(fields.positions)
+          ? fields.positions.map((position) => createPhotoReviewPositionDraft(position))
+          : [],
+        missingFieldKeys: Array.isArray(data.missingFieldKeys)
+          ? data.missingFieldKeys
+          : [],
+        missingFieldLabels: Array.isArray(data.missingFieldKeys)
+          ? data.missingFieldKeys.map((key) => VOICE_FIELD_LABELS[key] ?? key)
+          : [],
+        usedFallback: data.usedFallback,
+        fallbackReason: data.fallbackReason ?? null,
+        sourceText: sourceText.trim(),
+      };
+
+      setPhotoReviewDraft(reviewDraft);
+      const modeText = data.usedFallback
+        ? data.fallbackReason === "no_api_key"
+          ? "KI nicht aktiv: OPENAI_API_KEY fehlt."
+          : "KI-Antwort fehlgeschlagen."
+        : "Relevante Daten wurden erkannt.";
+      setPhotoInfo(`${modeText} Bitte prüfen und übernehmen.`);
+      setPhotoError("");
+    } catch (error) {
+      console.error("[photo] parse failed", error);
+      setPhotoError("Fotodaten konnten nicht verarbeitet werden.");
+      setPhotoInfo("");
+    } finally {
+      if (parseRequestId === photoParseRequestRef.current) {
+        setIsParsingPhoto(false);
+      }
+    }
+  }
+
+  function onPhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+    if (!selectedFile) {
+      return;
+    }
+    void handlePhotoFileSelection(selectedFile);
+  }
+
+  function triggerPhotoCaptureInput() {
+    if (isAnyIntakeProcessing) {
+      return;
+    }
+
+    if (!isAuthenticatedUser) {
+      setPhotoError("");
+      setPhotoInfo("");
+      openVoiceLoginModal();
+      return;
+    }
+
+    setPhotoError("");
+    setPhotoInfo("");
+    photoCaptureInputRef.current?.click();
+  }
+
+  function triggerPhotoUploadInput() {
+    if (isAnyIntakeProcessing) {
+      return;
+    }
+
+    if (!isAuthenticatedUser) {
+      setPhotoError("");
+      setPhotoInfo("");
+      openVoiceLoginModal();
+      return;
+    }
+
+    setPhotoError("");
+    setPhotoInfo("");
+    photoUploadInputRef.current?.click();
   }
 
   function createPdfFile(pdfBase64: string, filename: string) {
@@ -4655,118 +5204,584 @@ export default function HomePage() {
             <form onSubmit={onSubmit} className="formGrid dashboardFormGrid">
               <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">
-                  <strong>Per Sprache ausfüllen</strong>
+                  <strong>Per KI erfassen</strong>
                   <p>
-                    Sprich alle{" "}
-                    {isInvoiceMode ? "Rechnungsdaten" : "Angebotsdaten"} frei
-                    ein - relevante Angaben
-                    werden automatisch erkannt und direkt in die Felder
+                    Nutze dieselbe KI-Logik für{" "}
+                    {isInvoiceMode ? "Rechnungsdaten" : "Angebotsdaten"} via
+                    Sprache oder Foto. Erkannte Inhalte werden strukturiert
                     übernommen.
                   </p>
                 </div>
 
-                <div className="voiceActions">
-                  {isListening ? (
-                    <>
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonPause"
-                        onClick={pauseSpeechInput}
-                        disabled={!speechSupported || isParsingVoice}
-                      >
-                        Pause
-                      </button>
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonStop"
-                        onClick={stopSpeechInput}
-                        disabled={!speechSupported || isParsingVoice}
-                      >
-                        Aufnahme stoppen
-                      </button>
-                    </>
-                  ) : isSpeechPaused ? (
-                    <>
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonResume"
-                        onClick={startSpeechInput}
-                        disabled={!speechSupported || isParsingVoice}
-                      >
-                        Fortsetzen
-                      </button>
-                      <button
-                        type="button"
-                        className="ghostButton voiceActionButton voiceActionButtonStop"
-                        onClick={stopSpeechInput}
-                        disabled={!speechSupported || isParsingVoice}
-                      >
-                        Aufnahme stoppen
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      className="ghostButton voiceActionButton voiceActionButtonStart"
-                      onClick={startSpeechInput}
-                      disabled={!speechSupported || isParsingVoice}
-                    >
-                      KI-Aufnahme starten
-                    </button>
-                  )}
+                <div className="intakeModeSwitch" role="group" aria-label="Erfassungsmethode">
                   <button
                     type="button"
-                    className="ghostButton voiceActionButton voiceActionButtonClear"
-                    onClick={resetCurrentInputs}
-                    disabled={isSubmitting}
+                    className={`intakeModeSwitchButton ${intakeInputMode === "voice" ? "active" : ""}`}
+                    aria-pressed={intakeInputMode === "voice"}
+                    onClick={() => switchIntakeMode("voice")}
+                    disabled={isAnyIntakeProcessing}
                   >
-                    Felder leeren
+                    Aufnahme starten
+                  </button>
+                  <button
+                    type="button"
+                    className={`intakeModeSwitchButton ${intakeInputMode === "photo" ? "active" : ""}`}
+                    aria-pressed={intakeInputMode === "photo"}
+                    onClick={() => switchIntakeMode("photo")}
+                    disabled={isAnyIntakeProcessing}
+                  >
+                    Per Foto
                   </button>
                 </div>
 
-                <label className="field">
-                  <span>Gesprochener Text</span>
-                  <textarea
-                    className="voiceTranscriptTextarea"
-                    rows={3}
-                    value={voiceTranscript}
-                    onChange={(e) => {
-                      setVoiceTranscript(e.target.value);
-                      setVoiceMissingFields([]);
-                    }}
-                    placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
-                  />
-                </label>
-
-                {!speechSupported ? (
-                  <p className="voiceWarning">
-                    Spracherkennung wird auf diesem Browser nicht unterstützt.
-                  </p>
-                ) : null}
-                {voiceInfo ? (
-                  <p className="voiceInfo" role="status" aria-live="polite">
-                    {voiceInfo}
-                  </p>
-                ) : null}
-                {voiceError ? (
-                  <p className="voiceWarning" role="alert">
-                    {voiceError}
-                  </p>
-                ) : null}
-                {voiceMissingFields.length > 0 ? (
-                  <div className="voiceMissingPanel">
-                    <span className="voiceMissingLabel">
-                      Noch zu ergänzen
-                    </span>
-                    <div className="voiceMissingList">
-                      {voiceMissingFields.map((field) => (
-                        <span key={field} className="voiceMissingTag">
-                          {field}
-                        </span>
-                      ))}
+                {intakeInputMode === "voice" ? (
+                  <>
+                    <div className="voiceActions">
+                      {isListening ? (
+                        <>
+                          <button
+                            type="button"
+                            className="ghostButton voiceActionButton voiceActionButtonPause"
+                            onClick={pauseSpeechInput}
+                            disabled={!speechSupported || isAnyIntakeProcessing}
+                          >
+                            Pause
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostButton voiceActionButton voiceActionButtonStop"
+                            onClick={stopSpeechInput}
+                            disabled={!speechSupported || isAnyIntakeProcessing}
+                          >
+                            Aufnahme stoppen
+                          </button>
+                        </>
+                      ) : isSpeechPaused ? (
+                        <>
+                          <button
+                            type="button"
+                            className="ghostButton voiceActionButton voiceActionButtonResume"
+                            onClick={startSpeechInput}
+                            disabled={!speechSupported || isAnyIntakeProcessing}
+                          >
+                            Fortsetzen
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostButton voiceActionButton voiceActionButtonStop"
+                            onClick={stopSpeechInput}
+                            disabled={!speechSupported || isAnyIntakeProcessing}
+                          >
+                            Aufnahme stoppen
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="ghostButton voiceActionButton voiceActionButtonStart"
+                          onClick={startSpeechInput}
+                          disabled={!speechSupported || isAnyIntakeProcessing}
+                        >
+                          KI-Aufnahme starten
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonClear"
+                        onClick={resetCurrentInputs}
+                        disabled={isSubmitting || isAnyIntakeProcessing}
+                      >
+                        Felder leeren
+                      </button>
                     </div>
-                  </div>
-                ) : null}
+
+                    <label className="field">
+                      <span>Gesprochener Text</span>
+                      <textarea
+                        className="voiceTranscriptTextarea"
+                        rows={3}
+                        value={voiceTranscript}
+                        onChange={(e) => {
+                          setVoiceTranscript(e.target.value);
+                          setVoiceMissingFields([]);
+                        }}
+                        placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
+                      />
+                    </label>
+
+                    {!speechSupported ? (
+                      <p className="voiceWarning">
+                        Spracherkennung wird auf diesem Browser nicht unterstützt.
+                      </p>
+                    ) : null}
+                    {voiceInfo ? (
+                      <p className="voiceInfo" role="status" aria-live="polite">
+                        {voiceInfo}
+                      </p>
+                    ) : null}
+                    {voiceError ? (
+                      <p className="voiceWarning" role="alert">
+                        {voiceError}
+                      </p>
+                    ) : null}
+                    {voiceMissingFields.length > 0 ? (
+                      <div className="voiceMissingPanel">
+                        <span className="voiceMissingLabel">
+                          Noch zu ergänzen
+                        </span>
+                        <div className="voiceMissingList">
+                          {voiceMissingFields.map((field) => (
+                            <span key={field} className="voiceMissingTag">
+                              {field}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <input
+                      ref={photoCaptureInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={onPhotoInputChange}
+                      style={{ display: "none" }}
+                    />
+                    <input
+                      ref={photoUploadInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={onPhotoInputChange}
+                      style={{ display: "none" }}
+                    />
+
+                    <div className="voiceActions">
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonPhoto"
+                        onClick={triggerPhotoCaptureInput}
+                        disabled={isAnyIntakeProcessing}
+                      >
+                        Foto aufnehmen
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonPhotoUpload"
+                        onClick={triggerPhotoUploadInput}
+                        disabled={isAnyIntakeProcessing}
+                      >
+                        Foto hochladen
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton voiceActionButton voiceActionButtonClear"
+                        onClick={resetCurrentInputs}
+                        disabled={isSubmitting || isAnyIntakeProcessing}
+                      >
+                        Felder leeren
+                      </button>
+                    </div>
+
+                    {photoPreviewDataUrl ? (
+                      <div className="photoPreviewWrap">
+                        <img
+                          src={photoPreviewDataUrl}
+                          alt="Hochgeladenes Notizfoto"
+                          className="photoPreviewImage"
+                        />
+                      </div>
+                    ) : null}
+                    {photoInfo ? (
+                      <p className="voiceInfo" role="status" aria-live="polite">
+                        {photoInfo}
+                      </p>
+                    ) : null}
+                    {photoError ? (
+                      <p className="voiceWarning" role="alert">
+                        {photoError}
+                      </p>
+                    ) : null}
+
+                    {photoReviewDraft ? (
+                      <div className="photoReviewPanel">
+                        <div className="photoReviewHeader">
+                          <strong>Erkannte Daten prüfen</strong>
+                          <p>
+                            Bitte Daten kontrollieren, fehlende Angaben ergänzen
+                            und erst dann übernehmen.
+                          </p>
+                        </div>
+
+                        {photoReviewDraft.sourceText ? (
+                          <details className="photoReviewSource">
+                            <summary>Erkannter Notiztext</summary>
+                            <p>{photoReviewDraft.sourceText}</p>
+                          </details>
+                        ) : null}
+
+                        <div className="recipientType photoReviewRecipientType" role="group" aria-label="Kundenart im Foto-Review">
+                          <span>Kundenart</span>
+                          <div className="recipientTypeButtons">
+                            <button
+                              type="button"
+                              className={`recipientTypeButton ${photoReviewDraft.customerType === "company" ? "active" : ""}`}
+                              aria-pressed={photoReviewDraft.customerType === "company"}
+                              onClick={() =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        customerType: "company",
+                                      }
+                                    : prev,
+                                )
+                              }
+                            >
+                              Firma
+                            </button>
+                            <button
+                              type="button"
+                              className={`recipientTypeButton ${photoReviewDraft.customerType === "person" ? "active" : ""}`}
+                              aria-pressed={photoReviewDraft.customerType === "person"}
+                              onClick={() =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        customerType: "person",
+                                      }
+                                    : prev,
+                                )
+                              }
+                            >
+                              Privatperson
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="photoReviewGrid">
+                          {photoReviewDraft.customerType === "company" ? (
+                            <label className="field">
+                              <span>Firma</span>
+                              <input
+                                value={photoReviewDraft.companyName}
+                                onChange={(event) =>
+                                  setPhotoReviewDraft((prev) =>
+                                    prev
+                                      ? { ...prev, companyName: event.target.value }
+                                      : prev,
+                                  )
+                                }
+                              />
+                            </label>
+                          ) : (
+                            <>
+                              <label className="field">
+                                <span>Anrede</span>
+                                <select
+                                  value={photoReviewDraft.salutation}
+                                  onChange={(event) =>
+                                    setPhotoReviewDraft((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            salutation:
+                                              event.target.value === "frau"
+                                                ? "frau"
+                                                : "herr",
+                                          }
+                                        : prev,
+                                    )
+                                  }
+                                >
+                                  <option value="herr">Herr</option>
+                                  <option value="frau">Frau</option>
+                                </select>
+                              </label>
+                              <label className="field">
+                                <span>Vorname</span>
+                                <input
+                                  value={photoReviewDraft.firstName}
+                                  onChange={(event) =>
+                                    setPhotoReviewDraft((prev) =>
+                                      prev
+                                        ? { ...prev, firstName: event.target.value }
+                                        : prev,
+                                    )
+                                  }
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Nachname</span>
+                                <input
+                                  value={photoReviewDraft.lastName}
+                                  onChange={(event) =>
+                                    setPhotoReviewDraft((prev) =>
+                                      prev
+                                        ? { ...prev, lastName: event.target.value }
+                                        : prev,
+                                    )
+                                  }
+                                />
+                              </label>
+                            </>
+                          )}
+                          <label className="field">
+                            <span>Straße / Hausnummer</span>
+                            <input
+                              value={photoReviewDraft.street}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev ? { ...prev, street: event.target.value } : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>PLZ</span>
+                            <input
+                              value={photoReviewDraft.postalCode}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? { ...prev, postalCode: event.target.value }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>Ort</span>
+                            <input
+                              value={photoReviewDraft.city}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev ? { ...prev, city: event.target.value } : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>Kunden-E-Mail</span>
+                            <input
+                              type="email"
+                              value={photoReviewDraft.customerEmail}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? { ...prev, customerEmail: event.target.value }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field span2">
+                            <span>Leistungsbeschreibung / Notizen</span>
+                            <textarea
+                              className="voiceTranscriptTextarea photoReviewTextarea"
+                              rows={3}
+                              value={photoReviewDraft.serviceDescription}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        serviceDescription: event.target.value,
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>Stunden</span>
+                            <input
+                              inputMode="decimal"
+                              value={photoReviewDraft.hours}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        hours: sanitizeQuantityInput(event.target.value),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>Stundensatz</span>
+                            <input
+                              inputMode="decimal"
+                              value={photoReviewDraft.hourlyRate}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        hourlyRate: sanitizePriceInput(
+                                          event.target.value,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>Materialkosten</span>
+                            <input
+                              inputMode="decimal"
+                              value={photoReviewDraft.materialCost}
+                              onChange={(event) =>
+                                setPhotoReviewDraft((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        materialCost: sanitizePriceInput(
+                                          event.target.value,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </label>
+                        </div>
+
+                        <div className="photoReviewPositions">
+                          <div className="photoReviewPositionsHeader">
+                            <strong>Positionen</strong>
+                            <button
+                              type="button"
+                              className="ghostButton positionsAddRowButton"
+                              onClick={addPhotoReviewPosition}
+                            >
+                              Position hinzufügen
+                            </button>
+                          </div>
+                          {photoReviewDraft.positions.length === 0 ? (
+                            <p className="selectedServiceHint">
+                              Keine Position erkannt. Bei Bedarf manuell
+                              ergänzen.
+                            </p>
+                          ) : (
+                            <div className="photoReviewPositionList">
+                              {photoReviewDraft.positions.map((position) => (
+                                <div key={position.id} className="photoReviewPositionRow">
+                                  <input
+                                    placeholder="Gruppe"
+                                    value={position.group}
+                                    onChange={(event) =>
+                                      updatePhotoReviewPosition(
+                                        position.id,
+                                        "group",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                  <input
+                                    placeholder="Beschreibung"
+                                    value={position.description}
+                                    onChange={(event) =>
+                                      updatePhotoReviewPosition(
+                                        position.id,
+                                        "description",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                  <input
+                                    inputMode="decimal"
+                                    placeholder="Menge"
+                                    value={position.quantity}
+                                    onChange={(event) =>
+                                      updatePhotoReviewPosition(
+                                        position.id,
+                                        "quantity",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                  <select
+                                    value={position.unit}
+                                    onChange={(event) =>
+                                      updatePhotoReviewPosition(
+                                        position.id,
+                                        "unit",
+                                        event.target.value,
+                                      )
+                                    }
+                                  >
+                                    {UNIT_OPTIONS.map((unitOption) => (
+                                      <option key={unitOption} value={unitOption}>
+                                        {unitOption}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    inputMode="decimal"
+                                    placeholder="Einzelpreis"
+                                    value={position.unitPrice}
+                                    onChange={(event) =>
+                                      updatePhotoReviewPosition(
+                                        position.id,
+                                        "unitPrice",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                  <button
+                                    type="button"
+                                    className="positionDeleteButton"
+                                    onClick={() =>
+                                      removePhotoReviewPosition(position.id)
+                                    }
+                                  >
+                                    Entfernen
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {photoReviewDraft.missingFieldLabels.length > 0 ? (
+                          <div className="voiceMissingPanel">
+                            <span className="voiceMissingLabel">Noch zu ergänzen</span>
+                            <div className="voiceMissingList">
+                              {photoReviewDraft.missingFieldLabels.map((field) => (
+                                <span key={field} className="voiceMissingTag">
+                                  {field}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="photoReviewActions">
+                          <button
+                            type="button"
+                            className="ghostButton voiceActionButton voiceActionButtonResume"
+                            onClick={applyPhotoReview}
+                          >
+                            Daten übernehmen
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostButton voiceActionButton voiceActionButtonClear"
+                            onClick={dismissPhotoReview}
+                          >
+                            Verwerfen
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </div>
 
               <div

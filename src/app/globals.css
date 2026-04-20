@@ -9296,3 +9296,167 @@ button.settingsPdfColumnsDragHandle:focus-visible {
     gap: 10px;
   }
 }
+
+.intakeModeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.intakeModeSwitchButton {
+  border: 1px solid rgba(198, 220, 251, 0.44);
+  background: rgba(232, 243, 255, 0.16);
+  color: #eaf4ff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.intakeModeSwitchButton.active {
+  background: rgba(232, 243, 255, 0.92);
+  color: #1d4e86;
+  border-color: rgba(158, 197, 246, 0.9);
+}
+
+.voiceActionButtonPhoto {
+  border-color: rgba(36, 145, 199, 0.5);
+  background: rgba(225, 247, 255, 0.95);
+  color: #145378;
+}
+
+.voiceActionButtonPhotoUpload {
+  border-color: rgba(37, 128, 175, 0.45);
+  background: rgba(234, 248, 255, 0.95);
+  color: #1b5f88;
+}
+
+.photoPreviewWrap {
+  border: 1px solid rgba(182, 210, 244, 0.6);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  overflow: hidden;
+}
+
+.photoPreviewImage {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.photoReviewPanel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(84, 126, 200, 0.22);
+  border-radius: 12px;
+  padding: 11px;
+  background: rgba(244, 248, 255, 0.92);
+}
+
+.photoReviewHeader {
+  display: grid;
+  gap: 3px;
+}
+
+.photoReviewHeader strong {
+  color: #2a4f82;
+  font-size: 0.88rem;
+}
+
+.photoReviewHeader p {
+  font-size: 0.79rem;
+  color: #516f99;
+}
+
+.photoReviewSource {
+  border: 1px solid rgba(168, 197, 233, 0.65);
+  border-radius: 9px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.photoReviewSource summary {
+  cursor: pointer;
+  color: #2a4f82;
+  font-weight: 700;
+  font-size: 0.79rem;
+}
+
+.photoReviewSource p {
+  margin-top: 6px;
+  font-size: 0.79rem;
+  color: #405d88;
+  white-space: pre-wrap;
+}
+
+.photoReviewRecipientType {
+  background: rgba(255, 255, 255, 0.86) !important;
+}
+
+.photoReviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.photoReviewGrid .span2 {
+  grid-column: span 2;
+}
+
+.photoReviewTextarea {
+  min-height: 84px;
+}
+
+.photoReviewPositions {
+  display: grid;
+  gap: 8px;
+}
+
+.photoReviewPositionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.photoReviewPositionsHeader strong {
+  color: #2a4f82;
+  font-size: 0.82rem;
+}
+
+.photoReviewPositionList {
+  display: grid;
+  gap: 8px;
+}
+
+.photoReviewPositionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.8fr) minmax(0, 0.8fr) minmax(
+      0,
+      0.8fr
+    ) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.photoReviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .photoReviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .photoReviewGrid .span2 {
+    grid-column: auto;
+  }
+
+  .photoReviewPositionRow {
+    grid-template-columns: 1fr;
+  }
+}

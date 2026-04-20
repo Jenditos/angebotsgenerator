@@ -1,4 +1,4 @@
-import { parseOfferIntake } from "@/lib/openai";
+import { parseOfferIntake, parseOfferIntakeFromImage } from "@/lib/openai";
 
 describe("parseOfferIntake fallback parsing", () => {
   const originalApiKey = process.env.OPENAI_API_KEY;
@@ -27,5 +27,25 @@ describe("parseOfferIntake fallback parsing", () => {
     expect(result.fields.hours).toBe(20);
     expect(result.fields.hourlyRate).toBe(22);
     expect(result.fields.materialCost).toBe(15);
+  });
+});
+
+describe("parseOfferIntakeFromImage fallback parsing", () => {
+  const originalApiKey = process.env.OPENAI_API_KEY;
+
+  afterEach(() => {
+    process.env.OPENAI_API_KEY = originalApiKey;
+  });
+
+  it("returns no_api_key fallback when no OpenAI key is configured", async () => {
+    delete process.env.OPENAI_API_KEY;
+
+    const result = await parseOfferIntakeFromImage(
+      "data:image/jpeg;base64,QUJDRA==",
+    );
+
+    expect(result.usedFallback).toBe(true);
+    expect(result.fallbackReason).toBe("no_api_key");
+    expect(result.fields).toEqual({});
   });
 });

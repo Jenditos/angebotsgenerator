@@ -50,12 +50,10 @@ describe("POST /api/email/disconnect", () => {
 
     readEmailConnectionMock.mockResolvedValue({
       provider: "google",
-      email: "user@example.com",
+      accountEmail: "user@example.com",
       accessToken: "access",
       refreshToken: "refresh",
-      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
-      connectedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      expiresAt: Date.now() + 3600_000,
     });
     revokeEmailProviderTokensMock.mockRejectedValue(new Error("Revoke fehlgeschlagen"));
 
@@ -73,4 +71,3 @@ describe("POST /api/email/disconnect", () => {
     expect(clearEmailConnectionMock).toHaveBeenCalledTimes(1);
   });
 });
-

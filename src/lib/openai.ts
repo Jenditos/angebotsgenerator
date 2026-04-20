@@ -357,6 +357,7 @@ export type IntakeParseResult = {
   fields: ParsedIntakeFields;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error";
+  sourceText?: string;
 };
 
 function normalizeNumberValue(input: unknown): number | undefined {
@@ -1056,6 +1057,43 @@ Antworte im JSON-Schema:
   }
 }
 
+const INTAKE_JSON_SCHEMA = `{
+  "customerType": "person|company|null",
+  "companyName": "string|null",
+  "salutation": "herr|frau|null",
+  "firstName": "string|null",
+  "lastName": "string|null",
+  "street": "string|null",
+  "postalCode": "string|null",
+  "city": "string|null",
+  "customerEmail": "string|null",
+  "serviceDescription": "string|null",
+  "positions": [
+    {
+      "group": "string|null",
+      "description": "string",
+      "quantity": "number",
+      "unit": "string|null",
+      "unitPrice": "number"
+    }
+  ],
+  "hours": "number|null",
+  "hourlyRate": "number|null",
+  "materialCost": "number|null",
+  "sourceText": "string|null"
+}`;
+
+function parseIntakeModelPayload(raw: string): {
+  fields: ParsedIntakeFields;
+  sourceText?: string;
+} {
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  return {
+    fields: toParsedFields(parsed),
+    sourceText: normalizeTextValue(parsed.sourceText),
+  };
+}
+
 export async function parseOfferIntake(transcript: string): Promise<IntakeParseResult> {
   const openai = getClient();
   const cleanTranscript = transcript.trim();
@@ -1087,30 +1125,7 @@ export async function parseOfferIntake(transcript: string): Promise<IntakeParseR
 ${cleanTranscript}
 
 Antwort-JSON-Schema:
-{
-  "customerType": "person|company|null",
-  "companyName": "string|null",
-  "salutation": "herr|frau|null",
-  "firstName": "string|null",
-  "lastName": "string|null",
-  "street": "string|null",
-  "postalCode": "string|null",
-  "city": "string|null",
-  "customerEmail": "string|null",
-  "serviceDescription": "string|null",
-  "positions": [
-    {
-      "group": "string|null",
-      "description": "string",
-      "quantity": "number",
-      "unit": "string|null",
-      "unitPrice": "number"
-    }
-  ],
-  "hours": "number|null",
-  "hourlyRate": "number|null",
-  "materialCost": "number|null"
-}`
+${INTAKE_JSON_SCHEMA}`
         }
       ]
     });
@@ -1124,12 +1139,12 @@ Antwort-JSON-Schema:
       };
     }
 
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const fields = toParsedFields(parsed);
+    const payload = parseIntakeModelPayload(raw);
 
     return {
-      fields,
-      usedFallback: false
+      fields: payload.fields,
+      usedFallback: false,
+      sourceText: payload.sourceText,
     };
   } catch {
     return {
@@ -1137,5 +1152,66 @@ Antwort-JSON-Schema:
       usedFallback: true,
       fallbackReason: "model_error"
     };
+  }
+}
+
+export async function parseOfferIntakeFromImage(
+  imageDataUrl: string,
+): Promise<IntakeParseResult> {
+  const openai = getClient();
+  const cleanImageDataUrl = imageDataUrl.trim();
+  if (!cleanImageDataUrl) {
+    return { fields: {}, usedFallback: true, fallbackReason: "model_error" };
+  }
+
+  if (!openai) {
+    return { fields: {}, usedFallback: true, fallbackReason: "no_api_key" };
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "Extrahiere aus Fotos deutscher Handwerker-Notizen strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Verstehe handschriftliche/kurze Stichpunkte inhaltlich, filtere irrelevante Inhalte aus und gib nur sinnvolle Felder zurück. Erkenne mehrere Positionen zuverlässig und trenne sie sauber in positions (description, quantity, unit, unitPrice). Korrigiere offensichtliche Rechtschreibfehler bei deutschen Bau-/Handwerks-Komposita (z. B. Betonarbeit, Betonstahl), ohne Inhalte umzuformulieren. Gib serviceDescription nur als kurze Projektbeschreibung aus (maximal 160 Zeichen). Gib customerEmail technisch verwertbar im Format local@domain aus.",
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analysiere dieses Foto und extrahiere so viele Felder wie möglich.
+
+Antwort-JSON-Schema:
+${INTAKE_JSON_SCHEMA}`,
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: cleanImageDataUrl,
+                detail: "high",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) {
+      return { fields: {}, usedFallback: true, fallbackReason: "model_error" };
+    }
+
+    const payload = parseIntakeModelPayload(raw);
+    return {
+      fields: payload.fields,
+      usedFallback: false,
+      sourceText: payload.sourceText,
+    };
+  } catch {
+    return { fields: {}, usedFallback: true, fallbackReason: "model_error" };
   }
 }

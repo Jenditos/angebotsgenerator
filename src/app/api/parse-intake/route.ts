@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
-import { parseOfferIntake } from "@/lib/openai";
+import { parseOfferIntake, parseOfferIntakeFromImage } from "@/lib/openai";
 import { MAX_VOICE_TRANSCRIPT_LENGTH } from "@/lib/user-input";
 
 const fieldLabels: Record<string, string> = {
@@ -20,6 +20,16 @@ const fieldLabels: Record<string, string> = {
 
 const EXPLICIT_SERVICE_DESCRIPTION_PATTERN =
   /\b(projektbeschreibung|leistungsbeschreibung|zusatzdetails?|zusatzinfo(?:s)?|beschreibung|details?|hinweise?|bemerkung(?:en)?|notiz(?:en)?)\b/i;
+const PHOTO_DATA_URL_PATTERN =
+  /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+const MAX_PHOTO_IMAGE_BYTES = 6 * 1024 * 1024;
+
+type ParseIntakeInputMode = "voice" | "photo";
+type ParseIntakeRequestBody = {
+  inputMode?: ParseIntakeInputMode;
+  transcript?: string;
+  photoDataUrl?: string;
+};
 
 type IntakeVoicePosition = {
   group?: string;
@@ -468,43 +478,143 @@ function hasValue(value: unknown): boolean {
   return false;
 }
 
+function estimateBase64PayloadBytes(base64Payload: string): number {
+  const normalized = base64Payload.replace(/\s+/g, "");
+  if (!normalized) {
+    return 0;
+  }
+
+  const padding = normalized.endsWith("==")
+    ? 2
+    : normalized.endsWith("=")
+      ? 1
+      : 0;
+
+  return Math.max(0, Math.floor((normalized.length * 3) / 4) - padding);
+}
+
+function validatePhotoDataUrl(photoDataUrl: string): {
+  ok: boolean;
+  status?: number;
+  error?: string;
+} {
+  const normalized = photoDataUrl.trim();
+  if (!normalized) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Bitte ein Foto aufnehmen oder hochladen.",
+    };
+  }
+
+  if (!PHOTO_DATA_URL_PATTERN.test(normalized)) {
+    return {
+      ok: false,
+      status: 400,
+      error:
+        "Ungültiges Fotoformat. Bitte JPG, PNG, WEBP oder GIF verwenden.",
+    };
+  }
+
+  const payloadStart = normalized.indexOf(",");
+  const base64Payload =
+    payloadStart >= 0 ? normalized.slice(payloadStart + 1) : normalized;
+  const estimatedBytes = estimateBase64PayloadBytes(base64Payload);
+  if (estimatedBytes <= 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Das Foto konnte nicht gelesen werden. Bitte erneut versuchen.",
+    };
+  }
+
+  if (estimatedBytes > MAX_PHOTO_IMAGE_BYTES) {
+    return {
+      ok: false,
+      status: 413,
+      error: `Das Foto ist zu groß. Bitte auf maximal ${Math.round(
+        MAX_PHOTO_IMAGE_BYTES / (1024 * 1024),
+      ).toLocaleString("de-DE")} MB verkleinern.`,
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function POST(request: Request) {
   const accessResult = await requireAppAccess();
   if (!accessResult.ok) {
     return accessResult.response;
   }
 
+  let requestMode: ParseIntakeInputMode = "voice";
+
   try {
-    const body = (await request.json()) as { transcript?: string };
+    const body = (await request.json()) as ParseIntakeRequestBody;
+    requestMode = body.inputMode === "photo" ? "photo" : "voice";
     const transcript = body.transcript?.trim() ?? "";
+    const photoDataUrl = body.photoDataUrl?.trim() ?? "";
     console.log("[parse-intake] request received", {
+      inputMode: requestMode,
       transcriptLength: transcript.length,
+      photoPayloadLength: photoDataUrl.length,
     });
 
-    if (transcript.length < 8) {
-      console.warn("[parse-intake] transcript too short", {
-        transcriptLength: transcript.length,
-      });
-      return NextResponse.json({ error: "Bitte sprich etwas länger, damit ich die Angaben erkennen kann." }, { status: 400 });
+    if (requestMode === "voice") {
+      if (transcript.length < 8) {
+        console.warn("[parse-intake] transcript too short", {
+          transcriptLength: transcript.length,
+        });
+        return NextResponse.json(
+          {
+            error:
+              "Bitte sprich etwas länger, damit ich die Angaben erkennen kann.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (transcript.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
+        console.warn("[parse-intake] transcript too long", {
+          transcriptLength: transcript.length,
+          maxTranscriptLength: MAX_VOICE_TRANSCRIPT_LENGTH,
+        });
+        return NextResponse.json(
+          {
+            error: `Die Sprachaufnahme ist zu lang. Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
+          },
+          { status: 413 },
+        );
+      }
+    } else {
+      const validation = validatePhotoDataUrl(photoDataUrl);
+      if (!validation.ok) {
+        console.warn("[parse-intake] invalid photo payload", {
+          status: validation.status,
+          photoPayloadLength: photoDataUrl.length,
+        });
+        return NextResponse.json(
+          {
+            error:
+              validation.error ??
+              "Fotodaten konnten nicht verarbeitet werden.",
+          },
+          { status: validation.status ?? 400 },
+        );
+      }
     }
 
-    if (transcript.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
-      console.warn("[parse-intake] transcript too long", {
-        transcriptLength: transcript.length,
-        maxTranscriptLength: MAX_VOICE_TRANSCRIPT_LENGTH,
-      });
-      return NextResponse.json(
-        {
-          error: `Die Sprachaufnahme ist zu lang. Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
-        },
-        { status: 413 },
-      );
-    }
-
-    const parsed = await parseOfferIntake(transcript);
+    const parsed =
+      requestMode === "photo"
+        ? await parseOfferIntakeFromImage(photoDataUrl)
+        : await parseOfferIntake(transcript);
+    const sourceText =
+      requestMode === "voice" ? transcript : parsed.sourceText?.trim() ?? "";
     const customerType = parsed.fields.customerType ?? "person";
     const serviceDescriptionExplicitlyMentioned =
-      shouldAutofillServiceDescription(transcript);
+      requestMode === "voice"
+        ? shouldAutofillServiceDescription(transcript)
+        : Boolean(parsed.fields.serviceDescription?.trim());
     const normalizedPositions = mergePositionsWithTranscriptHints(
       parsed.fields.positions?.map((position) => ({
         ...position,
@@ -513,10 +623,10 @@ export async function POST(request: Request) {
           normalizeCraftCompounds(position.description) ?? position.description,
         unit: normalizeUnitLabel(position.unit) ?? position.unit,
       })),
-      transcript,
+      sourceText,
     );
     const normalizedEmail = normalizeCustomerEmail({
-      transcript,
+      transcript: sourceText,
       parsedEmail: parsed.fields.customerEmail,
       firstName: parsed.fields.firstName,
       lastName: parsed.fields.lastName,
@@ -528,7 +638,7 @@ export async function POST(request: Request) {
       serviceDescription: serviceDescriptionExplicitlyMentioned
         ? sanitizeServiceDescription(
             normalizeCraftCompounds(parsed.fields.serviceDescription),
-            transcript,
+            sourceText,
           )
         : undefined,
     };
@@ -554,6 +664,7 @@ export async function POST(request: Request) {
     );
     const missingFields = missingFieldKeys.map((key) => fieldLabels[key] || key);
     console.log("[parse-intake] parsed transcript", {
+      inputMode: requestMode,
       usedFallback: parsed.usedFallback,
       fallbackReason: parsed.fallbackReason ?? null,
       missingCount: missingFieldKeys.length,
@@ -569,10 +680,23 @@ export async function POST(request: Request) {
       missingFieldKeys,
       shouldAutofillServiceDescription: serviceDescriptionExplicitlyMentioned,
       usedFallback: parsed.usedFallback,
-      fallbackReason: parsed.fallbackReason ?? null
+      fallbackReason: parsed.fallbackReason ?? null,
+      inputMode: requestMode,
+      sourceText: requestMode === "photo" ? parsed.sourceText ?? null : null,
     });
   } catch (error) {
-    console.error("[parse-intake] failed to process transcript", error);
-    return NextResponse.json({ error: "Sprachdaten konnten nicht verarbeitet werden." }, { status: 500 });
+    console.error("[parse-intake] failed to process intake", {
+      inputMode: requestMode,
+      error,
+    });
+    return NextResponse.json(
+      {
+        error:
+          requestMode === "photo"
+            ? "Fotodaten konnten nicht verarbeitet werden."
+            : "Sprachdaten konnten nicht verarbeitet werden.",
+      },
+      { status: 500 },
+    );
   }
 }
