@@ -457,15 +457,15 @@ const VOICE_FIELD_LABELS: Record<string, string> = {
 const ACCOUNT_TIPS: Array<{ title: string; text: string }> = [
   {
     title: "Angebote mit Frist absichern",
-    text: "Angebote sind grundsaetzlich bindend. Setze eine klare Annahmefrist (z. B. 14 Tage), damit Preise und Konditionen nicht unbefristet offen bleiben (§ 145, § 148 BGB).",
+    text: "Angebote sind grundsätzlich bindend. Setze eine klare Annahmefrist (z. B. 14 Tage), damit Preise und Konditionen nicht unbefristet offen bleiben (§ 145, § 148 BGB).",
   },
   {
     title: "Leistungen eindeutig beschreiben",
-    text: "Beschreibe Positionen so konkret, dass Umfang und Art der Leistung spaeter nachvollziehbar sind. Das reduziert Rueckfragen und Nachtragsdiskussionen.",
+    text: "Beschreibe Positionen so konkret, dass Umfang und Art der Leistung später nachvollziehbar sind. Das reduziert Rückfragen und Nachtragsdiskussionen.",
   },
   {
-    title: "Rechnungspflichtangaben vollstaendig halten",
-    text: "Pruefe vor Versand die Kernangaben wie Rechnungsnummer, Leistungsdatum, Leistungsbeschreibung, Steuerangaben sowie Name/Anschrift von dir und dem Kunden (§ 14 Abs. 4 UStG).",
+    title: "Rechnungspflichtangaben vollständig halten",
+    text: "Prüfe vor Versand die Kernangaben wie Rechnungsnummer, Leistungsdatum, Leistungsbeschreibung, Steuerangaben sowie Name/Anschrift von dir und dem Kunden (§ 14 Abs. 4 UStG).",
   },
   {
     title: "Kleinunternehmer-Hinweis aktiv nutzen",
@@ -473,15 +473,15 @@ const ACCOUNT_TIPS: Array<{ title: string; text: string }> = [
   },
   {
     title: "E-Rechnung im Blick behalten",
-    text: "Im B2B-Bereich gilt seit 01.01.2025 die E-Rechnungspflicht mit Uebergangsregeln. Plane dein Rechnungsformat daher fruehzeitig ein.",
+    text: "Im B2B-Bereich gilt seit 01.01.2025 die E-Rechnungspflicht mit Übergangsregeln. Plane dein Rechnungsformat daher frühzeitig ein.",
   },
   {
     title: "Zahlungsziel klar formulieren",
-    text: "Lege ein eindeutiges Faelligkeitsdatum oder eine feste Frist fest (z. B. 14 Tage netto), damit offene Posten leichter nachverfolgt werden koennen.",
+    text: "Lege ein eindeutiges Fälligkeitsdatum oder eine feste Frist fest (z. B. 14 Tage netto), damit offene Posten leichter nachverfolgt werden können.",
   },
   {
     title: "Rechnungen archivieren",
-    text: "Stelle sicher, dass Ausgangs- und Eingangsrechnungen steuerkonform aufbewahrt werden. Fuer Unternehmer gelten 8 Jahre Aufbewahrungsfrist (§ 14b UStG).",
+    text: "Stelle sicher, dass Ausgangs- und Eingangsrechnungen steuerkonform aufbewahrt werden. Für Unternehmer gelten 8 Jahre Aufbewahrungsfrist (§ 14b UStG).",
   },
 ];
 
@@ -1442,7 +1442,7 @@ export default function HomePage() {
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountMenuCloseTimeoutRef = useRef<number | null>(null);
-  const setupHintRef = useRef<HTMLDivElement | null>(null);
+  const setupHintRef = useRef<HTMLElement | null>(null);
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
@@ -1558,6 +1558,10 @@ export default function HomePage() {
   useDialogFocusTrap({
     isOpen: isSettingsOverlayOpen,
     containerRef: settingsOverlaySheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isSetupHintOpen,
+    containerRef: setupHintRef,
   });
   useDialogFocusTrap({
     isOpen: isCustomerPickerOpen,
@@ -1921,7 +1925,8 @@ export default function HomePage() {
       isInfoLegalOpen ||
       isSettingsOverlayOpen ||
       isCustomerPickerOpen ||
-      isVoiceLoginModalOpen;
+      isVoiceLoginModalOpen ||
+      isSetupHintOpen;
     if (!hasBlockingOverlay) {
       return;
     }
@@ -1949,6 +1954,7 @@ export default function HomePage() {
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
     isVoiceLoginModalOpen,
+    isSetupHintOpen,
   ]);
 
   useEffect(() => {
@@ -4869,6 +4875,60 @@ export default function HomePage() {
           </div>
         ) : null}
 
+        {isSetupHintOpen ? (
+          <div
+            className="settingsOverlayBackdrop tipsOverlayBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tips-overlay-title"
+            onClick={() => setIsSetupHintOpen(false)}
+          >
+            <section
+              className="settingsOverlaySheet tipsOverlaySheet"
+              onClick={(event) => event.stopPropagation()}
+              ref={setupHintRef}
+            >
+              <div className="settingsOverlayHeader">
+                <strong id="tips-overlay-title">Tipps für Angebot &amp; Rechnung</strong>
+                <button
+                  type="button"
+                  className="settingsOverlayCloseButton"
+                  aria-label="Tipps schließen"
+                  onClick={() => setIsSetupHintOpen(false)}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="settingsOverlayFrameWrap tipsOverlayBody">
+                <ul className="tipsOverlayList">
+                  {ACCOUNT_TIPS.map((tip) => (
+                    <li key={tip.title} className="tipsOverlayItem">
+                      <h3>{tip.title}</h3>
+                      <p>{tip.text}</p>
+                    </li>
+                  ))}
+                </ul>
+                <p className="tipsOverlayMeta">
+                  Kurzübersicht auf Basis öffentlicher Quellen, keine Rechtsberatung.
+                </p>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
         {isCustomerPickerOpen ? (
           <div
             className={`customerPickerModalBackdrop ${isClosingCustomerPicker ? "closing" : ""}`}
@@ -5225,36 +5285,6 @@ export default function HomePage() {
               key={documentMode}
               className="documentModeContent"
             >
-              {isSetupHintOpen ? (
-                <section
-                  className="glassCard dashboardTipsPanel"
-                  ref={setupHintRef}
-                  aria-label="Tipps fuer Angebot und Rechnung"
-                >
-                  <div className="dashboardTipsHeader">
-                    <strong>Tipps fuer Angebot &amp; Rechnung</strong>
-                    <button
-                      type="button"
-                      className="ghostButton dashboardTipsCloseButton"
-                      onClick={() => setIsSetupHintOpen(false)}
-                    >
-                      Schliessen
-                    </button>
-                  </div>
-                  <ul className="dashboardTipsList">
-                    {ACCOUNT_TIPS.map((tip) => (
-                      <li key={tip.title} className="dashboardTipsItem">
-                        <strong>{tip.title}</strong>
-                        <p>{tip.text}</p>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="dashboardTipsMeta">
-                    Kurzuebersicht auf Basis oeffentlicher Quellen, keine
-                    Rechtsberatung.
-                  </p>
-                </section>
-              ) : null}
               <div className="documentModeSwitchTop">
                 <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
                   <button

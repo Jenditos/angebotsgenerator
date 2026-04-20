@@ -9626,3 +9626,55 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   box-shadow: none !important;
   transform: none !important;
 }
+
+/* Tips dialog: align with settings popup structure and typography */
+.tipsOverlaySheet {
+  width: min(980px, 100%) !important;
+  height: min(calc(100vh - 36px), 760px) !important;
+  max-height: min(calc(100vh - 36px), 760px) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+.tipsOverlayBody {
+  min-height: 0 !important;
+  display: grid !important;
+  align-content: start !important;
+  gap: 14px !important;
+  overflow: auto !important;
+  text-align: left !important;
+}
+
+.tipsOverlayList {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  display: grid !important;
+  gap: 12px !important;
+}
+
+.tipsOverlayItem {
+  margin: 0 !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid var(--consistency-surface-border) !important;
+}
+
+.tipsOverlayItem:last-child {
+  border-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.tipsOverlayItem h3 {
+  margin: 0 0 6px !important;
+  font-size: var(--consistency-body-size) !important;
+  line-height: var(--consistency-body-line) !important;
+  font-weight: 600 !important;
+  color: var(--consistency-text) !important;
+}
+
+.tipsOverlayItem p,
+.tipsOverlayMeta {
+  margin: 0 !important;
+  font-size: var(--consistency-body-size) !important;
+  line-height: var(--consistency-body-line) !important;
+  color: var(--consistency-muted) !important;
+}
