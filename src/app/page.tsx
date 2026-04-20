@@ -5318,69 +5318,71 @@ export default function HomePage() {
                   >
                     KI-Aufnahme starten
                   </button>
-                  <button
-                    type="button"
-                    className="intakePrimaryActionButton intakePrimaryActionButtonSecondary"
-                    onClick={openPhotoScanSheet}
-                    disabled={isAnyIntakeProcessing}
-                    aria-label="Foto scannen"
-                    title="Foto scannen"
-                    aria-expanded={isPhotoScanSheetOpen}
-                    aria-haspopup="menu"
-                    ref={photoScanTriggerButtonRef}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="intakePhotoScanIcon"
-                      aria-hidden="true"
-                      focusable="false"
+                  <div className="photoScanQuickMenuAnchor">
+                    <button
+                      type="button"
+                      className="intakePrimaryActionButton intakePrimaryActionButtonSecondary"
+                      onClick={openPhotoScanSheet}
+                      disabled={isAnyIntakeProcessing}
+                      aria-label="Foto scannen"
+                      title="Foto scannen"
+                      aria-expanded={isPhotoScanSheetOpen}
+                      aria-haspopup="menu"
+                      ref={photoScanTriggerButtonRef}
                     >
-                      <path
-                        d="M4.6 8.4h2.9l1.3-2h6.4l1.3 2h2.9a1.8 1.8 0 0 1 1.8 1.8v7.8a1.8 1.8 0 0 1-1.8 1.8H4.6A1.8 1.8 0 0 1 2.8 18V10.2a1.8 1.8 0 0 1 1.8-1.8Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle
-                        cx="12"
-                        cy="14"
-                        r="3.2"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="intakePhotoScanIcon"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M4.6 8.4h2.9l1.3-2h6.4l1.3 2h2.9a1.8 1.8 0 0 1 1.8 1.8v7.8a1.8 1.8 0 0 1-1.8 1.8H4.6A1.8 1.8 0 0 1 2.8 18V10.2a1.8 1.8 0 0 1 1.8-1.8Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <circle
+                          cx="12"
+                          cy="14"
+                          r="3.2"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        />
+                      </svg>
+                    </button>
 
-                  {isPhotoScanSheetOpen ? (
-                    <div
-                      className="photoScanQuickMenu"
-                      role="menu"
-                      aria-label="Fotooptionen"
-                      ref={photoScanMenuRef}
-                    >
-                      <button
-                        type="button"
-                        className="photoScanQuickMenuItem"
-                        role="menuitem"
-                        onClick={triggerPhotoCaptureInput}
-                        disabled={isAnyIntakeProcessing}
+                    {isPhotoScanSheetOpen ? (
+                      <div
+                        className="photoScanQuickMenu"
+                        role="menu"
+                        aria-label="Fotooptionen"
+                        ref={photoScanMenuRef}
                       >
-                        Foto aufnehmen
-                      </button>
-                      <button
-                        type="button"
-                        className="photoScanQuickMenuItem"
-                        role="menuitem"
-                        onClick={triggerPhotoUploadInput}
-                        disabled={isAnyIntakeProcessing}
-                      >
-                        Foto hochladen
-                      </button>
-                    </div>
-                  ) : null}
+                        <button
+                          type="button"
+                          className="photoScanQuickMenuItem"
+                          role="menuitem"
+                          onClick={triggerPhotoCaptureInput}
+                          disabled={isAnyIntakeProcessing}
+                        >
+                          Foto aufnehmen
+                        </button>
+                        <button
+                          type="button"
+                          className="photoScanQuickMenuItem"
+                          role="menuitem"
+                          onClick={triggerPhotoUploadInput}
+                          disabled={isAnyIntakeProcessing}
+                        >
+                          Foto hochladen
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 {intakeInputMode === "voice" ? (
