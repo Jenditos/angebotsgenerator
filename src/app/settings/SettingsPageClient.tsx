@@ -73,6 +73,7 @@ const emptySettings: CompanySettings = {
 };
 
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
+const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent-v1";
 const SETTINGS_AUTOSAVE_DELAY_MS = 700;
 const SETTINGS_KEEPALIVE_MAX_BODY_BYTES = 60_000;
 const LOGO_DOWNSCALE_FACTOR = 0.82;
@@ -341,21 +342,44 @@ function readSettingsDraftFromSessionStorage(): CompanySettings | null {
     return null;
   }
 
-  try {
-    const raw = window.sessionStorage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
-    if (!raw) {
+  const parseStorageDraft = (
+    storage: Storage,
+    key: string,
+  ): CompanySettings | null => {
+    try {
+      const raw = storage.getItem(key);
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw) as unknown;
+      if (isRecord(parsed) && isRecord(parsed.settings)) {
+        return normalizeSettingsDraft(parsed.settings);
+      }
+
+      return normalizeSettingsDraft(parsed);
+    } catch {
       return null;
     }
+  };
 
-    const parsed = JSON.parse(raw) as unknown;
-    if (isRecord(parsed) && isRecord(parsed.settings)) {
-      return normalizeSettingsDraft(parsed.settings);
-    }
-
-    return normalizeSettingsDraft(parsed);
-  } catch {
-    return null;
+  const sessionDraft = parseStorageDraft(
+    window.sessionStorage,
+    SETTINGS_DRAFT_STORAGE_KEY,
+  );
+  if (sessionDraft) {
+    return sessionDraft;
   }
+
+  const persistentDraft = parseStorageDraft(
+    window.localStorage,
+    SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY,
+  );
+  if (persistentDraft) {
+    return persistentDraft;
+  }
+
+  return null;
 }
 
 function writeSettingsDraftToSessionStorage(nextSettings: CompanySettings) {
@@ -364,35 +388,50 @@ function writeSettingsDraftToSessionStorage(nextSettings: CompanySettings) {
   }
 
   const updatedAt = new Date().toISOString();
-  try {
-    window.sessionStorage.setItem(
-      SETTINGS_DRAFT_STORAGE_KEY,
-      JSON.stringify({
-        updatedAt,
-        settings: nextSettings,
-      }),
-    );
+  const fullPayload = {
+    updatedAt,
+    settings: nextSettings,
+  };
+  const fallbackPayload = {
+    updatedAt,
+    settings: {
+      ...nextSettings,
+      logoDataUrl: "",
+    },
+    logoOmitted: true,
+  };
+
+  const writeToStorages = (payload: unknown): boolean => {
+    const encodedPayload = JSON.stringify(payload);
+    let wroteSession = false;
+    let wroteLocal = false;
+    try {
+      window.sessionStorage.setItem(SETTINGS_DRAFT_STORAGE_KEY, encodedPayload);
+      wroteSession = true;
+    } catch {
+      // Ignorieren, ggf. LocalStorage klappt noch.
+    }
+
+    try {
+      window.localStorage.setItem(
+        SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY,
+        encodedPayload,
+      );
+      wroteLocal = true;
+    } catch {
+      // Ignorieren, falls LocalStorage nicht verfügbar ist.
+    }
+
+    return wroteSession || wroteLocal;
+  };
+
+  if (writeToStorages(fullPayload)) {
     return;
-  } catch {
-    // Bei sehr großen Logos kann SessionStorage die Quote überschreiten.
   }
 
-  try {
-    window.sessionStorage.setItem(
-      SETTINGS_DRAFT_STORAGE_KEY,
-      JSON.stringify({
-        updatedAt,
-        settings: {
-          ...nextSettings,
-          logoDataUrl: "",
-        },
-        logoOmitted: true,
-      }),
-    );
-  } catch (fallbackError) {
+  if (!writeToStorages(fallbackPayload)) {
     console.warn(
-      "[settings] Einstellungen konnten nicht in SessionStorage gesichert werden.",
-      fallbackError,
+      "[settings] Einstellungen konnten nicht im Browser-Storage gesichert werden.",
     );
   }
 }

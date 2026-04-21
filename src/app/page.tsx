@@ -506,6 +506,7 @@ const PHOTO_JPEG_QUALITY = 0.88;
 const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
+const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent-v1";
 
 const fallbackCompanySettings: CompanySettings = {
   companyName: "",
@@ -808,21 +809,40 @@ function readSettingsDraftFromSessionStorageForOffer(): CompanySettings | null {
     return null;
   }
 
-  try {
-    const raw = window.sessionStorage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
+  const parseDraft = (raw: string): CompanySettings | null => {
     const parsed = JSON.parse(raw) as unknown;
     if (isObjectRecord(parsed) && isObjectRecord(parsed.settings)) {
       return normalizeCompanySettingsInput(parsed.settings);
     }
 
     return normalizeCompanySettingsInput(parsed);
+  };
+
+  try {
+    const raw = window.sessionStorage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
+    if (raw) {
+      const sessionDraft = parseDraft(raw);
+      if (sessionDraft) {
+        return sessionDraft;
+      }
+    }
+  } catch {
+    // Fallback auf persistente Draft-Daten.
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY);
+    if (raw) {
+      const localDraft = parseDraft(raw);
+      if (localDraft) {
+        return localDraft;
+      }
+    }
   } catch {
     return null;
   }
+
+  return null;
 }
 
 function hasCompletedCompanySettings(settings: CompanySettings | undefined): boolean {
@@ -2089,6 +2109,11 @@ export default function HomePage() {
       const draftSettings = readSettingsDraftFromSessionStorageForOffer();
       if (mounted && draftSettings) {
         setCompanySettings(draftSettings);
+        const isCompleteFromDraft = hasCompletedCompanySettings(draftSettings);
+        setIsCompanySetupComplete(isCompleteFromDraft);
+        if (!isCompleteFromDraft) {
+          setIsSetupHintOpen(false);
+        }
       }
 
       try {
@@ -2098,10 +2123,13 @@ export default function HomePage() {
           return;
         }
         if (mounted) {
-          if (data.settings) {
+          if (data.settings && !draftSettings) {
             setCompanySettings(data.settings);
           }
-          const isComplete = hasCompletedCompanySettings(data.settings);
+          const settingsForCompletionCheck = draftSettings ?? data.settings;
+          const isComplete = hasCompletedCompanySettings(
+            settingsForCompletionCheck,
+          );
           setIsCompanySetupComplete(isComplete);
           if (!isComplete) {
             setIsSetupHintOpen(false);
@@ -4279,21 +4307,22 @@ export default function HomePage() {
 
     try {
       let settingsPayload = companySettings;
+      const localDraftSettings = readSettingsDraftFromSessionStorageForOffer();
       try {
         const settingsResponse = await fetch("/api/settings", {
           cache: "no-store",
         });
         const settingsData = (await settingsResponse.json()) as SettingsApiResponse;
         if (settingsResponse.ok && settingsData.settings) {
-          settingsPayload = settingsData.settings;
-          setCompanySettings(settingsData.settings);
+          settingsPayload = localDraftSettings ?? settingsData.settings;
+          setCompanySettings(settingsPayload);
         }
       } catch {
         // Fallback auf zuletzt bekannte Einstellungen.
       }
 
       if (!settingsPayload) {
-        settingsPayload = readSettingsDraftFromSessionStorageForOffer();
+        settingsPayload = localDraftSettings;
       }
 
       const response = await fetch("/api/generate-offer", {
