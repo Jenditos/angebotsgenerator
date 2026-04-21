@@ -115,13 +115,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 700,
     color: theme.text,
-    lineHeight: 1.25,
-    marginBottom: space.xxs,
+    lineHeight: 1.2,
+    marginBottom: 1,
   },
   recipientLine: {
     color: theme.textMuted,
-    lineHeight: 1.3,
-    marginBottom: space.xxs,
+    lineHeight: 1.22,
+    marginBottom: 1,
+  },
+  recipientLineLast: {
+    marginBottom: 0,
   },
   metadataBlock: {
     width: "40%",
@@ -153,16 +156,16 @@ const styles = StyleSheet.create({
   },
   introSection: {
     borderTop: `1 solid ${theme.border}`,
-    paddingTop: space.md,
-    marginBottom: space.lg,
+    paddingTop: space.sm,
+    marginBottom: space.md,
   },
   introParagraph: {
     color: theme.textMuted,
-    lineHeight: 1.38,
-    marginBottom: space.xs,
+    lineHeight: 1.3,
+    marginBottom: space.xxs,
   },
   introParagraphSalutation: {
-    marginBottom: space.md,
+    marginBottom: space.xs,
   },
   introParagraphLast: {
     marginBottom: 0,
@@ -322,37 +325,40 @@ const styles = StyleSheet.create({
   },
   notesSection: {
     borderTop: `1 solid ${theme.border}`,
-    paddingTop: space.md,
-    marginTop: space.md,
-    marginBottom: space.sm,
+    paddingTop: space.sm,
+    marginTop: space.sm,
+    marginBottom: space.xs,
   },
   noteTitle: {
     fontSize: 8,
     textTransform: "uppercase",
     letterSpacing: 0.4,
     color: theme.textSoft,
-    marginBottom: space.xs,
+    marginBottom: space.xxs,
   },
   noteText: {
     color: theme.textMuted,
-    lineHeight: 1.4,
+    lineHeight: 1.3,
     marginBottom: 0,
   },
   paymentInfoSection: {
     borderTop: `1 solid ${theme.border}`,
-    paddingTop: space.md,
-    marginTop: space.sm,
-    marginBottom: space.sm,
+    paddingTop: space.sm,
+    marginTop: space.xs,
+    marginBottom: space.xs,
   },
   paymentInfoLead: {
     color: theme.textMuted,
-    lineHeight: 1.35,
-    marginBottom: space.xs,
+    lineHeight: 1.3,
+    marginBottom: space.xxs,
   },
   paymentInfoLine: {
     color: theme.text,
-    lineHeight: 1.32,
-    marginBottom: space.xxs,
+    lineHeight: 1.25,
+    marginBottom: 1,
+  },
+  paymentInfoLineLast: {
+    marginBottom: 0,
   },
   closingSection: {
     marginTop: space.xs,
@@ -754,6 +760,12 @@ export function OfferPdfDocument({
   const senderContactLine = buildSenderContactLine(settings);
   const paymentInformationLines = buildPaymentInformationLines(settings);
   const shouldRenderPaymentInformation = paymentInformationLines.length > 0;
+  const recipientLines = [
+    customerStreetLine,
+    customerPostalCityLine,
+    ...customerAdditionalLines,
+    customerEmail ? `E-Mail: ${customerEmail}` : "",
+  ].filter((line): line is string => Boolean(line));
   const closingSignatureName =
     settings.companyName?.trim() ||
     settings.ownerName?.trim() ||
@@ -872,18 +884,18 @@ export function OfferPdfDocument({
                 <View style={styles.addressMetaRow}>
                   <View style={styles.recipientBlock}>
                     <Text style={styles.recipientName}>{customerName || "Kunde"}</Text>
-                    <Text style={styles.recipientLine}>{customerStreetLine}</Text>
-                    {customerPostalCityLine ? (
-                      <Text style={styles.recipientLine}>{customerPostalCityLine}</Text>
-                    ) : null}
-                    {customerAdditionalLines.map((line, index) => (
-                      <Text key={`customer-extra-${index}`} style={styles.recipientLine}>
+                    {recipientLines.map((line, index) => (
+                      <Text
+                        key={`customer-line-${index}`}
+                        style={
+                          index === recipientLines.length - 1
+                            ? [styles.recipientLine, styles.recipientLineLast]
+                            : styles.recipientLine
+                        }
+                      >
                         {line}
                       </Text>
                     ))}
-                    {customerEmail ? (
-                      <Text style={styles.recipientLine}>E-Mail: {customerEmail}</Text>
-                    ) : null}
                   </View>
 
                   <View style={styles.metadataBlock}>
@@ -1076,7 +1088,14 @@ export function OfferPdfDocument({
                           Bitte überweisen Sie den Betrag auf folgendes Konto:
                         </Text>
                         {paymentInformationLines.map((line, lineIndex) => (
-                          <Text key={`payment-info-${lineIndex}`} style={styles.paymentInfoLine}>
+                          <Text
+                            key={`payment-info-${lineIndex}`}
+                            style={
+                              lineIndex === paymentInformationLines.length - 1
+                                ? [styles.paymentInfoLine, styles.paymentInfoLineLast]
+                                : styles.paymentInfoLine
+                            }
+                          >
                             {line}
                           </Text>
                         ))}
