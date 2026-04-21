@@ -2092,7 +2092,7 @@ export default function HomePage() {
       }
 
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch("/api/settings", { cache: "no-store" });
         const data = (await response.json()) as SettingsApiResponse;
         if (!response.ok) {
           return;
@@ -4280,7 +4280,9 @@ export default function HomePage() {
     try {
       let settingsPayload = companySettings;
       try {
-        const settingsResponse = await fetch("/api/settings");
+        const settingsResponse = await fetch("/api/settings", {
+          cache: "no-store",
+        });
         const settingsData = (await settingsResponse.json()) as SettingsApiResponse;
         if (settingsResponse.ok && settingsData.settings) {
           settingsPayload = settingsData.settings;

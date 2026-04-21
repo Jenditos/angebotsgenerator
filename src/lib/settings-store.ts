@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { SupabaseClient } from "@supabase/supabase-js";
 import {
   getDefaultPdfTableColumns,
   sanitizePdfTableColumns,
@@ -19,6 +20,7 @@ import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths
 import { CompanySettings } from "@/types/offer";
 
 const SETTINGS_FILE_NAME = "company-settings.json";
+const USER_SETTINGS_TABLE = "user_settings";
 const MIN_OFFER_VALIDITY_DAYS = 1;
 const MAX_OFFER_VALIDITY_DAYS = 365;
 const MIN_INVOICE_PAYMENT_DUE_DAYS = 0;
@@ -62,6 +64,11 @@ const defaultSettings: CompanySettings = {
 };
 
 let volatileSettingsCache: CompanySettings | null = null;
+
+export type SettingsStoreContext = {
+  supabase?: SupabaseClient | null;
+  userId?: string | null;
+};
 
 function cloneDefaultSettings(): CompanySettings {
   return {
@@ -146,6 +153,151 @@ function resolveBooleanUpdate(current: boolean, value: unknown): boolean {
     return current;
   }
   return typeof value === "boolean" ? value : current;
+}
+
+function resolveContextUserId(context?: SettingsStoreContext): string | null {
+  const userId = context?.userId;
+  if (typeof userId !== "string") {
+    return null;
+  }
+
+  const trimmedUserId = userId.trim();
+  return trimmedUserId || null;
+}
+
+function canUseSupabaseContext(
+  context?: SettingsStoreContext,
+): context is { supabase: SupabaseClient; userId: string } {
+  const userId = resolveContextUserId(context);
+  const hasQueryBuilder =
+    typeof (context?.supabase as { from?: unknown } | undefined)?.from ===
+    "function";
+
+  return Boolean(userId && context?.supabase && hasQueryBuilder);
+}
+
+function parseRawSettingsPayload(
+  raw:
+    | (Partial<CompanySettings> & {
+        pdfTableColumns?: unknown;
+        customServices?: unknown;
+      })
+    | null,
+): CompanySettings {
+  if (!raw) {
+    return cloneDefaultSettings();
+  }
+
+  return resolveSettingsPayload(raw);
+}
+
+function buildNextSettings(
+  current: CompanySettings,
+  payload: Partial<CompanySettings>,
+): CompanySettings {
+  const nextLogoRaw = sanitizeCompanyLogoDataUrl(
+    resolveStringUpdate(current.logoDataUrl, payload.logoDataUrl),
+  );
+  const nextLogo =
+    nextLogoRaw.length <= MAX_LOGO_DATA_URL_LENGTH ? nextLogoRaw : current.logoDataUrl;
+  const nextIban = formatIbanForDisplay(
+    resolveStringUpdate(current.companyIban, payload.companyIban),
+  );
+  const nextIbanValidation = validateIbanInput(nextIban);
+  const nextIbanVerificationStatus = nextIbanValidation.isValid
+    ? "valid"
+    : "not_checked";
+  const nextBic = normalizeBicInput(
+    resolveStringUpdate(current.companyBic, payload.companyBic),
+  );
+  const nextBankName = resolveStringUpdate(
+    current.companyBankName,
+    payload.companyBankName,
+  ).slice(0, MAX_BANK_NAME_LENGTH);
+
+  return {
+    companyName: resolveStringUpdate(current.companyName, payload.companyName),
+    ownerName: resolveStringUpdate(current.ownerName, payload.ownerName),
+    companyStreet: resolveStringUpdate(current.companyStreet, payload.companyStreet),
+    companyPostalCode: resolveStringUpdate(
+      current.companyPostalCode,
+      payload.companyPostalCode,
+    ),
+    companyCity: resolveStringUpdate(current.companyCity, payload.companyCity),
+    companyEmail: resolveStringUpdate(current.companyEmail, payload.companyEmail),
+    companyPhone: resolveStringUpdate(current.companyPhone, payload.companyPhone),
+    companyWebsite: resolveStringUpdate(
+      current.companyWebsite,
+      payload.companyWebsite,
+    ),
+    companyIban: nextIban,
+    companyBic: nextBic,
+    companyBankName: nextBankName,
+    ibanVerificationStatus: nextIbanVerificationStatus,
+    taxNumber: resolveStringUpdate(current.taxNumber, payload.taxNumber),
+    vatId: resolveStringUpdate(current.vatId, payload.vatId),
+    companyCountry: resolveStringUpdate(
+      current.companyCountry,
+      payload.companyCountry,
+    ),
+    euVatNoticeText:
+      typeof payload.euVatNoticeText === "undefined"
+        ? current.euVatNoticeText
+        : String(payload.euVatNoticeText)
+            .trim()
+            .slice(0, MAX_EU_VAT_NOTICE_TEXT_LENGTH),
+    includeCustomerVatId: resolveBooleanUpdate(
+      current.includeCustomerVatId,
+      payload.includeCustomerVatId,
+    ),
+    senderCopyEmail: resolveStringUpdate(
+      current.senderCopyEmail,
+      payload.senderCopyEmail,
+    ),
+    logoDataUrl: nextLogo,
+    pdfTableColumns:
+      typeof payload.pdfTableColumns === "undefined"
+        ? current.pdfTableColumns
+        : sanitizePdfTableColumns(payload.pdfTableColumns),
+    customServices:
+      typeof payload.customServices === "undefined"
+        ? current.customServices
+        : sanitizeCustomServices(payload.customServices),
+    vatRate: resolveNumberUpdate(
+      current.vatRate,
+      payload.vatRate,
+      MIN_VAT_RATE,
+      MAX_VAT_RATE,
+    ),
+    offerValidityDays: resolveNumberUpdate(
+      current.offerValidityDays,
+      payload.offerValidityDays,
+      MIN_OFFER_VALIDITY_DAYS,
+      MAX_OFFER_VALIDITY_DAYS,
+    ),
+    invoicePaymentDueDays: resolveNumberUpdate(
+      current.invoicePaymentDueDays,
+      payload.invoicePaymentDueDays,
+      MIN_INVOICE_PAYMENT_DUE_DAYS,
+      MAX_INVOICE_PAYMENT_DUE_DAYS,
+    ),
+    offerTermsText:
+      typeof payload.offerTermsText === "undefined"
+        ? current.offerTermsText
+        : String(payload.offerTermsText).trim().slice(0, MAX_TERMS_TEXT_LENGTH),
+    lastOfferNumber: resolveStringUpdate(
+      current.lastOfferNumber,
+      payload.lastOfferNumber,
+    ),
+    lastInvoiceNumber: resolveStringUpdate(
+      current.lastInvoiceNumber,
+      payload.lastInvoiceNumber,
+    ),
+    customServiceTypes:
+      typeof payload.customServiceTypes === "undefined"
+        ? current.customServiceTypes
+        : asStringArray(payload.customServiceTypes),
+  };
 }
 
 async function resolveSettingsStorePaths(): Promise<{
@@ -312,7 +464,42 @@ export function getDefaultSettings(): CompanySettings {
   return cloneDefaultSettings();
 }
 
-export async function readSettings(): Promise<CompanySettings> {
+export async function readSettings(
+  context?: SettingsStoreContext,
+): Promise<CompanySettings> {
+  if (canUseSupabaseContext(context)) {
+    const userId = context.userId.trim();
+    const { data, error } = await context.supabase
+      .from(USER_SETTINGS_TABLE)
+      .select("settings_payload")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      const code = (error as { code?: string }).code ?? "UNKNOWN";
+      throw new Error(
+        `[settings-store] Supabase-Einstellungen konnten nicht geladen werden (${code}).`,
+        { cause: error },
+      );
+    }
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return cloneDefaultSettings();
+    }
+
+    const rawPayload = (data as { settings_payload?: unknown }).settings_payload;
+    if (!rawPayload || typeof rawPayload !== "object" || Array.isArray(rawPayload)) {
+      return cloneDefaultSettings();
+    }
+
+    return parseRawSettingsPayload(
+      rawPayload as Partial<CompanySettings> & {
+        pdfTableColumns?: unknown;
+        customServices?: unknown;
+      },
+    );
+  }
+
   const { settingsPath } = await resolveSettingsStorePaths();
   const parsed = await readSettingsFile(settingsPath);
 
@@ -323,7 +510,7 @@ export async function readSettings(): Promise<CompanySettings> {
     return cloneDefaultSettings();
   }
 
-  const resolvedSettings = resolveSettingsPayload(parsed);
+  const resolvedSettings = parseRawSettingsPayload(parsed);
   const parsedLogoDataUrl =
     typeof parsed.logoDataUrl === "string" ? parsed.logoDataUrl.trim() : "";
   if (parsedLogoDataUrl && isLegacyFallbackLogoDataUrl(parsedLogoDataUrl)) {
@@ -346,113 +533,37 @@ export async function readSettings(): Promise<CompanySettings> {
 
 export async function writeSettings(
   payload: Partial<CompanySettings>,
+  context?: SettingsStoreContext,
 ): Promise<CompanySettings> {
+  if (canUseSupabaseContext(context)) {
+    const userId = context.userId.trim();
+    const current = await readSettings(context);
+    const next = buildNextSettings(current, payload);
+
+    const { error } = await context.supabase
+      .from(USER_SETTINGS_TABLE)
+      .upsert(
+        {
+          user_id: userId,
+          settings_payload: next,
+        },
+        { onConflict: "user_id" },
+      );
+
+    if (error) {
+      const code = (error as { code?: string }).code ?? "UNKNOWN";
+      throw new Error(
+        `[settings-store] Supabase-Einstellungen konnten nicht gespeichert werden (${code}).`,
+        { cause: error },
+      );
+    }
+
+    return next;
+  }
+
   const { dataDir, settingsPath } = await resolveSettingsStorePaths();
   const current = await readSettings();
-
-  const nextLogoRaw = sanitizeCompanyLogoDataUrl(
-    resolveStringUpdate(current.logoDataUrl, payload.logoDataUrl),
-  );
-  const nextLogo =
-    nextLogoRaw.length <= MAX_LOGO_DATA_URL_LENGTH ? nextLogoRaw : current.logoDataUrl;
-  const nextIban = formatIbanForDisplay(
-    resolveStringUpdate(current.companyIban, payload.companyIban),
-  );
-  const nextIbanValidation = validateIbanInput(nextIban);
-  const nextIbanVerificationStatus = nextIbanValidation.isValid
-    ? "valid"
-    : "not_checked";
-  const nextBic = normalizeBicInput(
-    resolveStringUpdate(current.companyBic, payload.companyBic),
-  );
-  const nextBankName = resolveStringUpdate(
-    current.companyBankName,
-    payload.companyBankName,
-  ).slice(0, MAX_BANK_NAME_LENGTH);
-
-  const next: CompanySettings = {
-    companyName: resolveStringUpdate(current.companyName, payload.companyName),
-    ownerName: resolveStringUpdate(current.ownerName, payload.ownerName),
-    companyStreet: resolveStringUpdate(current.companyStreet, payload.companyStreet),
-    companyPostalCode: resolveStringUpdate(
-      current.companyPostalCode,
-      payload.companyPostalCode,
-    ),
-    companyCity: resolveStringUpdate(current.companyCity, payload.companyCity),
-    companyEmail: resolveStringUpdate(current.companyEmail, payload.companyEmail),
-    companyPhone: resolveStringUpdate(current.companyPhone, payload.companyPhone),
-    companyWebsite: resolveStringUpdate(
-      current.companyWebsite,
-      payload.companyWebsite,
-    ),
-    companyIban: nextIban,
-    companyBic: nextBic,
-    companyBankName: nextBankName,
-    ibanVerificationStatus: nextIbanVerificationStatus,
-    taxNumber: resolveStringUpdate(current.taxNumber, payload.taxNumber),
-    vatId: resolveStringUpdate(current.vatId, payload.vatId),
-    companyCountry: resolveStringUpdate(
-      current.companyCountry,
-      payload.companyCountry,
-    ),
-    euVatNoticeText:
-      typeof payload.euVatNoticeText === "undefined"
-        ? current.euVatNoticeText
-        : String(payload.euVatNoticeText)
-            .trim()
-            .slice(0, MAX_EU_VAT_NOTICE_TEXT_LENGTH),
-    includeCustomerVatId: resolveBooleanUpdate(
-      current.includeCustomerVatId,
-      payload.includeCustomerVatId,
-    ),
-    senderCopyEmail: resolveStringUpdate(
-      current.senderCopyEmail,
-      payload.senderCopyEmail,
-    ),
-    logoDataUrl: nextLogo,
-    pdfTableColumns:
-      typeof payload.pdfTableColumns === "undefined"
-        ? current.pdfTableColumns
-        : sanitizePdfTableColumns(payload.pdfTableColumns),
-    customServices:
-      typeof payload.customServices === "undefined"
-        ? current.customServices
-        : sanitizeCustomServices(payload.customServices),
-    vatRate: resolveNumberUpdate(
-      current.vatRate,
-      payload.vatRate,
-      MIN_VAT_RATE,
-      MAX_VAT_RATE,
-    ),
-    offerValidityDays: resolveNumberUpdate(
-      current.offerValidityDays,
-      payload.offerValidityDays,
-      MIN_OFFER_VALIDITY_DAYS,
-      MAX_OFFER_VALIDITY_DAYS,
-    ),
-    invoicePaymentDueDays: resolveNumberUpdate(
-      current.invoicePaymentDueDays,
-      payload.invoicePaymentDueDays,
-      MIN_INVOICE_PAYMENT_DUE_DAYS,
-      MAX_INVOICE_PAYMENT_DUE_DAYS,
-    ),
-    offerTermsText:
-      typeof payload.offerTermsText === "undefined"
-        ? current.offerTermsText
-        : String(payload.offerTermsText).trim().slice(0, MAX_TERMS_TEXT_LENGTH),
-    lastOfferNumber: resolveStringUpdate(
-      current.lastOfferNumber,
-      payload.lastOfferNumber,
-    ),
-    lastInvoiceNumber: resolveStringUpdate(
-      current.lastInvoiceNumber,
-      payload.lastInvoiceNumber,
-    ),
-    customServiceTypes:
-      typeof payload.customServiceTypes === "undefined"
-        ? current.customServiceTypes
-        : asStringArray(payload.customServiceTypes),
-  };
+  const next = buildNextSettings(current, payload);
 
   volatileSettingsCache = next;
   try {

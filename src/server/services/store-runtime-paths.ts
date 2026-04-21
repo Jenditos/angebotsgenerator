@@ -5,7 +5,11 @@ import path from "node:path";
 
 const SERVERLESS_DATA_DIR = "/tmp/visioro-data";
 const LOCAL_PERSISTENT_DATA_DIR_NAME = ".visioro-data";
-const MIGRATION_EXCLUDED_ENTRIES = new Set([".gitkeep"]);
+const MIGRATION_EXCLUDED_ENTRIES = new Set([
+  ".gitkeep",
+  // Alte lokale Firmeneinstellungen sollen neue Umgebungen nicht "übernehmen".
+  "company-settings.json",
+]);
 
 const preparedDataDirs = new Set<string>();
 const preparationPromisesByDir = new Map<string, Promise<void>>();
@@ -75,6 +79,12 @@ async function copyDirectoryEntriesIfMissing(
 
 function shouldRunLegacyMigration(runtimeDataDir: string): boolean {
   if (process.env.DATA_DIR?.trim()) {
+    return false;
+  }
+
+  if (isReadonlyServerlessRuntime()) {
+    // In serverlosen /tmp-Umgebungen würde sonst bei jedem Cold-Start
+    // immer wieder ein alter Snapshot aus ./data kopiert werden.
     return false;
   }
 

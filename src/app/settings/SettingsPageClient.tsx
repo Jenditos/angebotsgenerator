@@ -363,13 +363,38 @@ function writeSettingsDraftToSessionStorage(nextSettings: CompanySettings) {
     return;
   }
 
-  window.sessionStorage.setItem(
-    SETTINGS_DRAFT_STORAGE_KEY,
-    JSON.stringify({
-      updatedAt: new Date().toISOString(),
-      settings: nextSettings,
-    }),
-  );
+  const updatedAt = new Date().toISOString();
+  try {
+    window.sessionStorage.setItem(
+      SETTINGS_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        updatedAt,
+        settings: nextSettings,
+      }),
+    );
+    return;
+  } catch {
+    // Bei sehr großen Logos kann SessionStorage die Quote überschreiten.
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      SETTINGS_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        updatedAt,
+        settings: {
+          ...nextSettings,
+          logoDataUrl: "",
+        },
+        logoOmitted: true,
+      }),
+    );
+  } catch (fallbackError) {
+    console.warn(
+      "[settings] Einstellungen konnten nicht in SessionStorage gesichert werden.",
+      fallbackError,
+    );
+  }
 }
 
 function areSettingsEqual(left: CompanySettings, right: CompanySettings): boolean {
@@ -591,7 +616,7 @@ export default function SettingsPage() {
 
     async function loadSettings() {
       try {
-        const response = await fetch("/api/settings");
+        const response = await fetch("/api/settings", { cache: "no-store" });
         const data = await response.json();
         if (!mounted) {
           return;

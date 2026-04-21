@@ -38,7 +38,10 @@ export async function GET(
       );
     }
 
-    const settings = await readSettings();
+    const settings = await readSettings({
+      supabase: accessResult.supabase,
+      userId: accessResult.user.id,
+    });
     const safeSettings = {
       ...settings,
       logoDataUrl:

@@ -7,6 +7,32 @@ import {
 import { readSettings, writeSettings } from "@/lib/settings-store";
 import { CompanySettings } from "@/types/offer";
 
+function classifySettingsStoreError(error: unknown): {
+  status: number;
+  publicMessage: string;
+} {
+  const rawMessage =
+    error instanceof Error ? error.message : String(error ?? "");
+  const normalized = rawMessage.toLowerCase();
+  const isSetupProblem =
+    normalized.includes("42p01") ||
+    normalized.includes("user_settings") ||
+    normalized.includes("permission denied");
+
+  if (isSetupProblem) {
+    return {
+      status: 503,
+      publicMessage:
+        "Einstellungen-Speicher ist aktuell nicht vollständig eingerichtet.",
+    };
+  }
+
+  return {
+    status: 500,
+    publicMessage: "Einstellungen konnten nicht geladen werden.",
+  };
+}
+
 export async function GET() {
   const accessResult = await requireAppAccess();
   if (!accessResult.ok) {
@@ -14,12 +40,23 @@ export async function GET() {
   }
 
   try {
-    const settings = await readSettings();
-    return NextResponse.json({ settings });
-  } catch {
+    const settings = await readSettings({
+      supabase: accessResult.supabase,
+      userId: accessResult.user.id,
+    });
     return NextResponse.json(
-      { error: "Einstellungen konnten nicht geladen werden." },
-      { status: 500 },
+      { settings },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    const classified = classifySettingsStoreError(error);
+    console.error("[api/settings][GET] Einstellungen konnten nicht geladen werden.", {
+      userId: accessResult.user.id,
+      error,
+    });
+    return NextResponse.json(
+      { error: classified.publicMessage },
+      { status: classified.status, headers: { "Cache-Control": "no-store" } },
     );
   }
 }
@@ -153,12 +190,28 @@ export async function POST(request: Request) {
       sanitized.includeCustomerVatId = body.includeCustomerVatId;
     }
 
-    const settings = await writeSettings(sanitized);
-    return NextResponse.json({ settings });
-  } catch {
+    const settings = await writeSettings(sanitized, {
+      supabase: accessResult.supabase,
+      userId: accessResult.user.id,
+    });
     return NextResponse.json(
-      { error: "Einstellungen konnten nicht gespeichert werden." },
-      { status: 500 },
+      { settings },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    const classified = classifySettingsStoreError(error);
+    console.error("[api/settings][POST] Einstellungen konnten nicht gespeichert werden.", {
+      userId: accessResult.user.id,
+      error,
+    });
+    return NextResponse.json(
+      {
+        error:
+          classified.status === 503
+            ? "Einstellungen-Speicher ist aktuell nicht vollständig eingerichtet."
+            : "Einstellungen konnten nicht gespeichert werden.",
+      },
+      { status: classified.status, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

@@ -19,7 +19,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const settings = await readSettings();
+    const settings = await readSettings({
+      supabase: accessResult.supabase,
+      userId: accessResult.user.id,
+    });
     const catalog = buildServiceCatalog(settings.customServices);
 
     const { searchParams } = new URL(request.url);
@@ -60,7 +63,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const settings = await readSettings();
+    const settings = await readSettings({
+      supabase: accessResult.supabase,
+      userId: accessResult.user.id,
+    });
     const currentCustomServices = sanitizeCustomServices(settings.customServices);
 
     const normalizedLabel = normalizeSearchValue(label);
@@ -83,7 +89,13 @@ export async function POST(request: Request) {
 
     const customService = createCustomService({ label, category });
     const nextCustomServices = sanitizeCustomServices([...currentCustomServices, customService]);
-    const updatedSettings = await writeSettings({ customServices: nextCustomServices });
+    const updatedSettings = await writeSettings(
+      { customServices: nextCustomServices },
+      {
+        supabase: accessResult.supabase,
+        userId: accessResult.user.id,
+      },
+    );
 
     return NextResponse.json({
       customService,
