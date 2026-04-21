@@ -1004,7 +1004,7 @@ export async function POST(request: Request) {
         if (unitPriceRaw && !Number.isFinite(toNumber(unitPriceRaw))) {
           return NextResponse.json(
             {
-              error: `Bitte einen gültigen EP / Preis EUR für "${description}" eingeben.`,
+              error: `Bitte einen gültigen Einzelpreis / Preis EUR für "${description}" eingeben.`,
             },
             { status: 400 },
           );
@@ -1073,7 +1073,7 @@ export async function POST(request: Request) {
     if (invalidLineItem) {
       return NextResponse.json(
         {
-          error: `Bitte einen gültigen EP / Preis EUR für "${invalidLineItem.description || "Position"}" eingeben.`,
+          error: `Bitte einen gültigen Einzelpreis / Preis EUR für "${invalidLineItem.description || "Position"}" eingeben.`,
         },
         { status: 400 },
       );

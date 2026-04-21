@@ -4236,7 +4236,7 @@ export default function HomePage() {
         if (!priceRaw) {
           return {
             positions: [],
-            errorMessage: `EP / Preis EUR ist für "${description}" verpflichtend.`,
+            errorMessage: `Einzelpreis / Preis EUR ist für "${description}" verpflichtend.`,
           };
         }
 
@@ -4244,7 +4244,7 @@ export default function HomePage() {
         if (!Number.isFinite(price) || price < 0) {
           return {
             positions: [],
-            errorMessage: `Bitte einen gültigen EP / Preis EUR für "${description}" eingeben.`,
+            errorMessage: `Bitte einen gültigen Einzelpreis / Preis EUR für "${description}" eingeben.`,
           };
         }
 
@@ -4262,7 +4262,7 @@ export default function HomePage() {
       return {
         positions: [],
         errorMessage:
-          "Bitte mindestens einen Unterpunkt mit Menge und EP / Preis EUR erfassen.",
+          "Bitte mindestens einen Unterpunkt mit Menge und Einzelpreis / Preis EUR erfassen.",
       };
     }
 
@@ -6509,7 +6509,7 @@ export default function HomePage() {
                           <th className="positionsTableHeaderLikeRecipient">Bezeichnung / Unterpunkt</th>
                           <th className="positionsTableHeaderLikeRecipient">Menge</th>
                           <th className="positionsTableHeaderLikeRecipient">Einheit</th>
-                          <th className="positionsTableHeaderLikeRecipient">EP</th>
+                          <th className="positionsTableHeaderLikeRecipient">Einzelpreis</th>
                           <th className="positionsTableHeaderLikeRecipient">Gesamtpreis</th>
                           <th aria-label="Aktion" />
                         </tr>
@@ -6680,7 +6680,7 @@ export default function HomePage() {
                                       placeholder="0,00"
                                       inputMode="decimal"
                                       pattern="[0-9]+([.,][0-9]+)?"
-                                      aria-label={`EP / Preis EUR für ${service.label}`}
+                                      aria-label={`Einzelpreis / Preis EUR für ${service.label}`}
                                     />
                                   </td>
                                   <td className="positionTotalCell">
