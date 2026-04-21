@@ -9309,6 +9309,60 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   gap: 10px;
 }
 
+.appFrameWithSidebar .dashboardVoicePanel {
+  --ki-panel-space-1: 8px;
+  --ki-panel-space-2: 12px;
+  --ki-panel-space-3: 16px;
+  --ki-panel-space-4: 24px;
+  display: grid;
+  row-gap: var(--ki-panel-space-3);
+  padding: var(--ki-panel-space-4) var(--ki-panel-space-4) var(--ki-panel-space-3) !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader {
+  margin: 0 !important;
+  display: grid;
+  gap: var(--ki-panel-space-2) !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader strong,
+.appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader p {
+  margin: 0 !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader p {
+  max-width: 62ch;
+  line-height: 1.36;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .intakePrimaryActions {
+  margin: 0 !important;
+  gap: var(--ki-panel-space-2);
+  align-items: center;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .field {
+  margin: 0 !important;
+  gap: var(--ki-panel-space-1) !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .field > span,
+.appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptFieldBody,
+.appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea {
+  margin: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .appFrameWithSidebar .dashboardVoicePanel {
+    row-gap: 12px;
+    padding: 16px !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader {
+    gap: 8px !important;
+  }
+}
+
 .intakePrimaryActionButton {
   border-radius: 12px;
   min-height: var(--intake-primary-action-size);
