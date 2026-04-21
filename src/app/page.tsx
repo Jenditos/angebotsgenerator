@@ -5342,12 +5342,6 @@ export default function HomePage() {
               <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">
                   <strong>Per KI erfassen</strong>
-                  <p>
-                    Nutze dieselbe KI-Logik für{" "}
-                    {isInvoiceMode ? "Rechnungsdaten" : "Angebotsdaten"} via
-                    Sprache oder Foto. Erkannte Inhalte werden strukturiert
-                    übernommen.
-                  </p>
                 </div>
 
                 <input
