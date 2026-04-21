@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import { logUserAccessError } from "@/lib/access/access-errors";
 import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
@@ -13,6 +14,10 @@ function isProtectedAppRoute(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+  if (isAuthBypassEnabled()) {
+    return NextResponse.next();
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.next();
   }

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import {
+  buildBypassAccessRecord,
+  isAuthBypassEnabled,
+} from "@/lib/access/auth-bypass";
+import {
   classifyUserAccessError,
   logUserAccessError,
 } from "@/lib/access/access-errors";
@@ -7,6 +11,14 @@ import { buildAccessState, ensureUserAccessRecord } from "@/lib/access/user-acce
 import { requireAuthenticatedUser } from "@/lib/access/guards";
 
 export async function POST() {
+  if (isAuthBypassEnabled()) {
+    const accessRecord = buildBypassAccessRecord();
+    return NextResponse.json({
+      access: accessRecord,
+      state: buildAccessState(accessRecord),
+    });
+  }
+
   const authResult = await requireAuthenticatedUser();
   if (!authResult.ok) {
     return authResult.response;

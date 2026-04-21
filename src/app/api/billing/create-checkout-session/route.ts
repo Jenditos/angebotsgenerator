@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import {
   classifyUserAccessError,
   logUserAccessError,
@@ -21,6 +22,16 @@ function createStripeClient(): Stripe {
 }
 
 export async function POST(request: Request) {
+  if (isAuthBypassEnabled()) {
+    return NextResponse.json(
+      {
+        error:
+          "Checkout ist im temporären Login-Bypass deaktiviert. Für Checkout bitte Auth wieder aktivieren.",
+      },
+      { status: 503 },
+    );
+  }
+
   if (!STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe ist noch nicht konfiguriert." },

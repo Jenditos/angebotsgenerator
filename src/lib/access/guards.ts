@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import {
+  buildBypassAccessRecord,
+  buildBypassSupabaseClient,
+  buildBypassUser,
+  isAuthBypassEnabled,
+} from "@/lib/access/auth-bypass";
+import {
   classifyUserAccessError,
   logUserAccessError,
 } from "@/lib/access/access-errors";
@@ -33,6 +39,14 @@ type GuardFailure = {
 export async function requireAuthenticatedUser(): Promise<
   AuthenticatedGuardSuccess | GuardFailure
 > {
+  if (isAuthBypassEnabled()) {
+    return {
+      ok: true,
+      supabase: buildBypassSupabaseClient(),
+      user: buildBypassUser(),
+    };
+  }
+
   if (!isSupabaseConfigured()) {
     return {
       ok: false,
@@ -69,6 +83,15 @@ export async function requireAppAccess(): Promise<
   const authResult = await requireAuthenticatedUser();
   if (!authResult.ok) {
     return authResult;
+  }
+
+  if (isAuthBypassEnabled()) {
+    return {
+      ok: true,
+      supabase: authResult.supabase,
+      user: authResult.user,
+      access: buildBypassAccessRecord(),
+    };
   }
 
   let accessRecord: UserAccessRecord;
