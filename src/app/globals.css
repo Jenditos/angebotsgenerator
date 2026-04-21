@@ -9298,7 +9298,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 .intakePrimaryActions {
-  --intake-primary-action-size: 56px;
+  --intake-primary-action-size: 40px;
   display: flex;
   align-items: stretch;
   justify-content: flex-start;
@@ -9310,12 +9310,12 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 .intakePrimaryActionButton {
   border-radius: 12px;
   min-height: var(--intake-primary-action-size);
-  padding: 12px 14px;
+  padding: 9px 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 800;
+  font-size: 0.84rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
   border: 1px solid transparent;
   transition:
@@ -9334,7 +9334,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 
 button.intakePrimaryActionButtonPrimary {
   flex: 0 0 auto;
-  min-width: 220px;
+  min-width: 0;
   color: var(--vis-dark) !important;
   border-color: var(--vis-accent-c) !important;
   background: var(--vis-accent-c) !important;
@@ -9372,8 +9372,8 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 }
 
 .intakePhotoScanIcon {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   color: #ffffff !important;
 }
 
