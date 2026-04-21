@@ -1434,9 +1434,7 @@ export default function HomePage() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
-  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(
-    isSupabaseConfigured(),
-  );
+  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(true);
   const [accountIdentity, setAccountIdentity] = useState("");
   const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
@@ -2151,14 +2149,6 @@ export default function HomePage() {
     let mounted = true;
 
     async function loadAccountStatus() {
-      if (!isSupabaseConfigured()) {
-        if (mounted) {
-          setIsAuthenticatedUser(false);
-          setAccountIdentity("");
-        }
-        return;
-      }
-
       try {
         const response = await fetch("/api/access/status", { cache: "no-store" });
         if (!mounted) {
@@ -5546,8 +5536,8 @@ export default function HomePage() {
                   <>
                     {!photoPreviewDataUrl && !photoInfo && !photoError ? (
                       <p className="intakeFlowHint">
-                        Nutze oben „Foto scannen“, um ein Bild aufzunehmen oder
-                        hochzuladen.
+                        Klicke auf den roten Kamera-Button, um ein Foto
+                        aufzunehmen oder hochzuladen.
                       </p>
                     ) : null}
 

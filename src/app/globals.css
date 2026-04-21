@@ -9508,26 +9508,31 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 }
 
 .voiceTranscriptTextareaWithResetAction {
-  padding-bottom: 36px !important;
+  padding-bottom: 44px !important;
 }
 
 .voiceTranscriptResetAction {
   position: absolute;
   right: 10px;
-  bottom: 9px;
-  border: 0;
-  background: rgba(255, 255, 255, 0.92);
-  color: #4b678f;
-  font-size: 0.74rem;
-  font-weight: 700;
+  bottom: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(75, 103, 143, 0.32);
+  background: #ffffff;
+  color: #2d4a75;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.2;
-  border-radius: 8px;
-  padding: 4px 8px;
+  border-radius: 10px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .voiceTranscriptResetAction:hover:not(:disabled) {
-  background: #ffffff;
+  background: #f5f9ff;
+  border-color: rgba(35, 75, 120, 0.4);
   color: #234b78;
 }
 
