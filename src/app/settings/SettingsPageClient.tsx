@@ -74,6 +74,7 @@ const emptySettings: CompanySettings = {
 
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 const SETTINGS_AUTOSAVE_DELAY_MS = 700;
+const SETTINGS_KEEPALIVE_MAX_BODY_BYTES = 60_000;
 const LOGO_DOWNSCALE_FACTOR = 0.82;
 const LOGO_MAX_DOWNSCALE_ATTEMPTS = 6;
 const LOGO_JPEG_QUALITIES = [0.92, 0.86, 0.8, 0.74, 0.68];
@@ -420,6 +421,8 @@ export default function SettingsPage() {
   const settingsSaveRequestRef = useRef(0);
   const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const hasLocalLogoChangeRef = useRef(false);
+  const hasPendingAutosaveRef = useRef(false);
+  const latestSettingsRef = useRef(settings);
   const isNotLoggedInError = /^nicht eingeloggt\.?$/i.test(error.trim());
   const ibanValidation = useMemo(
     () => validateIbanInput(settings.companyIban),
@@ -428,10 +431,15 @@ export default function SettingsPage() {
   const ibanStatusLabel =
     settings.ibanVerificationStatus === "valid" ? "gültig" : "nicht geprüft";
 
+  useEffect(() => {
+    latestSettingsRef.current = settings;
+  }, [settings]);
+
   const persistSettings = useCallback(
     async (
       nextSettings: CompanySettings,
       mode: "manual" | "autosave" | "reset" = "manual",
+      options?: { keepalive?: boolean },
     ) => {
       const requestId = ++settingsSaveRequestRef.current;
       const runPersist = async (): Promise<boolean> => {
@@ -478,12 +486,17 @@ export default function SettingsPage() {
           companyBic: normalizeBicInput(nextSettings.companyBic),
           ibanVerificationStatus: nextIbanVerificationStatus,
         };
+        const payloadBody = JSON.stringify(payloadSettings);
+        const shouldUseKeepalive =
+          Boolean(options?.keepalive) &&
+          payloadBody.length <= SETTINGS_KEEPALIVE_MAX_BODY_BYTES;
 
         try {
           const response = await fetch("/api/settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payloadSettings),
+            body: payloadBody,
+            keepalive: shouldUseKeepalive,
           });
 
           const data = await response.json();
@@ -511,6 +524,7 @@ export default function SettingsPage() {
           if (resolvedSettings.logoDataUrl === payloadSettings.logoDataUrl) {
             hasLocalLogoChangeRef.current = false;
           }
+          hasPendingAutosaveRef.current = false;
 
           if (mode === "manual") {
             setSaveStatus("Einstellungen wurden gespeichert.");
@@ -540,6 +554,30 @@ export default function SettingsPage() {
       return queuedPersistPromise;
     },
     [],
+  );
+
+  const flushPendingAutosave = useCallback(
+    (reason: "navigation" | "visibilitychange" | "pagehide" | "beforeunload") => {
+      if (!isSettingsHydrated || !isAutosaveEnabled) {
+        return;
+      }
+
+      if (!hasPendingAutosaveRef.current) {
+        return;
+      }
+
+      if (autosaveTimeoutRef.current !== null) {
+        window.clearTimeout(autosaveTimeoutRef.current);
+        autosaveTimeoutRef.current = null;
+      }
+
+      const nextSettings = latestSettingsRef.current;
+      writeSettingsDraftToSessionStorage(nextSettings);
+      void persistSettings(nextSettings, "autosave", {
+        keepalive: reason !== "navigation",
+      });
+    },
+    [isAutosaveEnabled, isSettingsHydrated, persistSettings],
   );
 
   useEffect(() => {
@@ -623,6 +661,7 @@ export default function SettingsPage() {
     }
 
     writeSettingsDraftToSessionStorage(settings);
+    hasPendingAutosaveRef.current = true;
     if (autosaveTimeoutRef.current !== null) {
       window.clearTimeout(autosaveTimeoutRef.current);
     }
@@ -638,6 +677,31 @@ export default function SettingsPage() {
       }
     };
   }, [isAutosaveEnabled, isSettingsHydrated, persistSettings, settings]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "hidden") {
+        return;
+      }
+      flushPendingAutosave("visibilitychange");
+    };
+    const handlePageHide = () => {
+      flushPendingAutosave("pagehide");
+    };
+    const handleBeforeUnload = () => {
+      flushPendingAutosave("beforeunload");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [flushPendingAutosave]);
 
   useEffect(() => {
     if (invoiceDueInitialized) {
@@ -937,6 +1001,7 @@ export default function SettingsPage() {
       setSettings(nextSettings);
       writeSettingsDraftToSessionStorage(nextSettings);
       setIsAutosaveEnabled(true);
+      hasPendingAutosaveRef.current = true;
       setLogoPreviewRevision((prev) => prev + 1);
       if (autosaveTimeoutRef.current !== null) {
         window.clearTimeout(autosaveTimeoutRef.current);
@@ -981,6 +1046,7 @@ export default function SettingsPage() {
     setSettings(nextSettings);
     writeSettingsDraftToSessionStorage(nextSettings);
     setIsAutosaveEnabled(true);
+    hasPendingAutosaveRef.current = true;
     setLogoPreviewRevision((prev) => prev + 1);
     setSaveStatus("");
     setError("");
@@ -1040,7 +1106,8 @@ export default function SettingsPage() {
     }
 
     setIsLeavingSettings(true);
-    writeSettingsDraftToSessionStorage(settings);
+    writeSettingsDraftToSessionStorage(latestSettingsRef.current);
+    flushPendingAutosave("navigation");
     if (leaveSettingsTimeoutRef.current !== null) {
       window.clearTimeout(leaveSettingsTimeoutRef.current);
     }
@@ -1051,6 +1118,8 @@ export default function SettingsPage() {
 
   async function handleLogout() {
     try {
+      writeSettingsDraftToSessionStorage(latestSettingsRef.current);
+      flushPendingAutosave("navigation");
       if (isSupabaseConfigured()) {
         const supabase = getSupabaseBrowserClient();
         await supabase.auth.signOut();
