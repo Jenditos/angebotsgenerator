@@ -5501,19 +5501,19 @@ export default function HomePage() {
                           }}
                           placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
                         />
-                        {hasUsedPrimaryVoiceIntake ? (
-                          <div className="voiceTranscriptActions">
-                            <button
-                              type="button"
-                              className="voiceTranscriptResetAction"
-                              onClick={resetCurrentInputs}
-                              disabled={isSubmitting || isAnyIntakeProcessing}
-                            >
-                              Felder leeren
-                            </button>
-                          </div>
-                        ) : null}
                       </div>
+                      {hasUsedPrimaryVoiceIntake ? (
+                        <div className="voiceTranscriptActions">
+                          <button
+                            type="button"
+                            className="voiceTranscriptResetAction"
+                            onClick={resetCurrentInputs}
+                            disabled={isSubmitting || isAnyIntakeProcessing}
+                          >
+                            Felder leeren
+                          </button>
+                        </div>
+                      ) : null}
                     </label>
 
                     {!speechSupported || voiceInfo || voiceError ? (

@@ -9682,23 +9682,22 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 
 .voiceTranscriptFieldBody {
   position: relative;
-  display: grid;
-  gap: 10px;
 }
 
 .voiceTranscriptActions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  margin-top: 8px;
 }
 
-.voiceTranscriptResetAction {
+.appFrameWithSidebar .dashboardVoicePanel button.voiceTranscriptResetAction {
   position: static;
   min-height: 34px;
   padding: 0 14px;
-  border: 1px solid rgba(29, 72, 124, 0.34);
-  background: rgba(237, 246, 255, 0.95);
-  color: #1f4675;
+  border: 1px solid rgba(186, 205, 230, 0.82) !important;
+  background: #f4f7fb !important;
+  color: #163a65 !important;
   font-size: 0.82rem;
   font-weight: 600;
   line-height: 1.2;
@@ -9707,14 +9706,26 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 12px rgba(12, 44, 86, 0.12);
+  box-shadow: 0 6px 14px rgba(9, 33, 67, 0.16) !important;
 }
 
-.voiceTranscriptResetAction:hover:not(:disabled) {
-  background: #f7fbff;
-  border-color: rgba(20, 78, 142, 0.5);
-  color: #113f71;
-  box-shadow: 0 9px 16px rgba(8, 42, 90, 0.16);
+.appFrameWithSidebar
+  .dashboardVoicePanel
+  button.voiceTranscriptResetAction:hover:not(:disabled) {
+  background: #ffffff !important;
+  border-color: rgba(169, 196, 229, 0.92) !important;
+  color: #12365f !important;
+  box-shadow: 0 8px 16px rgba(9, 33, 67, 0.2) !important;
+}
+
+.appFrameWithSidebar
+  .dashboardVoicePanel
+  button.voiceTranscriptResetAction:focus-visible {
+  outline: none;
+  border-color: rgba(121, 169, 227, 0.96) !important;
+  box-shadow:
+    0 0 0 3px rgba(121, 169, 227, 0.22),
+    0 8px 16px rgba(9, 33, 67, 0.2) !important;
 }
 
 .voiceTranscriptResetAction:disabled {
