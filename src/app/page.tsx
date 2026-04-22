@@ -3080,6 +3080,7 @@ export default function HomePage() {
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
     if (!speechCtor) {
+      setVoiceInfo("");
       setVoiceError(
         "Spracherkennung wird auf diesem Gerät/Browser nicht unterstützt.",
       );
@@ -3166,6 +3167,7 @@ export default function HomePage() {
           "Spracherkennung fehlgeschlagen. Bitte erneut versuchen.",
         );
       }
+      setVoiceInfo("");
       shouldAutoApplyVoiceRef.current = false;
       pauseRequestedRef.current = false;
       recognitionRef.current = null;
@@ -3458,6 +3460,7 @@ export default function HomePage() {
     });
     if (transcript.length < 8) {
       if (!autoTriggered) {
+        setVoiceInfo("");
         setVoiceError(
           "Bitte etwas länger sprechen, damit die KI genug Daten hat.",
         );
@@ -3468,6 +3471,7 @@ export default function HomePage() {
 
     if (transcript.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
       if (!autoTriggered) {
+        setVoiceInfo("");
         setVoiceError(
           `Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
         );
@@ -3498,15 +3502,18 @@ export default function HomePage() {
         const errorText =
           data.error ?? "Sprachdaten konnten nicht verarbeitet werden.";
         if (response.status === 401) {
+          setVoiceInfo("");
           setVoiceError("Bitte zuerst einloggen, um die KI-Sprachfunktion zu nutzen.");
           console.warn("[voice] parse rejected because user is not logged in");
           return;
         }
         if (response.status === 402) {
+          setVoiceInfo("");
           setVoiceError(errorText);
           console.warn("[voice] parse rejected because app access is not active");
           return;
         }
+        setVoiceInfo("");
         setVoiceError(
           /zugriff/i.test(errorText)
             ? "Sprachverarbeitung fehlgeschlagen. Bitte erneut versuchen."
@@ -3632,6 +3639,7 @@ export default function HomePage() {
       });
     } catch (error) {
       setVoiceMissingFields([]);
+      setVoiceInfo("");
       setVoiceError("Sprachverarbeitung fehlgeschlagen. Bitte erneut versuchen.");
       console.error("[voice] parse failed", error);
     } finally {
@@ -5332,6 +5340,10 @@ export default function HomePage() {
               <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">
                   <strong>Per KI erfassen</strong>
+                  <p>
+                    Diktiere frei oder nutze ein Foto. Die Eingaben werden
+                    automatisch in die Felder übernommen.
+                  </p>
                 </div>
 
                 <input
@@ -5502,20 +5514,66 @@ export default function HomePage() {
                       </div>
                     </label>
 
-                    {!speechSupported ? (
-                      <p className="voiceWarning">
-                        Spracherkennung wird auf diesem Browser nicht unterstützt.
-                      </p>
-                    ) : null}
-                    {voiceInfo ? (
-                      <p className="voiceInfo" role="status" aria-live="polite">
-                        {voiceInfo}
-                      </p>
-                    ) : null}
-                    {voiceError ? (
-                      <p className="voiceWarning" role="alert">
-                        {voiceError}
-                      </p>
+                    {!speechSupported || voiceInfo || voiceError ? (
+                      <div className="voiceStatusSection">
+                        <span className="voiceStatusSectionLabel">Status</span>
+                        <div className="voiceStatusGroup">
+                          {!speechSupported ? (
+                            <p
+                              className="voiceStatusCard voiceStatusCardWarning"
+                              role="alert"
+                            >
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                !
+                              </span>
+                              <span className="voiceStatusText">
+                                Spracherkennung wird auf diesem Browser nicht
+                                unterstützt.
+                              </span>
+                            </p>
+                          ) : null}
+                          {voiceInfo ? (
+                            <p
+                              className={`voiceStatusCard voiceStatusCardInfo ${isListening ? "voiceStatusCardLive" : ""}`}
+                              role="status"
+                              aria-live="polite"
+                            >
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                i
+                              </span>
+                              <span className="voiceStatusText">{voiceInfo}</span>
+                              {isListening ? (
+                                <span
+                                  className="voiceStatusBadge"
+                                  aria-hidden="true"
+                                >
+                                  live
+                                </span>
+                              ) : null}
+                            </p>
+                          ) : null}
+                          {voiceError ? (
+                            <p
+                              className="voiceStatusCard voiceStatusCardError"
+                              role="alert"
+                            >
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                !
+                              </span>
+                              <span className="voiceStatusText">{voiceError}</span>
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
                     ) : null}
                     {voiceMissingFields.length > 0 ? (
                       <div className="voiceMissingPanel">
@@ -5550,15 +5608,41 @@ export default function HomePage() {
                         />
                       </div>
                     ) : null}
-                    {photoInfo ? (
-                      <p className="voiceInfo" role="status" aria-live="polite">
-                        {photoInfo}
-                      </p>
-                    ) : null}
-                    {photoError ? (
-                      <p className="voiceWarning" role="alert">
-                        {photoError}
-                      </p>
+                    {photoInfo || photoError ? (
+                      <div className="voiceStatusSection">
+                        <span className="voiceStatusSectionLabel">Status</span>
+                        <div className="voiceStatusGroup">
+                          {photoInfo ? (
+                            <p
+                              className="voiceStatusCard voiceStatusCardInfo"
+                              role="status"
+                              aria-live="polite"
+                            >
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                i
+                              </span>
+                              <span className="voiceStatusText">{photoInfo}</span>
+                            </p>
+                          ) : null}
+                          {photoError ? (
+                            <p
+                              className="voiceStatusCard voiceStatusCardError"
+                              role="alert"
+                            >
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                !
+                              </span>
+                              <span className="voiceStatusText">{photoError}</span>
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
                     ) : null}
 
                     {photoReviewDraft ? (

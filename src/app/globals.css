@@ -9332,7 +9332,8 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 
 .appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader p {
   max-width: 62ch;
-  line-height: 1.36;
+  line-height: 1.44;
+  color: rgba(239, 247, 255, 0.86) !important;
 }
 
 .appFrameWithSidebar .dashboardVoicePanel .intakePrimaryActions {
@@ -9352,6 +9353,163 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   margin: 0 !important;
 }
 
+.appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptFieldBody {
+  border-radius: 18px;
+  border: 1px solid rgba(165, 212, 255, 0.34);
+  background: linear-gradient(
+    165deg,
+    rgba(7, 56, 119, 0.3),
+    rgba(18, 99, 198, 0.18)
+  );
+  padding: 10px;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea {
+  min-height: 184px;
+  border: 1px solid rgba(168, 208, 247, 0.62) !important;
+  background: rgba(246, 252, 255, 0.94) !important;
+  color: #163a65 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  resize: vertical;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea::placeholder {
+  color: #4f6e97 !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea:focus {
+  border-color: rgba(64, 151, 255, 0.95) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(107, 180, 255, 0.26) !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusSection {
+  margin: 0 !important;
+  display: grid;
+  gap: 8px;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusSectionLabel {
+  margin: 0 !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(233, 246, 255, 0.84) !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCard {
+  margin: 0 !important;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 10px;
+  padding: 11px 12px !important;
+  border-radius: 14px;
+  border: 1px solid rgba(168, 215, 255, 0.34) !important;
+  background: linear-gradient(
+    155deg,
+    rgba(7, 45, 96, 0.4),
+    rgba(20, 102, 204, 0.22)
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 12px 24px rgba(9, 36, 72, 0.2);
+  color: #f3f9ff !important;
+  line-height: 1.4;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(194, 225, 255, 0.52);
+  background: rgba(173, 223, 255, 0.18);
+  color: #dcf1ff !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusText {
+  min-width: 0;
+  color: inherit !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusBadge {
+  align-self: start;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid rgba(152, 233, 255, 0.64);
+  background: rgba(20, 235, 255, 0.2);
+  color: #dcf8ff !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardInfo {
+  border-color: rgba(167, 220, 255, 0.4) !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardLive {
+  border-color: rgba(134, 236, 255, 0.66) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(134, 236, 255, 0.24),
+    0 14px 28px rgba(5, 43, 92, 0.24);
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardLive .voiceStatusIcon {
+  border-color: rgba(143, 244, 255, 0.86);
+  background: rgba(20, 235, 255, 0.28);
+  color: #ecfeff !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardWarning {
+  border-color: rgba(255, 211, 132, 0.5) !important;
+  background: linear-gradient(
+    155deg,
+    rgba(95, 61, 3, 0.34),
+    rgba(171, 116, 11, 0.22)
+  ) !important;
+  color: #fff7df !important;
+}
+
+.appFrameWithSidebar
+  .dashboardVoicePanel
+  .voiceStatusCardWarning
+  .voiceStatusIcon {
+  border-color: rgba(255, 223, 157, 0.62);
+  background: rgba(255, 203, 102, 0.25);
+  color: #fff8e3 !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardError {
+  border-color: rgba(255, 166, 184, 0.6) !important;
+  background: linear-gradient(
+    155deg,
+    rgba(116, 13, 37, 0.42),
+    rgba(196, 38, 73, 0.24)
+  ) !important;
+  color: #fff1f5 !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardError .voiceStatusIcon {
+  border-color: rgba(255, 184, 200, 0.72);
+  background: rgba(255, 129, 157, 0.3);
+  color: #fff5f8 !important;
+}
+
 @media (max-width: 760px) {
   .appFrameWithSidebar .dashboardVoicePanel {
     row-gap: 12px;
@@ -9360,6 +9518,25 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 
   .appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader {
     gap: 8px !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptFieldBody {
+    border-radius: 14px;
+    padding: 8px;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea {
+    min-height: 150px;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voiceStatusCard {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voiceStatusBadge {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 
@@ -9517,9 +9694,9 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   bottom: 8px;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid rgba(75, 103, 143, 0.32);
-  background: #ffffff;
-  color: #2d4a75;
+  border: 1px solid rgba(29, 72, 124, 0.34);
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f4675;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
@@ -9528,12 +9705,14 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 8px 16px rgba(12, 44, 86, 0.16);
 }
 
 .voiceTranscriptResetAction:hover:not(:disabled) {
-  background: #f5f9ff;
-  border-color: rgba(35, 75, 120, 0.4);
-  color: #234b78;
+  background: #ffffff;
+  border-color: rgba(20, 78, 142, 0.5);
+  color: #113f71;
+  box-shadow: 0 10px 20px rgba(8, 42, 90, 0.22);
 }
 
 .voiceTranscriptResetAction:disabled {
