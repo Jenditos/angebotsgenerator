@@ -5492,7 +5492,7 @@ export default function HomePage() {
                       <span>Gesprochener Text</span>
                       <div className="voiceTranscriptFieldBody">
                         <textarea
-                          className={`voiceTranscriptTextarea ${hasUsedPrimaryVoiceIntake ? "voiceTranscriptTextareaWithResetAction" : ""}`}
+                          className="voiceTranscriptTextarea"
                           rows={3}
                           value={voiceTranscript}
                           onChange={(e) => {
@@ -5502,14 +5502,16 @@ export default function HomePage() {
                           placeholder="z. B. Kunde, Beispielweg 5, Stadt, Betonarbeiten 2 Stück à 120 Euro"
                         />
                         {hasUsedPrimaryVoiceIntake ? (
-                          <button
-                            type="button"
-                            className="voiceTranscriptResetAction"
-                            onClick={resetCurrentInputs}
-                            disabled={isSubmitting || isAnyIntakeProcessing}
-                          >
-                            Felder leeren
-                          </button>
+                          <div className="voiceTranscriptActions">
+                            <button
+                              type="button"
+                              className="voiceTranscriptResetAction"
+                              onClick={resetCurrentInputs}
+                              disabled={isSubmitting || isAnyIntakeProcessing}
+                            >
+                              Felder leeren
+                            </button>
+                          </div>
                         ) : null}
                       </div>
                     </label>

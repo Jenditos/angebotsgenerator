@@ -9682,42 +9682,70 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 
 .voiceTranscriptFieldBody {
   position: relative;
+  display: grid;
+  gap: 10px;
 }
 
-.voiceTranscriptTextareaWithResetAction {
-  padding-bottom: 44px !important;
+.voiceTranscriptActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .voiceTranscriptResetAction {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  min-height: 32px;
-  padding: 0 12px;
+  position: static;
+  min-height: 34px;
+  padding: 0 14px;
   border: 1px solid rgba(29, 72, 124, 0.34);
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(237, 246, 255, 0.95);
   color: #1f4675;
-  font-size: 13px;
+  font-size: 0.82rem;
   font-weight: 600;
   line-height: 1.2;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 16px rgba(12, 44, 86, 0.16);
+  box-shadow: 0 6px 12px rgba(12, 44, 86, 0.12);
 }
 
 .voiceTranscriptResetAction:hover:not(:disabled) {
-  background: #ffffff;
+  background: #f7fbff;
   border-color: rgba(20, 78, 142, 0.5);
   color: #113f71;
-  box-shadow: 0 10px 20px rgba(8, 42, 90, 0.22);
+  box-shadow: 0 9px 16px rgba(8, 42, 90, 0.16);
 }
 
 .voiceTranscriptResetAction:disabled {
   opacity: 0.58;
   cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Scroll Flicker Fix (stable paint layers)
+   ========================================================================== */
+html,
+body {
+  background: #e6edf7 !important;
+  background-image: none !important;
+  overscroll-behavior-y: none;
+}
+
+.page,
+.dashboardCanvas {
+  background: #e6edf7 !important;
+  background-image: none !important;
+}
+
+@media (min-width: 981px) {
+  .appFrameWithSidebar {
+    background: var(--vis-white) !important;
+  }
+
+  .appFrameWithSidebar .dashboardPrimaryCard {
+    background: var(--vis-white) !important;
+  }
 }
 
 .photoPreviewWrap {
