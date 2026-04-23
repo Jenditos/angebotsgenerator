@@ -3114,13 +3114,9 @@ export default function HomePage() {
       return;
     }
 
+    const isResumingRecording = isSpeechPaused;
     setVoiceError("");
     setVoiceMissingFields([]);
-    setVoiceInfo(
-      isSpeechPaused
-        ? "Aufnahme fortgesetzt. Sprich weiter, der Text wird angehängt."
-        : "Sprich jetzt. Du kannst frei alle Angebotsdaten diktieren.",
-    );
     setIsSpeechPaused(false);
     shouldAutoApplyVoiceRef.current = true;
     pauseRequestedRef.current = false;
@@ -3152,6 +3148,14 @@ export default function HomePage() {
     recognition.lang = "de-DE";
     recognition.continuous = true;
     recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setVoiceInfo(
+        isResumingRecording
+          ? "Aufnahme fortgesetzt. Sprich weiter, der Text wird angehängt."
+          : "Sprich jetzt. Du kannst frei alle Angebotsdaten diktieren.",
+      );
+    };
 
     recognition.onresult = (event: any) => {
       let interimTranscript = "";
