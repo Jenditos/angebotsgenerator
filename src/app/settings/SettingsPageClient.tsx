@@ -499,6 +499,34 @@ export default function SettingsPage() {
     latestSettingsRef.current = settings;
   }, [settings]);
 
+  const reconcileSettingsAfterFailedSave = useCallback(
+    async (expectedSettings: CompanySettings): Promise<CompanySettings | null> => {
+      try {
+        const verificationResponse = await fetch("/api/settings", {
+          cache: "no-store",
+        });
+        if (!verificationResponse.ok) {
+          return null;
+        }
+
+        const verificationData = (await verificationResponse.json()) as {
+          settings?: CompanySettings;
+        };
+        const persistedSettings = verificationData.settings;
+        if (!persistedSettings) {
+          return null;
+        }
+
+        return areSettingsEqual(persistedSettings, expectedSettings)
+          ? persistedSettings
+          : null;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
   const persistSettings = useCallback(
     async (
       nextSettings: CompanySettings,
@@ -563,45 +591,78 @@ export default function SettingsPage() {
             keepalive: shouldUseKeepalive,
           });
 
-          const data = await response.json();
+          const data = (await response.json()) as {
+            settings?: CompanySettings;
+            error?: string;
+          };
+          if (settingsSaveRequestRef.current !== requestId) {
+            return false;
+          }
+
+          const applyResolvedSettings = (resolvedSettings: CompanySettings) => {
+            setSettings((prev) =>
+              areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
+            );
+            writeSettingsDraftToSessionStorage(resolvedSettings);
+            setIsAutosaveEnabled(true);
+            setError("");
+            if (resolvedSettings.logoDataUrl === payloadSettings.logoDataUrl) {
+              hasLocalLogoChangeRef.current = false;
+            }
+            hasPendingAutosaveRef.current = false;
+
+            if (mode === "manual") {
+              setSaveStatus("Einstellungen wurden gespeichert.");
+            } else if (mode === "reset") {
+              setSaveStatus("Einstellungen wurden zurückgesetzt.");
+            }
+          };
+
           if (!response.ok) {
-            if (
-              settingsSaveRequestRef.current === requestId &&
-              mode !== "autosave"
-            ) {
+            if (mode !== "autosave") {
+              const reconciledSettings =
+                await reconcileSettingsAfterFailedSave(payloadSettings);
+              if (reconciledSettings) {
+                applyResolvedSettings(reconciledSettings);
+                return true;
+              }
               setError(data.error ?? "Speichern fehlgeschlagen");
             }
             return false;
           }
 
+          const resolvedSettings = data.settings ?? payloadSettings;
+          applyResolvedSettings(resolvedSettings);
+
+          return true;
+        } catch {
           if (settingsSaveRequestRef.current !== requestId) {
             return false;
           }
 
-          const resolvedSettings = data.settings as CompanySettings;
-          setSettings((prev) =>
-            areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
-          );
-          writeSettingsDraftToSessionStorage(resolvedSettings);
-          setIsAutosaveEnabled(true);
-          setError("");
-          if (resolvedSettings.logoDataUrl === payloadSettings.logoDataUrl) {
-            hasLocalLogoChangeRef.current = false;
-          }
-          hasPendingAutosaveRef.current = false;
+          if (mode !== "autosave") {
+            const reconciledSettings =
+              await reconcileSettingsAfterFailedSave(payloadSettings);
+            if (reconciledSettings) {
+              setSettings((prev) =>
+                areSettingsEqual(prev, reconciledSettings) ? prev : reconciledSettings,
+              );
+              writeSettingsDraftToSessionStorage(reconciledSettings);
+              setIsAutosaveEnabled(true);
+              setError("");
+              if (reconciledSettings.logoDataUrl === payloadSettings.logoDataUrl) {
+                hasLocalLogoChangeRef.current = false;
+              }
+              hasPendingAutosaveRef.current = false;
 
-          if (mode === "manual") {
-            setSaveStatus("Einstellungen wurden gespeichert.");
-          } else if (mode === "reset") {
-            setSaveStatus("Einstellungen wurden zurückgesetzt.");
-          }
+              if (mode === "manual") {
+                setSaveStatus("Einstellungen wurden gespeichert.");
+              } else if (mode === "reset") {
+                setSaveStatus("Einstellungen wurden zurückgesetzt.");
+              }
 
-          return true;
-        } catch {
-          if (
-            settingsSaveRequestRef.current === requestId &&
-            mode !== "autosave"
-          ) {
+              return true;
+            }
             setError("Netzwerkfehler beim Speichern.");
           }
           return false;
@@ -617,7 +678,7 @@ export default function SettingsPage() {
         .catch(() => undefined);
       return queuedPersistPromise;
     },
-    [],
+    [reconcileSettingsAfterFailedSave],
   );
 
   const flushPendingAutosave = useCallback(
@@ -1124,6 +1185,10 @@ export default function SettingsPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIbanFieldTouched(true);
+    if (autosaveTimeoutRef.current !== null) {
+      window.clearTimeout(autosaveTimeoutRef.current);
+      autosaveTimeoutRef.current = null;
+    }
     await persistSettings(settings, "manual");
   }
 

@@ -30,6 +30,13 @@ const MAX_VAT_RATE = 100;
 const MAX_TERMS_TEXT_LENGTH = 3000;
 const MAX_EU_VAT_NOTICE_TEXT_LENGTH = 2000;
 const MAX_BANK_NAME_LENGTH = 120;
+const SETTINGS_SETUP_ERROR_CODES = new Set([
+  "42P01", // relation does not exist
+  "42501", // insufficient privilege / RLS
+  "3F000", // invalid schema
+  "PGRST204", // unknown column in schema cache
+  "PGRST205", // unknown table/view in schema cache
+]);
 
 const defaultSettings: CompanySettings = {
   companyName: "",
@@ -87,6 +94,52 @@ function isMissingFileError(error: unknown): boolean {
 function isReadonlyStorageError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   return code === "EROFS" || code === "EACCES" || code === "EPERM";
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function asUpperString(value: unknown): string {
+  return typeof value === "string" ? value.trim().toUpperCase() : "";
+}
+
+function asLowerString(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isUserSettingsSetupError(error: unknown): boolean {
+  const direct = asObject(error);
+  const cause = asObject(direct?.cause);
+
+  const codeCandidates = [
+    asUpperString(direct?.code),
+    asUpperString(cause?.code),
+  ].filter(Boolean);
+  if (codeCandidates.some((code) => SETTINGS_SETUP_ERROR_CODES.has(code))) {
+    return true;
+  }
+
+  const messageParts = [
+    asLowerString(direct?.message),
+    asLowerString(cause?.message),
+    asLowerString(cause?.details),
+    asLowerString(cause?.hint),
+  ].filter(Boolean);
+  const haystack = messageParts.join(" | ");
+  if (!haystack) {
+    return false;
+  }
+
+  return (
+    haystack.includes("user_settings") ||
+    haystack.includes("could not find the table") ||
+    haystack.includes("schema cache") ||
+    haystack.includes("permission denied")
+  );
 }
 
 function asTrimmedString(value: unknown, fallback = ""): string {
@@ -476,6 +529,16 @@ export async function readSettings(
       .maybeSingle();
 
     if (error) {
+      if (isUserSettingsSetupError(error)) {
+        const fallback = volatileSettingsCache ?? cloneDefaultSettings();
+        volatileSettingsCache = fallback;
+        const code = (error as { code?: string }).code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Verwende Fallback-Settings im Runtime-Cache.`,
+        );
+        return fallback;
+      }
+
       const code = (error as { code?: string }).code ?? "UNKNOWN";
       throw new Error(
         `[settings-store] Supabase-Einstellungen konnten nicht geladen werden (${code}).`,
@@ -492,12 +555,14 @@ export async function readSettings(
       return cloneDefaultSettings();
     }
 
-    return parseRawSettingsPayload(
+    const parsedSettings = parseRawSettingsPayload(
       rawPayload as Partial<CompanySettings> & {
         pdfTableColumns?: unknown;
         customServices?: unknown;
       },
     );
+    volatileSettingsCache = parsedSettings;
+    return parsedSettings;
   }
 
   const { settingsPath } = await resolveSettingsStorePaths();
@@ -551,6 +616,15 @@ export async function writeSettings(
       );
 
     if (error) {
+      if (isUserSettingsSetupError(error)) {
+        volatileSettingsCache = next;
+        const code = (error as { code?: string }).code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Schreibe nur in den Runtime-Cache.`,
+        );
+        return next;
+      }
+
       const code = (error as { code?: string }).code ?? "UNKNOWN";
       throw new Error(
         `[settings-store] Supabase-Einstellungen konnten nicht gespeichert werden (${code}).`,
@@ -558,6 +632,7 @@ export async function writeSettings(
       );
     }
 
+    volatileSettingsCache = next;
     return next;
   }
 
