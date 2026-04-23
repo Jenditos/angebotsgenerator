@@ -9,6 +9,14 @@ function isAuthRoute(pathname: string): boolean {
   return pathname === "/auth" || pathname.startsWith("/auth/");
 }
 
+function isAuthFlowRoute(pathname: string): boolean {
+  return (
+    pathname === "/auth/callback" ||
+    pathname.startsWith("/auth/callback/") ||
+    pathname === "/auth/reset"
+  );
+}
+
 function isProtectedAppRoute(pathname: string): boolean {
   return pathname === "/" || pathname === "/settings" || pathname.startsWith("/settings/");
 }
@@ -45,6 +53,10 @@ export async function middleware(request: NextRequest) {
   });
 
   const pathname = request.nextUrl.pathname;
+  if (isAuthFlowRoute(pathname)) {
+    return response;
+  }
+
   const { data } = await supabase.auth.getUser();
   const user = data.user;
 
