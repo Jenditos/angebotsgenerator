@@ -9959,6 +9959,20 @@ body {
   color: var(--consistency-muted) !important;
 }
 
+.tipsOverlayPointList {
+  margin: 8px 0 0 !important;
+  padding-left: 18px !important;
+  display: grid !important;
+  gap: 5px !important;
+}
+
+.tipsOverlayPointList li {
+  margin: 0 !important;
+  font-size: var(--consistency-body-size) !important;
+  line-height: var(--consistency-body-line) !important;
+  color: var(--consistency-text) !important;
+}
+
 /* Login-required popup button consistency */
 button.ghostButton.voiceLoginModalCancelButton {
   border: 1px solid var(--vis-dark-10) !important;

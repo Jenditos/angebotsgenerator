@@ -455,34 +455,72 @@ const VOICE_FIELD_LABELS: Record<string, string> = {
   materialCost: "Materialkosten",
 };
 
-const ACCOUNT_TIPS: Array<{ title: string; text: string }> = [
+const ACCOUNT_TIPS: Array<{
+  title: string;
+  text: string;
+  points?: string[];
+}> = [
   {
-    title: "Angebote mit Frist absichern",
-    text: "Angebote sind grundsätzlich bindend. Setze eine klare Annahmefrist (z. B. 14 Tage), damit Preise und Konditionen nicht unbefristet offen bleiben (§ 145, § 148 BGB).",
+    title: "Schnellcheck",
+    text: "Prüfe vor dem Erstellen kurz die wichtigsten Angaben.",
+    points: [
+      "Kundendaten vollständig",
+      "Leistung klar beschrieben",
+      "Menge, Einheit und Einzelpreis eingetragen",
+      "Steuersatz geprüft",
+      "Zahlungsziel oder Angebotsgültigkeit gesetzt",
+    ],
   },
   {
-    title: "Leistungen eindeutig beschreiben",
-    text: "Beschreibe Positionen so konkret, dass Umfang und Art der Leistung später nachvollziehbar sind. Das reduziert Rückfragen und Nachtragsdiskussionen.",
+    title: "KI richtig diktieren",
+    text: "Sprich kurz, konkret und in derselben Reihenfolge wie im Formular.",
+    points: [
+      "Firma Müller, Hauptstraße 12 Köln, Betonarbeiten 2 Stück, Einzelpreis 120 Euro",
+      "Herr Drews, Hauptquartierstraße 63, Gelsenkirchen, Trockenbau 8 Stunden à 45 Euro",
+      "Rechnung für Malerarbeiten, 35 Quadratmeter, Einzelpreis 18 Euro, Zahlungsziel 14 Tage",
+    ],
   },
   {
-    title: "Rechnungspflichtangaben vollständig halten",
-    text: "Prüfe vor Versand die Kernangaben wie Rechnungsnummer, Leistungsdatum, Leistungsbeschreibung, Steuerangaben sowie Name/Anschrift von dir und dem Kunden (§ 14 Abs. 4 UStG).",
+    title: "Angebot professionell machen",
+    text: "Ein gutes Angebot ist eindeutig, befristet und später leicht nachvollziehbar.",
+    points: [
+      "Gültigkeit eintragen, z. B. 14 Tage",
+      "Leistungen konkret statt allgemein beschreiben",
+      "Bei schwankenden Materialpreisen einen Hinweis aufnehmen",
+      "Pauschalen nur nutzen, wenn der Leistungsumfang klar ist",
+    ],
   },
   {
-    title: "Kleinunternehmer-Hinweis aktiv nutzen",
-    text: "Wenn du nach § 19 UStG abrechnest, muss die Rechnung den Hinweis auf die Steuerbefreiung enthalten (vgl. § 34a UStDV).",
+    title: "Rechnung korrekt erstellen",
+    text: "Rechnungen brauchen klare Pflichtangaben und eine saubere Zahlungsinformation.",
+    points: [
+      "Name und Anschrift von dir und dem Kunden prüfen",
+      "Rechnungsnummer, Datum und Leistungsdatum setzen",
+      "Leistungsbeschreibung, Netto, Steuer und Brutto kontrollieren",
+      "IBAN und Zahlungsziel sichtbar halten",
+      "Bei Kleinunternehmern den passenden Hinweis verwenden",
+    ],
   },
   {
-    title: "E-Rechnung im Blick behalten",
-    text: "Im B2B-Bereich gilt seit 01.01.2025 die E-Rechnungspflicht mit Übergangsregeln. Plane dein Rechnungsformat daher frühzeitig ein.",
+    title: "Nützliche Formulierungen",
+    text: "Diese Sätze passen gut in Angebote, Rechnungen oder Zahlungsbedingungen.",
+    points: [
+      "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
+      "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen.",
+      "Vielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot.",
+      "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.",
+    ],
   },
   {
-    title: "Zahlungsziel klar formulieren",
-    text: "Lege ein eindeutiges Fälligkeitsdatum oder eine feste Frist fest (z. B. 14 Tage netto), damit offene Posten leichter nachverfolgt werden können.",
-  },
-  {
-    title: "Rechnungen archivieren",
-    text: "Stelle sicher, dass Ausgangs- und Eingangsrechnungen steuerkonform aufbewahrt werden. Für Unternehmer gelten 8 Jahre Aufbewahrungsfrist (§ 14b UStG).",
+    title: "Fehler vermeiden",
+    text: "Diese Punkte führen häufig zu Rückfragen oder unprofessionellen Dokumenten.",
+    points: [
+      "Nicht nur 'Arbeiten' schreiben, sondern Leistung, Menge und Einzelpreis nennen",
+      "Keine fehlende Rechnungsnummer",
+      "Kein fehlendes Leistungsdatum",
+      "Keine leere oder falsche IBAN",
+      "Netto- und Bruttopreise nicht unklar mischen",
+    ],
   },
 ];
 
@@ -4988,6 +5026,13 @@ export default function HomePage() {
                     <li key={tip.title} className="tipsOverlayItem">
                       <h3>{tip.title}</h3>
                       <p>{tip.text}</p>
+                      {tip.points ? (
+                        <ul className="tipsOverlayPointList">
+                          {tip.points.map((point) => (
+                            <li key={point}>{point}</li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
