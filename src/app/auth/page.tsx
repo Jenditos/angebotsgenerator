@@ -68,6 +68,8 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -92,6 +94,49 @@ export default function AuthPage() {
     }
   }
 
+  async function resendConfirmationEmail() {
+    if (!supabase) {
+      setError("Supabase ist nicht konfiguriert.");
+      return;
+    }
+
+    const targetEmail = pendingConfirmationEmail.trim().toLowerCase();
+    if (!targetEmail) {
+      setError("Bitte gib zuerst eine E-Mail-Adresse ein.");
+      return;
+    }
+
+    setIsResendingConfirmation(true);
+    setError("");
+    setInfo("");
+
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: targetEmail,
+        options: {
+          emailRedirectTo: resolveAuthCallbackUrl(),
+        },
+      });
+      if (resendError) {
+        setError(formatAuthErrorMessage(resendError.message));
+        return;
+      }
+
+      setInfo(
+        `Bestätigungs-Mail erneut gesendet an ${targetEmail}. Bitte auch Spam-Ordner prüfen.`,
+      );
+    } catch (resendFailure) {
+      setError(
+        resendFailure instanceof Error
+          ? resendFailure.message
+          : "Bestätigungs-Mail konnte nicht erneut gesendet werden.",
+      );
+    } finally {
+      setIsResendingConfirmation(false);
+    }
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) {
@@ -106,13 +151,14 @@ export default function AuthPage() {
     try {
       if (mode === "register") {
         const trimmedName = name.trim();
+        const trimmedEmail = email.trim().toLowerCase();
         if (!trimmedName) {
           setError("Bitte gib deinen Namen ein.");
           return;
         }
 
         const { data, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: trimmedEmail,
           password,
           options: {
             data: {
@@ -128,14 +174,16 @@ export default function AuthPage() {
         }
 
         if (data.session) {
+          setPendingConfirmationEmail("");
           await bootstrapTrial();
           router.replace("/");
           router.refresh();
           return;
         }
 
+        setPendingConfirmationEmail(trimmedEmail);
         setInfo(
-          "Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse und melde dich danach an.",
+          "Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse (auch Spam prüfen) und melde dich danach an.",
         );
         setMode("login");
         return;
@@ -164,10 +212,14 @@ export default function AuthPage() {
         password,
       });
       if (signInError) {
+        if (signInError.message.toLowerCase().includes("email not confirmed")) {
+          setPendingConfirmationEmail(email.trim().toLowerCase());
+        }
         setError(formatAuthErrorMessage(signInError.message));
         return;
       }
 
+      setPendingConfirmationEmail("");
       await bootstrapTrial();
       router.replace("/");
       router.refresh();
@@ -185,6 +237,8 @@ export default function AuthPage() {
 
   const isRegisterMode = mode === "register";
   const isForgotMode = mode === "forgot";
+  const canResendConfirmation =
+    !isForgotMode && authReady && Boolean(pendingConfirmationEmail.trim());
   const submitLabel = isSubmitting
     ? "Bitte warten ..."
     : isRegisterMode
@@ -286,6 +340,21 @@ export default function AuthPage() {
           ) : null}
           {!error && info ? (
             <p className="authGithubMessage authGithubMessageInfo">{info}</p>
+          ) : null}
+          {canResendConfirmation ? (
+            <p className="authGithubSignupHint">
+              Keine Bestätigungs-Mail erhalten?{" "}
+              <button
+                type="button"
+                className="authGithubInlineLink authGithubInlineLinkStrong"
+                onClick={() => void resendConfirmationEmail()}
+                disabled={isSubmitting || isResendingConfirmation}
+              >
+                {isResendingConfirmation
+                  ? "Wird gesendet ..."
+                  : "Bestätigungs-Mail erneut senden"}
+              </button>
+            </p>
           ) : null}
 
           {isForgotMode ? (

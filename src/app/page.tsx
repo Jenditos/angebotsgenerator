@@ -1434,7 +1434,8 @@ export default function HomePage() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
-  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(true);
+  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
+  const [isAuthStatusLoading, setIsAuthStatusLoading] = useState(true);
   const [accountIdentity, setAccountIdentity] = useState("");
   const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
@@ -1469,6 +1470,7 @@ export default function HomePage() {
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
   const isAnyIntakeProcessing = isParsingVoice || isParsingPhoto;
+  const isKiIntakeLocked = isAuthStatusLoading || !isAuthenticatedUser;
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -2149,6 +2151,7 @@ export default function HomePage() {
     let mounted = true;
 
     async function loadAccountStatus() {
+      setIsAuthStatusLoading(true);
       try {
         const response = await fetch("/api/access/status", { cache: "no-store" });
         if (!mounted) {
@@ -2172,6 +2175,10 @@ export default function HomePage() {
         }
         setIsAuthenticatedUser(false);
         setAccountIdentity("");
+      } finally {
+        if (mounted) {
+          setIsAuthStatusLoading(false);
+        }
       }
     }
 
@@ -3040,6 +3047,12 @@ export default function HomePage() {
   }
 
   function startPrimaryVoiceIntake() {
+    if (isKiIntakeLocked) {
+      setVoiceError("");
+      setVoiceInfo("");
+      openVoiceLoginModal();
+      return;
+    }
     setHasUsedPrimaryVoiceIntake(true);
     setIsPhotoScanSheetOpen(false);
     switchIntakeMode("voice");
@@ -3048,6 +3061,13 @@ export default function HomePage() {
 
   function openPhotoScanSheet() {
     if (isAnyIntakeProcessing) {
+      return;
+    }
+    if (isKiIntakeLocked) {
+      setPhotoError("");
+      setPhotoInfo("");
+      setIsPhotoScanSheetOpen(false);
+      openVoiceLoginModal();
       return;
     }
     setPhotoError("");
@@ -3061,6 +3081,12 @@ export default function HomePage() {
 
   function startSpeechInput() {
     if (isListening || isParsingPhoto) {
+      return;
+    }
+
+    if (isAuthStatusLoading) {
+      setVoiceError("");
+      setVoiceInfo("Loginstatus wird geprüft ...");
       return;
     }
 
@@ -3835,7 +3861,7 @@ export default function HomePage() {
   }
 
   async function handlePhotoFileSelection(file: File) {
-    if (!isAuthenticatedUser) {
+    if (isKiIntakeLocked) {
       setPhotoError("");
       setPhotoInfo("");
       openVoiceLoginModal();
@@ -4011,7 +4037,7 @@ export default function HomePage() {
       return;
     }
 
-    if (!isAuthenticatedUser) {
+    if (isKiIntakeLocked) {
       setPhotoError("");
       setPhotoInfo("");
       setIsPhotoScanSheetOpen(false);
@@ -4031,7 +4057,7 @@ export default function HomePage() {
       return;
     }
 
-    if (!isAuthenticatedUser) {
+    if (isKiIntakeLocked) {
       setPhotoError("");
       setPhotoInfo("");
       setIsPhotoScanSheetOpen(false);
@@ -5371,7 +5397,7 @@ export default function HomePage() {
                     type="button"
                     className="intakePrimaryActionButton intakePrimaryActionButtonPrimary"
                     onClick={startPrimaryVoiceIntake}
-                    disabled={isAnyIntakeProcessing}
+                    disabled={isAnyIntakeProcessing || isKiIntakeLocked}
                   >
                     KI-Aufnahme starten
                   </button>
@@ -5380,7 +5406,7 @@ export default function HomePage() {
                       type="button"
                       className="intakePrimaryActionButton intakePrimaryActionButtonSecondary"
                       onClick={openPhotoScanSheet}
-                      disabled={isAnyIntakeProcessing}
+                      disabled={isAnyIntakeProcessing || isKiIntakeLocked}
                       aria-label="Foto scannen"
                       title="Foto scannen"
                       aria-expanded={isPhotoScanSheetOpen}
@@ -5441,6 +5467,13 @@ export default function HomePage() {
                     ) : null}
                   </div>
                 </div>
+                {isKiIntakeLocked ? (
+                  <p className="voiceWarning" role="status" aria-live="polite">
+                    {isAuthStatusLoading
+                      ? "Loginstatus wird geprüft ..."
+                      : "Bitte zuerst einloggen, um die KI-Aufnahmefunktion zu nutzen."}
+                  </p>
+                ) : null}
 
                 {intakeInputMode === "voice" ? (
                   <>
