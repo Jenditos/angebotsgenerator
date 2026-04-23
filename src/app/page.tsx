@@ -61,6 +61,7 @@ type OfferMailActionState = {
   customerEmail: string;
   companyName: string;
   mode: DocumentMode;
+  hasDownloadedPdfOnCreate: boolean;
 };
 
 type EmailDraftApiResponse =
@@ -4154,6 +4155,7 @@ export default function HomePage() {
       to?: string;
       subject?: string;
       text?: string;
+      skipDownloadFallback?: boolean;
     },
   ) {
     const recipientEmail = options?.to?.trim() || form.customerEmail.trim();
@@ -4220,8 +4222,13 @@ export default function HomePage() {
       }
     }
 
-    downloadPdfFile(file);
+    if (!options?.skipDownloadFallback) {
+      downloadPdfFile(file);
+    }
     openSystemMailDraft(recipientEmail, subject, text);
+    if (options?.skipDownloadFallback) {
+      return `Kein verbundenes Postfach gefunden. Dein Standard-Mailprogramm wurde geöffnet. Die ${documentLabel}-PDF ist bereits heruntergeladen und kann manuell angehängt werden.`;
+    }
     return `Kein verbundenes Postfach gefunden. ${documentLabel}-PDF wurde heruntergeladen und dein Standard-Mailprogramm wurde geöffnet.`;
   }
 
@@ -4400,7 +4407,9 @@ export default function HomePage() {
       void loadStoredCustomers();
       const payloadMode =
         payload.documentType === "invoice" ? "invoice" : documentMode;
-      if (payloadMode === "offer" && payload.pdfBase64?.trim()) {
+      const hasDownloadedPdfOnCreate =
+        payloadMode === "offer" && Boolean(payload.pdfBase64?.trim());
+      if (hasDownloadedPdfOnCreate) {
         const downloadDocumentNumber = resolveDraftDocumentNumber(payload, "offer");
         const file = createPdfFile(
           payload.pdfBase64,
@@ -4421,6 +4430,7 @@ export default function HomePage() {
         customerEmail: customerEmailForMail,
         companyName: companyNameForMail,
         mode: payloadMode,
+        hasDownloadedPdfOnCreate,
       });
       setPostActionInfo(
         customerEmailForMail
@@ -4474,6 +4484,7 @@ export default function HomePage() {
             to: recipientEmail,
             subject: draft.subject,
             text: draft.text,
+            skipDownloadFallback: offerMailActionState.hasDownloadedPdfOnCreate,
           },
         );
       } else {
