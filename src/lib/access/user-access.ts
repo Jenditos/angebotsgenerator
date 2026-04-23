@@ -69,6 +69,26 @@ export function canUseApp(record: UserAccessRecord, now = new Date()): boolean {
   return isTrialActive(record, now) || hasActiveSubscription(record);
 }
 
+export function buildTransientTrialAccessRecord(
+  user: User,
+  now = new Date(),
+): UserAccessRecord {
+  const trialStartIso = now.toISOString();
+  const trialEndIso = addDays(now, TRIAL_DURATION_DAYS).toISOString();
+
+  return {
+    user_id: user.id,
+    email: user.email?.trim() ?? "",
+    created_at: trialStartIso,
+    trial_start: trialStartIso,
+    trial_end: trialEndIso,
+    subscription_status: TRIAL_STATUS,
+    plan: TRIAL_PLAN_ID,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+  };
+}
+
 export async function readUserAccessRecord(
   supabase: SupabaseClient,
   userId: string,

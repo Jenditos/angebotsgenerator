@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { isUserAccessSetupError } from "@/lib/access/access-errors";
 import { ensureUserAccessRecord } from "@/lib/access/user-access";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -115,7 +116,18 @@ export async function GET(request: NextRequest) {
 
     const isRecoveryFlow = otpType === "recovery" || nextPath === "/auth/reset";
     if (!isRecoveryFlow) {
-      await ensureUserAccessRecord(supabase, data.user);
+      try {
+        await ensureUserAccessRecord(supabase, data.user);
+      } catch (accessError) {
+        if (!isUserAccessSetupError(accessError)) {
+          throw accessError;
+        }
+
+        console.warn(
+          "[auth/callback] user_access setup is incomplete; continuing with transient access fallback",
+          accessError,
+        );
+      }
     }
 
     const target = isRecoveryFlow ? "/auth/reset" : nextPath;

@@ -5,10 +5,15 @@ import {
   isAuthBypassEnabled,
 } from "@/lib/access/auth-bypass";
 import {
+  isUserAccessSetupError,
   classifyUserAccessError,
   logUserAccessError,
 } from "@/lib/access/access-errors";
-import { buildAccessState, ensureUserAccessRecord } from "@/lib/access/user-access";
+import {
+  buildAccessState,
+  buildTransientTrialAccessRecord,
+  ensureUserAccessRecord,
+} from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
 
 export async function GET() {
@@ -47,6 +52,23 @@ export async function GET() {
       state: buildAccessState(accessRecord),
     });
   } catch (error) {
+    if (isUserAccessSetupError(error)) {
+      logUserAccessError("GET /api/access/status transient setup fallback", error, {
+        userId: authResult.user.id,
+      });
+      const fallbackAccessRecord = buildTransientTrialAccessRecord(authResult.user);
+      return NextResponse.json({
+        authenticated: true,
+        user: {
+          id: authResult.user.id,
+          email: authResult.user.email ?? "",
+        },
+        access: fallbackAccessRecord,
+        state: buildAccessState(fallbackAccessRecord),
+        setupWarning: true,
+      });
+    }
+
     logUserAccessError("GET /api/access/status", error, {
       userId: authResult.user.id,
     });

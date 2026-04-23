@@ -7,10 +7,12 @@ import {
   isAuthBypassEnabled,
 } from "@/lib/access/auth-bypass";
 import {
+  isUserAccessSetupError,
   classifyUserAccessError,
   logUserAccessError,
 } from "@/lib/access/access-errors";
 import {
+  buildTransientTrialAccessRecord,
   canUseApp,
   ensureUserAccessRecord,
   UserAccessRecord,
@@ -101,6 +103,18 @@ export async function requireAppAccess(): Promise<
       authResult.user,
     );
   } catch (error) {
+    if (isUserAccessSetupError(error)) {
+      logUserAccessError("requireAppAccess.transientSetupFallback", error, {
+        userId: authResult.user.id,
+      });
+      return {
+        ok: true,
+        supabase: authResult.supabase,
+        user: authResult.user,
+        access: buildTransientTrialAccessRecord(authResult.user),
+      };
+    }
+
     logUserAccessError("requireAppAccess.ensureUserAccessRecord", error, {
       userId: authResult.user.id,
     });

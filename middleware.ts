@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
-import { logUserAccessError } from "@/lib/access/access-errors";
+import { isUserAccessSetupError, logUserAccessError } from "@/lib/access/access-errors";
 import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -74,11 +74,19 @@ export async function middleware(request: NextRequest) {
       canOpenApp = canUseApp(accessRecord);
     }
   } catch (error) {
-    logUserAccessError("middleware.readUserAccessRecord", error, {
-      userId: user.id,
-      pathname,
-    });
-    canOpenApp = false;
+    if (isUserAccessSetupError(error)) {
+      logUserAccessError("middleware.readUserAccessRecord transient setup fallback", error, {
+        userId: user.id,
+        pathname,
+      });
+      canOpenApp = true;
+    } else {
+      logUserAccessError("middleware.readUserAccessRecord", error, {
+        userId: user.id,
+        pathname,
+      });
+      canOpenApp = false;
+    }
   }
 
   if (isAuthRoute(pathname)) {
