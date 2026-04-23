@@ -27,11 +27,24 @@ function formatAuthErrorMessage(rawMessage: string): string {
   if (normalized.includes("too many requests")) {
     return "Zu viele Versuche. Bitte kurz warten und erneut probieren.";
   }
+  if (
+    normalized.includes("security purposes") ||
+    normalized.includes("rate limit") ||
+    normalized.includes("only request this after")
+  ) {
+    return "Zu viele E-Mail-Anfragen in kurzer Zeit. Bitte kurz warten und dann erneut versuchen.";
+  }
   if (normalized.includes("network")) {
     return "Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.";
   }
 
   return rawMessage || "Authentifizierung fehlgeschlagen.";
+}
+
+function likelyExistingSupabaseUser(
+  user: { identities?: Array<unknown> | null } | null | undefined,
+): boolean {
+  return Array.isArray(user?.identities) && user.identities.length === 0;
 }
 
 function resolveAuthCallbackUrl(): string {
@@ -169,6 +182,10 @@ export default function AuthPage() {
         });
 
         if (signUpError) {
+          const normalizedSignUpError = signUpError.message.toLowerCase();
+          if (normalizedSignUpError.includes("already registered")) {
+            setPendingConfirmationEmail(trimmedEmail);
+          }
           setError(formatAuthErrorMessage(signUpError.message));
           return;
         }
@@ -178,6 +195,15 @@ export default function AuthPage() {
           await bootstrapTrial();
           router.replace("/");
           router.refresh();
+          return;
+        }
+
+        if (likelyExistingSupabaseUser(data.user)) {
+          setPendingConfirmationEmail(trimmedEmail);
+          setInfo(
+            "Für diese E-Mail existiert bereits ein Konto. Bitte einloggen oder Passwort zurücksetzen. Falls das Konto noch unbestätigt ist, kannst du unten die Bestätigungs-Mail erneut senden.",
+          );
+          setMode("login");
           return;
         }
 
