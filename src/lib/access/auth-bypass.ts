@@ -1,8 +1,8 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { TRIAL_PLAN_ID, TRIAL_STATUS, UserAccessRecord } from "@/lib/access/user-access";
 
-// TEMPORARY: Set back to false to restore normal auth/login behavior.
-const TEMP_DISABLE_LOGIN_BLOCKADE = true;
+// TEMPORARY: Keep this `false` in production so real Supabase auth is active.
+const TEMP_DISABLE_LOGIN_BLOCKADE = false;
 
 const BYPASS_USER_ID = "11111111-1111-1111-1111-111111111111";
 const BYPASS_EMAIL = "bypass@local.test";
