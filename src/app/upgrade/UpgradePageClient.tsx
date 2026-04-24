@@ -31,7 +31,7 @@ export default function UpgradePageClient() {
   const [error, setError] = useState("");
   const authReady = isSupabaseConfigured();
 
-  const checkoutStatus = searchParams.get("checkout");
+  const checkoutStatus = searchParams?.get("checkout");
 
   const supabase = useMemo(() => {
     if (!authReady) {

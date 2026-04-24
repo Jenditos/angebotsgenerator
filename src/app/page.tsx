@@ -4534,7 +4534,7 @@ export default function HomePage() {
         settingsPayload = localDraftSettings;
       }
 
-      const response = await fetch("/api/generate-offer", {
+      const response = await fetch("/api/pdf/generate-offer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -4993,7 +4993,7 @@ export default function HomePage() {
                                   <a
                                     key={document.documentNumber}
                                     className="customerArchiveDocumentItem customerArchiveDocumentLink"
-                                    href={`/api/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                    href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
                                     target="_blank"
                                     rel="noreferrer"
                                   >
@@ -5038,7 +5038,7 @@ export default function HomePage() {
                                   <a
                                     key={document.documentNumber}
                                     className="customerArchiveDocumentItem customerArchiveDocumentLink"
-                                    href={`/api/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                    href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
                                     target="_blank"
                                     rel="noreferrer"
                                   >

@@ -459,7 +459,7 @@ function toInvoiceDuePreset(days: number): InvoiceDuePreset {
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isEmbedded = searchParams.get("embedded") === "1";
+  const isEmbedded = searchParams?.get("embedded") === "1";
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
   const [error, setError] = useState("");
