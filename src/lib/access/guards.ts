@@ -62,7 +62,7 @@ export async function requireAuthenticatedUser(): Promise<
     };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user) {

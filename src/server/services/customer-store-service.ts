@@ -263,8 +263,12 @@ function resolvePaths(overrides?: Partial<CustomerStorePaths>): CustomerStorePat
   const dataDir = overrides?.dataDir ?? resolveRuntimeDataDir();
   return {
     dataDir,
-    storePath: overrides?.storePath ?? path.join(dataDir, "customers-store.json"),
-    lockPath: overrides?.lockPath ?? path.join(dataDir, "customers-store.lock"),
+    storePath:
+      overrides?.storePath ??
+      path.join(/*turbopackIgnore: true*/ dataDir, "customers-store.json"),
+    lockPath:
+      overrides?.lockPath ??
+      path.join(/*turbopackIgnore: true*/ dataDir, "customers-store.lock"),
   };
 }
 

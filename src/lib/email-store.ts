@@ -12,7 +12,10 @@ async function resolveEmailStorePaths(): Promise<{
   const dataDir = await ensureRuntimeDataDirReady();
   return {
     dataDir,
-    emailConnectionPath: path.join(dataDir, EMAIL_CONNECTION_FILE_NAME),
+    emailConnectionPath: path.join(
+      /*turbopackIgnore: true*/ dataDir,
+      EMAIL_CONNECTION_FILE_NAME,
+    ),
   };
 }
 

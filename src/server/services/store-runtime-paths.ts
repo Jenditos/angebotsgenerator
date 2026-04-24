@@ -7,8 +7,6 @@ const SERVERLESS_DATA_DIR = "/tmp/visioro-data";
 const LOCAL_PERSISTENT_DATA_DIR_NAME = ".visioro-data";
 const MIGRATION_EXCLUDED_ENTRIES = new Set([
   ".gitkeep",
-  // Alte lokale Firmeneinstellungen sollen neue Umgebungen nicht "übernehmen".
-  "company-settings.json",
 ]);
 
 const preparedDataDirs = new Set<string>();
@@ -18,12 +16,12 @@ function isReadonlyServerlessRuntime(): boolean {
   return (
     process.env.VERCEL === "1" ||
     Boolean(process.env.LAMBDA_TASK_ROOT) ||
-    process.cwd().startsWith("/var/task")
+    /*turbopackIgnore: true*/ process.cwd().startsWith("/var/task")
   );
 }
 
 function resolveLegacyProjectDataDir(): string {
-  return path.join(process.cwd(), "data");
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), "data");
 }
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -57,8 +55,14 @@ async function copyDirectoryEntriesIfMissing(
       continue;
     }
 
-    const sourcePath = path.join(sourceDir, entry.name);
-    const targetPath = path.join(targetDir, entry.name);
+    const sourcePath = path.join(
+      /*turbopackIgnore: true*/ sourceDir,
+      entry.name,
+    );
+    const targetPath = path.join(
+      /*turbopackIgnore: true*/ targetDir,
+      entry.name,
+    );
 
     if (entry.isDirectory()) {
       await copyDirectoryEntriesIfMissing(sourcePath, targetPath);
@@ -89,7 +93,10 @@ function shouldRunLegacyMigration(runtimeDataDir: string): boolean {
   }
 
   const legacyDataDir = resolveLegacyProjectDataDir();
-  return path.resolve(runtimeDataDir) !== path.resolve(legacyDataDir);
+  return (
+    path.resolve(/*turbopackIgnore: true*/ runtimeDataDir) !==
+    path.resolve(/*turbopackIgnore: true*/ legacyDataDir)
+  );
 }
 
 async function prepareRuntimeDataDir(runtimeDataDir: string): Promise<void> {
@@ -113,14 +120,20 @@ export function resolveRuntimeDataDir(): string {
 
   const configuredDataHome = process.env.VISIORO_DATA_HOME?.trim();
   if (configuredDataHome) {
-    return path.join(configuredDataHome, LOCAL_PERSISTENT_DATA_DIR_NAME);
+    return path.join(
+      /*turbopackIgnore: true*/ configuredDataHome,
+      LOCAL_PERSISTENT_DATA_DIR_NAME,
+    );
   }
 
   if (isReadonlyServerlessRuntime()) {
     return SERVERLESS_DATA_DIR;
   }
 
-  return path.join(os.homedir(), LOCAL_PERSISTENT_DATA_DIR_NAME);
+  return path.join(
+    /*turbopackIgnore: true*/ os.homedir(),
+    LOCAL_PERSISTENT_DATA_DIR_NAME,
+  );
 }
 
 export async function ensureRuntimeDataDirReady(): Promise<string> {

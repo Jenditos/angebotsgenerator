@@ -1,14 +1,20 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { TRIAL_PLAN_ID, TRIAL_STATUS, UserAccessRecord } from "@/lib/access/user-access";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-// TEMPORARY: Keep this `false` in production so real Supabase auth is active.
+// Keep the hard bypass disabled in production and tests. In local development
+// without Supabase ENV values, the app uses the same isolated local user so
+// UI/API checks stay testable instead of returning setup 500s.
 const TEMP_DISABLE_LOGIN_BLOCKADE = false;
 
 const BYPASS_USER_ID = "11111111-1111-1111-1111-111111111111";
 const BYPASS_EMAIL = "bypass@local.test";
 
 export function isAuthBypassEnabled(): boolean {
-  return TEMP_DISABLE_LOGIN_BLOCKADE;
+  return (
+    TEMP_DISABLE_LOGIN_BLOCKADE ||
+    (process.env.NODE_ENV === "development" && !isSupabaseConfigured())
+  );
 }
 
 export function buildBypassSupabaseClient(): SupabaseClient {

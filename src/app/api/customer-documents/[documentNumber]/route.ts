@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { requireAppAccess } from "@/lib/access/guards";
 import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
@@ -11,8 +11,8 @@ function toSafeFilename(value: string): string {
 }
 
 export async function GET(
-  _request: Request,
-  context: { params: { documentNumber: string } },
+  _request: NextRequest,
+  context: { params: Promise<{ documentNumber: string }> },
 ) {
   const accessResult = await requireAppAccess();
   if (!accessResult.ok) {
@@ -20,8 +20,9 @@ export async function GET(
   }
 
   try {
+    const params = await context.params;
     const rawDocumentNumber = decodeURIComponent(
-      context.params.documentNumber ?? "",
+      params.documentNumber ?? "",
     ).trim();
     if (!rawDocumentNumber) {
       return NextResponse.json(

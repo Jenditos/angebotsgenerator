@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       throw new Error(externalError);
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);

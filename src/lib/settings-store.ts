@@ -360,7 +360,10 @@ async function resolveSettingsStorePaths(): Promise<{
   const dataDir = await ensureRuntimeDataDirReady();
   return {
     dataDir,
-    settingsPath: path.join(dataDir, SETTINGS_FILE_NAME),
+    settingsPath: path.join(
+      /*turbopackIgnore: true*/ dataDir,
+      SETTINGS_FILE_NAME,
+    ),
   };
 }
 
