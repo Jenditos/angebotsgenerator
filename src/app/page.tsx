@@ -1410,6 +1410,8 @@ export default function HomePage() {
   const [hasUsedPrimaryVoiceIntake, setHasUsedPrimaryVoiceIntake] =
     useState(false);
   const [isPhotoScanSheetOpen, setIsPhotoScanSheetOpen] = useState(false);
+  const [isPhotoCameraOpen, setIsPhotoCameraOpen] = useState(false);
+  const [isStartingPhotoCamera, setIsStartingPhotoCamera] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [isParsingPhoto, setIsParsingPhoto] = useState(false);
@@ -1490,6 +1492,8 @@ export default function HomePage() {
   const serviceDateRangePickerRef = useRef<HTMLDivElement | null>(null);
   const photoCaptureInputRef = useRef<HTMLInputElement | null>(null);
   const photoUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const photoCameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const photoCameraStreamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef("");
   const settingsOverlayCloseTimeoutRef = useRef<number | null>(null);
   const customerPickerCloseTimeoutRef = useRef<number | null>(null);
@@ -1506,9 +1510,11 @@ export default function HomePage() {
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
   const photoScanMenuRef = useRef<HTMLDivElement | null>(null);
   const photoScanTriggerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const photoCameraSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
-  const isAnyIntakeProcessing = isParsingVoice || isParsingPhoto;
+  const isAnyIntakeProcessing =
+    isParsingVoice || isParsingPhoto || isStartingPhotoCamera;
   const isKiIntakeLocked = isAuthStatusLoading || !isAuthenticatedUser;
 
   const serviceSearchValue = serviceSearch.trim();
@@ -1633,6 +1639,10 @@ export default function HomePage() {
   useDialogFocusTrap({
     isOpen: isVoiceLoginModalOpen,
     containerRef: voiceLoginModalSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isPhotoCameraOpen,
+    containerRef: photoCameraSheetRef,
   });
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
@@ -1889,6 +1899,7 @@ export default function HomePage() {
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
+      stopPhotoCameraStream();
       photoParseRequestRef.current += 1;
     };
   }, []);
@@ -1984,6 +1995,7 @@ export default function HomePage() {
       isInfoLegalOpen ||
       isSettingsOverlayOpen ||
       isCustomerPickerOpen ||
+      isPhotoCameraOpen ||
       isVoiceLoginModalOpen ||
       isSetupHintOpen;
     if (!hasBlockingOverlay) {
@@ -2012,6 +2024,7 @@ export default function HomePage() {
     isInfoLegalOpen,
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
+    isPhotoCameraOpen,
     isVoiceLoginModalOpen,
     isSetupHintOpen,
   ]);
@@ -2026,6 +2039,7 @@ export default function HomePage() {
       !isInfoLegalOpen &&
       !isSettingsOverlayOpen &&
       !isCustomerPickerOpen &&
+      !isPhotoCameraOpen &&
       !isPhotoScanSheetOpen &&
       !isVoiceLoginModalOpen &&
       !isAccountMenuOpen &&
@@ -2059,6 +2073,11 @@ export default function HomePage() {
         return;
       }
 
+      if (isPhotoCameraOpen) {
+        closePhotoCamera();
+        return;
+      }
+
       if (isPhotoScanSheetOpen) {
         closePhotoScanSheet();
         return;
@@ -2089,6 +2108,7 @@ export default function HomePage() {
     isClosingSettingsOverlay,
     isCustomerPickerOpen,
     isClosingCustomerPicker,
+    isPhotoCameraOpen,
     isPhotoScanSheetOpen,
     isVoiceLoginModalOpen,
     isAccountMenuOpen,
@@ -3070,6 +3090,7 @@ export default function HomePage() {
   function switchIntakeMode(nextMode: IntakeInputMode) {
     setIntakeInputMode(nextMode);
     if (nextMode === "voice") {
+      closePhotoCamera();
       setPhotoError("");
       return;
     }
@@ -3116,6 +3137,137 @@ export default function HomePage() {
 
   function closePhotoScanSheet() {
     setIsPhotoScanSheetOpen(false);
+  }
+
+  function stopPhotoCameraStream() {
+    const stream = photoCameraStreamRef.current;
+    if (!stream) {
+      return;
+    }
+
+    stream.getTracks().forEach((track) => track.stop());
+    photoCameraStreamRef.current = null;
+    if (photoCameraVideoRef.current) {
+      photoCameraVideoRef.current.srcObject = null;
+    }
+  }
+
+  function closePhotoCamera() {
+    stopPhotoCameraStream();
+    setIsPhotoCameraOpen(false);
+    setIsStartingPhotoCamera(false);
+  }
+
+  function resolvePhotoCameraErrorMessage(error: unknown): string {
+    const name =
+      error && typeof error === "object" && "name" in error
+        ? String((error as { name?: unknown }).name ?? "")
+        : "";
+
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      return "Kamerazugriff ist blockiert. Bitte im Browser erlauben oder Foto hochladen.";
+    }
+    if (name === "NotFoundError" || name === "OverconstrainedError") {
+      return "Keine Kamera gefunden. Bitte Foto hochladen.";
+    }
+    if (name === "NotReadableError" || name === "AbortError") {
+      return "Kamera ist gerade nicht verfügbar. Bitte andere Apps schließen oder Foto hochladen.";
+    }
+
+    return "Kamera konnte nicht gestartet werden. Bitte Foto hochladen.";
+  }
+
+  async function openPhotoCamera() {
+    if (isAnyIntakeProcessing) {
+      return;
+    }
+
+    if (isKiIntakeLocked) {
+      setPhotoError("");
+      setPhotoInfo("");
+      setIsPhotoScanSheetOpen(false);
+      openVoiceLoginModal();
+      return;
+    }
+
+    switchIntakeMode("photo");
+    setIsPhotoScanSheetOpen(false);
+    setPhotoError("");
+    setPhotoInfo("");
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPhotoError("Kamera-Liveansicht wird in diesem Browser nicht unterstützt.");
+      photoCaptureInputRef.current?.click();
+      return;
+    }
+
+    stopPhotoCameraStream();
+    setIsPhotoCameraOpen(true);
+    setIsStartingPhotoCamera(true);
+
+    try {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1600 },
+          height: { ideal: 1200 },
+        },
+      });
+      photoCameraStreamRef.current = stream;
+
+      const video = photoCameraVideoRef.current;
+      if (!video) {
+        throw new Error("camera_video_missing");
+      }
+
+      video.srcObject = stream;
+      await video.play();
+      setPhotoInfo("Kamera bereit.");
+    } catch (error) {
+      stopPhotoCameraStream();
+      setPhotoError(resolvePhotoCameraErrorMessage(error));
+      setPhotoInfo("");
+    } finally {
+      setIsStartingPhotoCamera(false);
+    }
+  }
+
+  async function capturePhotoFromCamera() {
+    const video = photoCameraVideoRef.current;
+    if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setPhotoError("Kamera ist noch nicht bereit.");
+      return;
+    }
+
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 960;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setPhotoError("Foto konnte nicht erstellt werden.");
+      return;
+    }
+
+    context.drawImage(video, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", PHOTO_JPEG_QUALITY);
+    });
+    if (!blob) {
+      setPhotoError("Foto konnte nicht erstellt werden.");
+      return;
+    }
+
+    const file = new File([blob], `aufnahme-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+    });
+    closePhotoCamera();
+    void handlePhotoFileSelection(file);
   }
 
   function startSpeechInput() {
@@ -4076,23 +4228,7 @@ export default function HomePage() {
   }
 
   function triggerPhotoCaptureInput() {
-    if (isAnyIntakeProcessing) {
-      return;
-    }
-
-    if (isKiIntakeLocked) {
-      setPhotoError("");
-      setPhotoInfo("");
-      setIsPhotoScanSheetOpen(false);
-      openVoiceLoginModal();
-      return;
-    }
-
-    switchIntakeMode("photo");
-    setIsPhotoScanSheetOpen(false);
-    setPhotoError("");
-    setPhotoInfo("");
-    photoCaptureInputRef.current?.click();
+    void openPhotoCamera();
   }
 
   function triggerPhotoUploadInput() {
@@ -4934,6 +5070,93 @@ export default function HomePage() {
           onLogin={navigateToAuthFromVoiceLoginModal}
           sheetRef={voiceLoginModalSheetRef}
         />
+
+        {isPhotoCameraOpen ? (
+          <div
+            className="settingsOverlayBackdrop photoCameraBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="photo-camera-title"
+            onClick={closePhotoCamera}
+          >
+            <section
+              className="settingsOverlaySheet photoCameraSheet"
+              onClick={(event) => event.stopPropagation()}
+              ref={photoCameraSheetRef}
+            >
+              <div className="settingsOverlayHeader photoCameraHeader">
+                <strong id="photo-camera-title">Foto aufnehmen</strong>
+                <button
+                  type="button"
+                  className="settingsOverlayCloseButton"
+                  aria-label="Kamera schließen"
+                  onClick={closePhotoCamera}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="photoCameraBody">
+                <div className="photoCameraPreview">
+                  <video
+                    ref={photoCameraVideoRef}
+                    className="photoCameraVideo"
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                  {isStartingPhotoCamera ? (
+                    <div className="photoCameraStatus">Kamera wird gestartet ...</div>
+                  ) : null}
+                  {photoError ? (
+                    <div className="photoCameraStatus photoCameraStatusError">
+                      {photoError}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="photoCameraActions">
+                  <button
+                    type="button"
+                    className="primaryButton"
+                    onClick={capturePhotoFromCamera}
+                    disabled={isStartingPhotoCamera || !photoCameraStreamRef.current}
+                  >
+                    Auslösen
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton"
+                    onClick={() => {
+                      closePhotoCamera();
+                      triggerPhotoUploadInput();
+                    }}
+                  >
+                    Foto hochladen
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton"
+                    onClick={closePhotoCamera}
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
 
         {isSettingsOverlayOpen ? (
           <div

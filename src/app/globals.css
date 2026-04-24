@@ -9669,6 +9669,76 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   cursor: not-allowed;
 }
 
+.photoCameraBackdrop {
+  align-items: center;
+}
+
+.photoCameraSheet {
+  width: min(720px, 100%);
+  height: auto;
+  max-height: min(calc(100vh - 36px), 780px);
+  grid-template-rows: auto minmax(0, auto);
+}
+
+.photoCameraHeader {
+  padding-bottom: 2px;
+}
+
+.photoCameraBody {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+}
+
+.photoCameraPreview {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  min-height: 260px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(39, 74, 124, 0.22);
+  background: #061528;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.photoCameraVideo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  background: #061528;
+}
+
+.photoCameraStatus {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  background: rgba(6, 21, 40, 0.58);
+}
+
+.photoCameraStatusError {
+  color: #ffffff;
+  background: rgba(58, 16, 26, 0.86);
+}
+
+.photoCameraActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.photoCameraActions button {
+  min-height: 42px;
+}
+
 .intakeFlowHint {
   margin: 0;
   padding: 10px 12px;
@@ -9875,6 +9945,23 @@ body {
 }
 
 @media (max-width: 900px) {
+  .photoCameraSheet {
+    width: min(100%, 560px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .photoCameraPreview {
+    min-height: 220px;
+  }
+
+  .photoCameraActions {
+    justify-content: stretch;
+  }
+
+  .photoCameraActions button {
+    flex: 1 1 150px;
+  }
+
   .photoReviewGrid {
     grid-template-columns: 1fr;
   }
