@@ -1,11 +1,16 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { SupabaseClient } from "@supabase/supabase-js";
 import {
   LEGACY_VISIORO_FALLBACK_LOGO_DATA_URL,
   MAX_LOGO_DATA_URL_LENGTH,
 } from "@/lib/logo-config";
-import { readSettings, writeSettings } from "@/lib/settings-store";
+import {
+  __resetSettingsStoreForTests,
+  readSettings,
+  writeSettings,
+} from "@/lib/settings-store";
 import { __resetRuntimeDataDirPreparationForTests } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
 
@@ -50,6 +55,34 @@ function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySett
   };
 }
 
+function buildUnavailableUserSettingsSupabase(): SupabaseClient {
+  const setupError = {
+    code: "42P01",
+    message: 'relation "public.user_settings" does not exist',
+  };
+
+  return {
+    from() {
+      return {
+        select() {
+          return {
+            eq() {
+              return {
+                async maybeSingle() {
+                  return { data: null, error: setupError };
+                },
+              };
+            },
+          };
+        },
+        async upsert() {
+          return { error: setupError };
+        },
+      };
+    },
+  } as unknown as SupabaseClient;
+}
+
 describe("settings-store", () => {
   const originalDataDir = process.env.DATA_DIR;
   const createdDirs: string[] = [];
@@ -61,6 +94,7 @@ describe("settings-store", () => {
   }
 
   beforeEach(() => {
+    __resetSettingsStoreForTests();
     __resetRuntimeDataDirPreparationForTests();
   });
 
@@ -70,6 +104,7 @@ describe("settings-store", () => {
     } else {
       process.env.DATA_DIR = originalDataDir;
     }
+    __resetSettingsStoreForTests();
     __resetRuntimeDataDirPreparationForTests();
     await Promise.all(
       createdDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
@@ -143,6 +178,30 @@ describe("settings-store", () => {
     });
     const afterLogoDelete = await readSettings();
     expect(afterLogoDelete.logoDataUrl).toBe("");
+  });
+
+  it("persists the Supabase setup fallback to disk instead of losing the logo on restart", async () => {
+    const dataDir = await createTempDir("settings-store-supabase-fallback-");
+    process.env.DATA_DIR = dataDir;
+    await mkdir(dataDir, { recursive: true });
+    const supabase = buildUnavailableUserSettingsSupabase();
+    const originalSettings = buildSettingsFixture({
+      companyName: "COMPANY_SUPABASE_FALLBACK",
+      logoDataUrl: "data:image/png;base64,FALLBACK_LOGO",
+    });
+
+    await writeSettings(originalSettings, {
+      supabase,
+      userId: "user-settings-test",
+    });
+    __resetSettingsStoreForTests();
+
+    const restored = await readSettings({
+      supabase,
+      userId: "user-settings-test",
+    });
+    expect(restored.companyName).toBe("COMPANY_SUPABASE_FALLBACK");
+    expect(restored.logoDataUrl).toBe("data:image/png;base64,FALLBACK_LOGO");
   });
 
   it("migrates legacy hardcoded fallback logo to empty logo", async () => {

@@ -884,6 +884,16 @@ function readSettingsDraftFromSessionStorageForOffer(): CompanySettings | null {
   return null;
 }
 
+function mergeSettingsDraftWithServer(
+  draftSettings: CompanySettings,
+  serverSettings: CompanySettings,
+): CompanySettings {
+  return {
+    ...draftSettings,
+    logoDataUrl: serverSettings.logoDataUrl || draftSettings.logoDataUrl,
+  };
+}
+
 function hasCompletedCompanySettings(settings: CompanySettings | undefined): boolean {
   if (!settings) {
     return false;
@@ -2182,13 +2192,15 @@ export default function HomePage() {
           return;
         }
         if (mounted) {
-          if (data.settings && !draftSettings) {
-            setCompanySettings(data.settings);
+          const resolvedSettings =
+            data.settings && draftSettings
+              ? mergeSettingsDraftWithServer(draftSettings, data.settings)
+              : (draftSettings ?? data.settings);
+
+          if (resolvedSettings) {
+            setCompanySettings(resolvedSettings);
           }
-          const settingsForCompletionCheck = draftSettings ?? data.settings;
-          const isComplete = hasCompletedCompanySettings(
-            settingsForCompletionCheck,
-          );
+          const isComplete = hasCompletedCompanySettings(resolvedSettings);
           setIsCompanySetupComplete(isComplete);
           if (!isComplete) {
             setIsSetupHintOpen(false);
@@ -4523,7 +4535,9 @@ export default function HomePage() {
         });
         const settingsData = (await settingsResponse.json()) as SettingsApiResponse;
         if (settingsResponse.ok && settingsData.settings) {
-          settingsPayload = localDraftSettings ?? settingsData.settings;
+          settingsPayload = localDraftSettings
+            ? mergeSettingsDraftWithServer(localDraftSettings, settingsData.settings)
+            : settingsData.settings;
           setCompanySettings(settingsPayload);
         }
       } catch {

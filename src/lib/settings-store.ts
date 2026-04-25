@@ -72,6 +72,10 @@ const defaultSettings: CompanySettings = {
 
 let volatileSettingsCache: CompanySettings | null = null;
 
+export function __resetSettingsStoreForTests(): void {
+  volatileSettingsCache = null;
+}
+
 export type SettingsStoreContext = {
   supabase?: SupabaseClient | null;
   userId?: string | null;
@@ -407,6 +411,38 @@ async function readSettingsFile(
   };
 }
 
+async function readSettingsFromRuntimeFile(): Promise<CompanySettings> {
+  const { settingsPath } = await resolveSettingsStorePaths();
+  const parsed = await readSettingsFile(settingsPath);
+
+  if (!parsed) {
+    if (volatileSettingsCache) {
+      return volatileSettingsCache;
+    }
+    return cloneDefaultSettings();
+  }
+
+  const resolvedSettings = parseRawSettingsPayload(parsed);
+  const parsedLogoDataUrl =
+    typeof parsed.logoDataUrl === "string" ? parsed.logoDataUrl.trim() : "";
+  if (parsedLogoDataUrl && isLegacyFallbackLogoDataUrl(parsedLogoDataUrl)) {
+    try {
+      await writeFile(settingsPath, JSON.stringify(resolvedSettings, null, 2), "utf-8");
+    } catch (error) {
+      if (isReadonlyStorageError(error)) {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Legacy-Logo-Migration konnte nicht geschrieben werden (${code}).`,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+  volatileSettingsCache = resolvedSettings;
+  return resolvedSettings;
+}
+
 function resolveSettingsPayload(
   parsed: Partial<CompanySettings> & {
     pdfTableColumns?: unknown;
@@ -533,13 +569,11 @@ export async function readSettings(
 
     if (error) {
       if (isUserSettingsSetupError(error)) {
-        const fallback = volatileSettingsCache ?? cloneDefaultSettings();
-        volatileSettingsCache = fallback;
         const code = (error as { code?: string }).code ?? "UNKNOWN";
         console.warn(
-          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Verwende Fallback-Settings im Runtime-Cache.`,
+          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Verwende Fallback-Settings im Runtime-Speicher.`,
         );
-        return fallback;
+        return readSettingsFromRuntimeFile();
       }
 
       const code = (error as { code?: string }).code ?? "UNKNOWN";
@@ -568,35 +602,32 @@ export async function readSettings(
     return parsedSettings;
   }
 
-  const { settingsPath } = await resolveSettingsStorePaths();
-  const parsed = await readSettingsFile(settingsPath);
+  return readSettingsFromRuntimeFile();
+}
 
-  if (!parsed) {
-    if (volatileSettingsCache) {
-      return volatileSettingsCache;
-    }
-    return cloneDefaultSettings();
-  }
+async function writeSettingsToRuntimeFile(
+  payload: Partial<CompanySettings>,
+): Promise<CompanySettings> {
+  const { dataDir, settingsPath } = await resolveSettingsStorePaths();
+  const current = await readSettingsFromRuntimeFile();
+  const next = buildNextSettings(current, payload);
 
-  const resolvedSettings = parseRawSettingsPayload(parsed);
-  const parsedLogoDataUrl =
-    typeof parsed.logoDataUrl === "string" ? parsed.logoDataUrl.trim() : "";
-  if (parsedLogoDataUrl && isLegacyFallbackLogoDataUrl(parsedLogoDataUrl)) {
-    try {
-      await writeFile(settingsPath, JSON.stringify(resolvedSettings, null, 2), "utf-8");
-    } catch (error) {
-      if (isReadonlyStorageError(error)) {
-        const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
-        console.warn(
-          `[settings-store] Legacy-Logo-Migration konnte nicht geschrieben werden (${code}).`,
-        );
-      } else {
-        throw error;
-      }
+  volatileSettingsCache = next;
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(settingsPath, JSON.stringify(next, null, 2), "utf-8");
+  } catch (error) {
+    if (isReadonlyStorageError(error)) {
+      const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
+      console.warn(
+        `[settings-store] Persistente Speicherung nicht verfügbar (${code}). Verwende flüchtigen Runtime-Cache.`,
+      );
+    } else {
+      throw error;
     }
   }
-  volatileSettingsCache = resolvedSettings;
-  return resolvedSettings;
+
+  return next;
 }
 
 export async function writeSettings(
@@ -620,12 +651,11 @@ export async function writeSettings(
 
     if (error) {
       if (isUserSettingsSetupError(error)) {
-        volatileSettingsCache = next;
         const code = (error as { code?: string }).code ?? "UNKNOWN";
         console.warn(
-          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Schreibe nur in den Runtime-Cache.`,
+          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Schreibe in den Runtime-Speicher.`,
         );
-        return next;
+        return writeSettingsToRuntimeFile(next);
       }
 
       const code = (error as { code?: string }).code ?? "UNKNOWN";
@@ -639,24 +669,5 @@ export async function writeSettings(
     return next;
   }
 
-  const { dataDir, settingsPath } = await resolveSettingsStorePaths();
-  const current = await readSettings();
-  const next = buildNextSettings(current, payload);
-
-  volatileSettingsCache = next;
-  try {
-    await mkdir(dataDir, { recursive: true });
-    await writeFile(settingsPath, JSON.stringify(next, null, 2), "utf-8");
-  } catch (error) {
-    if (isReadonlyStorageError(error)) {
-      const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
-      console.warn(
-        `[settings-store] Persistente Speicherung nicht verfügbar (${code}). Verwende flüchtigen Runtime-Cache.`,
-      );
-    } else {
-      throw error;
-    }
-  }
-
-  return next;
+  return writeSettingsToRuntimeFile(payload);
 }

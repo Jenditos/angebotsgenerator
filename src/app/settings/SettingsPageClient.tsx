@@ -436,6 +436,19 @@ function writeSettingsDraftToSessionStorage(nextSettings: CompanySettings) {
   }
 }
 
+function mergeLoadedSettingsWithDraft(
+  draftSettings: CompanySettings,
+  loadedSettings: CompanySettings,
+  preferLocalLogo: boolean,
+): CompanySettings {
+  return {
+    ...draftSettings,
+    logoDataUrl: preferLocalLogo
+      ? draftSettings.logoDataUrl
+      : loadedSettings.logoDataUrl || draftSettings.logoDataUrl,
+  };
+}
+
 function areSettingsEqual(left: CompanySettings, right: CompanySettings): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
@@ -734,12 +747,11 @@ export default function SettingsPage() {
         const loadedSettings = data.settings as CompanySettings;
         if (draftSettings) {
           setSettings((prev) => {
-            const mergedSettings: CompanySettings = {
-              ...prev,
-              logoDataUrl: hasLocalLogoChangeRef.current
-                ? prev.logoDataUrl
-                : loadedSettings.logoDataUrl,
-            };
+            const mergedSettings = mergeLoadedSettingsWithDraft(
+              prev,
+              loadedSettings,
+              hasLocalLogoChangeRef.current,
+            );
             writeSettingsDraftToSessionStorage(mergedSettings);
             return mergedSettings;
           });
