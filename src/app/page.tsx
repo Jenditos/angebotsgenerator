@@ -7154,52 +7154,79 @@ export default function HomePage() {
                       </p>
                     ) : null}
                   </div>
+
+                  <div className="positionsMetaSection">
+                    <div className="positionsMetaGroup">
+                      <div className="positionsMetaGroupHeader">
+                        <span className="positionsMetaGroupTitle">
+                          Zusatzdetails
+                        </span>
+                      </div>
+                      <label className="field positionsMetaField">
+                        <span>Projektbeschreibung / Zusatzdetails (frei)</span>
+                        <textarea
+                          className="projectDescriptionTextarea"
+                          rows={3}
+                          placeholder="z. B. Verlegung von 60x60 Feinsteinzeugfliesen inkl. Fugenmaterial"
+                          autoCapitalize="sentences"
+                          value={form.serviceDescription}
+                          onChange={(e) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              serviceDescription: capitalizeEntryStart(
+                                e.target.value,
+                              ),
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <div className="positionsMetaGroup">
+                      <div className="positionsMetaGroupHeader">
+                        <span className="positionsMetaGroupTitle">
+                          Zeit &amp; Kalkulation
+                        </span>
+                      </div>
+                      <div className="positionsMetaFieldsGrid">
+                        <label className="field positionsMetaField">
+                          <span>Stunden</span>
+                          <input
+                            required
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={form.hours}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                hours: e.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <label className="field positionsMetaField">
+                          <span>Stundensatz (EUR)</span>
+                          <input
+                            required
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={form.hourlyRate}
+                            onChange={(e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                hourlyRate: e.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <label className="field span2">
-                <span>Projektbeschreibung / Zusatzdetails (frei)</span>
-                <textarea
-                  className="projectDescriptionTextarea"
-                  rows={3}
-                  placeholder="z. B. Verlegung von 60x60 Feinsteinzeugfliesen inkl. Fugenmaterial"
-                  autoCapitalize="sentences"
-                  value={form.serviceDescription}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      serviceDescription: capitalizeEntryStart(e.target.value),
-                    }))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>Stunden</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={form.hours}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, hours: e.target.value }))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>Stundensatz (EUR)</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.hourlyRate}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, hourlyRate: e.target.value }))
-                  }
-                />
-              </label>
 
               <div
                 className="submitActionRow dashboardCtaRow span2"

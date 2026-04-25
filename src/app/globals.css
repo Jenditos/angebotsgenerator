@@ -2901,6 +2901,10 @@ textarea:focus {
     gap: 8px;
   }
 
+  .positionsMetaFieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
   .formHintMiniWrap {
     min-height: 36px;
   }
@@ -6356,6 +6360,47 @@ body {
   margin: 8px 14px 0 !important;
 }
 
+.positionsMetaSection {
+  display: grid;
+  gap: 16px;
+  padding: 16px var(--positions-module-axis-inline, 14px) 18px;
+  border-top: 1px solid rgba(66, 113, 199, 0.18);
+  background: transparent;
+}
+
+.positionsMetaGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.positionsMetaGroupHeader {
+  display: flex;
+  align-items: center;
+}
+
+.positionsMetaGroupTitle {
+  color: #355685;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.positionsMetaField {
+  min-width: 0;
+}
+
+.positionsMetaField > span {
+  color: #355685;
+  font-weight: 700;
+}
+
+.positionsMetaFieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
 .serviceSuggestionList,
 .serviceSuggestionGroup,
 .serviceSuggestionButton,
@@ -7410,6 +7455,16 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
 
 .positionsInputWrapMerged {
   padding: var(--space-3) 0 var(--space-4) !important;
+}
+
+.positionsMetaSection {
+  padding: var(--space-4) var(--positions-module-axis-inline, var(--space-4))
+    var(--space-5) !important;
+  gap: var(--space-4) !important;
+}
+
+.positionsMetaGroup {
+  gap: var(--space-3) !important;
 }
 
 .positionsInputTable thead th {
