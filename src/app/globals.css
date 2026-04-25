@@ -7458,9 +7458,9 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
 }
 
 .positionsMetaSection {
-  padding: var(--space-4) var(--positions-module-axis-inline, var(--space-4))
+  padding: 26px var(--positions-module-axis-inline, var(--space-4))
     var(--space-5) !important;
-  gap: var(--space-4) !important;
+  gap: 28px !important;
 }
 
 .positionsMetaGroup {
