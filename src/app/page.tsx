@@ -19,7 +19,10 @@ import { InfoLegalModal } from "@/components/InfoLegalModal";
 import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { sanitizeCompanyLogoDataUrl } from "@/lib/logo-config";
+import {
+  MAX_LOGO_DATA_URL_LENGTH,
+  sanitizeCompanyLogoDataUrl,
+} from "@/lib/logo-config";
 import { formatIbanForDisplay, normalizeBicInput } from "@/lib/iban";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { useDialogFocusTrap } from "@/lib/ui/use-dialog-focus-trap";
@@ -85,6 +88,10 @@ type ServicesApiResponse = {
 
 type SettingsApiResponse = {
   settings?: CompanySettings;
+  error?: string;
+};
+
+type GenerateOfferApiResponseBody = Partial<ApiResponse> & {
   error?: string;
 };
 
@@ -892,6 +899,47 @@ function mergeSettingsDraftWithServer(
     ...draftSettings,
     logoDataUrl: serverSettings.logoDataUrl || draftSettings.logoDataUrl,
   };
+}
+
+function buildGenerateOfferSettingsPayload(
+  settings: CompanySettings | null | undefined,
+): CompanySettings | undefined {
+  if (!settings) {
+    return undefined;
+  }
+
+  const logoDataUrl = sanitizeCompanyLogoDataUrl(settings.logoDataUrl || "");
+  return {
+    ...settings,
+    logoDataUrl:
+      logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH ? logoDataUrl : "",
+  };
+}
+
+async function parseGenerateOfferResponse(
+  response: Response,
+): Promise<GenerateOfferApiResponseBody> {
+  const responseText = await response.text();
+  if (!responseText.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(responseText) as GenerateOfferApiResponseBody;
+  } catch {
+    if (response.status === 413) {
+      return {
+        error:
+          "Die Anfrage war zu groß. Bitte Logo in den Einstellungen erneut speichern oder ein kleineres Logo verwenden.",
+      };
+    }
+
+    return {
+      error: response.ok
+        ? "Die Serverantwort konnte nicht gelesen werden."
+        : "Der Server hat keine lesbare Fehlermeldung zurückgegeben.",
+    };
+  }
 }
 
 function hasCompletedCompanySettings(settings: CompanySettings | undefined): boolean {
@@ -4558,18 +4606,22 @@ export default function HomePage() {
           selectedServices: selectedServicesPayload,
           selectedServiceEntries: selectedServiceEntriesPayload,
           positions: positionsPayload,
-          settings: settingsPayload ?? undefined,
+          settings: buildGenerateOfferSettingsPayload(settingsPayload),
           sendEmail: false,
         }),
       });
 
-      const data = await response.json();
+      const data = await parseGenerateOfferResponse(response);
       if (!response.ok) {
         setError(data.error ?? "Unbekannter Fehler");
         return;
       }
 
       const payload = data as ApiResponse;
+      if (!payload.pdfBase64?.trim()) {
+        setError("Das Dokument wurde erstellt, aber das PDF konnte nicht geladen werden.");
+        return;
+      }
       if (payload.customerNumber?.trim()) {
         setActiveCustomerNumber(payload.customerNumber.trim());
       }
@@ -4599,15 +4651,24 @@ export default function HomePage() {
       void loadStoredCustomers();
       const payloadMode =
         payload.documentType === "invoice" ? "invoice" : documentMode;
-      const hasDownloadedPdfOnCreate =
-        payloadMode === "offer" && Boolean(payload.pdfBase64?.trim());
-      if (hasDownloadedPdfOnCreate) {
-        const downloadDocumentNumber = resolveDraftDocumentNumber(payload, "offer");
-        const file = createPdfFile(
-          payload.pdfBase64,
-          `${downloadDocumentNumber}.pdf`,
-        );
-        downloadPdfFile(file);
+      let hasDownloadedPdfOnCreate = false;
+      if (payloadMode === "offer" && payload.pdfBase64?.trim()) {
+        try {
+          const downloadDocumentNumber = resolveDraftDocumentNumber(payload, "offer");
+          const file = createPdfFile(
+            payload.pdfBase64,
+            `${downloadDocumentNumber}.pdf`,
+          );
+          downloadPdfFile(file);
+          hasDownloadedPdfOnCreate = true;
+        } catch (downloadError) {
+          console.warn("[offer-submit] PDF-Download konnte nicht gestartet werden.", {
+            error: downloadError,
+          });
+          setError(
+            "Das Dokument wurde erstellt, aber der automatische PDF-Download konnte nicht gestartet werden.",
+          );
+        }
       }
       const companyNameForMail =
         settingsPayload?.companyName?.trim() ||
@@ -4629,8 +4690,15 @@ export default function HomePage() {
           ? `${createdDocumentLabel} wurde erstellt. Du kannst ${createdDocumentPronoun} jetzt per E-Mail versenden.`
           : `${createdDocumentLabel} wurde erstellt. Für den Versand bitte zuerst eine Kunden-E-Mail angeben.`,
       );
-    } catch {
-      setError("Netzwerkfehler. Bitte erneut versuchen.");
+    } catch (submitError) {
+      console.error("[offer-submit] Angebot konnte nicht erstellt werden.", {
+        error: submitError,
+      });
+      setError(
+        submitError instanceof TypeError
+          ? "Netzwerkfehler. Bitte erneut versuchen."
+          : "Angebot konnte nicht vollständig verarbeitet werden.",
+      );
     } finally {
       setIsSubmitting(false);
     }
