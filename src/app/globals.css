@@ -7478,13 +7478,16 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
 }
 
 .positionsInputTableFooter {
-  padding: var(--space-4) var(--positions-module-axis-inline, var(--space-4))
-    var(--space-2) !important;
-  margin-top: var(--space-3) !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--space-3) var(--positions-module-axis-inline, var(--space-4))
+    !important;
+  margin-top: 0 !important;
 }
 
 .positionsAddRowButton {
-  margin-top: var(--space-2) !important;
+  margin-top: 0 !important;
 }
 
 .positionsInputTable :is(
