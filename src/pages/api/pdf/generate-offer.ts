@@ -5,6 +5,14 @@ import {
   sendWebResponseToApiResponse,
 } from "@/server/pages-api-bridge";
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "12mb",
+    },
+  },
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
