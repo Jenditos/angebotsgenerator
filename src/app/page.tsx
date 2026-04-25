@@ -23,7 +23,11 @@ import {
   MAX_LOGO_DATA_URL_LENGTH,
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
-import { formatIbanForDisplay, normalizeBicInput } from "@/lib/iban";
+import {
+  formatIbanForDisplay,
+  normalizeBicInput,
+  validateIbanInput,
+} from "@/lib/iban";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { useDialogFocusTrap } from "@/lib/ui/use-dialog-focus-trap";
 import {
@@ -4596,22 +4600,67 @@ export default function HomePage() {
         settingsPayload = localDraftSettings;
       }
 
-      const response = await fetch("/api/pdf/generate-offer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          documentType: documentMode,
-          customerNumber: activeCustomerNumber || undefined,
-          selectedServices: selectedServicesPayload,
-          selectedServiceEntries: selectedServiceEntriesPayload,
-          positions: positionsPayload,
-          settings: buildGenerateOfferSettingsPayload(settingsPayload),
-          sendEmail: false,
-        }),
-      });
+      const settingsPayloadForRequest =
+        buildGenerateOfferSettingsPayload(settingsPayload);
+      if (!settingsPayloadForRequest) {
+        setError(
+          "Bitte hinterlegen Sie in den Einstellungen eine gültige IBAN, bevor Dokumente erstellt werden.",
+        );
+        return;
+      }
 
-      const data = await parseGenerateOfferResponse(response);
+      const ibanValidation = validateIbanInput(
+        settingsPayloadForRequest.companyIban,
+      );
+      if (!ibanValidation.isValid) {
+        setError(
+          "Bitte hinterlegen Sie in den Einstellungen eine gültige IBAN, bevor Dokumente erstellt werden.",
+        );
+        return;
+      }
+
+      let response: Response;
+      try {
+        response = await fetch("/api/pdf/generate-offer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...form,
+            documentType: documentMode,
+            customerNumber: activeCustomerNumber || undefined,
+            selectedServices: selectedServicesPayload,
+            selectedServiceEntries: selectedServiceEntriesPayload,
+            positions: positionsPayload,
+            settings: {
+              ...settingsPayloadForRequest,
+              companyIban: ibanValidation.formatted,
+              ibanVerificationStatus: "valid",
+            },
+            sendEmail: false,
+          }),
+        });
+      } catch (fetchError) {
+        console.error("[offer-submit] Anfrage konnte nicht gesendet werden.", {
+          error: fetchError,
+        });
+        setError(
+          "Serververbindung konnte nicht hergestellt werden. Bitte erneut versuchen.",
+        );
+        return;
+      }
+
+      let data: GenerateOfferApiResponseBody;
+      try {
+        data = await parseGenerateOfferResponse(response);
+      } catch (responseError) {
+        console.error("[offer-submit] Serverantwort konnte nicht gelesen werden.", {
+          error: responseError,
+        });
+        setError(
+          "Die Serverantwort konnte nicht gelesen werden. Bitte erneut versuchen.",
+        );
+        return;
+      }
       if (!response.ok) {
         setError(data.error ?? "Unbekannter Fehler");
         return;
@@ -4694,11 +4743,7 @@ export default function HomePage() {
       console.error("[offer-submit] Angebot konnte nicht erstellt werden.", {
         error: submitError,
       });
-      setError(
-        submitError instanceof TypeError
-          ? "Netzwerkfehler. Bitte erneut versuchen."
-          : "Angebot konnte nicht vollständig verarbeitet werden.",
-      );
+      setError("Angebot konnte nicht vollständig verarbeitet werden.");
     } finally {
       setIsSubmitting(false);
     }
@@ -6869,6 +6914,7 @@ export default function HomePage() {
                         LEISTUNGEN &amp; POSITIONEN
                       </h3>
                     </div>
+                    <p className="positionsSearchLabel">Leistungsart</p>
                     <div className="positionsSearchRow">
                       <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
                         <input
@@ -7205,6 +7251,9 @@ export default function HomePage() {
                                           strokeLinejoin="round"
                                         />
                                       </svg>
+                                      <span className="positionDeleteText">
+                                        Position löschen
+                                      </span>
                                     </button>
                                   </td>
                                   </tr>
@@ -7241,11 +7290,11 @@ export default function HomePage() {
                     <div className="positionsMetaGroup">
                       <div className="positionsMetaGroupHeader">
                         <span className="positionsMetaGroupTitle">
-                          Zusatzdetails
+                          Leistungsbeschreibung
                         </span>
                       </div>
                       <label className="field positionsMetaField">
-                        <span>Projektbeschreibung / Zusatzdetails (frei)</span>
+                        <span>Leistungsbeschreibung</span>
                         <textarea
                           className="projectDescriptionTextarea"
                           rows={3}

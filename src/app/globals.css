@@ -7314,6 +7314,10 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
   transition: color 180ms ease;
 }
 
+.positionDeleteText {
+  display: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .positionsInputTable .positionDeleteButton:hover {
     color: #ff3b30 !important;
@@ -9423,7 +9427,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
 }
 
 .appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea {
-  min-height: 184px;
+  min-height: 132px;
   border: 1px solid rgba(168, 208, 247, 0.62) !important;
   background: rgba(246, 252, 255, 0.94) !important;
   color: #163a65 !important;
@@ -9584,7 +9588,7 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   }
 
   .appFrameWithSidebar .dashboardVoicePanel .voiceTranscriptTextarea {
-    min-height: 150px;
+    min-height: 112px;
   }
 
   .appFrameWithSidebar .dashboardVoicePanel .voiceStatusCard {
@@ -10240,14 +10244,15 @@ button.primaryButton.voiceLoginModalPrimaryButton:focus-visible {
   .positionsInputTable tbody {
     display: grid !important;
     gap: 12px !important;
-    padding: 0 12px 12px !important;
+    padding: 12px !important;
   }
 
   .positionsInputTable tbody tr:not(.positionsGroupRow) {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px !important;
-    padding: 12px !important;
+    column-gap: 12px !important;
+    row-gap: 14px !important;
+    padding: 14px !important;
     border: 1px solid rgba(25, 59, 104, 0.1);
     border-radius: 14px;
     background: #ffffff !important;
@@ -10261,8 +10266,6 @@ button.primaryButton.voiceLoginModalPrimaryButton:focus-visible {
 
   .positionsInputTable tbody td:first-child,
   .positionsInputTable tbody td:nth-child(4),
-  .positionsInputTable tbody td:nth-child(5),
-  .positionsInputTable tbody td:nth-child(6),
   .positionsInputEmpty {
     grid-column: 1 / -1;
   }
@@ -10312,26 +10315,46 @@ button.primaryButton.voiceLoginModalPrimaryButton:focus-visible {
   }
 
   .positionsInputTable .positionTotalCell {
-    min-height: 46px;
-    display: grid !important;
-    align-content: center;
-    justify-items: start;
-    padding: 12px !important;
-    border-radius: 12px;
-    background: rgba(17, 111, 230, 0.08) !important;
+    display: flex !important;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
     text-align: left !important;
+  }
+
+  .positionsInputTable .positionTotalCell::before {
+    margin-bottom: 0;
   }
 
   .positionsInputTable .positionActionCell {
     display: flex !important;
+    align-items: center;
     justify-content: flex-end;
   }
 
   .positionsInputTable .positionDeleteButton {
-    width: 42px;
-    min-width: 42px;
+    width: 100%;
+    min-width: 0;
     height: 42px;
     min-height: 42px;
+    gap: 8px;
+    color: #1c3660 !important;
+  }
+
+  .positionsInputTable .positionDeleteButton .positionDeleteIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .positionDeleteText {
+    display: inline;
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1;
   }
 
   .positionsInputEmpty {
