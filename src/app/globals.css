@@ -7446,11 +7446,11 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
 .positionsSearchPanel {
   padding: var(--space-5) var(--positions-module-axis-inline, var(--space-4))
     var(--space-4) !important;
-  gap: var(--space-4) !important;
+  gap: var(--space-3) !important;
 }
 
 .positionsModuleHeader {
-  margin-bottom: var(--space-3) !important;
+  margin-bottom: 0 !important;
 }
 
 .positionsSearchRow {

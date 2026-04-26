@@ -7294,10 +7294,10 @@ export default function HomePage() {
                         </span>
                       </div>
                       <label className="field positionsMetaField">
-                        <span>Leistungsbeschreibung</span>
                         <textarea
                           className="projectDescriptionTextarea"
                           rows={3}
+                          aria-label="Leistungsbeschreibung"
                           placeholder="z. B. Verlegung von 60x60 Feinsteinzeugfliesen inkl. Fugenmaterial"
                           autoCapitalize="sentences"
                           value={form.serviceDescription}
