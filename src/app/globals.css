@@ -7191,6 +7191,15 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
   letter-spacing: 0 !important;
 }
 
+:is(.positionsSearchLabel, .positionsMetaGroupTitle) {
+  font-size: 0.74rem !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+  color: #355685 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
 /* Spacing rhythm */
 .container,
 .workspaceGrid,
