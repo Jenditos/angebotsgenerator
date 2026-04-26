@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 700,
     color: theme.text,
-    lineHeight: 1.22,
-    marginBottom: 2,
+    lineHeight: 1.14,
+    marginBottom: 1,
   },
   recipientLine: {
     color: theme.textMuted,
-    lineHeight: lineHeights.compact,
-    marginBottom: 2,
+    lineHeight: 1.14,
+    marginBottom: 0.5,
   },
   recipientLineLast: {
     marginBottom: 0,
@@ -166,11 +166,11 @@ const styles = StyleSheet.create({
   },
   introParagraph: {
     color: theme.textMuted,
-    lineHeight: lineHeights.body,
-    marginBottom: space.xs,
+    lineHeight: 1.24,
+    marginBottom: 2,
   },
   introParagraphSalutation: {
-    marginBottom: space.sm,
+    marginBottom: 4,
   },
   introParagraphLast: {
     marginBottom: 0,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.4,
     color: theme.textSoft,
-    marginBottom: space.xs,
+    marginBottom: space.md,
   },
   noteText: {
     color: theme.textMuted,
