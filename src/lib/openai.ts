@@ -348,9 +348,26 @@ export type ParsedIntakeFields = {
 export type ParsedIntakePosition = {
   group?: string;
   description: string;
-  quantity: number;
-  unit: string;
-  unitPrice: number;
+  quantity?: number;
+  unit?: string;
+  unitPrice?: number;
+};
+
+export type ParsedIntakeDocument = {
+  type: "offer" | "invoice" | "unknown";
+  title?: string;
+  notes?: string;
+};
+
+export type ParsedIntakeAppointment = {
+  date?: string;
+  time?: string;
+};
+
+export type ParsedIntakeConfidence = {
+  customer?: number;
+  items?: number;
+  document?: number;
 };
 
 export type IntakeParseResult = {
@@ -358,6 +375,11 @@ export type IntakeParseResult = {
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error";
   sourceText?: string;
+  ignoredText?: string[];
+  confidence?: ParsedIntakeConfidence;
+  needsReview?: boolean;
+  document?: ParsedIntakeDocument;
+  appointment?: ParsedIntakeAppointment;
 };
 
 function normalizeNumberValue(input: unknown): number | undefined {
@@ -390,10 +412,10 @@ function normalizeTextValue(input: unknown): string | undefined {
   return value ? value : undefined;
 }
 
-function normalizeUnitLabel(value: unknown): string {
+function normalizeUnitLabel(value: unknown): string | undefined {
   const raw = normalizeTextValue(value);
   if (!raw) {
-    return "Pauschal";
+    return undefined;
   }
 
   const compact = normalizeGermanUmlauts(raw.toLowerCase())
@@ -403,7 +425,7 @@ function normalizeUnitLabel(value: unknown): string {
     .replace(/\./g, "")
     .trim();
   if (!compact) {
-    return "Pauschal";
+    return undefined;
   }
 
   if (compact === "stuck" || compact === "stueck" || compact === "stk") {
@@ -456,7 +478,7 @@ function normalizeUnitLabel(value: unknown): string {
     return "Pauschal";
   }
 
-  return "Pauschal";
+  return undefined;
 }
 
 function normalizeParsedPositions(input: unknown): ParsedIntakePosition[] {
@@ -478,12 +500,26 @@ function normalizeParsedPositions(input: unknown): ParsedIntakePosition[] {
       unitPrice?: unknown;
     };
     const description = normalizeTextValue(item.description);
-    const quantity = normalizeNumberValue(item.quantity);
-    const unitPrice = normalizeNumberValue(item.unitPrice);
+    const quantityCandidate = normalizeNumberValue(item.quantity);
+    const unitPriceCandidate = normalizeNumberValue(item.unitPrice);
 
-    if (!description || !quantity || quantity <= 0 || unitPrice === undefined || unitPrice < 0) {
+    if (!description) {
       continue;
     }
+
+    const quantity =
+      typeof quantityCandidate === "number" &&
+      Number.isFinite(quantityCandidate) &&
+      quantityCandidate > 0
+        ? quantityCandidate
+        : undefined;
+    const unitPrice =
+      typeof unitPriceCandidate === "number" &&
+      Number.isFinite(unitPriceCandidate) &&
+      unitPriceCandidate >= 0
+        ? unitPriceCandidate
+        : undefined;
+    const unit = normalizeUnitLabel(item.unit);
 
     positions.push({
       group: normalizeTextValue(item.group)
@@ -491,7 +527,7 @@ function normalizeParsedPositions(input: unknown): ParsedIntakePosition[] {
         : undefined,
       description: formatPositionText(description),
       quantity,
-      unit: normalizeUnitLabel(item.unit),
+      unit,
       unitPrice,
     });
   }
@@ -1058,39 +1094,312 @@ Antworte im JSON-Schema:
 }
 
 const INTAKE_JSON_SCHEMA = `{
-  "customerType": "person|company|null",
-  "companyName": "string|null",
-  "salutation": "herr|frau|null",
-  "firstName": "string|null",
-  "lastName": "string|null",
-  "street": "string|null",
-  "postalCode": "string|null",
-  "city": "string|null",
-  "customerEmail": "string|null",
-  "serviceDescription": "string|null",
-  "positions": [
+  "customer": {
+    "name": "string",
+    "company": "string",
+    "phone": "string",
+    "email": "string",
+    "address": {
+      "street": "string",
+      "zip": "string",
+      "city": "string"
+    }
+  },
+  "document": {
+    "type": "angebot|rechnung|unknown",
+    "title": "string",
+    "notes": "string"
+  },
+  "items": [
     {
-      "group": "string|null",
       "description": "string",
-      "quantity": "number",
-      "unit": "string|null",
-      "unitPrice": "number"
+      "quantity": "number|null",
+      "unit": "string",
+      "unitPrice": "number|null"
     }
   ],
-  "hours": "number|null",
-  "hourlyRate": "number|null",
-  "materialCost": "number|null",
+  "appointment": {
+    "date": "string",
+    "time": "string"
+  },
+  "ignored_text": ["string"],
+  "confidence": {
+    "customer": "number(0-1)",
+    "items": "number(0-1)",
+    "document": "number(0-1)"
+  },
+  "needs_review": "boolean",
   "sourceText": "string|null"
 }`;
+
+const INTAKE_FEW_SHOTS = `Beispiel 1
+Input:
+"Mach mir mal bitte ein Angebot für Max Müller, Musterstraße 12 in Berlin, Wasserhahn austauschen, zwei Stunden Arbeit."
+Output:
+{
+  "customer": {
+    "name": "Max Müller",
+    "company": "",
+    "phone": "",
+    "email": "",
+    "address": {
+      "street": "Musterstraße 12",
+      "zip": "",
+      "city": "Berlin"
+    }
+  },
+  "document": {
+    "type": "angebot",
+    "title": "",
+    "notes": ""
+  },
+  "items": [
+    {
+      "description": "Wasserhahn austauschen",
+      "quantity": 2,
+      "unit": "Stunden",
+      "unitPrice": null
+    }
+  ],
+  "appointment": {
+    "date": "",
+    "time": ""
+  },
+  "ignored_text": ["Mach mir mal bitte"],
+  "confidence": {
+    "customer": 0.8,
+    "items": 0.8,
+    "document": 0.9
+  },
+  "needs_review": true
+}
+
+Beispiel 2
+Input:
+"Schreib bitte rein: Kunde ist Schreinerei Weber, Telefonnummer 0176 12345678, Angebot für Einbau von drei Innentüren."
+Output:
+{
+  "customer": {
+    "name": "",
+    "company": "Schreinerei Weber",
+    "phone": "0176 12345678",
+    "email": "",
+    "address": {
+      "street": "",
+      "zip": "",
+      "city": ""
+    }
+  },
+  "document": {
+    "type": "angebot",
+    "title": "",
+    "notes": ""
+  },
+  "items": [
+    {
+      "description": "Einbau von Innentüren",
+      "quantity": 3,
+      "unit": "Stück",
+      "unitPrice": null
+    }
+  ],
+  "appointment": {
+    "date": "",
+    "time": ""
+  },
+  "ignored_text": ["Schreib bitte rein"],
+  "confidence": {
+    "customer": 0.86,
+    "items": 0.84,
+    "document": 0.9
+  },
+  "needs_review": true
+}`;
+
+const INTAKE_SYSTEM_PROMPT =
+  "Du extrahierst aus deutscher Umgangssprache präzise Geschäftsdaten für Handwerker-Angebote/Rechnungen. " +
+  "Ignoriere Steuerungs-/Befehlssprache (z. B. 'mach mir mal bitte', 'trag mal ein', 'schreib bitte rein', 'erstelle ein Angebot für', 'füge hinzu', 'notiere') und Füllwörter (z. B. 'ähm', 'also', 'ja', 'bitte', 'mal', 'quasi', 'genau'). " +
+  "Erfasse nur relevante Daten und ordne sie semantisch korrekt zu (customer/document/items/appointment). " +
+  "items dürfen ausschließlich echte Leistungen oder Materialien enthalten, nie Befehlsreste. " +
+  "Wenn Mengen/Einheiten/Preise fehlen, lasse Felder leer bzw. null. Nichts raten. " +
+  "Unsichere Daten zurückhaltend behandeln, confidence setzen und needs_review=true lassen. " +
+  "Antworte strikt mit validem JSON, ohne Markdown und ohne erklärenden Text.";
+
+function asRecord(input: unknown): Record<string, unknown> | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+  return input as Record<string, unknown>;
+}
+
+function normalizeConfidenceValue(input: unknown): number | undefined {
+  const value = normalizeNumberValue(input);
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function normalizeDocumentType(
+  input: unknown,
+): "offer" | "invoice" | "unknown" | undefined {
+  const normalized = normalizeTextValue(input)
+    ?.toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized === "angebot" || normalized === "offer") {
+    return "offer";
+  }
+  if (normalized === "rechnung" || normalized === "invoice") {
+    return "invoice";
+  }
+  if (normalized === "unknown" || normalized === "unbekannt") {
+    return "unknown";
+  }
+  return undefined;
+}
+
+function normalizeTextArray(input: unknown): string[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input
+    .map((entry) => normalizeTextValue(entry))
+    .filter((entry): entry is string => Boolean(entry));
+}
+
+function splitCustomerName(name: string | undefined): {
+  firstName?: string;
+  lastName?: string;
+} {
+  if (!name) {
+    return {};
+  }
+  const normalized = name
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!normalized) {
+    return {};
+  }
+  const parts = normalized.split(" ");
+  if (parts.length === 1) {
+    return { firstName: formatLooseText(parts[0]) };
+  }
+  return {
+    firstName: formatLooseText(parts.slice(0, -1).join(" ")),
+    lastName: formatLooseText(parts.slice(-1).join(" ")),
+  };
+}
 
 function parseIntakeModelPayload(raw: string): {
   fields: ParsedIntakeFields;
   sourceText?: string;
+  ignoredText?: string[];
+  confidence?: ParsedIntakeConfidence;
+  needsReview?: boolean;
+  document?: ParsedIntakeDocument;
+  appointment?: ParsedIntakeAppointment;
 } {
   const parsed = JSON.parse(raw) as Record<string, unknown>;
+
+  const customer = asRecord(parsed.customer);
+  const address = asRecord(customer?.address);
+  const document = asRecord(parsed.document);
+  const appointment = asRecord(parsed.appointment);
+  const confidence = asRecord(parsed.confidence);
+
+  const customerName = normalizeTextValue(customer?.name);
+  const splitName = splitCustomerName(customerName);
+  const companyName = normalizeTextValue(customer?.company);
+  const customerEmail = normalizeTextValue(customer?.email);
+  const serviceDescriptionFromDocumentNotes = normalizeTextValue(document?.notes);
+
+  const fallbackFlatFields = toParsedFields(parsed);
+  const itemCandidates = Array.isArray(parsed.items)
+    ? parsed.items
+    : Array.isArray(parsed.positions)
+      ? parsed.positions
+      : [];
+  const normalizedItems = normalizeParsedPositions(itemCandidates);
+
+  const normalizedDocumentType =
+    normalizeDocumentType(document?.type) ??
+    normalizeDocumentType(parsed.documentType) ??
+    undefined;
+  const normalizedConfidence: ParsedIntakeConfidence | undefined =
+    confidence
+      ? {
+          customer: normalizeConfidenceValue(confidence.customer),
+          items: normalizeConfidenceValue(confidence.items),
+          document: normalizeConfidenceValue(confidence.document),
+        }
+      : undefined;
+
+  const resultFields: ParsedIntakeFields = {
+    ...fallbackFlatFields,
+    customerType:
+      companyName && !splitName.lastName
+        ? "company"
+        : fallbackFlatFields.customerType,
+    companyName: companyName ?? fallbackFlatFields.companyName,
+    firstName: splitName.firstName ?? fallbackFlatFields.firstName,
+    lastName: splitName.lastName ?? fallbackFlatFields.lastName,
+    street:
+      normalizeTextValue(address?.street) ?? fallbackFlatFields.street,
+    postalCode:
+      normalizeTextValue(address?.zip) ?? fallbackFlatFields.postalCode,
+    city: normalizeTextValue(address?.city) ?? fallbackFlatFields.city,
+    customerEmail: customerEmail ?? fallbackFlatFields.customerEmail,
+    serviceDescription:
+      fallbackFlatFields.serviceDescription ??
+      serviceDescriptionFromDocumentNotes,
+    positions:
+      normalizedItems.length > 0
+        ? normalizedItems
+        : fallbackFlatFields.positions,
+  };
+
+  if (
+    !resultFields.customerType &&
+    resultFields.firstName &&
+    resultFields.lastName &&
+    !resultFields.companyName
+  ) {
+    resultFields.customerType = "person";
+  }
+
   return {
-    fields: toParsedFields(parsed),
+    fields: resultFields,
     sourceText: normalizeTextValue(parsed.sourceText),
+    ignoredText:
+      normalizeTextArray(parsed.ignored_text).length > 0
+        ? normalizeTextArray(parsed.ignored_text)
+        : normalizeTextArray(parsed.ignoredText),
+    confidence: normalizedConfidence,
+    needsReview:
+      typeof parsed.needs_review === "boolean"
+        ? parsed.needs_review
+        : typeof parsed.needsReview === "boolean"
+          ? parsed.needsReview
+          : undefined,
+    document: normalizedDocumentType
+      ? {
+          type: normalizedDocumentType,
+          title: normalizeTextValue(document?.title),
+          notes: serviceDescriptionFromDocumentNotes,
+        }
+      : undefined,
+    appointment:
+      normalizeTextValue(appointment?.date) || normalizeTextValue(appointment?.time)
+        ? {
+            date: normalizeTextValue(appointment?.date),
+            time: normalizeTextValue(appointment?.time),
+          }
+        : undefined,
   };
 }
 
@@ -1105,7 +1414,8 @@ export async function parseOfferIntake(transcript: string): Promise<IntakeParseR
     return {
       fields: fallbackParseIntake(cleanTranscript),
       usedFallback: true,
-      fallbackReason: "no_api_key"
+      fallbackReason: "no_api_key",
+      needsReview: true,
     };
   }
 
@@ -1116,18 +1426,27 @@ export async function parseOfferIntake(transcript: string): Promise<IntakeParseR
       messages: [
         {
           role: "system",
-          content:
-            "Extrahiere aus deutschem Spracheingabe-Text strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Erkenne mehrere Positionen zuverlässig und trenne sie sauber in positions (description, quantity, unit, unitPrice). Korrigiere offensichtliche Rechtschreibfehler bei deutschen Bau-/Handwerks-Komposita (z. B. Betonarbeit, Betonstahl), ohne Inhalte umzuformulieren. Gib serviceDescription nur als kurze Projektbeschreibung aus (maximal 160 Zeichen) und nur, wenn der Text explizit Projektbeschreibung/Zusatzdetails erwähnt. Reine Positionslisten dürfen nicht in serviceDescription landen. Gib customerEmail technisch verwertbar im Format local@domain aus und normalisiere gesprochene Varianten wie 'at'/'punkt'."
+          content: INTAKE_SYSTEM_PROMPT,
         },
         {
           role: "user",
-          content: `Extrahiere aus diesem Text so viele Felder wie möglich:
+          content: `Extrahiere aus diesem Spracheingabetext:
 ${cleanTranscript}
 
+Regeln:
+- Nur valide JSON-Antwort.
+- Kein Markdown.
+- Keine Erklärungen.
+- Unsichere/leere Werte leer lassen.
+- Nichts raten.
+
 Antwort-JSON-Schema:
-${INTAKE_JSON_SCHEMA}`
-        }
-      ]
+${INTAKE_JSON_SCHEMA}
+
+Few-Shot-Beispiele:
+${INTAKE_FEW_SHOTS}`,
+        },
+      ],
     });
 
     const raw = completion.choices[0]?.message?.content;
@@ -1135,7 +1454,8 @@ ${INTAKE_JSON_SCHEMA}`
       return {
         fields: fallbackParseIntake(cleanTranscript),
         usedFallback: true,
-        fallbackReason: "model_error"
+        fallbackReason: "model_error",
+        needsReview: true,
       };
     }
 
@@ -1145,12 +1465,18 @@ ${INTAKE_JSON_SCHEMA}`
       fields: payload.fields,
       usedFallback: false,
       sourceText: payload.sourceText,
+      ignoredText: payload.ignoredText,
+      confidence: payload.confidence,
+      needsReview: payload.needsReview,
+      document: payload.document,
+      appointment: payload.appointment,
     };
   } catch {
     return {
       fields: fallbackParseIntake(cleanTranscript),
       usedFallback: true,
-      fallbackReason: "model_error"
+      fallbackReason: "model_error",
+      needsReview: true,
     };
   }
 }
@@ -1165,7 +1491,12 @@ export async function parseOfferIntakeFromImage(
   }
 
   if (!openai) {
-    return { fields: {}, usedFallback: true, fallbackReason: "no_api_key" };
+    return {
+      fields: {},
+      usedFallback: true,
+      fallbackReason: "no_api_key",
+      needsReview: true,
+    };
   }
 
   try {
@@ -1176,14 +1507,15 @@ export async function parseOfferIntakeFromImage(
         {
           role: "system",
           content:
-            "Extrahiere aus Fotos deutscher Handwerker-Notizen strukturierte Angebotsdaten. Antworte ausschließlich als JSON. Verstehe handschriftliche/kurze Stichpunkte inhaltlich, filtere irrelevante Inhalte aus und gib nur sinnvolle Felder zurück. Erkenne mehrere Positionen zuverlässig und trenne sie sauber in positions (description, quantity, unit, unitPrice). Korrigiere offensichtliche Rechtschreibfehler bei deutschen Bau-/Handwerks-Komposita (z. B. Betonarbeit, Betonstahl), ohne Inhalte umzuformulieren. Gib serviceDescription nur als kurze Projektbeschreibung aus (maximal 160 Zeichen). Gib customerEmail technisch verwertbar im Format local@domain aus.",
+            "Extrahiere aus Fotos deutscher Handwerker-Notizen strukturierte Geschäftsdaten und antworte nur mit validem JSON. " +
+            "Filtere irrelevante Formulierungen aus, trenne Positionen sauber und übernehme nur echte Leistungen/Materialien.",
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: `Analysiere dieses Foto und extrahiere so viele Felder wie möglich.
+              text: `Analysiere dieses Foto und gib nur strukturiertes JSON zurück.
 
 Antwort-JSON-Schema:
 ${INTAKE_JSON_SCHEMA}`,
@@ -1210,6 +1542,11 @@ ${INTAKE_JSON_SCHEMA}`,
       fields: payload.fields,
       usedFallback: false,
       sourceText: payload.sourceText,
+      ignoredText: payload.ignoredText,
+      confidence: payload.confidence,
+      needsReview: payload.needsReview,
+      document: payload.document,
+      appointment: payload.appointment,
     };
   } catch {
     return { fields: {}, usedFallback: true, fallbackReason: "model_error" };

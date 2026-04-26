@@ -144,6 +144,30 @@ type ParsedVoicePosition = {
   unitPrice?: number;
 };
 
+type ParsedVoiceConfidence = {
+  customer?: number;
+  items?: number;
+  document?: number;
+};
+
+type ParsedVoiceDocument = {
+  type?: "offer" | "invoice" | "unknown";
+  title?: string;
+  notes?: string;
+};
+
+type ParsedVoiceAppointment = {
+  date?: string;
+  time?: string;
+};
+
+type IntakeReviewConflict = {
+  field: string;
+  label: string;
+  currentValue: string;
+  incomingValue: string;
+};
+
 type VoiceParseResponse = {
   fields: ParsedVoiceFields;
   missingFields: string[];
@@ -153,6 +177,13 @@ type VoiceParseResponse = {
   fallbackReason?: "no_api_key" | "model_error" | null;
   inputMode?: "voice" | "photo";
   sourceText?: string | null;
+  document?: ParsedVoiceDocument;
+  appointment?: ParsedVoiceAppointment;
+  confidence?: ParsedVoiceConfidence;
+  needsReview?: boolean;
+  ignoredText?: string[];
+  noRelevantData?: boolean;
+  message?: string;
 };
 
 type IntakeInputMode = "voice" | "photo";
@@ -167,6 +198,7 @@ type PhotoReviewPositionDraft = {
 };
 
 type PhotoReviewDraft = {
+  inputMode: IntakeInputMode;
   customerType: "person" | "company";
   companyName: string;
   salutation: "herr" | "frau";
@@ -186,6 +218,11 @@ type PhotoReviewDraft = {
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error" | null;
   sourceText: string;
+  ignoredText: string[];
+  confidence: ParsedVoiceConfidence;
+  needsReview: boolean;
+  documentType: "offer" | "invoice" | "unknown";
+  conflicts: IntakeReviewConflict[];
 };
 
 type NominatimItem = {
@@ -452,6 +489,7 @@ function createInitialModeSnapshot(): ModeSnapshot {
 }
 
 const VOICE_FIELD_LABELS: Record<string, string> = {
+  documentType: "Dokumenttyp",
   companyName: "Firma",
   salutation: "Anrede",
   firstName: "Vorname",
@@ -464,6 +502,7 @@ const VOICE_FIELD_LABELS: Record<string, string> = {
   hours: "Stunden",
   hourlyRate: "Stundensatz",
   materialCost: "Materialkosten",
+  positions: "Positionen",
 };
 
 const ACCOUNT_TIPS: Array<{
@@ -1352,6 +1391,85 @@ function resolveRemainingMissingVoiceLabels(
       return !hasVoiceFieldValue(key, nextForm);
     })
     .map((key) => VOICE_FIELD_LABELS[key] ?? key);
+}
+
+function normalizeReviewCompareValue(value: string): string {
+  return normalizeSearchValue(value).replace(/\s+/g, " ").trim();
+}
+
+function hasMeaningfulSelectedServices(services: SelectedServiceEntry[]): boolean {
+  return services.some((service) =>
+    service.subitems.some(
+      (subitem) =>
+        Boolean(subitem.description.trim()) ||
+        Boolean(subitem.quantity.trim()) ||
+        Boolean(subitem.price.trim()),
+    ),
+  );
+}
+
+function selectedServicesToParsedVoicePositions(
+  services: SelectedServiceEntry[],
+): ParsedVoicePosition[] {
+  const positions: ParsedVoicePosition[] = [];
+  for (const service of services) {
+    const group = capitalizeEntryStart(service.label.trim() || DEFAULT_MANUAL_GROUP_LABEL);
+    for (const subitem of service.subitems) {
+      const description = capitalizeEntryStart(subitem.description.trim());
+      if (!description) {
+        continue;
+      }
+      const parsedQuantity = parseLocaleNumber(subitem.quantity);
+      const parsedPrice = parseLocaleNumber(subitem.price);
+      positions.push({
+        group,
+        description,
+        quantity:
+          Number.isFinite(parsedQuantity) && parsedQuantity > 0
+            ? parsedQuantity
+            : undefined,
+        unit: subitem.unit.trim() || UNIT_OPTIONS[0],
+        unitPrice:
+          Number.isFinite(parsedPrice) && parsedPrice >= 0
+            ? parsedPrice
+            : undefined,
+      });
+    }
+  }
+  return positions;
+}
+
+function buildParsedPositionKey(position: ParsedVoicePosition): string {
+  return [
+    normalizeReviewCompareValue(position.group ?? ""),
+    normalizeReviewCompareValue(position.description ?? ""),
+    typeof position.quantity === "number" && Number.isFinite(position.quantity)
+      ? position.quantity.toString()
+      : "",
+    normalizeReviewCompareValue(position.unit ?? ""),
+    typeof position.unitPrice === "number" && Number.isFinite(position.unitPrice)
+      ? position.unitPrice.toString()
+      : "",
+  ].join("|");
+}
+
+function mergeParsedVoicePositions(
+  existing: ParsedVoicePosition[],
+  incoming: ParsedVoicePosition[],
+): ParsedVoicePosition[] {
+  const merged: ParsedVoicePosition[] = [];
+  const seen = new Set<string>();
+
+  for (const position of [...existing, ...incoming]) {
+    const key = buildParsedPositionKey(position);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    merged.push(position);
+  }
+
+  return merged;
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -3493,7 +3611,7 @@ export default function HomePage() {
         return;
       }
 
-      setVoiceInfo("Aufnahme beendet. Felder werden automatisch übernommen.");
+      setVoiceInfo("Aufnahme beendet. Erkannte Daten werden zur Prüfung vorbereitet.");
       void parseVoiceTranscript(finalizedTranscript, true);
     };
 
@@ -3549,7 +3667,7 @@ export default function HomePage() {
       return;
     }
 
-    setVoiceInfo("Aufnahme beendet. Felder werden automatisch übernommen.");
+    setVoiceInfo("Aufnahme beendet. Erkannte Daten werden zur Prüfung vorbereitet.");
     void parseVoiceTranscript(finalizedTranscript, true);
   }
 
@@ -3698,13 +3816,13 @@ export default function HomePage() {
       const quantity =
         typeof item.quantity === "number" && Number.isFinite(item.quantity) && item.quantity > 0
           ? item.quantity
-          : NaN;
+          : undefined;
       const unitPrice =
         typeof item.unitPrice === "number" && Number.isFinite(item.unitPrice) && item.unitPrice >= 0
           ? item.unitPrice
           : undefined;
 
-      if (!description || !Number.isFinite(quantity)) {
+      if (!description) {
         continue;
       }
 
@@ -3712,7 +3830,10 @@ export default function HomePage() {
         capitalizeEntryStart(item.group ?? "") || DEFAULT_MANUAL_GROUP_LABEL;
       const existing = grouped.get(groupLabel);
       const subitem = createSubitemEntry(description);
-      subitem.quantity = sanitizeQuantityInput(toDecimalInputValue(quantity));
+      subitem.quantity =
+        typeof quantity === "number"
+          ? sanitizeQuantityInput(toDecimalInputValue(quantity))
+          : "";
       subitem.unit = normalizeVoiceUnit(item.unit);
       subitem.price =
         typeof unitPrice === "number"
@@ -3732,6 +3853,289 @@ export default function HomePage() {
     }
 
     return Array.from(grouped.values());
+  }
+
+  function buildIntakeReviewDraft(input: {
+    mode: IntakeInputMode;
+    response: VoiceParseResponse;
+    fields: ParsedVoiceFields;
+    safeServiceDescription?: string;
+    sourceText: string;
+  }): PhotoReviewDraft {
+    const conflicts: IntakeReviewConflict[] = [];
+    const fields = input.fields;
+
+    const addConflict = (
+      field: string,
+      label: string,
+      currentValue: string,
+      incomingValue: string,
+    ) => {
+      conflicts.push({
+        field,
+        label,
+        currentValue,
+        incomingValue,
+      });
+    };
+
+    const mergeTextField = (field: string, label: string, incoming: string | undefined) => {
+      const currentValue = (form as Record<string, string>)[field]?.trim() ?? "";
+      const incomingValue = incoming?.trim() ?? "";
+      if (
+        currentValue &&
+        incomingValue &&
+        normalizeReviewCompareValue(currentValue) !==
+          normalizeReviewCompareValue(incomingValue)
+      ) {
+        addConflict(field, label, currentValue, incomingValue);
+        return currentValue;
+      }
+      return incomingValue || currentValue;
+    };
+
+    const mergeNumericField = (
+      field: "hours" | "hourlyRate" | "materialCost",
+      label: string,
+      incomingRaw: string,
+    ) => {
+      const currentValue = form[field].trim();
+      const incomingValue = incomingRaw.trim();
+      if (!incomingValue) {
+        return currentValue;
+      }
+      if (currentValue) {
+        const parsedCurrent = parseLocaleNumber(currentValue);
+        const parsedIncoming = parseLocaleNumber(incomingValue);
+        if (
+          Number.isFinite(parsedCurrent) &&
+          Number.isFinite(parsedIncoming) &&
+          Math.abs(parsedCurrent - parsedIncoming) > 0.0001
+        ) {
+          addConflict(field, label, currentValue, incomingValue);
+          return currentValue;
+        }
+      }
+      return incomingValue || currentValue;
+    };
+
+    const incomingCustomerType =
+      fields.customerType === "company"
+        ? "company"
+        : fields.customerType === "person"
+          ? "person"
+          : undefined;
+    let customerType: "person" | "company" = form.customerType;
+    if (incomingCustomerType && incomingCustomerType !== form.customerType) {
+      const hasCurrentIdentity =
+        form.customerType === "company"
+          ? form.companyName.trim().length > 0
+          : form.firstName.trim().length > 0 || form.lastName.trim().length > 0;
+      if (hasCurrentIdentity) {
+        addConflict(
+          "customerType",
+          "Kundenart",
+          form.customerType === "company" ? "Firma" : "Privatperson",
+          incomingCustomerType === "company" ? "Firma" : "Privatperson",
+        );
+      } else {
+        customerType = incomingCustomerType;
+      }
+    }
+
+    const incomingSalutation =
+      fields.salutation === "frau"
+        ? "frau"
+        : fields.salutation === "herr"
+          ? "herr"
+          : undefined;
+    let salutation = form.salutation;
+    if (incomingSalutation && incomingSalutation !== form.salutation) {
+      if (form.firstName.trim() || form.lastName.trim()) {
+        addConflict(
+          "salutation",
+          VOICE_FIELD_LABELS.salutation,
+          form.salutation === "frau" ? "Frau" : "Herr",
+          incomingSalutation === "frau" ? "Frau" : "Herr",
+        );
+      } else {
+        salutation = incomingSalutation;
+      }
+    }
+
+    const companyName = mergeTextField(
+      "companyName",
+      VOICE_FIELD_LABELS.companyName,
+      fields.companyName ? capitalizeEntryStart(fields.companyName) : undefined,
+    );
+    const firstName = mergeTextField(
+      "firstName",
+      VOICE_FIELD_LABELS.firstName,
+      fields.firstName ? capitalizeEntryStart(fields.firstName) : undefined,
+    );
+    const lastName = mergeTextField(
+      "lastName",
+      VOICE_FIELD_LABELS.lastName,
+      fields.lastName ? capitalizeEntryStart(fields.lastName) : undefined,
+    );
+    const street = mergeTextField(
+      "street",
+      VOICE_FIELD_LABELS.street,
+      fields.street ? capitalizeEntryStart(fields.street) : undefined,
+    );
+    const postalCode = mergeTextField(
+      "postalCode",
+      VOICE_FIELD_LABELS.postalCode,
+      fields.postalCode,
+    );
+    const city = mergeTextField(
+      "city",
+      VOICE_FIELD_LABELS.city,
+      fields.city ? capitalizeEntryStart(fields.city) : undefined,
+    );
+    const customerEmail = mergeTextField(
+      "customerEmail",
+      VOICE_FIELD_LABELS.customerEmail,
+      fields.customerEmail?.toLowerCase(),
+    );
+    const serviceDescription = mergeTextField(
+      "serviceDescription",
+      VOICE_FIELD_LABELS.serviceDescription,
+      input.safeServiceDescription
+        ? capitalizeEntryStart(input.safeServiceDescription)
+        : undefined,
+    );
+
+    const hours = mergeNumericField(
+      "hours",
+      VOICE_FIELD_LABELS.hours,
+      numberToInput(fields.hours) ?? "",
+    );
+    const hourlyRate = mergeNumericField(
+      "hourlyRate",
+      VOICE_FIELD_LABELS.hourlyRate,
+      numberToInput(fields.hourlyRate) ?? "",
+    );
+    const materialCost = mergeNumericField(
+      "materialCost",
+      VOICE_FIELD_LABELS.materialCost,
+      numberToInput(fields.materialCost) ?? "",
+    );
+
+    const incomingPositionsRaw = Array.isArray(fields.positions)
+      ? fields.positions
+      : [];
+    const incomingPositions = incomingPositionsRaw.filter((position) =>
+      Boolean(position.description?.trim()),
+    );
+    const existingPositions = hasMeaningfulSelectedServices(selectedServices)
+      ? selectedServicesToParsedVoicePositions(selectedServices)
+      : [];
+    const mergedPositions = mergeParsedVoicePositions(
+      existingPositions,
+      incomingPositions,
+    );
+    const positionDraftSource =
+      mergedPositions.length > 0
+        ? mergedPositions
+        : incomingPositions;
+    const reviewPositions = toSelectedServicesFromVoicePositions(positionDraftSource);
+    if (existingPositions.length > 0 && incomingPositions.length > 0) {
+      addConflict(
+        "positions",
+        VOICE_FIELD_LABELS.positions,
+        `${existingPositions.length} vorhandene Positionen`,
+        `${incomingPositions.length} neu erkannte Positionen`,
+      );
+    }
+
+    const parsedDocumentType =
+      input.response.document?.type === "offer" ||
+      input.response.document?.type === "invoice"
+        ? input.response.document.type
+        : "unknown";
+    const documentType =
+      parsedDocumentType !== "unknown" && parsedDocumentType !== documentMode
+        ? documentMode
+        : parsedDocumentType;
+    if (
+      parsedDocumentType !== "unknown" &&
+      parsedDocumentType !== documentMode
+    ) {
+      addConflict(
+        "documentType",
+        VOICE_FIELD_LABELS.documentType,
+        documentMode === "invoice" ? "Rechnung" : "Angebot",
+        parsedDocumentType === "invoice" ? "Rechnung" : "Angebot",
+      );
+    }
+
+    const nextFormForMissing: OfferForm = {
+      ...form,
+      customerType,
+      companyName,
+      salutation,
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
+      customerEmail,
+      serviceDescription,
+      hours,
+      hourlyRate,
+      materialCost,
+    };
+    const missingFieldLabels = resolveRemainingMissingVoiceLabels(
+      input.response.missingFieldKeys,
+      nextFormForMissing,
+    );
+
+    return {
+      inputMode: input.mode,
+      customerType,
+      companyName,
+      salutation,
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
+      customerEmail,
+      serviceDescription,
+      hours,
+      hourlyRate,
+      materialCost,
+      positions:
+        reviewPositions.length > 0
+          ? reviewPositions.flatMap((service) =>
+              service.subitems.map((subitem) => ({
+                id: subitem.id,
+                group: service.label,
+                description: subitem.description,
+                quantity: subitem.quantity,
+                unit: subitem.unit,
+                unitPrice: subitem.price,
+              })),
+            )
+          : [],
+      missingFieldKeys: Array.isArray(input.response.missingFieldKeys)
+        ? input.response.missingFieldKeys
+        : [],
+      missingFieldLabels,
+      usedFallback: input.response.usedFallback,
+      fallbackReason: input.response.fallbackReason ?? null,
+      sourceText: input.sourceText.trim(),
+      ignoredText: Array.isArray(input.response.ignoredText)
+        ? input.response.ignoredText
+            .map((entry) => String(entry).trim())
+            .filter(Boolean)
+        : [],
+      confidence: input.response.confidence ?? {},
+      needsReview: input.response.needsReview !== false,
+      documentType,
+      conflicts,
+    };
   }
 
   async function parseVoiceTranscript(
@@ -3809,6 +4213,10 @@ export default function HomePage() {
       }
 
       const fields = data.fields;
+      const sourceText =
+        typeof data.sourceText === "string" && data.sourceText.trim()
+          ? data.sourceText
+          : transcript;
       const safeServiceDescription = sanitizeServiceDescription(
         fields.serviceDescription,
         transcript,
@@ -3818,9 +4226,9 @@ export default function HomePage() {
       );
       const shouldAutofillServiceDescription =
         data.shouldAutofillServiceDescription === true;
-      const applyConservativeFallback = data.usedFallback;
       const hasRecognizedStructuredContent =
-        parsedServiceEntries.length > 0 ||
+        (data.noRelevantData !== true &&
+          parsedServiceEntries.length > 0) ||
         Boolean(fields.companyName?.trim()) ||
         Boolean(fields.firstName?.trim()) ||
         Boolean(fields.lastName?.trim()) ||
@@ -3839,88 +4247,62 @@ export default function HomePage() {
           Number.isFinite(fields.materialCost) &&
           fields.materialCost > 0);
 
-      if (!hasRecognizedStructuredContent) {
-        setVoiceInfo("Keine Sprache erkannt. Felder blieben unverändert.");
+      if (!hasRecognizedStructuredContent || data.noRelevantData === true) {
+        const noDataMessage =
+          data.message ??
+          "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.";
+        setVoiceInfo(noDataMessage);
         setVoiceError("");
         setVoiceMissingFields([]);
+        if (sourceText.trim()) {
+          setPhotoReviewDraft(null);
+          setPhotoInfo("Rohtext verfügbar. Bitte bei Bedarf manuell übernehmen.");
+          setPhotoError("");
+        }
         console.log("[voice] parse returned no structured content");
         return;
       }
-      let remainingMissingLabels: string[] = [];
-
-      setForm((prev) => {
-        const nextForm = {
-          ...prev,
-          customerType: fields.customerType ?? prev.customerType,
-          companyName: fields.companyName
-            ? capitalizeEntryStart(fields.companyName)
-            : prev.companyName,
-          salutation: fields.salutation ?? prev.salutation,
-          firstName: applyConservativeFallback
-            ? prev.firstName
-            : (fields.firstName
-              ? capitalizeEntryStart(fields.firstName)
-              : prev.firstName),
-          lastName: applyConservativeFallback
-            ? prev.lastName
-            : (fields.lastName
-              ? capitalizeEntryStart(fields.lastName)
-              : prev.lastName),
-          street: fields.street
-            ? capitalizeEntryStart(fields.street)
-            : prev.street,
-          postalCode: fields.postalCode ?? prev.postalCode,
-          city: fields.city ? capitalizeEntryStart(fields.city) : prev.city,
-          customerEmail: fields.customerEmail ?? prev.customerEmail,
-          serviceDescription: applyConservativeFallback
-            ? prev.serviceDescription
-            : shouldAutofillServiceDescription
-              ? (safeServiceDescription
-                ? capitalizeEntryStart(safeServiceDescription)
-                : prev.serviceDescription)
-              : prev.serviceDescription,
-          hours: numberToInput(fields.hours) ?? prev.hours,
-          hourlyRate: numberToInput(fields.hourlyRate) ?? prev.hourlyRate,
-          materialCost: numberToInput(fields.materialCost) ?? prev.materialCost,
-        };
-
-        remainingMissingLabels = resolveRemainingMissingVoiceLabels(
-          data.missingFieldKeys,
-          nextForm,
-        );
-
-        return nextForm;
+      const reviewDraft = buildIntakeReviewDraft({
+        mode: "voice",
+        response: data,
+        fields: {
+          ...fields,
+          serviceDescription: shouldAutofillServiceDescription
+            ? safeServiceDescription
+            : undefined,
+        },
+        safeServiceDescription:
+          shouldAutofillServiceDescription ? safeServiceDescription : undefined,
+        sourceText,
       });
-
-      if (parsedServiceEntries.length > 0) {
-        setSelectedServices(parsedServiceEntries);
-        setServiceSearch("");
-        setIsServiceSearchOpen(false);
-      }
-
       const missingText =
-        remainingMissingLabels.length > 0
-          ? ` Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
+        reviewDraft.missingFieldLabels.length > 0
+          ? ` Bitte noch ergänzen: ${reviewDraft.missingFieldLabels.join(", ")}.`
           : " Alle Kernfelder wurden erkannt.";
       const modeText = data.usedFallback
         ? data.fallbackReason === "no_api_key"
           ? "KI nicht aktiv: OPENAI_API_KEY fehlt. Basis-Erkennung wurde verwendet."
           : "KI-Antwort fehlgeschlagen. Basis-Erkennung wurde verwendet."
-        : "Sprachtext per KI übernommen.";
+        : "Sprachtext per KI erkannt.";
       const actionText = autoTriggered
-        ? " Die Felder wurden automatisch ergänzt."
-        : " Die Felder wurden ergänzt.";
+        ? " Bitte Daten vor der Übernahme prüfen."
+        : " Daten sind zur Prüfung bereit.";
       const tableText =
         parsedServiceEntries.length > 0
-          ? " Die Positionstabelle wurde automatisch befüllt."
+          ? " Positionen wurden erkannt."
           : "";
       setVoiceInfo(`${modeText}${actionText}${tableText}${missingText}`);
       setVoiceError("");
-      setVoiceMissingFields(remainingMissingLabels);
+      setVoiceMissingFields(reviewDraft.missingFieldLabels);
+      setPhotoReviewDraft(reviewDraft);
+      setIntakeInputMode("photo");
+      setPhotoPreviewDataUrl("");
+      setPhotoInfo("Erkannte Sprachdaten bitte prüfen und bestätigen.");
+      setPhotoError("");
       setAddressSuggestions([]);
       console.log("[voice] parse applied", {
-        missingCount: remainingMissingLabels.length,
-        positionsCount: parsedServiceEntries.length,
+        missingCount: reviewDraft.missingFieldLabels.length,
+        positionsCount: reviewDraft.positions.length,
       });
     } catch (error) {
       setVoiceMissingFields([]);
@@ -4022,7 +4404,16 @@ export default function HomePage() {
   }
 
   function dismissPhotoReview() {
+    const reviewMode = photoReviewDraft?.inputMode ?? "photo";
     setPhotoReviewDraft(null);
+    if (reviewMode === "voice") {
+      setIntakeInputMode("voice");
+      setVoiceInfo("Sprach-Erkennung verworfen. Felder blieben unverändert.");
+      setVoiceError("");
+      setPhotoInfo("");
+      setPhotoError("");
+      return;
+    }
     setPhotoInfo("Foto-Erkennung verworfen. Felder blieben unverändert.");
     setPhotoError("");
   }
@@ -4031,21 +4422,24 @@ export default function HomePage() {
     if (!photoReviewDraft) {
       return;
     }
+    const reviewMode = photoReviewDraft.inputMode;
 
     const normalizedPositions = photoReviewDraft.positions
       .map((position): ParsedVoicePosition | null => {
         const description = capitalizeEntryStart(position.description.trim());
         const quantity = parseLocaleNumber(position.quantity);
-        if (!description || !Number.isFinite(quantity) || quantity <= 0) {
+        if (!description) {
           return null;
         }
 
         const unitPriceParsed = parseLocaleNumber(position.unitPrice);
         const normalizedPosition: ParsedVoicePosition = {
           description,
-          quantity,
           unit: normalizeVoiceUnit(position.unit),
         };
+        if (Number.isFinite(quantity) && quantity > 0) {
+          normalizedPosition.quantity = quantity;
+        }
         const group = capitalizeEntryStart(position.group.trim());
         if (group) {
           normalizedPosition.group = group;
@@ -4112,11 +4506,18 @@ export default function HomePage() {
     setAddressSuggestions([]);
     setPhotoReviewDraft(null);
     setPhotoError("");
-    setPhotoInfo(
+    const resultMessage =
       remainingMissingLabels.length > 0
         ? `Daten übernommen. Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
-        : "Daten übernommen. Alle Kernfelder wurden erkannt.",
-    );
+        : "Daten übernommen. Alle Kernfelder wurden erkannt.";
+    if (reviewMode === "voice") {
+      setIntakeInputMode("voice");
+      setVoiceInfo(resultMessage);
+      setVoiceError("");
+      setPhotoInfo("");
+      return;
+    }
+    setPhotoInfo(resultMessage);
   }
 
   async function handlePhotoFileSelection(file: File) {
@@ -4228,40 +4629,26 @@ export default function HomePage() {
           Number.isFinite(fields.materialCost) &&
           fields.materialCost > 0);
 
-      if (!hasRecognizedStructuredContent) {
+      if (!hasRecognizedStructuredContent || data.noRelevantData === true) {
         setPhotoReviewDraft(null);
-        setPhotoInfo("Keine relevanten Daten erkannt.");
+        setPhotoInfo(
+          data.message ??
+            "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.",
+        );
         setPhotoError("");
         return;
       }
 
-      const reviewDraft: PhotoReviewDraft = {
-        customerType: fields.customerType === "company" ? "company" : "person",
-        companyName: fields.companyName ?? "",
-        salutation: fields.salutation === "frau" ? "frau" : "herr",
-        firstName: fields.firstName ?? "",
-        lastName: fields.lastName ?? "",
-        street: fields.street ?? "",
-        postalCode: fields.postalCode ?? "",
-        city: fields.city ?? "",
-        customerEmail: fields.customerEmail ?? "",
-        serviceDescription: safeServiceDescription ?? "",
-        hours: numberToInput(fields.hours) ?? "",
-        hourlyRate: numberToInput(fields.hourlyRate) ?? "",
-        materialCost: numberToInput(fields.materialCost) ?? "",
-        positions: Array.isArray(fields.positions)
-          ? fields.positions.map((position) => createPhotoReviewPositionDraft(position))
-          : [],
-        missingFieldKeys: Array.isArray(data.missingFieldKeys)
-          ? data.missingFieldKeys
-          : [],
-        missingFieldLabels: Array.isArray(data.missingFieldKeys)
-          ? data.missingFieldKeys.map((key) => VOICE_FIELD_LABELS[key] ?? key)
-          : [],
-        usedFallback: data.usedFallback,
-        fallbackReason: data.fallbackReason ?? null,
-        sourceText: sourceText.trim(),
-      };
+      const reviewDraft = buildIntakeReviewDraft({
+        mode: "photo",
+        response: data,
+        fields: {
+          ...fields,
+          serviceDescription: safeServiceDescription,
+        },
+        safeServiceDescription,
+        sourceText,
+      });
 
       setPhotoReviewDraft(reviewDraft);
       const modeText = data.usedFallback
@@ -5778,7 +6165,7 @@ export default function HomePage() {
                   <strong>Per KI erfassen</strong>
                   <p>
                     Diktiere frei oder nutze ein Foto. Die Eingaben werden
-                    automatisch in die Felder übernommen.
+                    erkannt, gefiltert und erst nach Prüfung übernommen.
                   </p>
                 </div>
 
@@ -6095,15 +6482,67 @@ export default function HomePage() {
                         <div className="photoReviewHeader">
                           <strong>Erkannte Daten prüfen</strong>
                           <p>
-                            Bitte Daten kontrollieren, fehlende Angaben ergänzen
-                            und erst dann übernehmen.
+                            Bitte Daten kontrollieren, Konflikte klären und erst dann übernehmen.
                           </p>
                         </div>
 
                         {photoReviewDraft.sourceText ? (
                           <details className="photoReviewSource">
-                            <summary>Erkannter Notiztext</summary>
+                            <summary>
+                              {photoReviewDraft.inputMode === "voice"
+                                ? "Erkannter Sprachtext"
+                                : "Erkannter Notiztext"}
+                            </summary>
                             <p>{photoReviewDraft.sourceText}</p>
+                          </details>
+                        ) : null}
+
+                        <div className="voiceStatusSection">
+                          <span className="voiceStatusSectionLabel">Einordnung</span>
+                          <div className="voiceStatusGroup">
+                            <p className="voiceStatusCard voiceStatusCardInfo" role="status">
+                              <span className="voiceStatusIcon" aria-hidden="true">
+                                i
+                              </span>
+                              <span className="voiceStatusText">
+                                Dokument:{" "}
+                                {photoReviewDraft.documentType === "invoice"
+                                  ? "Rechnung"
+                                  : photoReviewDraft.documentType === "offer"
+                                    ? "Angebot"
+                                    : "Unklar"}
+                                {" · "}
+                                Prüfung:{" "}
+                                {photoReviewDraft.needsReview ? "erforderlich" : "gering"}
+                                {" · "}
+                                Vertrauen (Kunde/Pos./Dok.):{" "}
+                                {`${Math.round((photoReviewDraft.confidence.customer ?? 0) * 100)}% / ${Math.round((photoReviewDraft.confidence.items ?? 0) * 100)}% / ${Math.round((photoReviewDraft.confidence.document ?? 0) * 100)}%`}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {photoReviewDraft.conflicts.length > 0 ? (
+                          <div className="voiceMissingPanel">
+                            <span className="voiceMissingLabel">Konflikte erkannt</span>
+                            <div className="voiceMissingList">
+                              {photoReviewDraft.conflicts.map((conflict, index) => (
+                                <span
+                                  key={`${conflict.field}-${index}`}
+                                  className="voiceMissingTag"
+                                  title={`Aktuell: ${conflict.currentValue} | Erkannt: ${conflict.incomingValue}`}
+                                >
+                                  {`${conflict.label}: "${conflict.currentValue}" statt "${conflict.incomingValue}"`}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {photoReviewDraft.ignoredText.length > 0 ? (
+                          <details className="photoReviewSource">
+                            <summary>Ignorierte Sprachanteile</summary>
+                            <p>{photoReviewDraft.ignoredText.join(" | ")}</p>
                           </details>
                         ) : null}
 

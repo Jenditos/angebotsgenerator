@@ -46,6 +46,28 @@ const INVALID_POSITION_DESCRIPTION_KEYS = new Set([
 const PHOTO_DATA_URL_PATTERN =
   /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_PHOTO_IMAGE_BYTES = 6 * 1024 * 1024;
+const FILLER_TOKEN_PATTERN =
+  /\b(?:ähm|aehm|also|ja|bitte|mal|quasi|genau|halt|eben)\b/gi;
+const LEADING_FILLER_PATTERN =
+  /^(?:\s*(?:ähm|aehm|also|ja|bitte|mal|quasi|genau|halt|eben)\b[,:;\-]?\s*)+/i;
+const LEADING_COMMAND_PATTERNS = [
+  /^(?:mach(?:\s+mir)?(?:\s+mal)?(?:\s+bitte)?\s*)/i,
+  /^(?:trag(?:\s+mal)?\s+ein\s*)/i,
+  /^(?:schreib(?:\s+bitte)?\s+(?:rein|ein)\s*)/i,
+  /^(?:erstell(?:e|en)?(?:\s+mal)?\s*)/i,
+  /^(?:f(?:ü|u)ge?\s+hinzu\s*)/i,
+  /^(?:notier(?:e|en)\s*)/i,
+  /^(?:kannst\s+du\s*)/i,
+  /^(?:ich\s+brauche\s*)/i,
+  /^(?:f(?:ü|u)r\s+den\s+kunden\s*)/i,
+  /^(?:und\s+dann\s+noch\s*)/i,
+  /^(?:angebot\s+f(?:ü|u)r\s*)/i,
+  /^(?:rechnung\s+f(?:ü|u)r\s*)/i,
+];
+const CONTROL_LANGUAGE_PATTERN =
+  /\b(?:mach|erstell(?:e|en)?|schreib|trag|f(?:ü|u)ge?|notier(?:e|en)|kannst\s+du|ich\s+brauche|f(?:ü|u)r\s+den\s+kunden|und\s+dann\s+noch)\b/i;
+const BUSINESS_SIGNAL_PATTERN =
+  /\b(?:angebot|rechnung|kunde|firma|gmbh|ag|kg|straße|strasse|platz|weg|allee|gasse|ring|ufer|hausnummer|plz|telefon|mail|@|wasserhahn|armatur|rohr|heizung|elektro|steckdose|silikon|fuge|montier|einbau|austausch|reinigung|anfahrt|material|kosten|stunden?|stundensatz|euro|eur|€)\b/i;
 
 type ParseIntakeInputMode = "voice" | "photo";
 type ParseIntakeRequestBody = {
@@ -61,6 +83,159 @@ type IntakeVoicePosition = {
   unit?: string;
   unitPrice?: number;
 };
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function dedupeTextValues(values: string[]): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const value of values) {
+    const key = normalizeGermanUmlauts(value.toLowerCase()).replace(/\s+/g, " ").trim();
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    deduped.push(value);
+  }
+  return deduped;
+}
+
+function stripLeadingNoise(value: string): { cleaned: string; ignored: string[] } {
+  let cleaned = normalizeWhitespace(value);
+  const ignored: string[] = [];
+  let changed = true;
+
+  while (changed && cleaned) {
+    changed = false;
+    const fillerMatch = cleaned.match(LEADING_FILLER_PATTERN);
+    if (fillerMatch?.[0]) {
+      const removed = normalizeWhitespace(fillerMatch[0]);
+      if (removed) {
+        ignored.push(removed);
+      }
+      cleaned = normalizeWhitespace(
+        cleaned.slice(fillerMatch[0].length).replace(/^[,:;\-]+/, ""),
+      );
+      changed = true;
+      continue;
+    }
+
+    for (const pattern of LEADING_COMMAND_PATTERNS) {
+      const match = cleaned.match(pattern);
+      if (!match?.[0]) {
+        continue;
+      }
+      const removed = normalizeWhitespace(match[0]);
+      if (removed) {
+        ignored.push(removed);
+      }
+      cleaned = normalizeWhitespace(
+        cleaned.slice(match[0].length).replace(/^[,:;\-]+/, ""),
+      );
+      changed = true;
+      break;
+    }
+  }
+
+  return { cleaned, ignored: dedupeTextValues(ignored) };
+}
+
+function isLikelyControlLanguageSegment(value: string | undefined): boolean {
+  if (!value) {
+    return true;
+  }
+  const cleaned = normalizeWhitespace(value);
+  if (!cleaned) {
+    return true;
+  }
+  if (BUSINESS_SIGNAL_PATTERN.test(cleaned)) {
+    return false;
+  }
+
+  const normalized = normalizeGermanUmlauts(cleaned.toLowerCase());
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return true;
+  }
+
+  const controlTokenCount = tokens.filter((token) =>
+    [
+      "mach",
+      "mir",
+      "bitte",
+      "mal",
+      "trag",
+      "schreib",
+      "erstelle",
+      "erstellen",
+      "fuge",
+      "fuege",
+      "notiere",
+      "notieren",
+      "kannst",
+      "du",
+      "ich",
+      "brauche",
+      "fuer",
+      "den",
+      "kunden",
+      "und",
+      "dann",
+      "noch",
+      "ja",
+      "also",
+      "quasi",
+      "genau",
+      "aehm",
+      "ahem",
+    ].includes(token)
+  ).length;
+
+  const controlRatio = controlTokenCount / tokens.length;
+  return controlRatio >= 0.55 || CONTROL_LANGUAGE_PATTERN.test(cleaned);
+}
+
+function sanitizeLooseTextValue(
+  value: string | undefined,
+): { value?: string; ignored: string[] } {
+  if (!value) {
+    return { ignored: [] };
+  }
+  const stripped = stripLeadingNoise(value);
+  const cleaned = normalizeWhitespace(
+    stripped.cleaned
+      .replace(FILLER_TOKEN_PATTERN, " ")
+      .replace(/^[,.;:!?()\[\]{}\-]+|[,.;:!?()\[\]{}\-]+$/g, " ")
+      .replace(/\s+/g, " "),
+  );
+  if (!cleaned || isLikelyControlLanguageSegment(cleaned)) {
+    return { ignored: dedupeTextValues([...stripped.ignored, value.trim()]) };
+  }
+  return { value: cleaned, ignored: stripped.ignored };
+}
+
+function resolveDocumentTypeHint(input: {
+  transcript: string;
+  parsedType?: string;
+}): "offer" | "invoice" | "unknown" {
+  const parsedType = (input.parsedType ?? "").toLowerCase().trim();
+  if (parsedType === "offer" || parsedType === "angebot") {
+    return "offer";
+  }
+  if (parsedType === "invoice" || parsedType === "rechnung") {
+    return "invoice";
+  }
+
+  if (/\brechnung\b/i.test(input.transcript)) {
+    return "invoice";
+  }
+  if (/\bangebot\b/i.test(input.transcript)) {
+    return "offer";
+  }
+  return "unknown";
+}
 
 function normalizeCraftCompounds(value: string | undefined): string | undefined {
   if (!value) {
@@ -86,32 +261,39 @@ function normalizeCraftCompounds(value: string | undefined): string | undefined 
     .trim();
 }
 
-function sanitizeServiceDescription(value: string | undefined, transcript: string): string | undefined {
+function sanitizeServiceDescription(
+  value: string | undefined,
+  transcript: string,
+): { value?: string; ignored: string[] } {
   if (!value) {
-    return undefined;
+    return { ignored: [] };
   }
 
-  const cleaned = normalizeCraftCompounds(value) ?? value.trim();
-  if (cleaned.length < 3 || cleaned.length > 280) {
-    return undefined;
+  const base = sanitizeLooseTextValue(normalizeCraftCompounds(value) ?? value.trim());
+  if (!base.value) {
+    return base;
   }
 
-  const normalizedValue = cleaned.toLowerCase().replace(/\s+/g, " ").trim();
+  if (base.value.length < 3 || base.value.length > 280) {
+    return { ignored: dedupeTextValues([...base.ignored, base.value]) };
+  }
+
+  const normalizedValue = base.value.toLowerCase().replace(/\s+/g, " ").trim();
   const normalizedTranscript = transcript.toLowerCase().replace(/\s+/g, " ").trim();
   if (!normalizedTranscript) {
-    return cleaned;
+    return base;
   }
 
   if (normalizedValue === normalizedTranscript) {
-    return undefined;
+    return { ignored: dedupeTextValues([...base.ignored, base.value]) };
   }
 
   const wordCount = normalizedValue.split(" ").filter(Boolean).length;
   if (normalizedTranscript.includes(normalizedValue) && wordCount > 16) {
-    return undefined;
+    return { ignored: dedupeTextValues([...base.ignored, base.value]) };
   }
 
-  return cleaned;
+  return base;
 }
 
 function normalizeGermanUmlauts(value: string): string {
@@ -344,16 +526,22 @@ function sanitizePositionDescription(value: string | undefined): string | undefi
     return undefined;
   }
 
-  const cleaned = normalizeCraftCompounds(value)
-    ?.replace(
-      /\b(?:position|leistung|unterpunkt|bitte|und|dann|noch|circa|ca)\b/gi,
-      " ",
-    )
-    .replace(/\s+/g, " ")
-    .replace(/^[,.;:!?()\[\]{}\-]+|[,.;:!?()\[\]{}\-]+$/g, "")
-    .trim();
-
-  return cleaned || undefined;
+  const normalizedCompound = normalizeCraftCompounds(value) ?? value;
+  const stripped = stripLeadingNoise(normalizedCompound);
+  const cleaned = normalizeWhitespace(
+    stripped.cleaned
+      .replace(FILLER_TOKEN_PATTERN, " ")
+      .replace(
+        /\b(?:position|leistung|unterpunkt|bitte|und|dann|noch|circa|ca|eintragen|hinzuf(?:ü|u)gen|notieren)\b/gi,
+        " ",
+      )
+      .replace(/^[,.;:!?()\[\]{}\-]+|[,.;:!?()\[\]{}\-]+$/g, " ")
+      .replace(/\s+/g, " "),
+  );
+  if (!cleaned || isLikelyControlLanguageSegment(cleaned)) {
+    return undefined;
+  }
+  return cleaned;
 }
 
 function normalizeDescriptionForComparison(value: string | undefined): string {
@@ -502,9 +690,108 @@ function mergePositionsWithTranscriptHints(
     });
   }
 
-  return enriched.filter(
-    (position) => Boolean(position.description) && Boolean(position.quantity),
-  );
+  const dedupe = new Set<string>();
+  const normalized: IntakeVoicePosition[] = [];
+  for (const position of enriched) {
+    const description = sanitizePositionDescription(position.description);
+    if (!description) {
+      continue;
+    }
+    const quantity = parseQuantityValue(position.quantity);
+    const unit = normalizeUnitLabel(position.unit) ?? position.unit;
+    const unitPrice = parseQuantityValue(position.unitPrice);
+    const key = `${normalizePositionKey(position.group)}|${normalizePositionKey(description)}|${quantity ?? ""}|${normalizePositionKey(unit)}|${unitPrice ?? ""}`;
+    if (dedupe.has(key)) {
+      continue;
+    }
+    dedupe.add(key);
+    normalized.push({
+      ...position,
+      description,
+      quantity,
+      unit,
+      unitPrice,
+    });
+  }
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function buildFallbackPositionFromServiceDescription(
+  serviceDescription: string | undefined,
+): IntakeVoicePosition[] | undefined {
+  const cleaned = sanitizePositionDescription(serviceDescription);
+  if (!cleaned) {
+    return undefined;
+  }
+  return [
+    {
+      description: cleaned,
+      quantity: undefined,
+      unit: undefined,
+      unitPrice: undefined,
+    },
+  ];
+}
+
+function hasRelevantBusinessData(input: {
+  fields: Record<string, unknown>;
+  positions: IntakeVoicePosition[] | undefined;
+  documentType: "offer" | "invoice" | "unknown";
+}): boolean {
+  if (Array.isArray(input.positions) && input.positions.length > 0) {
+    return true;
+  }
+
+  const candidateKeys = [
+    "companyName",
+    "firstName",
+    "lastName",
+    "street",
+    "postalCode",
+    "city",
+    "customerEmail",
+    "serviceDescription",
+    "hours",
+    "hourlyRate",
+    "materialCost",
+  ];
+  return candidateKeys.some((key) => hasValue(input.fields[key]));
+}
+
+function sanitizeTextFieldAndCollectIgnored(
+  value: string | undefined,
+  ignoredCollector: Set<string>,
+): string | undefined {
+  const sanitized = sanitizeLooseTextValue(value);
+  for (const ignoredValue of sanitized.ignored) {
+    ignoredCollector.add(ignoredValue);
+  }
+  return sanitized.value;
+}
+
+function normalizeDocumentTypeForResponse(input: unknown): "offer" | "invoice" | "unknown" {
+  const normalized = String(input ?? "").toLowerCase().trim();
+  if (normalized === "offer" || normalized === "angebot") {
+    return "offer";
+  }
+  if (normalized === "invoice" || normalized === "rechnung") {
+    return "invoice";
+  }
+  return "unknown";
+}
+
+function normalizeConfidenceScore(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.min(1, Math.max(0, value));
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      return Math.min(1, Math.max(0, parsed));
+    }
+  }
+  return 0;
 }
 
 function hasInvalidPositionDescription(value: string | undefined): boolean {
@@ -697,7 +984,20 @@ export async function POST(request: Request) {
         : await parseOfferIntake(transcript);
     const sourceText =
       requestMode === "voice" ? transcript : parsed.sourceText?.trim() ?? "";
-    const customerType = parsed.fields.customerType ?? "person";
+    const ignoredCollector = new Set<string>(
+      Array.isArray(parsed.ignoredText)
+        ? parsed.ignoredText
+            .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+            .filter(Boolean)
+        : [],
+    );
+    const parsedDocumentType = normalizeDocumentTypeForResponse(
+      parsed.document?.type,
+    );
+    const documentType = resolveDocumentTypeHint({
+      transcript: sourceText,
+      parsedType: parsedDocumentType,
+    });
     const serviceDescriptionExplicitlyMentioned =
       requestMode === "voice"
         ? shouldAutofillServiceDescription(transcript)
@@ -712,31 +1012,68 @@ export async function POST(request: Request) {
       })),
       sourceText,
     );
-    const normalizedPositions = filterMeaningfulPositions(mergedPositions);
+    const normalizedPositionsFromModel = filterMeaningfulPositions(mergedPositions);
+    const serviceDescriptionCandidate = sanitizeServiceDescription(
+      normalizeCraftCompounds(parsed.fields.serviceDescription),
+      sourceText,
+    );
+    const serviceDescriptionResult = serviceDescriptionExplicitlyMentioned
+      ? serviceDescriptionCandidate
+      : { value: undefined, ignored: serviceDescriptionCandidate.ignored };
+    for (const ignoredValue of serviceDescriptionCandidate.ignored) {
+      ignoredCollector.add(ignoredValue);
+    }
+    const normalizedPositions =
+      normalizedPositionsFromModel ??
+      buildFallbackPositionFromServiceDescription(
+        serviceDescriptionCandidate.value,
+      );
     const normalizedEmail = normalizeCustomerEmail({
       transcript: sourceText,
       parsedEmail: parsed.fields.customerEmail,
       firstName: parsed.fields.firstName,
       lastName: parsed.fields.lastName,
     });
-    const normalizedServiceDescription = serviceDescriptionExplicitlyMentioned
-      ? sanitizeServiceDescription(
-          normalizeCraftCompounds(parsed.fields.serviceDescription),
-          sourceText,
-        )
-      : undefined;
+    const normalizedServiceDescription = isRedundantAutofilledServiceDescription({
+      serviceDescription: serviceDescriptionResult.value,
+      positions: normalizedPositions,
+    })
+      ? undefined
+      : serviceDescriptionResult.value;
     const normalizedFields = {
       ...parsed.fields,
       positions: normalizedPositions,
-      customerEmail: normalizedEmail ?? parsed.fields.customerEmail,
-      serviceDescription:
-        isRedundantAutofilledServiceDescription({
-          serviceDescription: normalizedServiceDescription,
-          positions: normalizedPositions,
-        })
-          ? undefined
-          : normalizedServiceDescription,
+      companyName: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.companyName,
+        ignoredCollector,
+      ),
+      firstName: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.firstName,
+        ignoredCollector,
+      ),
+      lastName: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.lastName,
+        ignoredCollector,
+      ),
+      street: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.street,
+        ignoredCollector,
+      ),
+      postalCode: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.postalCode,
+        ignoredCollector,
+      ),
+      city: sanitizeTextFieldAndCollectIgnored(parsed.fields.city, ignoredCollector),
+      customerEmail:
+        sanitizeTextFieldAndCollectIgnored(
+          normalizedEmail ?? parsed.fields.customerEmail,
+          ignoredCollector,
+        ) ?? undefined,
+      serviceDescription: normalizedServiceDescription,
     };
+    const customerType =
+      parsed.fields.customerType ??
+      (normalizedFields.companyName ? "company" : "person");
     const hasPositions = Array.isArray(normalizedFields.positions) && normalizedFields.positions.length > 0;
 
     const baseRequired = [
@@ -758,13 +1095,62 @@ export async function POST(request: Request) {
       (key) => !hasValue(normalizedFields[key as keyof typeof normalizedFields])
     );
     const missingFields = missingFieldKeys.map((key) => fieldLabels[key] || key);
+    const hasRelevantData = hasRelevantBusinessData({
+      fields: normalizedFields as Record<string, unknown>,
+      positions: normalizedFields.positions,
+      documentType,
+    });
+    const confidence = {
+      customer: normalizeConfidenceScore(parsed.confidence?.customer),
+      items: normalizeConfidenceScore(parsed.confidence?.items),
+      document: normalizeConfidenceScore(parsed.confidence?.document),
+    };
+    const needsReview =
+      typeof parsed.needsReview === "boolean"
+        ? parsed.needsReview
+        : true;
+    const ignoredText = dedupeTextValues(
+      Array.from(ignoredCollector)
+        .map((entry) => normalizeWhitespace(entry))
+        .filter(Boolean),
+    );
     console.log("[parse-intake] parsed transcript", {
       inputMode: requestMode,
       usedFallback: parsed.usedFallback,
       fallbackReason: parsed.fallbackReason ?? null,
       missingCount: missingFieldKeys.length,
       positionsCount: normalizedFields.positions?.length ?? 0,
+      documentType,
+      ignoredCount: ignoredText.length,
+      hasRelevantData,
     });
+
+    if (!hasRelevantData) {
+      return NextResponse.json({
+        fields: {
+          customerType,
+        },
+        missingFields: [],
+        missingFieldKeys: [],
+        shouldAutofillServiceDescription: false,
+        usedFallback: parsed.usedFallback,
+        fallbackReason: parsed.fallbackReason ?? null,
+        inputMode: requestMode,
+        sourceText: sourceText || null,
+        document: {
+          type: documentType,
+          title: parsed.document?.title ?? "",
+          notes: parsed.document?.notes ?? "",
+        },
+        appointment: parsed.appointment ?? { date: "", time: "" },
+        confidence,
+        needsReview: true,
+        ignoredText,
+        noRelevantData: true,
+        message:
+          "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.",
+      });
+    }
 
     return NextResponse.json({
       fields: {
@@ -777,7 +1163,17 @@ export async function POST(request: Request) {
       usedFallback: parsed.usedFallback,
       fallbackReason: parsed.fallbackReason ?? null,
       inputMode: requestMode,
-      sourceText: requestMode === "photo" ? parsed.sourceText ?? null : null,
+      sourceText: sourceText || null,
+      document: {
+        type: documentType,
+        title: parsed.document?.title ?? "",
+        notes: parsed.document?.notes ?? "",
+      },
+      appointment: parsed.appointment ?? { date: "", time: "" },
+      confidence,
+      needsReview,
+      ignoredText,
+      noRelevantData: false,
     });
   } catch (error) {
     console.error("[parse-intake] failed to process intake", {

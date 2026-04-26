@@ -169,4 +169,89 @@ describe("POST /api/parse-intake", () => {
       expect.objectContaining({ description: "Außenputz" }),
     ]);
   });
+
+  it("returns noRelevantData when only control language is detected", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {
+        serviceDescription: "mach mir mal bitte",
+        positions: [{ description: "trag mal ein" }],
+      },
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: ["mach mir mal bitte"],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript: "Mach mir mal bitte ein Angebot.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      noRelevantData?: boolean;
+      message?: string;
+      ignoredText?: string[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(true);
+    expect(payload.message).toContain("keine eindeutigen Kundendaten");
+    expect(payload.ignoredText).toContain("mach mir mal bitte");
+  });
+
+  it("keeps service positions even when quantity is missing and filters command prefix", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {
+        firstName: "Max",
+        lastName: "Müller",
+        positions: [
+          {
+            description: "Mach mir mal bitte Wasserhahn austauschen",
+          },
+        ],
+      },
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: [],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript:
+            "Mach mir mal bitte ein Angebot für Max Müller, Wasserhahn austauschen.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      noRelevantData?: boolean;
+      fields?: { positions?: Array<{ description?: string; quantity?: number }> };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(false);
+    expect(payload.fields?.positions?.[0]?.description).toBe(
+      "Wasserhahn austauschen",
+    );
+    expect(payload.fields?.positions?.[0]?.quantity).toBeUndefined();
+  });
 });
