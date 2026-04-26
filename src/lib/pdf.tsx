@@ -45,12 +45,17 @@ const space = {
   lg: 12,
 };
 
+const lineHeights = {
+  compact: 1.26,
+  body: 1.38,
+};
+
 const styles = StyleSheet.create({
   page: {
     backgroundColor: theme.canvas,
     paddingHorizontal: 36,
-    paddingTop: 20,
-    paddingBottom: 36,
+    paddingTop: 18,
+    paddingBottom: 28,
     fontFamily: "Helvetica",
     fontSize: 10,
     color: theme.text,
@@ -59,50 +64,50 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: space.sm,
+    marginBottom: space.xs,
   },
   topLeft: {
-    width: "56%",
+    width: "60%",
   },
   senderCompactLine: {
-    fontSize: 8.2,
+    fontSize: 8,
     color: theme.textSoft,
-    lineHeight: 1.4,
-    marginBottom: space.xxs,
+    lineHeight: lineHeights.compact,
+    marginBottom: 1,
   },
   senderContactLine: {
     fontSize: 8,
     color: theme.textSoft,
-    lineHeight: 1.35,
+    lineHeight: lineHeights.compact,
   },
   topRight: {
-    width: "40%",
+    width: "36%",
     alignItems: "flex-end",
   },
   companyLogo: {
-    width: 222,
-    height: 108,
+    width: 186,
+    height: 74,
     objectFit: "contain",
   },
   topDivider: {
     borderTop: `1 solid ${theme.border}`,
-    marginBottom: space.md,
+    marginBottom: 10,
   },
   offerHeading: {
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: 700,
     letterSpacing: 0.9,
     color: theme.accentStrong,
-    marginBottom: space.md,
+    marginBottom: 10,
   },
   addressMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: space.md,
+    marginBottom: 10,
   },
   recipientBlock: {
-    width: "56%",
+    width: "58%",
   },
   blockLabel: {
     fontSize: 8,
@@ -115,13 +120,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 700,
     color: theme.text,
-    lineHeight: 1.2,
-    marginBottom: 1,
+    lineHeight: 1.22,
+    marginBottom: 2,
   },
   recipientLine: {
     color: theme.textMuted,
-    lineHeight: 1.22,
-    marginBottom: 1,
+    lineHeight: lineHeights.compact,
+    marginBottom: 2,
   },
   recipientLineLast: {
     marginBottom: 0,
@@ -130,13 +135,13 @@ const styles = StyleSheet.create({
     width: "40%",
     border: `1 solid ${theme.border}`,
     paddingHorizontal: space.md,
-    paddingVertical: space.sm,
+    paddingVertical: 7,
   },
   metadataRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: space.xxs,
+    alignItems: "flex-start",
+    marginBottom: 3,
   },
   metadataRowLast: {
     marginBottom: 0,
@@ -145,27 +150,27 @@ const styles = StyleSheet.create({
     width: "62%",
     fontSize: 8.1,
     color: theme.textMuted,
-    lineHeight: 1.35,
+    lineHeight: lineHeights.compact,
   },
   metadataValue: {
     width: "36%",
     fontSize: 8.7,
     color: theme.text,
     textAlign: "right",
-    lineHeight: 1.35,
+    lineHeight: lineHeights.compact,
   },
   introSection: {
     borderTop: `1 solid ${theme.border}`,
-    paddingTop: space.sm,
-    marginBottom: space.md,
+    paddingTop: 7,
+    marginBottom: 10,
   },
   introParagraph: {
     color: theme.textMuted,
-    lineHeight: 1.3,
-    marginBottom: space.xxs,
+    lineHeight: lineHeights.body,
+    marginBottom: space.xs,
   },
   introParagraphSalutation: {
-    marginBottom: space.xs,
+    marginBottom: space.sm,
   },
   introParagraphLast: {
     marginBottom: 0,
@@ -173,21 +178,21 @@ const styles = StyleSheet.create({
   locationBlock: {
     border: `1 solid ${theme.border}`,
     paddingHorizontal: 10,
-    paddingVertical: space.md,
-    marginBottom: space.lg,
+    paddingVertical: 7,
+    marginBottom: 10,
   },
   locationColumn: {
     width: "100%",
   },
   locationLine: {
     color: theme.textMuted,
-    lineHeight: 1.35,
+    lineHeight: lineHeights.body,
     marginBottom: 0,
   },
   continuationHeader: {
     borderBottom: `1 solid ${theme.border}`,
     paddingBottom: space.md,
-    marginBottom: space.lg,
+    marginBottom: 10,
   },
   continuationHeading: {
     fontSize: 14,
@@ -201,15 +206,15 @@ const styles = StyleSheet.create({
   },
   tableWrap: {
     border: `1 solid ${theme.border}`,
-    marginBottom: space.md,
+    marginBottom: 10,
   },
   tableDetailsSection: {
     border: `1 solid ${theme.border}`,
     borderTop: 0,
     paddingHorizontal: space.md,
-    paddingVertical: space.md,
+    paddingVertical: 7,
     marginTop: -1,
-    marginBottom: space.lg,
+    marginBottom: 10,
   },
   tableDetailsLabel: {
     fontSize: 8,
@@ -220,7 +225,7 @@ const styles = StyleSheet.create({
   },
   tableDetailsText: {
     fontSize: 8.8,
-    lineHeight: 1.38,
+    lineHeight: lineHeights.body,
     color: theme.textMuted,
   },
   tableHead: {
@@ -230,11 +235,11 @@ const styles = StyleSheet.create({
   },
   tableHeadCell: {
     paddingHorizontal: space.md,
-    paddingVertical: 7,
+    paddingVertical: 6,
     fontSize: 8.2,
     color: "#ffffff",
     fontWeight: 700,
-    lineHeight: 1.25,
+    lineHeight: 1.2,
   },
   tableHeadCellDescription: {
     paddingRight: 12,
@@ -253,7 +258,7 @@ const styles = StyleSheet.create({
   tableGroupCell: {
     width: "100%",
     paddingHorizontal: space.md,
-    paddingVertical: 7,
+    paddingVertical: 6,
     fontSize: 8.05,
     textTransform: "uppercase",
     letterSpacing: 0.4,
@@ -262,9 +267,9 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     paddingHorizontal: space.md,
-    paddingVertical: 7,
+    paddingVertical: 6,
     color: theme.text,
-    lineHeight: 1.35,
+    lineHeight: 1.32,
     fontSize: 8.9,
   },
   tableCellDescription: {
@@ -278,19 +283,19 @@ const styles = StyleSheet.create({
   },
   totalsWrap: {
     alignItems: "flex-end",
-    marginBottom: space.md,
+    marginBottom: space.sm,
   },
   totalsBox: {
-    width: "52%",
+    width: "50%",
     border: `1 solid ${theme.border}`,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   totalsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   totalsRowLast: {
     marginBottom: 0,
@@ -319,43 +324,44 @@ const styles = StyleSheet.create({
     color: theme.accentStrong,
   },
   validityText: {
-    marginTop: space.sm,
+    marginTop: space.xs,
     fontSize: 8.4,
     color: theme.textMuted,
+    lineHeight: lineHeights.compact,
   },
   notesSection: {
     borderTop: `1 solid ${theme.border}`,
     paddingTop: space.sm,
-    marginTop: space.sm,
-    marginBottom: space.xs,
+    marginTop: space.xs,
+    marginBottom: space.sm,
   },
   noteTitle: {
     fontSize: 8,
     textTransform: "uppercase",
     letterSpacing: 0.4,
     color: theme.textSoft,
-    marginBottom: space.xxs,
+    marginBottom: space.xs,
   },
   noteText: {
     color: theme.textMuted,
-    lineHeight: 1.3,
+    lineHeight: lineHeights.body,
     marginBottom: 0,
   },
   paymentInfoSection: {
     borderTop: `1 solid ${theme.border}`,
     paddingTop: space.sm,
     marginTop: space.xs,
-    marginBottom: space.xs,
+    marginBottom: space.sm,
   },
   paymentInfoLead: {
     color: theme.textMuted,
-    lineHeight: 1.3,
-    marginBottom: space.xxs,
+    lineHeight: lineHeights.body,
+    marginBottom: space.xs,
   },
   paymentInfoLine: {
     color: theme.text,
-    lineHeight: 1.25,
-    marginBottom: 1,
+    lineHeight: lineHeights.compact,
+    marginBottom: 2,
   },
   paymentInfoLineLast: {
     marginBottom: 0,
@@ -365,19 +371,19 @@ const styles = StyleSheet.create({
   },
   closingLine: {
     color: theme.textMuted,
-    lineHeight: 1.35,
+    lineHeight: lineHeights.body,
     marginBottom: space.sm,
   },
   closingSignature: {
     color: theme.text,
-    lineHeight: 1.35,
+    lineHeight: lineHeights.compact,
     fontWeight: 700,
   },
   pageFooter: {
     position: "absolute",
     right: 36,
-    bottom: 18,
-    fontSize: 8,
+    bottom: 12,
+    fontSize: 7.8,
     color: theme.textSoft,
     textAlign: "right",
   },
@@ -809,7 +815,6 @@ export function OfferPdfDocument({
   const renderableRows = buildTableRenderableRows(tableRows);
   const rowChunks = chunkRenderableRows(renderableRows, 7.6, 18.8);
   const pageCount = rowChunks.length;
-
   const vatAmount = subtotal * (vatRate / 100);
   const totalAmount = subtotal + vatAmount;
   const termsText = settings.offerTermsText?.trim();
