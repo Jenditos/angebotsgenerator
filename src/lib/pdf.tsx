@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 700,
     color: theme.text,
-    lineHeight: 1.14,
-    marginBottom: 1,
+    lineHeight: lineHeights.compact,
+    marginBottom: 3,
   },
   recipientLine: {
     color: theme.textMuted,
-    lineHeight: 1.14,
-    marginBottom: 0.5,
+    lineHeight: lineHeights.compact,
+    marginBottom: 3,
   },
   recipientLineLast: {
     marginBottom: 0,
