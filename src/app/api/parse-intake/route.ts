@@ -20,6 +20,29 @@ const fieldLabels: Record<string, string> = {
 
 const EXPLICIT_SERVICE_DESCRIPTION_PATTERN =
   /\b(projektbeschreibung|leistungsbeschreibung|zusatzdetails?|zusatzinfo(?:s)?|beschreibung|details?|hinweise?|bemerkung(?:en)?|notiz(?:en)?)\b/i;
+const POSITION_DESCRIPTION_STOPWORDS = new Set([
+  "arbeit",
+  "arbeiten",
+  "beschreibung",
+  "detail",
+  "details",
+  "leistung",
+  "leistungen",
+  "notiz",
+  "notizen",
+  "projekt",
+  "projektbeschreibung",
+  "zusatzdetail",
+  "zusatzdetails",
+  "zusatzinfo",
+  "zusatzinfos",
+]);
+const INVALID_POSITION_DESCRIPTION_KEYS = new Set([
+  "einzelpreis",
+  "eur",
+  "euro",
+  "preis",
+]);
 const PHOTO_DATA_URL_PATTERN =
   /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_PHOTO_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -333,6 +356,22 @@ function sanitizePositionDescription(value: string | undefined): string | undefi
   return cleaned || undefined;
 }
 
+function normalizeDescriptionForComparison(value: string | undefined): string {
+  if (!value) {
+    return "";
+  }
+
+  return normalizeGermanUmlauts(
+    (normalizeCraftCompounds(value) ?? value).toLowerCase(),
+  )
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .filter((token) => !POSITION_DESCRIPTION_STOPWORDS.has(token))
+    .join(" ")
+    .trim();
+}
+
 function normalizePositionKey(value: string | undefined): string {
   if (!value) {
     return "";
@@ -466,6 +505,54 @@ function mergePositionsWithTranscriptHints(
   return enriched.filter(
     (position) => Boolean(position.description) && Boolean(position.quantity),
   );
+}
+
+function hasInvalidPositionDescription(value: string | undefined): boolean {
+  const normalizedKey = normalizePositionKey(
+    sanitizePositionDescription(value) ?? value,
+  );
+  return !normalizedKey || INVALID_POSITION_DESCRIPTION_KEYS.has(normalizedKey);
+}
+
+function filterMeaningfulPositions(
+  positions: IntakeVoicePosition[] | undefined,
+): IntakeVoicePosition[] | undefined {
+  if (!Array.isArray(positions)) {
+    return undefined;
+  }
+
+  const filtered = positions.filter(
+    (position) => !hasInvalidPositionDescription(position.description),
+  );
+
+  return filtered.length > 0 ? filtered : undefined;
+}
+
+function isRedundantAutofilledServiceDescription(input: {
+  serviceDescription: string | undefined;
+  positions: IntakeVoicePosition[] | undefined;
+}): boolean {
+  const normalizedServiceDescription = normalizeDescriptionForComparison(
+    input.serviceDescription,
+  );
+  if (!normalizedServiceDescription || !Array.isArray(input.positions)) {
+    return false;
+  }
+
+  return input.positions.some((position) => {
+    const normalizedPositionDescription = normalizeDescriptionForComparison(
+      position.description,
+    );
+    if (!normalizedPositionDescription) {
+      return false;
+    }
+
+    return (
+      normalizedPositionDescription === normalizedServiceDescription ||
+      normalizedPositionDescription.includes(normalizedServiceDescription) ||
+      normalizedServiceDescription.includes(normalizedPositionDescription)
+    );
+  });
 }
 
 function hasValue(value: unknown): boolean {
@@ -615,7 +702,7 @@ export async function POST(request: Request) {
       requestMode === "voice"
         ? shouldAutofillServiceDescription(transcript)
         : Boolean(parsed.fields.serviceDescription?.trim());
-    const normalizedPositions = mergePositionsWithTranscriptHints(
+    const mergedPositions = mergePositionsWithTranscriptHints(
       parsed.fields.positions?.map((position) => ({
         ...position,
         group: normalizeCraftCompounds(position.group) ?? position.group,
@@ -625,22 +712,30 @@ export async function POST(request: Request) {
       })),
       sourceText,
     );
+    const normalizedPositions = filterMeaningfulPositions(mergedPositions);
     const normalizedEmail = normalizeCustomerEmail({
       transcript: sourceText,
       parsedEmail: parsed.fields.customerEmail,
       firstName: parsed.fields.firstName,
       lastName: parsed.fields.lastName,
     });
+    const normalizedServiceDescription = serviceDescriptionExplicitlyMentioned
+      ? sanitizeServiceDescription(
+          normalizeCraftCompounds(parsed.fields.serviceDescription),
+          sourceText,
+        )
+      : undefined;
     const normalizedFields = {
       ...parsed.fields,
       positions: normalizedPositions,
       customerEmail: normalizedEmail ?? parsed.fields.customerEmail,
-      serviceDescription: serviceDescriptionExplicitlyMentioned
-        ? sanitizeServiceDescription(
-            normalizeCraftCompounds(parsed.fields.serviceDescription),
-            sourceText,
-          )
-        : undefined,
+      serviceDescription:
+        isRedundantAutofilledServiceDescription({
+          serviceDescription: normalizedServiceDescription,
+          positions: normalizedPositions,
+        })
+          ? undefined
+          : normalizedServiceDescription,
     };
     const hasPositions = Array.isArray(normalizedFields.positions) && normalizedFields.positions.length > 0;
 

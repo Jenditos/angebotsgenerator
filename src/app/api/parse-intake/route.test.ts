@@ -116,4 +116,57 @@ describe("POST /api/parse-intake", () => {
     expect(parseOfferIntakeFromImageMock).toHaveBeenCalledTimes(1);
     expect(parseOfferIntakeMock).not.toHaveBeenCalled();
   });
+
+  it("drops redundant autofilled descriptions and bogus EUR positions", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeFromImageMock.mockResolvedValue({
+      fields: {
+        customerType: "person",
+        serviceDescription: "Außenputz Arbeiten",
+        positions: [
+          {
+            description: "Außenputz",
+            quantity: 100,
+            unit: "m²",
+            unitPrice: 20,
+          },
+          {
+            description: "EUR",
+            quantity: 80,
+            unit: "Std",
+            unitPrice: 45,
+          },
+        ],
+      },
+      usedFallback: false,
+      sourceText: "Außenputz Arbeiten 100 Quadratmeter 20 Euro 80 Stunden 45 Euro",
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: {
+        serviceDescription?: string;
+        positions?: Array<{ description?: string }>;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.fields?.serviceDescription).toBeUndefined();
+    expect(payload.fields?.positions).toEqual([
+      expect.objectContaining({ description: "Außenputz" }),
+    ]);
+  });
 });
