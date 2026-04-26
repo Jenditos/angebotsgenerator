@@ -19,6 +19,7 @@ import {
   createStoredOfferRecord,
 } from "@/server/services/offer-store-service";
 import { upsertStoredCustomer } from "@/server/services/customer-store-service";
+import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
 import {
   CompanySettings,
   CustomerDraftGroup,
@@ -857,12 +858,7 @@ function adaptTextForDocumentType(
   };
 }
 
-export async function POST(request: Request) {
-  const accessResult = await requireAppAccess();
-  if (!accessResult.ok) {
-    return accessResult.response;
-  }
-
+export async function handleGenerateOfferAuthorizedRequest(request: Request) {
   const requestId = randomUUID();
   let failureStage = "init";
 
@@ -1133,6 +1129,7 @@ export async function POST(request: Request) {
         ? selectedServiceDraftGroups
         : fallbackDraftGroups;
 
+    failureStage = "persist_customer";
     try {
       const storedCustomer = await upsertStoredCustomer({
         customerType,
@@ -1160,11 +1157,23 @@ export async function POST(request: Request) {
       });
       customerNumberForDocument = storedCustomer.customerNumber;
     } catch (error) {
-      console.warn(
+      console.error(
         `[generate-offer:${requestId}] customer_upsert_failed`,
         error instanceof Error
-          ? { name: error.name, message: error.message }
-          : { error },
+          ? {
+              name: error.name,
+              message: error.message,
+              runtimeDataDir: resolveRuntimeDataDir(),
+            }
+          : { error, runtimeDataDir: resolveRuntimeDataDir() },
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Kunde konnte nicht gespeichert werden. Bitte erneut versuchen.",
+          requestId,
+        },
+        { status: 500 },
       );
     }
 
@@ -1231,6 +1240,29 @@ export async function POST(request: Request) {
 
     failureStage = "render_pdf";
     let pdfBuffer: Buffer;
+    const pdfDocumentProps = {
+      offer,
+      offerNumber: generatedDocumentNumber,
+      documentType,
+      customerNumber: customerNumberForDocument,
+      createdAt: generatedCreatedAt,
+      invoiceDate:
+        documentType === "invoice"
+          ? toDateInputValue(resolvedInvoiceDate)
+          : undefined,
+      serviceDate:
+        documentType === "invoice"
+          ? servicePeriod
+          : undefined,
+      paymentDueDays: documentType === "invoice" ? paymentDueDays : undefined,
+      customerName,
+      customerAddress,
+      customerEmail,
+      serviceDescription: composedServiceDescription,
+      projectDetails: serviceDescription,
+      lineItems,
+      settings: safeSettings,
+    };
     try {
       debugOfferLog(requestId, "pdf_render_start", {
         documentType,
@@ -1239,55 +1271,12 @@ export async function POST(request: Request) {
         lineItemsCount: lineItems.length,
         hasLogoDataUrl: Boolean(safeSettings.logoDataUrl),
       });
-      pdfBuffer = await renderToBuffer(
-        OfferPdfDocument({
-          offer,
-          offerNumber: generatedDocumentNumber,
-          documentType,
-          customerNumber: customerNumberForDocument,
-          createdAt: generatedCreatedAt,
-          invoiceDate:
-            documentType === "invoice"
-              ? toDateInputValue(resolvedInvoiceDate)
-              : undefined,
-          serviceDate:
-            documentType === "invoice"
-              ? servicePeriod
-              : undefined,
-          paymentDueDays: documentType === "invoice" ? paymentDueDays : undefined,
-          customerName,
-          customerAddress,
-          customerEmail,
-          serviceDescription: composedServiceDescription,
-          projectDetails: serviceDescription,
-          lineItems,
-          settings: safeSettings,
-        }),
-      );
+      pdfBuffer = await renderToBuffer(OfferPdfDocument(pdfDocumentProps));
     } catch {
       debugOfferLog(requestId, "pdf_render_retry_without_logo");
       pdfBuffer = await renderToBuffer(
         OfferPdfDocument({
-          offer,
-          offerNumber: generatedDocumentNumber,
-          documentType,
-          customerNumber: customerNumberForDocument,
-          createdAt: generatedCreatedAt,
-          invoiceDate:
-            documentType === "invoice"
-              ? toDateInputValue(resolvedInvoiceDate)
-              : undefined,
-          serviceDate:
-            documentType === "invoice"
-              ? servicePeriod
-              : undefined,
-          paymentDueDays: documentType === "invoice" ? paymentDueDays : undefined,
-          customerName,
-          customerAddress,
-          customerEmail,
-          serviceDescription: composedServiceDescription,
-          projectDetails: serviceDescription,
-          lineItems,
+          ...pdfDocumentProps,
           settings: {
             ...safeSettings,
             logoDataUrl: "",
@@ -1375,4 +1364,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+}
+
+export async function POST(request: Request) {
+  const accessResult = await requireAppAccess();
+  if (!accessResult.ok) {
+    return accessResult.response;
+  }
+
+  return handleGenerateOfferAuthorizedRequest(request);
 }

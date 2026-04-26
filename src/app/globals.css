@@ -6288,10 +6288,12 @@ body {
 
 .positionsSearchLabel {
   margin: 0;
-  color: var(--vis-dark);
-  font-size: 0.8rem;
+  color: #355685;
+  font-size: 0.74rem;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .positionsSearchPanelTitle,

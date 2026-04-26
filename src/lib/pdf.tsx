@@ -859,7 +859,7 @@ export function OfferPdfDocument({
         return (
           <Page key={`page-${chunkIndex}`} size="A4" style={styles.page}>
             {isFirstPage ? (
-              <>
+              <View>
                 <View style={styles.topRow}>
                   <View style={styles.topLeft}>
                     {senderCompactLine ? (
@@ -922,7 +922,7 @@ export function OfferPdfDocument({
                     </View>
                   </View>
                 ) : null}
-              </>
+              </View>
             ) : (
               <View style={styles.continuationHeader}>
                 <Text style={styles.continuationHeading}>{documentHeading}</Text>
@@ -1046,7 +1046,7 @@ export function OfferPdfDocument({
             ) : null}
 
                 {isLastPage ? (
-                  <>
+                  <View>
                     <View style={styles.totalsWrap}>
                   <View style={styles.totalsBox}>
                     <View style={styles.totalsRow}>
@@ -1113,7 +1113,7 @@ export function OfferPdfDocument({
                         <Text style={styles.closingSignature}>{closingSignatureName}</Text>
                       ) : null}
                     </View>
-                  </>
+                  </View>
                 ) : null}
 
             <Text style={styles.pageFooter}>{`Seite ${chunkIndex + 1}/${pageCount}`}</Text>
