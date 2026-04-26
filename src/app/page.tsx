@@ -175,7 +175,6 @@ type VoiceParseResponse = {
   shouldAutofillServiceDescription?: boolean;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error" | null;
-  inputMode?: "voice" | "photo";
   sourceText?: string | null;
   document?: ParsedVoiceDocument;
   appointment?: ParsedVoiceAppointment;
@@ -198,7 +197,6 @@ type PhotoReviewPositionDraft = {
 };
 
 type PhotoReviewDraft = {
-  inputMode: IntakeInputMode;
   customerType: "person" | "company";
   companyName: string;
   salutation: "herr" | "frau";
@@ -3611,7 +3609,7 @@ export default function HomePage() {
         return;
       }
 
-      setVoiceInfo("Aufnahme beendet. Erkannte Daten werden zur Prüfung vorbereitet.");
+      setVoiceInfo("Aufnahme beendet. Erkannte Daten werden verarbeitet.");
       void parseVoiceTranscript(finalizedTranscript, true);
     };
 
@@ -3667,7 +3665,7 @@ export default function HomePage() {
       return;
     }
 
-    setVoiceInfo("Aufnahme beendet. Erkannte Daten werden zur Prüfung vorbereitet.");
+    setVoiceInfo("Aufnahme beendet. Erkannte Daten werden verarbeitet.");
     void parseVoiceTranscript(finalizedTranscript, true);
   }
 
@@ -3856,7 +3854,6 @@ export default function HomePage() {
   }
 
   function buildIntakeReviewDraft(input: {
-    mode: IntakeInputMode;
     response: VoiceParseResponse;
     fields: ParsedVoiceFields;
     safeServiceDescription?: string;
@@ -4092,7 +4089,6 @@ export default function HomePage() {
     );
 
     return {
-      inputMode: input.mode,
       customerType,
       companyName,
       salutation,
@@ -4135,6 +4131,102 @@ export default function HomePage() {
       needsReview: input.response.needsReview !== false,
       documentType,
       conflicts,
+    };
+  }
+
+  function normalizeReviewDraftPositions(
+    positions: PhotoReviewPositionDraft[],
+  ): ParsedVoicePosition[] {
+    return positions
+      .map((position): ParsedVoicePosition | null => {
+        const description = capitalizeEntryStart(position.description.trim());
+        const quantity = parseLocaleNumber(position.quantity);
+        if (!description) {
+          return null;
+        }
+
+        const unitPriceParsed = parseLocaleNumber(position.unitPrice);
+        const normalizedPosition: ParsedVoicePosition = {
+          description,
+          unit: normalizeVoiceUnit(position.unit),
+        };
+        if (Number.isFinite(quantity) && quantity > 0) {
+          normalizedPosition.quantity = quantity;
+        }
+        const group = capitalizeEntryStart(position.group.trim());
+        if (group) {
+          normalizedPosition.group = group;
+        }
+        if (Number.isFinite(unitPriceParsed) && unitPriceParsed >= 0) {
+          normalizedPosition.unitPrice = unitPriceParsed;
+        }
+        return normalizedPosition;
+      })
+      .filter((position): position is ParsedVoicePosition => position !== null);
+  }
+
+  function buildNextFormFromReviewDraft(
+    draft: PhotoReviewDraft,
+    previousForm: OfferForm,
+  ): OfferForm {
+    return {
+      ...previousForm,
+      customerType: draft.customerType,
+      companyName: draft.companyName.trim()
+        ? capitalizeEntryStart(draft.companyName)
+        : previousForm.companyName,
+      salutation: draft.salutation,
+      firstName: draft.firstName.trim()
+        ? capitalizeEntryStart(draft.firstName)
+        : previousForm.firstName,
+      lastName: draft.lastName.trim()
+        ? capitalizeEntryStart(draft.lastName)
+        : previousForm.lastName,
+      street: draft.street.trim()
+        ? capitalizeEntryStart(draft.street)
+        : previousForm.street,
+      postalCode: draft.postalCode.trim() || previousForm.postalCode,
+      city: draft.city.trim()
+        ? capitalizeEntryStart(draft.city)
+        : previousForm.city,
+      customerEmail: draft.customerEmail.trim() || previousForm.customerEmail,
+      serviceDescription: draft.serviceDescription.trim()
+        ? capitalizeEntryStart(draft.serviceDescription)
+        : previousForm.serviceDescription,
+      hours: sanitizeQuantityInput(draft.hours) || previousForm.hours,
+      hourlyRate: sanitizePriceInput(draft.hourlyRate) || previousForm.hourlyRate,
+      materialCost: sanitizePriceInput(draft.materialCost) || previousForm.materialCost,
+    };
+  }
+
+  function applyIntakeReviewDraft(draft: PhotoReviewDraft): {
+    remainingMissingLabels: string[];
+    positionsCount: number;
+  } {
+    const normalizedPositions = normalizeReviewDraftPositions(draft.positions);
+    const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+      normalizedPositions,
+    );
+    const nextForm = buildNextFormFromReviewDraft(draft, form);
+    const remainingMissingLabels = resolveRemainingMissingVoiceLabels(
+      draft.missingFieldKeys,
+      nextForm,
+    );
+
+    setForm((prev) => buildNextFormFromReviewDraft(draft, prev));
+
+    if (parsedServiceEntries.length > 0) {
+      setSelectedServices(parsedServiceEntries);
+      setServiceSearch("");
+      setIsServiceSearchOpen(false);
+    }
+
+    setVoiceMissingFields(remainingMissingLabels);
+    setAddressSuggestions([]);
+
+    return {
+      remainingMissingLabels,
+      positionsCount: parsedServiceEntries.length,
     };
   }
 
@@ -4251,19 +4343,14 @@ export default function HomePage() {
         const noDataMessage =
           data.message ??
           "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.";
-        setVoiceInfo(noDataMessage);
-        setVoiceError("");
+        setVoiceInfo("");
+        setVoiceError(noDataMessage);
         setVoiceMissingFields([]);
-        if (sourceText.trim()) {
-          setPhotoReviewDraft(null);
-          setPhotoInfo("Rohtext verfügbar. Bitte bei Bedarf manuell übernehmen.");
-          setPhotoError("");
-        }
+        setPhotoReviewDraft(null);
         console.log("[voice] parse returned no structured content");
         return;
       }
       const reviewDraft = buildIntakeReviewDraft({
-        mode: "voice",
         response: data,
         fields: {
           ...fields,
@@ -4275,34 +4362,28 @@ export default function HomePage() {
           shouldAutofillServiceDescription ? safeServiceDescription : undefined,
         sourceText,
       });
-      const missingText =
-        reviewDraft.missingFieldLabels.length > 0
-          ? ` Bitte noch ergänzen: ${reviewDraft.missingFieldLabels.join(", ")}.`
-          : " Alle Kernfelder wurden erkannt.";
       const modeText = data.usedFallback
         ? data.fallbackReason === "no_api_key"
           ? "KI nicht aktiv: OPENAI_API_KEY fehlt. Basis-Erkennung wurde verwendet."
           : "KI-Antwort fehlgeschlagen. Basis-Erkennung wurde verwendet."
         : "Sprachtext per KI erkannt.";
-      const actionText = autoTriggered
-        ? " Bitte Daten vor der Übernahme prüfen."
-        : " Daten sind zur Prüfung bereit.";
+      const { remainingMissingLabels, positionsCount } =
+        applyIntakeReviewDraft(reviewDraft);
+      const applyText = " Daten wurden direkt in die Formularfelder übernommen.";
       const tableText =
-        parsedServiceEntries.length > 0
+        positionsCount > 0
           ? " Positionen wurden erkannt."
           : "";
-      setVoiceInfo(`${modeText}${actionText}${tableText}${missingText}`);
+      const missingText =
+        remainingMissingLabels.length > 0
+          ? ` Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
+          : " Alle Kernfelder wurden erkannt.";
+      setVoiceInfo(`${modeText}${applyText}${tableText}${missingText}`);
       setVoiceError("");
-      setVoiceMissingFields(reviewDraft.missingFieldLabels);
-      setPhotoReviewDraft(reviewDraft);
-      setIntakeInputMode("photo");
-      setPhotoPreviewDataUrl("");
-      setPhotoInfo("Erkannte Sprachdaten bitte prüfen und bestätigen.");
-      setPhotoError("");
-      setAddressSuggestions([]);
+      setPhotoReviewDraft(null);
       console.log("[voice] parse applied", {
-        missingCount: reviewDraft.missingFieldLabels.length,
-        positionsCount: reviewDraft.positions.length,
+        missingCount: remainingMissingLabels.length,
+        positionsCount,
       });
     } catch (error) {
       setVoiceMissingFields([]);
@@ -4404,16 +4485,7 @@ export default function HomePage() {
   }
 
   function dismissPhotoReview() {
-    const reviewMode = photoReviewDraft?.inputMode ?? "photo";
     setPhotoReviewDraft(null);
-    if (reviewMode === "voice") {
-      setIntakeInputMode("voice");
-      setVoiceInfo("Sprach-Erkennung verworfen. Felder blieben unverändert.");
-      setVoiceError("");
-      setPhotoInfo("");
-      setPhotoError("");
-      return;
-    }
     setPhotoInfo("Foto-Erkennung verworfen. Felder blieben unverändert.");
     setPhotoError("");
   }
@@ -4422,101 +4494,13 @@ export default function HomePage() {
     if (!photoReviewDraft) {
       return;
     }
-    const reviewMode = photoReviewDraft.inputMode;
-
-    const normalizedPositions = photoReviewDraft.positions
-      .map((position): ParsedVoicePosition | null => {
-        const description = capitalizeEntryStart(position.description.trim());
-        const quantity = parseLocaleNumber(position.quantity);
-        if (!description) {
-          return null;
-        }
-
-        const unitPriceParsed = parseLocaleNumber(position.unitPrice);
-        const normalizedPosition: ParsedVoicePosition = {
-          description,
-          unit: normalizeVoiceUnit(position.unit),
-        };
-        if (Number.isFinite(quantity) && quantity > 0) {
-          normalizedPosition.quantity = quantity;
-        }
-        const group = capitalizeEntryStart(position.group.trim());
-        if (group) {
-          normalizedPosition.group = group;
-        }
-        if (Number.isFinite(unitPriceParsed) && unitPriceParsed >= 0) {
-          normalizedPosition.unitPrice = unitPriceParsed;
-        }
-        return normalizedPosition;
-      })
-      .filter((position): position is ParsedVoicePosition => position !== null);
-
-    const parsedServiceEntries = toSelectedServicesFromVoicePositions(
-      normalizedPositions,
-    );
-    let remainingMissingLabels: string[] = [];
-
-    setForm((prev) => {
-      const nextForm = {
-        ...prev,
-        customerType: photoReviewDraft.customerType,
-        companyName: photoReviewDraft.companyName.trim()
-          ? capitalizeEntryStart(photoReviewDraft.companyName)
-          : prev.companyName,
-        salutation: photoReviewDraft.salutation,
-        firstName: photoReviewDraft.firstName.trim()
-          ? capitalizeEntryStart(photoReviewDraft.firstName)
-          : prev.firstName,
-        lastName: photoReviewDraft.lastName.trim()
-          ? capitalizeEntryStart(photoReviewDraft.lastName)
-          : prev.lastName,
-        street: photoReviewDraft.street.trim()
-          ? capitalizeEntryStart(photoReviewDraft.street)
-          : prev.street,
-        postalCode: photoReviewDraft.postalCode.trim() || prev.postalCode,
-        city: photoReviewDraft.city.trim()
-          ? capitalizeEntryStart(photoReviewDraft.city)
-          : prev.city,
-        customerEmail: photoReviewDraft.customerEmail.trim() || prev.customerEmail,
-        serviceDescription: photoReviewDraft.serviceDescription.trim()
-          ? capitalizeEntryStart(photoReviewDraft.serviceDescription)
-          : prev.serviceDescription,
-        hours: sanitizeQuantityInput(photoReviewDraft.hours) || prev.hours,
-        hourlyRate:
-          sanitizePriceInput(photoReviewDraft.hourlyRate) || prev.hourlyRate,
-        materialCost:
-          sanitizePriceInput(photoReviewDraft.materialCost) || prev.materialCost,
-      };
-
-      remainingMissingLabels = resolveRemainingMissingVoiceLabels(
-        photoReviewDraft.missingFieldKeys,
-        nextForm,
-      );
-
-      return nextForm;
-    });
-
-    if (parsedServiceEntries.length > 0) {
-      setSelectedServices(parsedServiceEntries);
-      setServiceSearch("");
-      setIsServiceSearchOpen(false);
-    }
-
-    setVoiceMissingFields(remainingMissingLabels);
-    setAddressSuggestions([]);
+    const { remainingMissingLabels } = applyIntakeReviewDraft(photoReviewDraft);
     setPhotoReviewDraft(null);
     setPhotoError("");
     const resultMessage =
       remainingMissingLabels.length > 0
         ? `Daten übernommen. Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
         : "Daten übernommen. Alle Kernfelder wurden erkannt.";
-    if (reviewMode === "voice") {
-      setIntakeInputMode("voice");
-      setVoiceInfo(resultMessage);
-      setVoiceError("");
-      setPhotoInfo("");
-      return;
-    }
     setPhotoInfo(resultMessage);
   }
 
@@ -4640,7 +4624,6 @@ export default function HomePage() {
       }
 
       const reviewDraft = buildIntakeReviewDraft({
-        mode: "photo",
         response: data,
         fields: {
           ...fields,
@@ -6165,7 +6148,7 @@ export default function HomePage() {
                   <strong>Per KI erfassen</strong>
                   <p>
                     Diktiere frei oder nutze ein Foto. Die Eingaben werden
-                    erkannt, gefiltert und erst nach Prüfung übernommen.
+                    erkannt, gefiltert und sauber übernommen.
                   </p>
                 </div>
 
@@ -6488,11 +6471,7 @@ export default function HomePage() {
 
                         {photoReviewDraft.sourceText ? (
                           <details className="photoReviewSource">
-                            <summary>
-                              {photoReviewDraft.inputMode === "voice"
-                                ? "Erkannter Sprachtext"
-                                : "Erkannter Notiztext"}
-                            </summary>
+                            <summary>Erkannter Notiztext</summary>
                             <p>{photoReviewDraft.sourceText}</p>
                           </details>
                         ) : null}
