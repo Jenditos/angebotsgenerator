@@ -7332,7 +7332,11 @@ export default function HomePage() {
                         LEISTUNGEN &amp; POSITIONEN
                       </h3>
                     </div>
-                    <p className="positionsMetaGroupTitle">Leistungsart</p>
+                    <div className="positionsMetaGroupHeader">
+                      <span className="positionsMetaGroupTitle">
+                        Leistungsart
+                      </span>
+                    </div>
                     <div className="positionsSearchRow">
                       <div className="servicePicker positionsServicePicker" ref={servicePickerRef}>
                         <input
