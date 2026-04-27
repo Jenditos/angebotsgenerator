@@ -6286,16 +6286,6 @@ body {
   gap: 7px;
 }
 
-.positionsSearchLabel {
-  margin: 0;
-  color: #355685;
-  font-size: 0.74rem;
-  line-height: 1.25;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .positionsSearchPanelTitle,
 .positionsSearchPanelHint {
   color: var(--vis-dark) !important;
@@ -7191,7 +7181,7 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
   letter-spacing: 0 !important;
 }
 
-:is(.positionsSearchLabel, .positionsMetaGroupTitle) {
+.positionsMetaGroupTitle {
   font-size: 0.74rem !important;
   line-height: 1.25 !important;
   font-weight: 800 !important;
