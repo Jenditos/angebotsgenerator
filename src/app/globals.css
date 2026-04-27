@@ -8920,16 +8920,19 @@ button.documentModeSwitchButton.active {
   color: #ffffff !important;
 }
 
-.settingsPageTransition .settingsSetupHero {
+.settingsSetupHero {
   position: relative !important;
   overflow: visible !important;
-  border: 1px solid var(--vis-dark-10, rgba(25, 59, 104, 0.12)) !important;
-  background: #ffffff !important;
-  background-image: none !important;
+  border: 1px solid var(--vis-primary, #1479ff) !important;
+  background: linear-gradient(
+    145deg,
+    var(--vis-primary, #1479ff),
+    var(--vis-dark, #193b68)
+  ) !important;
 }
 
-.settingsPageTransition .settingsSetupHero :is(.heroEyebrow, h1, .heroText) {
-  color: var(--vis-dark, #193b68) !important;
+.settingsSetupHero :is(.heroEyebrow, h1, .heroText) {
+  color: var(--vis-white, #ffffff) !important;
 }
 
 .settingsPageTransition .settingsDeleteButton,
@@ -9922,8 +9925,7 @@ body {
 }
 
 .page.settingsEmbeddedPage,
-.page.settingsEmbeddedPage .settingsPageTransition,
-.page.settingsEmbeddedPage .settingsSetupHero {
+.page.settingsEmbeddedPage .settingsPageTransition {
   background: #ffffff !important;
   background-image: none !important;
 }
