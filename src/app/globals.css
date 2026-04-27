@@ -8924,11 +8924,7 @@ button.documentModeSwitchButton.active {
   position: relative !important;
   overflow: visible !important;
   border: 1px solid var(--vis-primary, #1479ff) !important;
-  background: linear-gradient(
-    145deg,
-    var(--vis-primary, #1479ff),
-    var(--vis-dark, #193b68)
-  ) !important;
+  background: var(--vis-primary, #1479ff) !important;
 }
 
 .settingsSetupHero :is(.heroEyebrow, h1, .heroText) {
