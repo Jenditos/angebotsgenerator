@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   getSeedServices,
   hasServiceLabel,
@@ -941,6 +942,59 @@ function readSettingsDraftFromSessionStorageForOffer(): CompanySettings | null {
   return null;
 }
 
+function writeSettingsDraftToSessionStorageForOffer(
+  nextSettings: CompanySettings,
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const updatedAt = new Date().toISOString();
+  const fullPayload = {
+    updatedAt,
+    settings: nextSettings,
+  };
+  const fallbackPayload = {
+    updatedAt,
+    settings: {
+      ...nextSettings,
+      logoDataUrl: "",
+    },
+    logoOmitted: true,
+  };
+
+  const writeToStorages = (payload: unknown): boolean => {
+    const encodedPayload = JSON.stringify(payload);
+    let wroteSession = false;
+    let wroteLocal = false;
+
+    try {
+      window.sessionStorage.setItem(SETTINGS_DRAFT_STORAGE_KEY, encodedPayload);
+      wroteSession = true;
+    } catch {
+      // Ignorieren, ggf. LocalStorage klappt noch.
+    }
+
+    try {
+      window.localStorage.setItem(
+        SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY,
+        encodedPayload,
+      );
+      wroteLocal = true;
+    } catch {
+      // Ignorieren, falls LocalStorage nicht verfügbar ist.
+    }
+
+    return wroteSession || wroteLocal;
+  };
+
+  if (writeToStorages(fullPayload)) {
+    return;
+  }
+
+  writeToStorages(fallbackPayload);
+}
+
 function mergeSettingsDraftWithServer(
   draftSettings: CompanySettings,
   serverSettings: CompanySettings,
@@ -1572,6 +1626,7 @@ function normalizeAddressSuggestion(
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [documentMode, setDocumentMode] = useState<DocumentMode>("offer");
   const [form, setForm] = useState<OfferForm>(initialForm);
   const [error, setError] = useState("");
@@ -1653,6 +1708,9 @@ export default function HomePage() {
   const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
   const [isSettingsOverlayOpen, setIsSettingsOverlayOpen] = useState(false);
   const [isClosingSettingsOverlay, setIsClosingSettingsOverlay] = useState(false);
+  const [hasOpenedSettingsOverlay, setHasOpenedSettingsOverlay] = useState(false);
+  const [isSettingsOverlayFrameLoaded, setIsSettingsOverlayFrameLoaded] =
+    useState(false);
   const [isClosingCustomerPicker, setIsClosingCustomerPicker] = useState(false);
   const [, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
@@ -1829,6 +1887,24 @@ export default function HomePage() {
     containerRef: photoCameraSheetRef,
   });
 
+  useEffect(() => {
+    router.prefetch("/settings");
+  }, [router]);
+
+  useEffect(() => {
+    if (isSettingsOverlayOpen || isClosingSettingsOverlay) {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (
+      activeElement instanceof HTMLElement &&
+      settingsOverlaySheetRef.current?.contains(activeElement)
+    ) {
+      activeElement.blur();
+    }
+  }, [isClosingSettingsOverlay, isSettingsOverlayOpen]);
+
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
@@ -1948,6 +2024,7 @@ export default function HomePage() {
       window.clearTimeout(settingsOverlayCloseTimeoutRef.current);
       settingsOverlayCloseTimeoutRef.current = null;
     }
+    setHasOpenedSettingsOverlay(true);
     setIsClosingSettingsOverlay(false);
     setIsSettingsOverlayOpen(true);
   }
@@ -2346,6 +2423,7 @@ export default function HomePage() {
       const draftSettings = readSettingsDraftFromSessionStorageForOffer();
       if (mounted && draftSettings) {
         setCompanySettings(draftSettings);
+        writeSettingsDraftToSessionStorageForOffer(draftSettings);
         const isCompleteFromDraft = hasCompletedCompanySettings(draftSettings);
         setIsCompanySetupComplete(isCompleteFromDraft);
         if (!isCompleteFromDraft) {
@@ -2367,6 +2445,7 @@ export default function HomePage() {
 
           if (resolvedSettings) {
             setCompanySettings(resolvedSettings);
+            writeSettingsDraftToSessionStorageForOffer(resolvedSettings);
           }
           const isComplete = hasCompletedCompanySettings(resolvedSettings);
           setIsCompanySetupComplete(isComplete);
@@ -5084,6 +5163,11 @@ export default function HomePage() {
     }
   }
 
+  const shouldRenderSettingsOverlay =
+    hasOpenedSettingsOverlay || isSettingsOverlayOpen || isClosingSettingsOverlay;
+  const isSettingsOverlayVisible =
+    isSettingsOverlayOpen || isClosingSettingsOverlay;
+
   return (
     <main className="page">
       <div className="ambient ambientA" aria-hidden />
@@ -5560,13 +5644,14 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {isSettingsOverlayOpen ? (
+        {shouldRenderSettingsOverlay ? (
           <div
-            className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="settings-overlay-title"
-            onClick={closeSettingsOverlay}
+            className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""} ${isSettingsOverlayVisible ? "" : "isHidden"}`}
+            role={isSettingsOverlayVisible ? "dialog" : undefined}
+            aria-modal={isSettingsOverlayVisible ? "true" : undefined}
+            aria-hidden={isSettingsOverlayVisible ? undefined : "true"}
+            aria-labelledby={isSettingsOverlayVisible ? "settings-overlay-title" : undefined}
+            onClick={isSettingsOverlayVisible ? closeSettingsOverlay : undefined}
           >
             <section
               className={`settingsOverlaySheet ${isClosingSettingsOverlay ? "closing" : ""}`}
@@ -5597,11 +5682,19 @@ export default function HomePage() {
                   </svg>
                 </button>
               </div>
-              <div className="settingsOverlayFrameWrap">
+              <div
+                className={`settingsOverlayFrameWrap ${isSettingsOverlayFrameLoaded ? "isLoaded" : "isLoading"}`}
+              >
+                {!isSettingsOverlayFrameLoaded ? (
+                  <div className="settingsOverlayFrameLoading" role="status" aria-live="polite">
+                    Einstellungen werden geladen ...
+                  </div>
+                ) : null}
                 <iframe
                   src="/settings?embedded=1"
                   title="Einstellungen"
                   className="settingsOverlayFrame"
+                  onLoad={() => setIsSettingsOverlayFrameLoaded(true)}
                 />
               </div>
             </section>
