@@ -17,6 +17,7 @@ import {
   searchServices,
 } from "@/lib/service-catalog";
 import { InfoLegalModal } from "@/components/InfoLegalModal";
+import { VisioroLogoImage } from "@/components/VisioroLogoImage";
 import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -5174,11 +5175,7 @@ export default function HomePage() {
       <div className="ambient ambientB" aria-hidden />
       <div className="container pageSurfaceTransition dashboardCanvas">
         <header className="topHeaderMinimal">
-          <img
-            src="/visioro-logo.png"
-            alt="Visioro"
-            className="topHeaderMobileBrandLogo"
-          />
+          <VisioroLogoImage className="topHeaderMobileBrandLogo" />
           <div className="accountMenuWrap" ref={accountMenuRef}>
             <button
               type="button"
@@ -5901,11 +5898,7 @@ export default function HomePage() {
           <aside className="appSidebar" aria-label="Schnellnavigation">
             <div className="appSidebarTop">
               <div className="appSidebarBrandWrap">
-                <img
-                  src="/visioro-logo.png"
-                  alt="Visioro"
-                  className="appSidebarBrandPill"
-                />
+                <VisioroLogoImage className="appSidebarBrandPill" />
               </div>
               <div className="appSidebarNav">
                 <div className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}>

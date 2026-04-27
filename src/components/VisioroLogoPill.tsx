@@ -1,3 +1,5 @@
+import { VisioroLogoImage } from "@/components/VisioroLogoImage";
+
 type VisioroLogoPillProps = {
   className?: string;
 };
@@ -9,11 +11,7 @@ export function VisioroLogoPill({ className = "" }: VisioroLogoPillProps) {
 
   return (
     <span className={logoClassName} aria-label="Visioro">
-      <img
-        src="/visioro-logo.png"
-        alt="Visioro"
-        className="topHeaderLogoImage"
-      />
+      <VisioroLogoImage className="topHeaderLogoImage" />
     </span>
   );
 }
