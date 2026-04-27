@@ -68,6 +68,30 @@ const CONTROL_LANGUAGE_PATTERN =
   /\b(?:mach|erstell(?:e|en)?|schreib|trag|f(?:ü|u)ge?|notier(?:e|en)|kannst\s+du|ich\s+brauche|f(?:ü|u)r\s+den\s+kunden|und\s+dann\s+noch)\b/i;
 const BUSINESS_SIGNAL_PATTERN =
   /\b(?:angebot|rechnung|kunde|firma|gmbh|ag|kg|straße|strasse|platz|weg|allee|gasse|ring|ufer|hausnummer|plz|telefon|mail|@|wasserhahn|armatur|rohr|heizung|elektro|steckdose|silikon|fuge|montier|einbau|austausch|reinigung|anfahrt|material|kosten|stunden?|stundensatz|euro|eur|€)\b/i;
+const LABOR_KEYWORD_PATTERN =
+  /\b(?:arbeit(?:szeit)?|montagezeit|zeitaufwand|mannstunden?|geselle|meister|monteur(?:e)?|facharbeiter|vor\s*ort)\b/i;
+const NON_LABOR_TIME_HINT_PATTERN =
+  /\b(?:anfahrt|fahrtkosten|material|ersatzteile?|ersatzteil|lieferung)\b/i;
+const LABOR_NUMBER_WORDS: Record<string, number> = {
+  ein: 1,
+  eins: 1,
+  eine: 1,
+  einen: 1,
+  einer: 1,
+  zwei: 2,
+  drei: 3,
+  vier: 4,
+  fuenf: 5,
+  fünf: 5,
+  sechs: 6,
+  sieben: 7,
+  acht: 8,
+  neun: 9,
+  zehn: 10,
+  elf: 11,
+  zwoelf: 12,
+  zwölf: 12,
+};
 
 type ParseIntakeInputMode = "voice" | "photo";
 type ParseIntakeRequestBody = {
@@ -82,6 +106,14 @@ type IntakeVoicePosition = {
   quantity?: number;
   unit?: string;
   unitPrice?: number;
+};
+
+type IntakeTimeCalculation = {
+  laborHours?: number;
+  laborDescription?: string;
+  workers?: number;
+  hourlyRate?: number;
+  notes?: string;
 };
 
 function normalizeWhitespace(value: string): string {
@@ -519,6 +551,220 @@ function normalizeUnitLabel(rawUnit: string | undefined): string | undefined {
   }
 
   return undefined;
+}
+
+function parseLaborNumberToken(token: string): number | undefined {
+  const normalized = normalizeGermanUmlauts(token.toLowerCase()).trim();
+  if (!normalized) {
+    return undefined;
+  }
+  if (/^\d+(?:[.,]\d+)?$/.test(normalized)) {
+    const parsed = Number(normalized.replace(",", "."));
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }
+  return LABOR_NUMBER_WORDS[normalized];
+}
+
+function isLaborUnit(unit: string | undefined): boolean {
+  if (!unit) {
+    return false;
+  }
+  const normalized = normalizeGermanUmlauts(unit.toLowerCase())
+    .replace(/\./g, "")
+    .replace(/\s+/g, "")
+    .trim();
+  return (
+    normalized === "std" ||
+    normalized === "h" ||
+    normalized === "stunde" ||
+    normalized === "stunden"
+  );
+}
+
+function extractLaborHoursFromText(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const normalized = normalizeWhitespace(value);
+  if (!normalized) {
+    return undefined;
+  }
+
+  let total = 0;
+  let hasMatch = false;
+  const patterns = [
+    /(\d+(?:[.,]\d+)?|[A-Za-zÄÖÜäöüß]+)\s*(?:stunden?|std|h)\b/gi,
+    /(?:arbeitszeit|montagezeit|geselle|meister|vor\s*ort)\s*(?:ca\.?\s*)?(\d+(?:[.,]\d+)?|[A-Za-zÄÖÜäöüß]+)\s*(?:stunden?|std|h)?\b/gi,
+  ];
+
+  for (const pattern of patterns) {
+    let match = pattern.exec(normalized);
+    while (match) {
+      const parsed = parseLaborNumberToken(match[1]);
+      if (typeof parsed === "number" && Number.isFinite(parsed) && parsed > 0) {
+        total += parsed;
+        hasMatch = true;
+      }
+      match = pattern.exec(normalized);
+    }
+  }
+
+  return hasMatch ? total : undefined;
+}
+
+function isLaborOnlyPosition(position: IntakeVoicePosition): boolean {
+  const description = sanitizePositionDescription(position.description) ?? "";
+  if (!description) {
+    return false;
+  }
+  const normalizedDescription = normalizeGermanUmlauts(description.toLowerCase());
+  const hasLaborKeywords = LABOR_KEYWORD_PATTERN.test(normalizedDescription);
+  const hasLaborUnit = isLaborUnit(normalizeUnitLabel(position.unit) ?? position.unit);
+  if (!hasLaborKeywords && !hasLaborUnit) {
+    return false;
+  }
+  if (NON_LABOR_TIME_HINT_PATTERN.test(normalizedDescription)) {
+    return false;
+  }
+
+  const reduced = normalizedDescription
+    .replace(
+      /\b(?:ca|circa|vor|ort|und|inkl|inklusive|arbeit(?:szeit)?|montagezeit|zeitaufwand|mannstunden?|geselle|meister|monteur(?:e)?|facharbeiter|std|stunde|stunden|h)\b/g,
+      " ",
+    )
+    .replace(/\d+(?:[.,]\d+)?/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return reduced.length === 0;
+}
+
+function separateLaborFromPositions(
+  positions: IntakeVoicePosition[] | undefined,
+): {
+  positions?: IntakeVoicePosition[];
+  laborHours?: number;
+  ignoredLaborText: string[];
+} {
+  if (!Array.isArray(positions) || positions.length === 0) {
+    return { positions: undefined, ignoredLaborText: [] };
+  }
+
+  const filtered: IntakeVoicePosition[] = [];
+  const ignoredLaborText: string[] = [];
+  let laborHoursTotal = 0;
+  let hasLaborHours = false;
+
+  for (const position of positions) {
+    const isLabor = isLaborOnlyPosition(position);
+    if (!isLabor) {
+      filtered.push(position);
+      continue;
+    }
+
+    const description = sanitizePositionDescription(position.description);
+    if (description) {
+      ignoredLaborText.push(description);
+    }
+
+    const unit = normalizeUnitLabel(position.unit) ?? position.unit;
+    const quantity = parseQuantityValue(position.quantity);
+    const hoursFromQuantity =
+      typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0 && isLaborUnit(unit)
+        ? quantity
+        : undefined;
+    const hoursFromText = extractLaborHoursFromText(description);
+    const resolvedHours =
+      hoursFromQuantity ??
+      (typeof hoursFromText === "number" && Number.isFinite(hoursFromText) && hoursFromText > 0
+        ? hoursFromText
+        : undefined);
+
+    if (typeof resolvedHours === "number") {
+      laborHoursTotal += resolvedHours;
+      hasLaborHours = true;
+    }
+  }
+
+  return {
+    positions: filtered.length > 0 ? filtered : undefined,
+    laborHours: hasLaborHours ? laborHoursTotal : undefined,
+    ignoredLaborText,
+  };
+}
+
+function extractLaborHoursFromSourceText(sourceText: string): number | undefined {
+  const cleaned = normalizeWhitespace(sourceText);
+  if (!cleaned) {
+    return undefined;
+  }
+
+  let total = 0;
+  let hasMatch = false;
+  const patterns = [
+    /(\d+(?:[.,]\d+)?|[A-Za-zÄÖÜäöüß]+)\s*(?:stunden?|std|h)\s*(?:arbeit(?:szeit)?|montagezeit|vor\s*ort)?/gi,
+    /(?:arbeitszeit|montagezeit|geselle|meister|vor\s*ort)\s*(?:ca\.?\s*)?(\d+(?:[.,]\d+)?|[A-Za-zÄÖÜäöüß]+)\s*(?:stunden?|std|h)?/gi,
+  ];
+
+  for (const pattern of patterns) {
+    let match = pattern.exec(cleaned);
+    while (match) {
+      const contextStart = Math.max(0, (match.index ?? 0) - 24);
+      const contextEnd = Math.min(
+        cleaned.length,
+        (match.index ?? 0) + match[0].length + 24,
+      );
+      const context = cleaned.slice(contextStart, contextEnd).toLowerCase();
+      if (NON_LABOR_TIME_HINT_PATTERN.test(context)) {
+        match = pattern.exec(cleaned);
+        continue;
+      }
+
+      const parsed = parseLaborNumberToken(match[1]);
+      if (typeof parsed === "number" && Number.isFinite(parsed) && parsed > 0) {
+        total += parsed;
+        hasMatch = true;
+      }
+      match = pattern.exec(cleaned);
+    }
+  }
+
+  return hasMatch ? total : undefined;
+}
+
+function normalizeTimeCalculation(input: unknown): IntakeTimeCalculation | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+  const record = input as Record<string, unknown>;
+  const laborHours = parseQuantityValue(record.laborHours);
+  const workers = parseQuantityValue(record.workers);
+  const hourlyRate = parseQuantityValue(record.hourlyRate);
+  const laborDescription = sanitizePositionDescription(
+    typeof record.laborDescription === "string" ? record.laborDescription : undefined,
+  );
+  const notesSanitized = sanitizeLooseTextValue(
+    typeof record.notes === "string" ? record.notes : undefined,
+  ).value;
+  const notes = notesSanitized?.trim() ? notesSanitized : undefined;
+
+  if (
+    laborHours === undefined &&
+    workers === undefined &&
+    hourlyRate === undefined &&
+    !laborDescription &&
+    !notes
+  ) {
+    return undefined;
+  }
+
+  return {
+    laborHours,
+    laborDescription,
+    workers,
+    hourlyRate,
+    notes,
+  };
 }
 
 function sanitizePositionDescription(value: string | undefined): string | undefined {
@@ -1002,6 +1248,7 @@ export async function POST(request: Request) {
       requestMode === "voice"
         ? shouldAutofillServiceDescription(transcript)
         : Boolean(parsed.fields.serviceDescription?.trim());
+    const parsedTimeCalculation = normalizeTimeCalculation(parsed.timeCalculation);
     const mergedPositions = mergePositionsWithTranscriptHints(
       parsed.fields.positions?.map((position) => ({
         ...position,
@@ -1012,7 +1259,13 @@ export async function POST(request: Request) {
       })),
       sourceText,
     );
-    const normalizedPositionsFromModel = filterMeaningfulPositions(mergedPositions);
+    const separatedLabor = separateLaborFromPositions(mergedPositions);
+    for (const ignoredLaborText of separatedLabor.ignoredLaborText) {
+      ignoredCollector.add(ignoredLaborText);
+    }
+    const normalizedPositionsFromModel = filterMeaningfulPositions(
+      separatedLabor.positions,
+    );
     const serviceDescriptionCandidate = sanitizeServiceDescription(
       normalizeCraftCompounds(parsed.fields.serviceDescription),
       sourceText,
@@ -1040,9 +1293,32 @@ export async function POST(request: Request) {
     })
       ? undefined
       : serviceDescriptionResult.value;
+    const laborHours =
+      parsedTimeCalculation?.laborHours ??
+      parseQuantityValue(parsed.fields.hours) ??
+      separatedLabor.laborHours ??
+      extractLaborHoursFromSourceText(sourceText);
+    const hourlyRate =
+      parsedTimeCalculation?.hourlyRate ?? parseQuantityValue(parsed.fields.hourlyRate);
+    const normalizedTimeCalculation: IntakeTimeCalculation | undefined =
+      laborHours !== undefined ||
+      hourlyRate !== undefined ||
+      parsedTimeCalculation?.workers !== undefined ||
+      parsedTimeCalculation?.laborDescription ||
+      parsedTimeCalculation?.notes
+        ? {
+            laborHours,
+            laborDescription: parsedTimeCalculation?.laborDescription,
+            workers: parsedTimeCalculation?.workers,
+            hourlyRate,
+            notes: parsedTimeCalculation?.notes,
+          }
+        : undefined;
     const normalizedFields = {
       ...parsed.fields,
       positions: normalizedPositions,
+      hours: laborHours,
+      hourlyRate,
       companyName: sanitizeTextFieldAndCollectIgnored(
         parsed.fields.companyName,
         ignoredCollector,
@@ -1120,6 +1396,7 @@ export async function POST(request: Request) {
       fallbackReason: parsed.fallbackReason ?? null,
       missingCount: missingFieldKeys.length,
       positionsCount: normalizedFields.positions?.length ?? 0,
+      laborHours: laborHours ?? null,
       documentType,
       ignoredCount: ignoredText.length,
       hasRelevantData,
@@ -1143,6 +1420,7 @@ export async function POST(request: Request) {
           notes: parsed.document?.notes ?? "",
         },
         appointment: parsed.appointment ?? { date: "", time: "" },
+        timeCalculation: normalizedTimeCalculation,
         confidence,
         needsReview: true,
         ignoredText,
@@ -1170,6 +1448,7 @@ export async function POST(request: Request) {
         notes: parsed.document?.notes ?? "",
       },
       appointment: parsed.appointment ?? { date: "", time: "" },
+      timeCalculation: normalizedTimeCalculation,
       confidence,
       needsReview,
       ignoredText,

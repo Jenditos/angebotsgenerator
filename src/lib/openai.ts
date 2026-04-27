@@ -353,6 +353,14 @@ export type ParsedIntakePosition = {
   unitPrice?: number;
 };
 
+export type ParsedIntakeTimeCalculation = {
+  laborHours?: number;
+  laborDescription?: string;
+  workers?: number;
+  hourlyRate?: number;
+  notes?: string;
+};
+
 export type ParsedIntakeDocument = {
   type: "offer" | "invoice" | "unknown";
   title?: string;
@@ -372,6 +380,7 @@ export type ParsedIntakeConfidence = {
 
 export type IntakeParseResult = {
   fields: ParsedIntakeFields;
+  timeCalculation?: ParsedIntakeTimeCalculation;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error";
   sourceText?: string;
@@ -869,6 +878,32 @@ function toParsedFields(input: Record<string, unknown>): ParsedIntakeFields {
   };
 }
 
+function buildTimeCalculationFromFields(
+  fields: ParsedIntakeFields,
+): ParsedIntakeTimeCalculation | undefined {
+  const laborHours =
+    typeof fields.hours === "number" &&
+    Number.isFinite(fields.hours) &&
+    fields.hours > 0
+      ? fields.hours
+      : undefined;
+  const hourlyRate =
+    typeof fields.hourlyRate === "number" &&
+    Number.isFinite(fields.hourlyRate) &&
+    fields.hourlyRate >= 0
+      ? fields.hourlyRate
+      : undefined;
+
+  if (laborHours === undefined && hourlyRate === undefined) {
+    return undefined;
+  }
+
+  return {
+    laborHours,
+    hourlyRate,
+  };
+}
+
 
 function fallbackParseIntake(transcript: string): ParsedIntakeFields {
   const text = transcript.trim();
@@ -1118,6 +1153,13 @@ const INTAKE_JSON_SCHEMA = `{
       "unitPrice": "number|null"
     }
   ],
+  "timeCalculation": {
+    "laborHours": "number|null",
+    "laborDescription": "string",
+    "workers": "number|null",
+    "hourlyRate": "number|null",
+    "notes": "string"
+  },
   "appointment": {
     "date": "string",
     "time": "string"
@@ -1134,7 +1176,7 @@ const INTAKE_JSON_SCHEMA = `{
 
 const INTAKE_FEW_SHOTS = `Beispiel 1
 Input:
-"Mach mir mal bitte ein Angebot für Max Müller, Musterstraße 12 in Berlin, Wasserhahn austauschen, zwei Stunden Arbeit."
+"Mach mir bitte ein Angebot für Max Müller, Wasserhahn austauschen, zwei Stunden Arbeit."
 Output:
 {
   "customer": {
@@ -1156,33 +1198,40 @@ Output:
   "items": [
     {
       "description": "Wasserhahn austauschen",
-      "quantity": 2,
-      "unit": "Stunden",
+      "quantity": null,
+      "unit": "",
       "unitPrice": null
     }
   ],
+  "timeCalculation": {
+    "laborHours": 2,
+    "laborDescription": "Arbeit",
+    "workers": null,
+    "hourlyRate": null,
+    "notes": ""
+  },
   "appointment": {
     "date": "",
     "time": ""
   },
-  "ignored_text": ["Mach mir mal bitte"],
+  "ignored_text": ["Mach mir bitte"],
   "confidence": {
-    "customer": 0.8,
-    "items": 0.8,
+    "customer": 0.9,
+    "items": 0.92,
     "document": 0.9
   },
-  "needs_review": true
+  "needs_review": false
 }
 
 Beispiel 2
 Input:
-"Schreib bitte rein: Kunde ist Schreinerei Weber, Telefonnummer 0176 12345678, Angebot für Einbau von drei Innentüren."
+"Rechnung für Schneider GmbH, Rohrreinigung, Arbeitszeit 3,5 Stunden, Material 25 Euro."
 Output:
 {
   "customer": {
     "name": "",
-    "company": "Schreinerei Weber",
-    "phone": "0176 12345678",
+    "company": "Schneider GmbH",
+    "phone": "",
     "email": "",
     "address": {
       "street": "",
@@ -1191,36 +1240,105 @@ Output:
     }
   },
   "document": {
-    "type": "angebot",
+    "type": "rechnung",
     "title": "",
     "notes": ""
   },
   "items": [
     {
-      "description": "Einbau von Innentüren",
-      "quantity": 3,
-      "unit": "Stück",
+      "description": "Rohrreinigung",
+      "quantity": null,
+      "unit": "",
       "unitPrice": null
+    },
+    {
+      "description": "Material",
+      "quantity": null,
+      "unit": "",
+      "unitPrice": 25
     }
   ],
+  "timeCalculation": {
+    "laborHours": 3.5,
+    "laborDescription": "Arbeitszeit",
+    "workers": null,
+    "hourlyRate": null,
+    "notes": ""
+  },
   "appointment": {
     "date": "",
     "time": ""
   },
-  "ignored_text": ["Schreib bitte rein"],
+  "ignored_text": [],
   "confidence": {
-    "customer": 0.86,
-    "items": 0.84,
-    "document": 0.9
+    "customer": 0.91,
+    "items": 0.9,
+    "document": 0.96
   },
-  "needs_review": true
+  "needs_review": false
+}
+
+Beispiel 3 (Kamera/Scan)
+Input:
+"Familie Kaya, Bad Silikonfuge erneuern, ca. 4 h Arbeit, Material Silikon 18 €"
+Output:
+{
+  "customer": {
+    "name": "Familie Kaya",
+    "company": "",
+    "phone": "",
+    "email": "",
+    "address": {
+      "street": "",
+      "zip": "",
+      "city": ""
+    }
+  },
+  "document": {
+    "type": "unknown",
+    "title": "",
+    "notes": ""
+  },
+  "items": [
+    {
+      "description": "Bad Silikonfuge erneuern",
+      "quantity": null,
+      "unit": "",
+      "unitPrice": null
+    },
+    {
+      "description": "Material Silikon",
+      "quantity": null,
+      "unit": "",
+      "unitPrice": 18
+    }
+  ],
+  "timeCalculation": {
+    "laborHours": 4,
+    "laborDescription": "Arbeit",
+    "workers": null,
+    "hourlyRate": null,
+    "notes": "ca."
+  },
+  "appointment": {
+    "date": "",
+    "time": ""
+  },
+  "ignored_text": [],
+  "confidence": {
+    "customer": 0.82,
+    "items": 0.88,
+    "document": 0.65
+  },
+  "needs_review": false
 }`;
 
 const INTAKE_SYSTEM_PROMPT =
-  "Du extrahierst aus deutscher Umgangssprache präzise Geschäftsdaten für Handwerker-Angebote/Rechnungen. " +
+  "Du extrahierst aus deutscher Umgangssprache oder aus OCR-Text präzise Geschäftsdaten für Handwerker-Angebote/Rechnungen. " +
   "Ignoriere Steuerungs-/Befehlssprache (z. B. 'mach mir mal bitte', 'trag mal ein', 'schreib bitte rein', 'erstelle ein Angebot für', 'füge hinzu', 'notiere') und Füllwörter (z. B. 'ähm', 'also', 'ja', 'bitte', 'mal', 'quasi', 'genau'). " +
-  "Erfasse nur relevante Daten und ordne sie semantisch korrekt zu (customer/document/items/appointment). " +
-  "items dürfen ausschließlich echte Leistungen oder Materialien enthalten, nie Befehlsreste. " +
+  "Erfasse nur relevante Daten und ordne sie semantisch korrekt zu (customer/document/items/timeCalculation/appointment). " +
+  "items dürfen ausschließlich echte Leistungen, Materialien oder explizite Anfahrt-Positionen enthalten, nie Befehlsreste. " +
+  "Arbeitszeit (z. B. '2 Stunden Arbeit', 'Arbeitszeit 3 h', 'Montagezeit', 'Geselle 3 Stunden', 'Meister 2 Stunden', 'vor Ort 6 Stunden') gehört ausschließlich in timeCalculation und darf nicht in items dupliziert werden. " +
   "Wenn Mengen/Einheiten/Preise fehlen, lasse Felder leer bzw. null. Nichts raten. " +
   "Unsichere Daten zurückhaltend behandeln, confidence setzen und needs_review=true lassen. " +
   "Antworte strikt mit validem JSON, ohne Markdown und ohne erklärenden Text.";
@@ -1272,6 +1390,58 @@ function normalizeTextArray(input: unknown): string[] {
     .filter((entry): entry is string => Boolean(entry));
 }
 
+function normalizeTimeCalculation(
+  input: unknown,
+): ParsedIntakeTimeCalculation | undefined {
+  const source = asRecord(input);
+  if (!source) {
+    return undefined;
+  }
+
+  const laborHoursCandidate = normalizeNumberValue(source.laborHours);
+  const workersCandidate = normalizeNumberValue(source.workers);
+  const hourlyRateCandidate = normalizeNumberValue(source.hourlyRate);
+
+  const laborHours =
+    typeof laborHoursCandidate === "number" &&
+    Number.isFinite(laborHoursCandidate) &&
+    laborHoursCandidate > 0
+      ? laborHoursCandidate
+      : undefined;
+  const workers =
+    typeof workersCandidate === "number" &&
+    Number.isFinite(workersCandidate) &&
+    workersCandidate > 0
+      ? workersCandidate
+      : undefined;
+  const hourlyRate =
+    typeof hourlyRateCandidate === "number" &&
+    Number.isFinite(hourlyRateCandidate) &&
+    hourlyRateCandidate >= 0
+      ? hourlyRateCandidate
+      : undefined;
+  const laborDescription = normalizeTextValue(source.laborDescription);
+  const notes = normalizeTextValue(source.notes);
+
+  if (
+    laborHours === undefined &&
+    workers === undefined &&
+    hourlyRate === undefined &&
+    !laborDescription &&
+    !notes
+  ) {
+    return undefined;
+  }
+
+  return {
+    laborHours,
+    laborDescription,
+    workers,
+    hourlyRate,
+    notes,
+  };
+}
+
 function splitCustomerName(name: string | undefined): {
   firstName?: string;
   lastName?: string;
@@ -1297,6 +1467,7 @@ function splitCustomerName(name: string | undefined): {
 
 function parseIntakeModelPayload(raw: string): {
   fields: ParsedIntakeFields;
+  timeCalculation?: ParsedIntakeTimeCalculation;
   sourceText?: string;
   ignoredText?: string[];
   confidence?: ParsedIntakeConfidence;
@@ -1311,6 +1482,7 @@ function parseIntakeModelPayload(raw: string): {
   const document = asRecord(parsed.document);
   const appointment = asRecord(parsed.appointment);
   const confidence = asRecord(parsed.confidence);
+  const timeCalculation = normalizeTimeCalculation(parsed.timeCalculation);
 
   const customerName = normalizeTextValue(customer?.name);
   const splitName = splitCustomerName(customerName);
@@ -1319,6 +1491,19 @@ function parseIntakeModelPayload(raw: string): {
   const serviceDescriptionFromDocumentNotes = normalizeTextValue(document?.notes);
 
   const fallbackFlatFields = toParsedFields(parsed);
+  const fallbackTimeCalculation = buildTimeCalculationFromFields(fallbackFlatFields);
+  const resolvedTimeCalculation: ParsedIntakeTimeCalculation | undefined =
+    timeCalculation || fallbackTimeCalculation
+      ? {
+          laborHours:
+            timeCalculation?.laborHours ?? fallbackTimeCalculation?.laborHours,
+          laborDescription: timeCalculation?.laborDescription,
+          workers: timeCalculation?.workers,
+          hourlyRate:
+            timeCalculation?.hourlyRate ?? fallbackTimeCalculation?.hourlyRate,
+          notes: timeCalculation?.notes,
+        }
+      : undefined;
   const itemCandidates = Array.isArray(parsed.items)
     ? parsed.items
     : Array.isArray(parsed.positions)
@@ -1357,6 +1542,9 @@ function parseIntakeModelPayload(raw: string): {
     serviceDescription:
       fallbackFlatFields.serviceDescription ??
       serviceDescriptionFromDocumentNotes,
+    hours: resolvedTimeCalculation?.laborHours ?? fallbackFlatFields.hours,
+    hourlyRate:
+      resolvedTimeCalculation?.hourlyRate ?? fallbackFlatFields.hourlyRate,
     positions:
       normalizedItems.length > 0
         ? normalizedItems
@@ -1374,6 +1562,7 @@ function parseIntakeModelPayload(raw: string): {
 
   return {
     fields: resultFields,
+    timeCalculation: resolvedTimeCalculation,
     sourceText: normalizeTextValue(parsed.sourceText),
     ignoredText:
       normalizeTextArray(parsed.ignored_text).length > 0
@@ -1411,8 +1600,10 @@ export async function parseOfferIntake(transcript: string): Promise<IntakeParseR
   }
 
   if (!openai) {
+    const fallbackFields = fallbackParseIntake(cleanTranscript);
     return {
-      fields: fallbackParseIntake(cleanTranscript),
+      fields: fallbackFields,
+      timeCalculation: buildTimeCalculationFromFields(fallbackFields),
       usedFallback: true,
       fallbackReason: "no_api_key",
       needsReview: true,
@@ -1463,6 +1654,7 @@ ${INTAKE_FEW_SHOTS}`,
 
     return {
       fields: payload.fields,
+      timeCalculation: payload.timeCalculation,
       usedFallback: false,
       sourceText: payload.sourceText,
       ignoredText: payload.ignoredText,
@@ -1506,9 +1698,7 @@ export async function parseOfferIntakeFromImage(
       messages: [
         {
           role: "system",
-          content:
-            "Extrahiere aus Fotos deutscher Handwerker-Notizen strukturierte Geschäftsdaten und antworte nur mit validem JSON. " +
-            "Filtere irrelevante Formulierungen aus, trenne Positionen sauber und übernehme nur echte Leistungen/Materialien.",
+          content: INTAKE_SYSTEM_PROMPT,
         },
         {
           role: "user",
@@ -1517,8 +1707,18 @@ export async function parseOfferIntakeFromImage(
               type: "text",
               text: `Analysiere dieses Foto und gib nur strukturiertes JSON zurück.
 
+Regeln:
+- Nur valide JSON-Antwort.
+- Kein Markdown.
+- Keine Erklärungen.
+- Unsichere/leere Werte leer lassen.
+- Nichts raten.
+
 Antwort-JSON-Schema:
-${INTAKE_JSON_SCHEMA}`,
+${INTAKE_JSON_SCHEMA}
+
+Few-Shot-Beispiele:
+${INTAKE_FEW_SHOTS}`,
             },
             {
               type: "image_url",
@@ -1540,6 +1740,7 @@ ${INTAKE_JSON_SCHEMA}`,
     const payload = parseIntakeModelPayload(raw);
     return {
       fields: payload.fields,
+      timeCalculation: payload.timeCalculation,
       usedFallback: false,
       sourceText: payload.sourceText,
       ignoredText: payload.ignoredText,

@@ -254,4 +254,93 @@ describe("POST /api/parse-intake", () => {
     );
     expect(payload.fields?.positions?.[0]?.quantity).toBeUndefined();
   });
+
+  it("moves labor-only positions into time calculation and removes them from items", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {
+        positions: [
+          {
+            description: "Arbeitszeit",
+            quantity: 2,
+            unit: "Std",
+          },
+          {
+            description: "Wasserhahn austauschen",
+          },
+        ],
+      },
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: [],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript:
+            "Mach mir ein Angebot: Wasserhahn austauschen, 2 Stunden Arbeitszeit.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: { hours?: number; positions?: Array<{ description?: string }> };
+      ignoredText?: string[];
+      timeCalculation?: { laborHours?: number };
+      noRelevantData?: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(false);
+    expect(payload.fields?.hours).toBe(2);
+    expect(payload.timeCalculation?.laborHours).toBe(2);
+    expect(payload.fields?.positions).toEqual([
+      expect.objectContaining({ description: "Wasserhahn austauschen" }),
+    ]);
+    expect(payload.ignoredText).toContain("Arbeitszeit");
+  });
+
+  it("detects spoken labor hours from transcript text even without explicit item", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {},
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: [],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript: "Bitte eintragen: drei Stunden Arbeitszeit.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: { hours?: number };
+      timeCalculation?: { laborHours?: number };
+      noRelevantData?: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(false);
+    expect(payload.fields?.hours).toBe(3);
+    expect(payload.timeCalculation?.laborHours).toBe(3);
+  });
 });

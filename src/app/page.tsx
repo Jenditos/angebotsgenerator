@@ -150,6 +150,14 @@ type ParsedVoiceConfidence = {
   document?: number;
 };
 
+type ParsedVoiceTimeCalculation = {
+  laborHours?: number;
+  laborDescription?: string;
+  workers?: number;
+  hourlyRate?: number;
+  notes?: string;
+};
+
 type ParsedVoiceDocument = {
   type?: "offer" | "invoice" | "unknown";
   title?: string;
@@ -170,6 +178,7 @@ type IntakeReviewConflict = {
 
 type VoiceParseResponse = {
   fields: ParsedVoiceFields;
+  timeCalculation?: ParsedVoiceTimeCalculation;
   missingFields: string[];
   missingFieldKeys?: string[];
   shouldAutofillServiceDescription?: boolean;
@@ -1598,9 +1607,6 @@ export default function HomePage() {
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
   const [photoInfo, setPhotoInfo] = useState("");
   const [photoError, setPhotoError] = useState("");
-  const [photoPreviewDataUrl, setPhotoPreviewDataUrl] = useState("");
-  const [photoReviewDraft, setPhotoReviewDraft] =
-    useState<PhotoReviewDraft | null>(null);
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
   const [serviceSearch, setServiceSearch] = useState("");
@@ -1835,8 +1841,6 @@ export default function HomePage() {
     setVoiceMissingFields([...snapshot.voiceMissingFields]);
     setPhotoInfo(snapshot.photoInfo);
     setPhotoError(snapshot.photoError);
-    setPhotoReviewDraft(null);
-    setPhotoPreviewDataUrl("");
     setError(snapshot.error);
     setPostActionInfo(snapshot.postActionInfo);
     setServiceSearch(snapshot.serviceSearch);
@@ -1897,8 +1901,6 @@ export default function HomePage() {
     }
     photoParseRequestRef.current += 1;
     setIsParsingPhoto(false);
-    setPhotoReviewDraft(null);
-    setPhotoPreviewDataUrl("");
     setIsPhotoScanSheetOpen(false);
     setIsSpeechPaused(false);
     setActivePriceSubitemId(null);
@@ -1925,8 +1927,6 @@ export default function HomePage() {
     setIsListening(false);
     setIsSpeechPaused(false);
     setIsParsingPhoto(false);
-    setPhotoReviewDraft(null);
-    setPhotoPreviewDataUrl("");
     setIsAddressLoading(false);
     setIsCustomerPickerOpen(false);
     setCustomerSearch("");
@@ -4230,6 +4230,109 @@ export default function HomePage() {
     };
   }
 
+  function hasRecognizedStructuredContent(input: {
+    data: VoiceParseResponse;
+    safeServiceDescription?: string;
+  }): boolean {
+    const fields = input.data.fields;
+    const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+      fields.positions,
+    );
+    return (
+      (input.data.noRelevantData !== true && parsedServiceEntries.length > 0) ||
+      Boolean(fields.companyName?.trim()) ||
+      Boolean(fields.firstName?.trim()) ||
+      Boolean(fields.lastName?.trim()) ||
+      Boolean(fields.street?.trim()) ||
+      Boolean(fields.postalCode?.trim()) ||
+      Boolean(fields.city?.trim()) ||
+      Boolean(fields.customerEmail?.trim()) ||
+      Boolean(input.safeServiceDescription?.trim()) ||
+      (typeof fields.hours === "number" &&
+        Number.isFinite(fields.hours) &&
+        fields.hours > 0) ||
+      (typeof fields.hourlyRate === "number" &&
+        Number.isFinite(fields.hourlyRate) &&
+        fields.hourlyRate > 0) ||
+      (typeof fields.materialCost === "number" &&
+        Number.isFinite(fields.materialCost) &&
+        fields.materialCost > 0) ||
+      (typeof input.data.timeCalculation?.laborHours === "number" &&
+        Number.isFinite(input.data.timeCalculation.laborHours) &&
+        input.data.timeCalculation.laborHours > 0) ||
+      (typeof input.data.timeCalculation?.hourlyRate === "number" &&
+        Number.isFinite(input.data.timeCalculation.hourlyRate) &&
+        input.data.timeCalculation.hourlyRate > 0)
+    );
+  }
+
+  function applyParsedIntakeResult(input: {
+    mode: IntakeInputMode;
+    data: VoiceParseResponse;
+    sourceText: string;
+    safeServiceDescription?: string;
+    shouldAutofillServiceDescription: boolean;
+  }): boolean {
+    const hasRecognizedContent = hasRecognizedStructuredContent({
+      data: input.data,
+      safeServiceDescription: input.safeServiceDescription,
+    });
+
+    if (!hasRecognizedContent || input.data.noRelevantData === true) {
+      const noDataMessage =
+        input.data.message ??
+        "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.";
+      if (input.mode === "voice") {
+        setVoiceInfo("");
+        setVoiceError(noDataMessage);
+      } else {
+        setPhotoInfo("");
+        setPhotoError(noDataMessage);
+      }
+      setVoiceMissingFields([]);
+      return false;
+    }
+
+    const reviewDraft = buildIntakeReviewDraft({
+      response: input.data,
+      fields: {
+        ...input.data.fields,
+        serviceDescription: input.shouldAutofillServiceDescription
+          ? input.safeServiceDescription
+          : undefined,
+      },
+      safeServiceDescription: input.shouldAutofillServiceDescription
+        ? input.safeServiceDescription
+        : undefined,
+      sourceText: input.sourceText,
+    });
+    const modeText = input.data.usedFallback
+      ? input.data.fallbackReason === "no_api_key"
+        ? "KI nicht aktiv: OPENAI_API_KEY fehlt. Basis-Erkennung wurde verwendet."
+        : "KI-Antwort fehlgeschlagen. Basis-Erkennung wurde verwendet."
+      : input.mode === "voice"
+        ? "Sprachtext per KI erkannt."
+        : "Foto-/Scantext per KI erkannt.";
+    const { remainingMissingLabels, positionsCount } =
+      applyIntakeReviewDraft(reviewDraft);
+    const applyText = " Daten wurden direkt in die Formularfelder übernommen.";
+    const tableText = positionsCount > 0 ? " Positionen wurden erkannt." : "";
+    const missingText =
+      remainingMissingLabels.length > 0
+        ? ` Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
+        : " Alle Kernfelder wurden erkannt.";
+    const infoMessage = `${modeText}${applyText}${tableText}${missingText}`;
+
+    if (input.mode === "voice") {
+      setVoiceInfo(infoMessage);
+      setVoiceError("");
+    } else {
+      setPhotoInfo(infoMessage);
+      setPhotoError("");
+    }
+    return true;
+  }
+
   async function parseVoiceTranscript(
     transcriptInput?: string,
     autoTriggered = false,
@@ -4313,78 +4416,25 @@ export default function HomePage() {
         fields.serviceDescription,
         transcript,
       );
-      const parsedServiceEntries = toSelectedServicesFromVoicePositions(
-        fields.positions,
-      );
       const shouldAutofillServiceDescription =
         data.shouldAutofillServiceDescription === true;
-      const hasRecognizedStructuredContent =
-        (data.noRelevantData !== true &&
-          parsedServiceEntries.length > 0) ||
-        Boolean(fields.companyName?.trim()) ||
-        Boolean(fields.firstName?.trim()) ||
-        Boolean(fields.lastName?.trim()) ||
-        Boolean(fields.street?.trim()) ||
-        Boolean(fields.postalCode?.trim()) ||
-        Boolean(fields.city?.trim()) ||
-        Boolean(fields.customerEmail?.trim()) ||
-        Boolean(safeServiceDescription?.trim()) ||
-        (typeof fields.hours === "number" &&
-          Number.isFinite(fields.hours) &&
-          fields.hours > 0) ||
-        (typeof fields.hourlyRate === "number" &&
-          Number.isFinite(fields.hourlyRate) &&
-          fields.hourlyRate > 0) ||
-        (typeof fields.materialCost === "number" &&
-          Number.isFinite(fields.materialCost) &&
-          fields.materialCost > 0);
-
-      if (!hasRecognizedStructuredContent || data.noRelevantData === true) {
-        const noDataMessage =
-          data.message ??
-          "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.";
-        setVoiceInfo("");
-        setVoiceError(noDataMessage);
-        setVoiceMissingFields([]);
-        setPhotoReviewDraft(null);
-        console.log("[voice] parse returned no structured content");
-        return;
-      }
-      const reviewDraft = buildIntakeReviewDraft({
-        response: data,
-        fields: {
-          ...fields,
-          serviceDescription: shouldAutofillServiceDescription
-            ? safeServiceDescription
-            : undefined,
-        },
-        safeServiceDescription:
-          shouldAutofillServiceDescription ? safeServiceDescription : undefined,
+      const didApply = applyParsedIntakeResult({
+        mode: "voice",
+        data,
         sourceText,
+        safeServiceDescription,
+        shouldAutofillServiceDescription,
       });
-      const modeText = data.usedFallback
-        ? data.fallbackReason === "no_api_key"
-          ? "KI nicht aktiv: OPENAI_API_KEY fehlt. Basis-Erkennung wurde verwendet."
-          : "KI-Antwort fehlgeschlagen. Basis-Erkennung wurde verwendet."
-        : "Sprachtext per KI erkannt.";
-      const { remainingMissingLabels, positionsCount } =
-        applyIntakeReviewDraft(reviewDraft);
-      const applyText = " Daten wurden direkt in die Formularfelder übernommen.";
-      const tableText =
-        positionsCount > 0
-          ? " Positionen wurden erkannt."
-          : "";
-      const missingText =
-        remainingMissingLabels.length > 0
-          ? ` Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
-          : " Alle Kernfelder wurden erkannt.";
-      setVoiceInfo(`${modeText}${applyText}${tableText}${missingText}`);
-      setVoiceError("");
-      setPhotoReviewDraft(null);
-      console.log("[voice] parse applied", {
-        missingCount: remainingMissingLabels.length,
-        positionsCount,
-      });
+      if (didApply) {
+        const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+          fields.positions,
+        );
+        console.log("[voice] parse applied", {
+          positionsCount: parsedServiceEntries.length,
+        });
+      } else {
+        console.log("[voice] parse returned no structured content");
+      }
     } catch (error) {
       setVoiceMissingFields([]);
       setVoiceInfo("");
@@ -4393,115 +4443,6 @@ export default function HomePage() {
     } finally {
       setIsParsingVoice(false);
     }
-  }
-
-  function createPhotoReviewPositionDraft(
-    position?: ParsedVoicePosition,
-  ): PhotoReviewPositionDraft {
-    const quantity =
-      typeof position?.quantity === "number" &&
-      Number.isFinite(position.quantity) &&
-      position.quantity > 0
-        ? sanitizeQuantityInput(toDecimalInputValue(position.quantity))
-        : "";
-    const unitPrice =
-      typeof position?.unitPrice === "number" &&
-      Number.isFinite(position.unitPrice) &&
-      position.unitPrice >= 0
-        ? sanitizePriceInput(toDecimalInputValue(position.unitPrice))
-        : "";
-
-    return {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      group: capitalizeEntryStart(position?.group ?? ""),
-      description: capitalizeEntryStart(position?.description ?? ""),
-      quantity,
-      unit: normalizeVoiceUnit(position?.unit),
-      unitPrice,
-    };
-  }
-
-  function updatePhotoReviewPosition(
-    positionId: string,
-    field: "group" | "description" | "quantity" | "unit" | "unitPrice",
-    value: string,
-  ) {
-    setPhotoReviewDraft((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        positions: prev.positions.map((position) => {
-          if (position.id !== positionId) {
-            return position;
-          }
-
-          if (field === "group") {
-            return { ...position, group: capitalizeEntryStart(value) };
-          }
-          if (field === "description") {
-            return { ...position, description: capitalizeEntryStart(value) };
-          }
-          if (field === "quantity") {
-            return { ...position, quantity: sanitizeQuantityInput(value) };
-          }
-          if (field === "unit") {
-            return { ...position, unit: normalizeVoiceUnit(value) };
-          }
-          return { ...position, unitPrice: sanitizePriceInput(value) };
-        }),
-      };
-    });
-  }
-
-  function addPhotoReviewPosition() {
-    setPhotoReviewDraft((prev) => {
-      if (!prev) {
-        return prev;
-      }
-      return {
-        ...prev,
-        positions: [...prev.positions, createPhotoReviewPositionDraft()],
-      };
-    });
-  }
-
-  function removePhotoReviewPosition(positionId: string) {
-    setPhotoReviewDraft((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextPositions = prev.positions.filter(
-        (position) => position.id !== positionId,
-      );
-      return {
-        ...prev,
-        positions: nextPositions,
-      };
-    });
-  }
-
-  function dismissPhotoReview() {
-    setPhotoReviewDraft(null);
-    setPhotoInfo("Foto-Erkennung verworfen. Felder blieben unverändert.");
-    setPhotoError("");
-  }
-
-  function applyPhotoReview() {
-    if (!photoReviewDraft) {
-      return;
-    }
-    const { remainingMissingLabels } = applyIntakeReviewDraft(photoReviewDraft);
-    setPhotoReviewDraft(null);
-    setPhotoError("");
-    const resultMessage =
-      remainingMissingLabels.length > 0
-        ? `Daten übernommen. Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
-        : "Daten übernommen. Alle Kernfelder wurden erkannt.";
-    setPhotoInfo(resultMessage);
   }
 
   async function handlePhotoFileSelection(file: File) {
@@ -4541,7 +4482,6 @@ export default function HomePage() {
     photoParseRequestRef.current = parseRequestId;
 
     setIsParsingPhoto(true);
-    setPhotoReviewDraft(null);
     setPhotoError("");
     setPhotoInfo("Foto wird verarbeitet ...");
     setVoiceMissingFields([]);
@@ -4552,7 +4492,6 @@ export default function HomePage() {
         return;
       }
 
-      setPhotoPreviewDataUrl(preparedPhotoDataUrl);
       setPhotoInfo("Informationen werden mit KI analysiert ...");
 
       const response = await fetch("/api/parse-intake", {
@@ -4590,57 +4529,23 @@ export default function HomePage() {
         fields.serviceDescription,
         sourceText,
       );
-      const parsedServiceEntries = toSelectedServicesFromVoicePositions(
-        fields.positions,
-      );
-      const hasRecognizedStructuredContent =
-        parsedServiceEntries.length > 0 ||
-        Boolean(fields.companyName?.trim()) ||
-        Boolean(fields.firstName?.trim()) ||
-        Boolean(fields.lastName?.trim()) ||
-        Boolean(fields.street?.trim()) ||
-        Boolean(fields.postalCode?.trim()) ||
-        Boolean(fields.city?.trim()) ||
-        Boolean(fields.customerEmail?.trim()) ||
-        Boolean(safeServiceDescription?.trim()) ||
-        (typeof fields.hours === "number" &&
-          Number.isFinite(fields.hours) &&
-          fields.hours > 0) ||
-        (typeof fields.hourlyRate === "number" &&
-          Number.isFinite(fields.hourlyRate) &&
-          fields.hourlyRate > 0) ||
-        (typeof fields.materialCost === "number" &&
-          Number.isFinite(fields.materialCost) &&
-          fields.materialCost > 0);
-
-      if (!hasRecognizedStructuredContent || data.noRelevantData === true) {
-        setPhotoReviewDraft(null);
-        setPhotoInfo(
-          data.message ??
-            "Es konnten keine eindeutigen Kundendaten oder Leistungen erkannt werden.",
-        );
-        setPhotoError("");
-        return;
-      }
-
-      const reviewDraft = buildIntakeReviewDraft({
-        response: data,
-        fields: {
-          ...fields,
-          serviceDescription: safeServiceDescription,
-        },
-        safeServiceDescription,
+      const didApply = applyParsedIntakeResult({
+        mode: "photo",
+        data,
         sourceText,
+        safeServiceDescription,
+        shouldAutofillServiceDescription: true,
       });
-
-      setPhotoReviewDraft(reviewDraft);
-      const modeText = data.usedFallback
-        ? data.fallbackReason === "no_api_key"
-          ? "KI nicht aktiv: OPENAI_API_KEY fehlt."
-          : "KI-Antwort fehlgeschlagen."
-        : "Relevante Daten wurden erkannt.";
-      setPhotoInfo(`${modeText} Bitte prüfen und übernehmen.`);
-      setPhotoError("");
+      if (didApply) {
+        const parsedServiceEntries = toSelectedServicesFromVoicePositions(
+          fields.positions,
+        );
+        console.log("[photo] parse applied", {
+          positionsCount: parsedServiceEntries.length,
+        });
+      } else {
+        console.log("[photo] parse returned no structured content");
+      }
     } catch (error) {
       console.error("[photo] parse failed", error);
       setPhotoError("Fotodaten konnten nicht verarbeitet werden.");
@@ -6407,21 +6312,11 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    {!photoPreviewDataUrl && !photoInfo && !photoError ? (
+                    {!photoInfo && !photoError ? (
                       <p className="intakeFlowHint">
                         Klicke auf den roten Kamera-Button, um ein Foto
                         aufzunehmen oder hochzuladen.
                       </p>
-                    ) : null}
-
-                    {photoPreviewDataUrl ? (
-                      <div className="photoPreviewWrap">
-                        <img
-                          src={photoPreviewDataUrl}
-                          alt="Hochgeladenes Notizfoto"
-                          className="photoPreviewImage"
-                        />
-                      </div>
                     ) : null}
                     {photoInfo || photoError ? (
                       <div className="voiceStatusSection">
@@ -6456,431 +6351,6 @@ export default function HomePage() {
                               <span className="voiceStatusText">{photoError}</span>
                             </p>
                           ) : null}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {photoReviewDraft ? (
-                      <div className="photoReviewPanel">
-                        <div className="photoReviewHeader">
-                          <strong>Erkannte Daten prüfen</strong>
-                          <p>
-                            Bitte Daten kontrollieren, Konflikte klären und erst dann übernehmen.
-                          </p>
-                        </div>
-
-                        {photoReviewDraft.sourceText ? (
-                          <details className="photoReviewSource">
-                            <summary>Erkannter Notiztext</summary>
-                            <p>{photoReviewDraft.sourceText}</p>
-                          </details>
-                        ) : null}
-
-                        <div className="voiceStatusSection">
-                          <span className="voiceStatusSectionLabel">Einordnung</span>
-                          <div className="voiceStatusGroup">
-                            <p className="voiceStatusCard voiceStatusCardInfo" role="status">
-                              <span className="voiceStatusIcon" aria-hidden="true">
-                                i
-                              </span>
-                              <span className="voiceStatusText">
-                                Dokument:{" "}
-                                {photoReviewDraft.documentType === "invoice"
-                                  ? "Rechnung"
-                                  : photoReviewDraft.documentType === "offer"
-                                    ? "Angebot"
-                                    : "Unklar"}
-                                {" · "}
-                                Prüfung:{" "}
-                                {photoReviewDraft.needsReview ? "erforderlich" : "gering"}
-                                {" · "}
-                                Vertrauen (Kunde/Pos./Dok.):{" "}
-                                {`${Math.round((photoReviewDraft.confidence.customer ?? 0) * 100)}% / ${Math.round((photoReviewDraft.confidence.items ?? 0) * 100)}% / ${Math.round((photoReviewDraft.confidence.document ?? 0) * 100)}%`}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-
-                        {photoReviewDraft.conflicts.length > 0 ? (
-                          <div className="voiceMissingPanel">
-                            <span className="voiceMissingLabel">Konflikte erkannt</span>
-                            <div className="voiceMissingList">
-                              {photoReviewDraft.conflicts.map((conflict, index) => (
-                                <span
-                                  key={`${conflict.field}-${index}`}
-                                  className="voiceMissingTag"
-                                  title={`Aktuell: ${conflict.currentValue} | Erkannt: ${conflict.incomingValue}`}
-                                >
-                                  {`${conflict.label}: "${conflict.currentValue}" statt "${conflict.incomingValue}"`}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {photoReviewDraft.ignoredText.length > 0 ? (
-                          <details className="photoReviewSource">
-                            <summary>Ignorierte Sprachanteile</summary>
-                            <p>{photoReviewDraft.ignoredText.join(" | ")}</p>
-                          </details>
-                        ) : null}
-
-                        <div className="recipientType photoReviewRecipientType" role="group" aria-label="Kundenart im Foto-Review">
-                          <span>Kundenart</span>
-                          <div className="recipientTypeButtons">
-                            <button
-                              type="button"
-                              className={`recipientTypeButton ${photoReviewDraft.customerType === "company" ? "active" : ""}`}
-                              aria-pressed={photoReviewDraft.customerType === "company"}
-                              onClick={() =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        customerType: "company",
-                                      }
-                                    : prev,
-                                )
-                              }
-                            >
-                              Firma
-                            </button>
-                            <button
-                              type="button"
-                              className={`recipientTypeButton ${photoReviewDraft.customerType === "person" ? "active" : ""}`}
-                              aria-pressed={photoReviewDraft.customerType === "person"}
-                              onClick={() =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        customerType: "person",
-                                      }
-                                    : prev,
-                                )
-                              }
-                            >
-                              Privatperson
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="photoReviewGrid">
-                          {photoReviewDraft.customerType === "company" ? (
-                            <label className="field">
-                              <span>Firma</span>
-                              <input
-                                value={photoReviewDraft.companyName}
-                                onChange={(event) =>
-                                  setPhotoReviewDraft((prev) =>
-                                    prev
-                                      ? { ...prev, companyName: event.target.value }
-                                      : prev,
-                                  )
-                                }
-                              />
-                            </label>
-                          ) : (
-                            <>
-                              <label className="field">
-                                <span>Anrede</span>
-                                <select
-                                  value={photoReviewDraft.salutation}
-                                  onChange={(event) =>
-                                    setPhotoReviewDraft((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            salutation:
-                                              event.target.value === "frau"
-                                                ? "frau"
-                                                : "herr",
-                                          }
-                                        : prev,
-                                    )
-                                  }
-                                >
-                                  <option value="herr">Herr</option>
-                                  <option value="frau">Frau</option>
-                                </select>
-                              </label>
-                              <label className="field">
-                                <span>Vorname</span>
-                                <input
-                                  value={photoReviewDraft.firstName}
-                                  onChange={(event) =>
-                                    setPhotoReviewDraft((prev) =>
-                                      prev
-                                        ? { ...prev, firstName: event.target.value }
-                                        : prev,
-                                    )
-                                  }
-                                />
-                              </label>
-                              <label className="field">
-                                <span>Nachname</span>
-                                <input
-                                  value={photoReviewDraft.lastName}
-                                  onChange={(event) =>
-                                    setPhotoReviewDraft((prev) =>
-                                      prev
-                                        ? { ...prev, lastName: event.target.value }
-                                        : prev,
-                                    )
-                                  }
-                                />
-                              </label>
-                            </>
-                          )}
-                          <label className="field">
-                            <span>Straße / Hausnummer</span>
-                            <input
-                              value={photoReviewDraft.street}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev ? { ...prev, street: event.target.value } : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field">
-                            <span>PLZ</span>
-                            <input
-                              value={photoReviewDraft.postalCode}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? { ...prev, postalCode: event.target.value }
-                                    : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field">
-                            <span>Ort</span>
-                            <input
-                              value={photoReviewDraft.city}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev ? { ...prev, city: event.target.value } : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field">
-                            <span>Kunden-E-Mail</span>
-                            <input
-                              type="email"
-                              value={photoReviewDraft.customerEmail}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? { ...prev, customerEmail: event.target.value }
-                                    : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field span2">
-                            <span>Leistungsbeschreibung / Notizen</span>
-                            <textarea
-                              className="voiceTranscriptTextarea photoReviewTextarea"
-                              rows={3}
-                              value={photoReviewDraft.serviceDescription}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        serviceDescription: event.target.value,
-                                      }
-                                    : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field">
-                            <span>Stunden</span>
-                            <input
-                              inputMode="decimal"
-                              value={photoReviewDraft.hours}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        hours: sanitizeQuantityInput(event.target.value),
-                                      }
-                                    : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field">
-                            <span>Stundensatz</span>
-                            <input
-                              inputMode="decimal"
-                              value={photoReviewDraft.hourlyRate}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        hourlyRate: sanitizePriceInput(
-                                          event.target.value,
-                                        ),
-                                      }
-                                    : prev,
-                                )
-                              }
-                            />
-                          </label>
-                          <label className="field">
-                            <span>Materialkosten</span>
-                            <input
-                              inputMode="decimal"
-                              value={photoReviewDraft.materialCost}
-                              onChange={(event) =>
-                                setPhotoReviewDraft((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        materialCost: sanitizePriceInput(
-                                          event.target.value,
-                                        ),
-                                      }
-                                    : prev,
-                                )
-                              }
-                            />
-                          </label>
-                        </div>
-
-                        <div className="photoReviewPositions">
-                          <div className="photoReviewPositionsHeader">
-                            <strong>Positionen</strong>
-                            <button
-                              type="button"
-                              className="ghostButton positionsAddRowButton"
-                              onClick={addPhotoReviewPosition}
-                            >
-                              Position hinzufügen
-                            </button>
-                          </div>
-                          {photoReviewDraft.positions.length === 0 ? (
-                            <p className="selectedServiceHint">
-                              Keine Position erkannt. Bei Bedarf manuell
-                              ergänzen.
-                            </p>
-                          ) : (
-                            <div className="photoReviewPositionList">
-                              {photoReviewDraft.positions.map((position) => (
-                                <div key={position.id} className="photoReviewPositionRow">
-                                  <input
-                                    placeholder="Gruppe"
-                                    value={position.group}
-                                    onChange={(event) =>
-                                      updatePhotoReviewPosition(
-                                        position.id,
-                                        "group",
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                  <input
-                                    placeholder="Beschreibung"
-                                    value={position.description}
-                                    onChange={(event) =>
-                                      updatePhotoReviewPosition(
-                                        position.id,
-                                        "description",
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                  <input
-                                    inputMode="decimal"
-                                    placeholder="Menge"
-                                    value={position.quantity}
-                                    onChange={(event) =>
-                                      updatePhotoReviewPosition(
-                                        position.id,
-                                        "quantity",
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                  <select
-                                    value={position.unit}
-                                    onChange={(event) =>
-                                      updatePhotoReviewPosition(
-                                        position.id,
-                                        "unit",
-                                        event.target.value,
-                                      )
-                                    }
-                                  >
-                                    {UNIT_OPTIONS.map((unitOption) => (
-                                      <option key={unitOption} value={unitOption}>
-                                        {unitOption}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <input
-                                    inputMode="decimal"
-                                    placeholder="Einzelpreis"
-                                    value={position.unitPrice}
-                                    onChange={(event) =>
-                                      updatePhotoReviewPosition(
-                                        position.id,
-                                        "unitPrice",
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                  <button
-                                    type="button"
-                                    className="positionDeleteButton"
-                                    onClick={() =>
-                                      removePhotoReviewPosition(position.id)
-                                    }
-                                  >
-                                    Entfernen
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {photoReviewDraft.missingFieldLabels.length > 0 ? (
-                          <div className="voiceMissingPanel">
-                            <span className="voiceMissingLabel">Noch zu ergänzen</span>
-                            <div className="voiceMissingList">
-                              {photoReviewDraft.missingFieldLabels.map((field) => (
-                                <span key={field} className="voiceMissingTag">
-                                  {field}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="photoReviewActions">
-                          <button
-                            type="button"
-                            className="ghostButton voiceActionButton voiceActionButtonResume"
-                            onClick={applyPhotoReview}
-                          >
-                            Daten übernehmen
-                          </button>
-                          <button
-                            type="button"
-                            className="ghostButton voiceActionButton voiceActionButtonClear"
-                            onClick={dismissPhotoReview}
-                          >
-                            Verwerfen
-                          </button>
                         </div>
                       </div>
                     ) : null}
