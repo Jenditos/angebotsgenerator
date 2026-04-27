@@ -8599,6 +8599,10 @@ body,
     padding-right: 6px !important;
   }
 
+  .dashboardCanvas > .topHeaderMinimal .accountMenuWrap {
+    right: 6px !important;
+  }
+
   .appFrameWithSidebar .documentModeSwitchTop {
     padding-inline: 6px !important;
     margin-bottom: 12px !important;
@@ -10177,6 +10181,10 @@ button.primaryButton.voiceLoginModalPrimaryButton:focus-visible {
     padding: 0 !important;
     border: 0 !important;
     background: transparent !important;
+  }
+
+  .positionsInputTable tbody td:first-child {
+    padding-left: 0 !important;
   }
 
   .positionsInputTable tbody td:first-child,
