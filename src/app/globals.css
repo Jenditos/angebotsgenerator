@@ -40,6 +40,128 @@
   --interactive-transition-easing: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* Onboarding reminder and resume overlays */
+.settingsOverlayBackdrop.onboardingResumeModalBackdrop {
+  z-index: 141;
+  background: rgba(11, 34, 64, 0.44);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.settingsOverlaySheet.onboardingResumeModalSheet {
+  width: min(620px, 100%);
+  height: auto;
+  max-height: min(calc(100vh - 36px), 480px);
+  padding: 18px;
+  gap: 14px;
+  grid-template-rows: auto auto auto auto;
+}
+
+.onboardingResumeModalHeader strong {
+  font-size: 1.2rem;
+  color: #112f59;
+}
+
+.onboardingResumeModalText {
+  margin: 0;
+  color: #2e527f;
+  font-size: 0.98rem;
+  line-height: 1.58;
+}
+
+.onboardingResumeModalStep {
+  margin: 0;
+  color: #40618d;
+  font-size: 0.84rem;
+  font-weight: 640;
+}
+
+.onboardingResumeModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settingsOverlayBackdrop.onboardingFlowOverlayBackdrop {
+  z-index: 140;
+  background: rgba(11, 33, 66, 0.36);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.settingsOverlaySheet.onboardingFlowOverlaySheet {
+  width: min(1120px, 100%);
+  height: min(calc(100vh - 36px), 920px);
+  max-height: min(calc(100vh - 36px), 920px);
+  padding: 14px;
+  gap: 10px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.onboardingFlowOverlayHeader strong {
+  font-size: 1.04rem;
+}
+
+.onboardingFlowOverlayMeta {
+  margin: 0;
+  padding: 0 4px;
+  color: #46638d;
+  font-size: 0.86rem;
+  font-weight: 620;
+}
+
+.onboardingFlowOverlayFrameWrap {
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(75, 114, 173, 0.23);
+  background: #ffffff;
+}
+
+.onboardingFlowOverlayFrame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #ffffff;
+}
+
+.onboardingPageEmbedded {
+  min-height: 100%;
+}
+
+.onboardingPageEmbedded .container.onboardingContainer {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+}
+
+.onboardingPageEmbedded .onboardingCard {
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .settingsOverlaySheet.onboardingResumeModalSheet,
+  .settingsOverlaySheet.onboardingFlowOverlaySheet {
+    padding: 12px;
+    width: min(100%, 100%);
+    height: min(calc(100vh - 16px), 920px);
+    max-height: min(calc(100vh - 16px), 920px);
+  }
+
+  .onboardingResumeModalActions {
+    flex-direction: column-reverse;
+  }
+
+  .onboardingResumeModalActions .primaryButton,
+  .onboardingResumeModalActions .ghostButton {
+    width: 100%;
+  }
+}
+
 /* Onboarding */
 .onboardingPage {
   padding-top: 22px;
@@ -208,41 +330,38 @@
   text-decoration: none;
 }
 
-.onboardingReminderCard {
-  margin-bottom: 12px;
-  padding: 14px;
+.onboardingResumeBanner {
+  margin-bottom: 14px;
+  border: 1px solid rgba(24, 94, 189, 0.2);
   border-radius: 16px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(20, 121, 255, 0.15), transparent 56%),
+    linear-gradient(130deg, rgba(255, 255, 255, 0.95), rgba(241, 247, 255, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 30px rgba(17, 60, 122, 0.14);
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 14px;
   align-items: center;
-  gap: 12px;
+  padding: 14px 16px;
 }
 
-.onboardingReminderContent {
-  display: grid;
-  gap: 4px;
-}
-
-.onboardingReminderTitle {
+.onboardingResumeBannerTitle {
   margin: 0;
-  font-weight: 700;
-  color: #173866;
+  font-size: 0.95rem;
+  font-weight: 730;
+  color: #143764;
 }
 
-.onboardingReminderText {
+.onboardingResumeBannerText {
   margin: 0;
-  font-size: 0.9rem;
-  color: #4f6990;
-  line-height: 1.4;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #395b86;
 }
 
-.onboardingReminderMeta {
-  margin: 0;
-  font-size: 0.82rem;
-  color: #5d769a;
-}
-
-.onboardingReminderButton {
+.onboardingResumeBannerButton {
   white-space: nowrap;
 }
 
@@ -272,11 +391,12 @@
     min-width: 0;
   }
 
-  .onboardingReminderCard {
+  .onboardingResumeBanner {
     grid-template-columns: 1fr;
+    padding: 13px;
   }
 
-  .onboardingReminderButton {
+  .onboardingResumeBannerButton {
     width: 100%;
   }
 }

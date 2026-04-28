@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   formatIbanForDisplay,
   normalizeBicInput,
@@ -90,6 +90,17 @@ type OnboardingPatch = {
   onboardingStep?: number;
 };
 
+type EmbeddedOnboardingMessage = {
+  source: "visioro-onboarding-embed";
+  type: "onboarding_ready" | "onboarding_progress" | "onboarding_completed" | "onboarding_postponed";
+  onboardingCompleted: boolean;
+  onboardingStep: number;
+};
+
+type OnboardingPageClientProps = {
+  embedded?: boolean;
+};
+
 function setOnboardingSnoozeCookie(): void {
   if (typeof document === "undefined") {
     return;
@@ -102,6 +113,26 @@ function clearOnboardingSnoozeCookie(): void {
     return;
   }
   document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`;
+}
+
+function postOnboardingEmbedMessage(
+  payload: Omit<EmbeddedOnboardingMessage, "source">,
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (window.parent === window) {
+    return;
+  }
+
+  window.parent.postMessage(
+    {
+      source: "visioro-onboarding-embed",
+      ...payload,
+    } satisfies EmbeddedOnboardingMessage,
+    window.location.origin,
+  );
 }
 
 function scaleToMaxEdge(
@@ -280,8 +311,12 @@ function buildStepPayload(
   };
 }
 
-export default function OnboardingPageClient() {
+export default function OnboardingPageClient({
+  embedded = false,
+}: OnboardingPageClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEmbeddedMode = embedded || searchParams?.get("embedded") === "1";
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -333,6 +368,14 @@ export default function OnboardingPageClient() {
         };
 
         if (nextOnboarding.onboardingCompleted) {
+          if (isEmbeddedMode) {
+            postOnboardingEmbedMessage({
+              type: "onboarding_completed",
+              onboardingCompleted: true,
+              onboardingStep: ONBOARDING_TOTAL_STEPS,
+            });
+            return;
+          }
           router.replace("/");
           return;
         }
@@ -340,10 +383,18 @@ export default function OnboardingPageClient() {
         if (!cancelled) {
           setSettings(nextSettings);
           setOnboardingState(nextOnboarding);
-          setCurrentStep(clampOnboardingStep(nextOnboarding.onboardingStep));
+          const resumedStep = clampOnboardingStep(nextOnboarding.onboardingStep);
+          setCurrentStep(resumedStep);
           setSmallBusinessRule(
             /§\s*19\s*ustg/i.test(nextSettings.euVatNoticeText.trim()),
           );
+          if (isEmbeddedMode) {
+            postOnboardingEmbedMessage({
+              type: "onboarding_ready",
+              onboardingCompleted: false,
+              onboardingStep: resumedStep,
+            });
+          }
         }
       } catch {
         if (!cancelled) {
@@ -361,7 +412,7 @@ export default function OnboardingPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [isEmbeddedMode, router]);
 
   useEffect(() => {
     const handlePageHide = () => {
@@ -552,6 +603,13 @@ export default function OnboardingPageClient() {
       onboardingStep: nextStep,
     }));
     setCurrentStep(nextStep);
+    if (isEmbeddedMode) {
+      postOnboardingEmbedMessage({
+        type: "onboarding_progress",
+        onboardingCompleted: false,
+        onboardingStep: nextStep,
+      });
+    }
     setError("");
   }
 
@@ -574,6 +632,13 @@ export default function OnboardingPageClient() {
       ...prev,
       onboardingStep: previousStep,
     }));
+    if (isEmbeddedMode) {
+      postOnboardingEmbedMessage({
+        type: "onboarding_progress",
+        onboardingCompleted: false,
+        onboardingStep: previousStep,
+      });
+    }
     setError("");
   }
 
@@ -624,6 +689,14 @@ export default function OnboardingPageClient() {
     }
 
     clearOnboardingSnoozeCookie();
+    if (isEmbeddedMode) {
+      postOnboardingEmbedMessage({
+        type: "onboarding_completed",
+        onboardingCompleted: true,
+        onboardingStep: ONBOARDING_TOTAL_STEPS,
+      });
+      return;
+    }
     router.replace("/");
   }
 
@@ -642,6 +715,14 @@ export default function OnboardingPageClient() {
     }
 
     setOnboardingSnoozeCookie();
+    if (isEmbeddedMode) {
+      postOnboardingEmbedMessage({
+        type: "onboarding_postponed",
+        onboardingCompleted: false,
+        onboardingStep: currentStep,
+      });
+      return;
+    }
     router.replace("/");
   }
 
@@ -790,9 +871,11 @@ export default function OnboardingPageClient() {
             : "Optional Logo hochladen und Ersteinrichtung abschließen.";
 
   return (
-    <main className="page onboardingPage">
-      <div className="ambient ambientA" aria-hidden />
-      <div className="ambient ambientB" aria-hidden />
+    <main
+      className={`page onboardingPage ${isEmbeddedMode ? "onboardingPageEmbedded" : ""}`}
+    >
+      {!isEmbeddedMode ? <div className="ambient ambientA" aria-hidden /> : null}
+      {!isEmbeddedMode ? <div className="ambient ambientB" aria-hidden /> : null}
 
       <div className="container onboardingContainer">
         <section className="glassCard onboardingCard">

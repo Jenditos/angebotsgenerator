@@ -2,7 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import { isUserAccessSetupError, logUserAccessError } from "@/lib/access/access-errors";
-import { ONBOARDING_SNOOZE_COOKIE_NAME } from "@/lib/onboarding";
 import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -151,8 +150,6 @@ export async function middleware(request: NextRequest) {
   }
 
   let hasCompletedOnboarding = true;
-  const hasOnboardingSnoozeCookie =
-    request.cookies.get(ONBOARDING_SNOOZE_COOKIE_NAME)?.value === "1";
   if (canOpenApp) {
     try {
       const { data, error } = await supabase
@@ -200,16 +197,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/upgrade", request.url));
     }
 
-    return NextResponse.redirect(
-      new URL(hasCompletedOnboarding ? "/" : "/onboarding", request.url),
-    );
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   if (pathname === "/upgrade") {
     if (canOpenApp) {
-      return NextResponse.redirect(
-        new URL(hasCompletedOnboarding ? "/" : "/onboarding", request.url),
-      );
+      return NextResponse.redirect(new URL("/", request.url));
     }
     return response;
   }
@@ -220,14 +213,6 @@ export async function middleware(request: NextRequest) {
 
   if (!canOpenApp && isOnboardingRoute(pathname)) {
     return NextResponse.redirect(new URL("/upgrade", request.url));
-  }
-
-  if (canOpenApp && !hasCompletedOnboarding) {
-    if (isProtectedAppRoute(pathname)) {
-      if (!hasOnboardingSnoozeCookie) {
-        return NextResponse.redirect(new URL("/onboarding", request.url));
-      }
-    }
   }
 
   if (canOpenApp && hasCompletedOnboarding && isOnboardingRoute(pathname)) {
