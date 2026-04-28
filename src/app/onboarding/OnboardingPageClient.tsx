@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   formatIbanForDisplay,
   normalizeBicInput,
@@ -315,8 +315,7 @@ export default function OnboardingPageClient({
   embedded = false,
 }: OnboardingPageClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isEmbeddedMode = embedded || searchParams?.get("embedded") === "1";
+  const isEmbeddedMode = embedded;
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
