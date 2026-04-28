@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VisioroLogoImage } from "@/components/VisioroLogoImage";
 import { ONBOARDING_SNOOZE_COOKIE_NAME } from "@/lib/onboarding";
@@ -7,6 +7,42 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type AuthMode = "login" | "register" | "forgot";
+const DEFAULT_EMAIL_ACTION_COOLDOWN_MS = 60_000;
+const MAX_EMAIL_ACTION_COOLDOWN_MS = 15 * 60_000;
+
+function isEmailRateLimitMessage(rawMessage: string): boolean {
+  const normalized = rawMessage.trim().toLowerCase();
+  return (
+    normalized.includes("security purposes") ||
+    normalized.includes("rate limit") ||
+    normalized.includes("only request this after")
+  );
+}
+
+function parseRetryAfterMsFromMessage(rawMessage: string): number | null {
+  const normalized = rawMessage.trim().toLowerCase();
+  const amountMatch = normalized.match(
+    /after\s+(\d+)\s*(second|seconds|sec|minute|minutes|min)\b/,
+  );
+  if (!amountMatch) {
+    return null;
+  }
+
+  const amount = Number(amountMatch[1]);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  const unit = amountMatch[2];
+  const factor = unit.startsWith("min") ? 60_000 : 1_000;
+  return Math.min(MAX_EMAIL_ACTION_COOLDOWN_MS, amount * factor);
+}
+
+function resolveEmailActionCooldownMs(rawMessage: string): number {
+  return (
+    parseRetryAfterMsFromMessage(rawMessage) ?? DEFAULT_EMAIL_ACTION_COOLDOWN_MS
+  );
+}
 
 function formatAuthErrorMessage(rawMessage: string): string {
   const normalized = rawMessage.trim().toLowerCase();
@@ -29,11 +65,7 @@ function formatAuthErrorMessage(rawMessage: string): string {
   if (normalized.includes("too many requests")) {
     return "Zu viele Versuche. Bitte kurz warten und erneut probieren.";
   }
-  if (
-    normalized.includes("security purposes") ||
-    normalized.includes("rate limit") ||
-    normalized.includes("only request this after")
-  ) {
+  if (isEmailRateLimitMessage(rawMessage)) {
     return "Zu viele E-Mail-Anfragen in kurzer Zeit. Bitte kurz warten und dann erneut versuchen.";
   }
   if (normalized.includes("network")) {
@@ -95,6 +127,8 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [emailActionCooldownUntil, setEmailActionCooldownUntil] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const authReady = isSupabaseConfigured();
 
   const supabase = useMemo(() => {
@@ -103,6 +137,44 @@ export default function AuthPage() {
     }
     return getSupabaseBrowserClient();
   }, [authReady]);
+
+  useEffect(() => {
+    if (emailActionCooldownUntil <= Date.now()) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const currentTime = Date.now();
+      setNowMs(currentTime);
+      if (currentTime >= emailActionCooldownUntil) {
+        window.clearInterval(timer);
+      }
+    }, 1_000);
+
+    return () => window.clearInterval(timer);
+  }, [emailActionCooldownUntil]);
+
+  const emailActionCooldownSeconds = Math.max(
+    0,
+    Math.ceil((emailActionCooldownUntil - nowMs) / 1_000),
+  );
+  const isEmailActionCoolingDown = emailActionCooldownSeconds > 0;
+
+  function startEmailActionCooldown(cooldownMs: number): void {
+    setNowMs(Date.now());
+    setEmailActionCooldownUntil((previousUntil) =>
+      Math.max(previousUntil, Date.now() + cooldownMs),
+    );
+  }
+
+  function applyEmailActionRateLimitFeedback(rawMessage: string): void {
+    const cooldownMs = resolveEmailActionCooldownMs(rawMessage);
+    startEmailActionCooldown(cooldownMs);
+    const seconds = Math.ceil(cooldownMs / 1_000);
+    setError(
+      `Zu viele E-Mail-Anfragen in kurzer Zeit. Bitte warte ${seconds} Sekunden und versuche es dann erneut.`,
+    );
+  }
 
   async function bootstrapTrial(): Promise<void> {
     const response = await fetch("/api/access/bootstrap", {
@@ -133,6 +205,13 @@ export default function AuthPage() {
     setInfo("");
 
     try {
+      if (isEmailActionCoolingDown) {
+        setError(
+          `Bitte warte ${emailActionCooldownSeconds} Sekunden, bevor du erneut eine E-Mail anforderst.`,
+        );
+        return;
+      }
+
       const { error: resendError } = await supabase.auth.resend({
         type: "signup",
         email: targetEmail,
@@ -141,10 +220,15 @@ export default function AuthPage() {
         },
       });
       if (resendError) {
+        if (isEmailRateLimitMessage(resendError.message)) {
+          applyEmailActionRateLimitFeedback(resendError.message);
+          return;
+        }
         setError(formatAuthErrorMessage(resendError.message));
         return;
       }
 
+      startEmailActionCooldown(DEFAULT_EMAIL_ACTION_COOLDOWN_MS);
       setInfo(
         `Bestätigungs-Mail erneut gesendet an ${targetEmail}. Bitte auch Spam-Ordner prüfen.`,
       );
@@ -171,6 +255,13 @@ export default function AuthPage() {
     setInfo("");
 
     try {
+      if ((mode === "register" || mode === "forgot") && isEmailActionCoolingDown) {
+        setError(
+          `Bitte warte ${emailActionCooldownSeconds} Sekunden, bevor du erneut eine E-Mail-Aktion startest.`,
+        );
+        return;
+      }
+
       if (mode === "register") {
         const trimmedName = name.trim();
         const trimmedEmail = email.trim().toLowerCase();
@@ -195,6 +286,43 @@ export default function AuthPage() {
           if (normalizedSignUpError.includes("already registered")) {
             setPendingConfirmationEmail(trimmedEmail);
           }
+
+          if (isEmailRateLimitMessage(signUpError.message)) {
+            const { error: signInRecoveryError } =
+              await supabase.auth.signInWithPassword({
+                email: trimmedEmail,
+                password,
+              });
+
+            if (!signInRecoveryError) {
+              setPendingConfirmationEmail("");
+              await bootstrapTrial();
+              clearOnboardingSnoozeCookie();
+              router.replace("/");
+              router.refresh();
+              return;
+            }
+
+            if (
+              signInRecoveryError.message
+                .toLowerCase()
+                .includes("email not confirmed")
+            ) {
+              setPendingConfirmationEmail(trimmedEmail);
+              startEmailActionCooldown(
+                resolveEmailActionCooldownMs(signUpError.message),
+              );
+              setInfo(
+                "Konto wurde angelegt, aber die Bestätigungs-Mail ist aktuell rate-limitiert. Bitte kurz warten und danach erneut bestätigen.",
+              );
+              setMode("login");
+              return;
+            }
+
+            applyEmailActionRateLimitFeedback(signUpError.message);
+            return;
+          }
+
           setError(formatAuthErrorMessage(signUpError.message));
           return;
         }
@@ -235,10 +363,15 @@ export default function AuthPage() {
         );
 
         if (resetError) {
+          if (isEmailRateLimitMessage(resetError.message)) {
+            applyEmailActionRateLimitFeedback(resetError.message);
+            return;
+          }
           setError(formatAuthErrorMessage(resetError.message));
           return;
         }
 
+        startEmailActionCooldown(DEFAULT_EMAIL_ACTION_COOLDOWN_MS);
         setInfo("Wenn die E-Mail bekannt ist, wurde ein Reset-Link versendet.");
         return;
       }
@@ -275,7 +408,9 @@ export default function AuthPage() {
   const isRegisterMode = mode === "register";
   const isForgotMode = mode === "forgot";
   const canResendConfirmation =
-    !isForgotMode && authReady && Boolean(pendingConfirmationEmail.trim());
+    !isForgotMode &&
+    authReady &&
+    Boolean(pendingConfirmationEmail.trim());
   const submitLabel = isSubmitting
     ? "Bitte warten ..."
     : isRegisterMode
@@ -283,6 +418,7 @@ export default function AuthPage() {
       : isForgotMode
         ? "Reset-Link senden"
         : "Einloggen";
+  const isEmailMode = isRegisterMode || isForgotMode;
 
   return (
     <main className="authViewport authGithubViewport">
@@ -357,9 +493,11 @@ export default function AuthPage() {
             <button
               type="submit"
               className="authGithubPrimaryButton"
-              disabled={!authReady || isSubmitting}
+              disabled={!authReady || isSubmitting || (isEmailMode && isEmailActionCoolingDown)}
             >
-              {submitLabel}
+              {isEmailMode && isEmailActionCoolingDown
+                ? `Bitte warten (${emailActionCooldownSeconds}s)`
+                : submitLabel}
             </button>
           </form>
 
@@ -381,10 +519,12 @@ export default function AuthPage() {
                 type="button"
                 className="authGithubInlineLink authGithubInlineLinkStrong"
                 onClick={() => void resendConfirmationEmail()}
-                disabled={isSubmitting || isResendingConfirmation}
+                disabled={isSubmitting || isResendingConfirmation || isEmailActionCoolingDown}
               >
                 {isResendingConfirmation
                   ? "Wird gesendet ..."
+                  : isEmailActionCoolingDown
+                    ? `Erneut senden in ${emailActionCooldownSeconds}s`
                   : "Bestätigungs-Mail erneut senden"}
               </button>
             </p>
