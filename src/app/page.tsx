@@ -4,6 +4,7 @@ import {
   ChangeEvent,
   FormEvent,
   Fragment,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -19,6 +20,9 @@ import {
 import { InfoLegalModal } from "@/components/InfoLegalModal";
 import { VisioroLogoImage } from "@/components/VisioroLogoImage";
 import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
+import OnboardingPageClient, {
+  OnboardingFlowEvent,
+} from "@/app/onboarding/OnboardingPageClient";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
@@ -119,11 +123,7 @@ type AccessStatusApiResponse = {
   };
 };
 
-type OnboardingEmbedMessage = {
-  source?: string;
-  type?: "onboarding_ready" | "onboarding_progress" | "onboarding_completed" | "onboarding_postponed";
-  onboardingStep?: unknown;
-};
+type OnboardingModalMode = "prompt" | "steps";
 
 type CustomerArchiveDocument = {
   documentNumber: string;
@@ -622,7 +622,7 @@ const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent-v1";
-const ONBOARDING_EMBED_SOURCE = "visioro-onboarding-embed";
+const ONBOARDING_PROMPT_SHOWN_SESSION_KEY = "visioro-onboarding-prompt-shown-v1";
 
 const fallbackCompanySettings: CompanySettings = {
   companyName: "",
@@ -1746,12 +1746,8 @@ export default function HomePage() {
   const [isClosingCustomerPicker, setIsClosingCustomerPicker] = useState(false);
   const [, setIsCompanySetupComplete] = useState(false);
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
-  const [isOnboardingResumeModalOpen, setIsOnboardingResumeModalOpen] =
-    useState(false);
-  const [hasDismissedOnboardingResumeModal, setHasDismissedOnboardingResumeModal] =
-    useState(false);
-  const [isOnboardingFlowOverlayOpen, setIsOnboardingFlowOverlayOpen] =
-    useState(false);
+  const [showOnboardingPromptModal, setShowOnboardingPromptModal] = useState(false);
+  const [onboardingMode, setOnboardingMode] = useState<OnboardingModalMode>("prompt");
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
@@ -1787,8 +1783,7 @@ export default function HomePage() {
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountMenuCloseTimeoutRef = useRef<number | null>(null);
   const setupHintRef = useRef<HTMLElement | null>(null);
-  const onboardingResumeModalRef = useRef<HTMLElement | null>(null);
-  const onboardingFlowOverlayRef = useRef<HTMLElement | null>(null);
+  const onboardingModalRef = useRef<HTMLElement | null>(null);
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
@@ -1797,10 +1792,12 @@ export default function HomePage() {
   const photoCameraSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
+  const isOnboardingModalOpen =
+    showOnboardingPromptModal || onboardingMode === "steps";
   const isAnyIntakeProcessing =
     isParsingVoice || isParsingPhoto || isStartingPhotoCamera;
   const isKiIntakeLocked = isAuthStatusLoading || !isAuthenticatedUser;
-  const shouldShowOnboardingReminder =
+  const shouldRequireOnboarding =
     isAuthenticatedUser && !isAuthStatusLoading && !isOnboardingCompleted;
 
   const serviceSearchValue = serviceSearch.trim();
@@ -1915,12 +1912,8 @@ export default function HomePage() {
     containerRef: setupHintRef,
   });
   useDialogFocusTrap({
-    isOpen: isOnboardingResumeModalOpen,
-    containerRef: onboardingResumeModalRef,
-  });
-  useDialogFocusTrap({
-    isOpen: isOnboardingFlowOverlayOpen,
-    containerRef: onboardingFlowOverlayRef,
+    isOpen: isOnboardingModalOpen,
+    containerRef: onboardingModalRef,
   });
   useDialogFocusTrap({
     isOpen: isCustomerPickerOpen,
@@ -1941,77 +1934,43 @@ export default function HomePage() {
 
   useEffect(() => {
     router.prefetch("/settings");
-    router.prefetch("/onboarding");
   }, [router]);
-
-  useEffect(() => {
-    if (!shouldShowOnboardingReminder) {
-      setIsOnboardingResumeModalOpen(false);
-      setHasDismissedOnboardingResumeModal(false);
-      setIsOnboardingFlowOverlayOpen(false);
-      return;
-    }
-
-    if (!hasDismissedOnboardingResumeModal && !isOnboardingFlowOverlayOpen) {
-      setIsOnboardingResumeModalOpen(true);
-    }
-  }, [
-    hasDismissedOnboardingResumeModal,
-    isOnboardingFlowOverlayOpen,
-    shouldShowOnboardingReminder,
-  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    function handleOnboardingEmbedMessage(
-      event: MessageEvent<OnboardingEmbedMessage>,
-    ) {
-      if (event.origin !== window.location.origin) {
-        return;
+    if (!shouldRequireOnboarding) {
+      setShowOnboardingPromptModal(false);
+      setOnboardingMode("prompt");
+      try {
+        window.sessionStorage.removeItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY);
+      } catch {
+        // Ignore storage read/write restrictions.
       }
-
-      const payload = event.data;
-      if (!payload || typeof payload !== "object") {
-        return;
-      }
-
-      if (payload.source !== ONBOARDING_EMBED_SOURCE || !payload.type) {
-        return;
-      }
-
-      if (payload.type === "onboarding_completed") {
-        setIsOnboardingCompleted(true);
-        setOnboardingStep(ONBOARDING_TOTAL_STEPS);
-        setIsOnboardingFlowOverlayOpen(false);
-        setIsOnboardingResumeModalOpen(false);
-        setHasDismissedOnboardingResumeModal(false);
-        return;
-      }
-
-      const nextStep = resolveOnboardingStepValue(payload.onboardingStep);
-
-      if (payload.type === "onboarding_postponed") {
-        setIsOnboardingCompleted(false);
-        setOnboardingStep(nextStep);
-        setIsOnboardingFlowOverlayOpen(false);
-        setIsOnboardingResumeModalOpen(false);
-        setHasDismissedOnboardingResumeModal(true);
-        return;
-      }
-
-      if (payload.type === "onboarding_ready" || payload.type === "onboarding_progress") {
-        setIsOnboardingCompleted(false);
-        setOnboardingStep(nextStep);
-      }
+      return;
     }
 
-    window.addEventListener("message", handleOnboardingEmbedMessage);
-    return () =>
-      window.removeEventListener("message", handleOnboardingEmbedMessage);
-  }, []);
+    let hasShownPromptInSession = false;
+    try {
+      hasShownPromptInSession =
+        window.sessionStorage.getItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY) ===
+        "1";
+    } catch {
+      // Ignore storage read/write restrictions.
+    }
+
+    if (!hasShownPromptInSession) {
+      setShowOnboardingPromptModal(true);
+      setOnboardingMode("prompt");
+      try {
+        window.sessionStorage.setItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY, "1");
+      } catch {
+        // Ignore storage read/write restrictions.
+      }
+    }
+  }, [shouldRequireOnboarding]);
 
   useEffect(() => {
     if (isSettingsOverlayOpen || isClosingSettingsOverlay) {
@@ -2374,8 +2333,7 @@ export default function HomePage() {
       isCustomerPickerOpen ||
       isPhotoCameraOpen ||
       isVoiceLoginModalOpen ||
-      isOnboardingFlowOverlayOpen ||
-      isOnboardingResumeModalOpen ||
+      isOnboardingModalOpen ||
       isSetupHintOpen;
     if (!hasBlockingOverlay) {
       return;
@@ -2405,8 +2363,7 @@ export default function HomePage() {
     isCustomerPickerOpen,
     isPhotoCameraOpen,
     isVoiceLoginModalOpen,
-    isOnboardingFlowOverlayOpen,
-    isOnboardingResumeModalOpen,
+    isOnboardingModalOpen,
     isSetupHintOpen,
   ]);
 
@@ -2423,8 +2380,7 @@ export default function HomePage() {
       !isPhotoCameraOpen &&
       !isPhotoScanSheetOpen &&
       !isVoiceLoginModalOpen &&
-      !isOnboardingFlowOverlayOpen &&
-      !isOnboardingResumeModalOpen &&
+      !isOnboardingModalOpen &&
       !isAccountMenuOpen &&
       !isSetupHintOpen
     ) {
@@ -2446,14 +2402,8 @@ export default function HomePage() {
         return;
       }
 
-      if (isOnboardingFlowOverlayOpen) {
-        setIsOnboardingFlowOverlayOpen(false);
-        return;
-      }
-
-      if (isOnboardingResumeModalOpen) {
-        setIsOnboardingResumeModalOpen(false);
-        setHasDismissedOnboardingResumeModal(true);
+      if (isOnboardingModalOpen) {
+        closeOnboardingModal();
         return;
       }
 
@@ -2505,8 +2455,7 @@ export default function HomePage() {
     isPhotoCameraOpen,
     isPhotoScanSheetOpen,
     isVoiceLoginModalOpen,
-    isOnboardingFlowOverlayOpen,
-    isOnboardingResumeModalOpen,
+    isOnboardingModalOpen,
     isAccountMenuOpen,
     isClosingAccountMenu,
     isSetupHintOpen,
@@ -3036,17 +2985,17 @@ export default function HomePage() {
     window.location.href = "/auth";
   }
 
-  function dismissOnboardingResumeModal() {
-    setIsOnboardingResumeModalOpen(false);
-    setHasDismissedOnboardingResumeModal(true);
+  function closeOnboardingModal() {
+    setShowOnboardingPromptModal(false);
+    setOnboardingMode("prompt");
   }
 
-  function closeOnboardingFlowOverlay() {
-    setIsOnboardingFlowOverlayOpen(false);
+  function dismissOnboardingPromptModal() {
+    closeOnboardingModal();
   }
 
-  function openOnboardingFromReminder() {
-    if (!shouldShowOnboardingReminder) {
+  function startOnboardingFromPrompt() {
+    if (!shouldRequireOnboarding) {
       return;
     }
 
@@ -3054,10 +3003,32 @@ export default function HomePage() {
     if (isAccountMenuOpen) {
       closeAccountMenu();
     }
-    setIsOnboardingResumeModalOpen(false);
-    setHasDismissedOnboardingResumeModal(true);
-    setIsOnboardingFlowOverlayOpen(true);
+    setShowOnboardingPromptModal(false);
+    setOnboardingMode("steps");
   }
+
+  const handleEmbeddedOnboardingEvent = useCallback(
+    (event: OnboardingFlowEvent) => {
+      const nextStep = resolveOnboardingStepValue(event.onboardingStep);
+
+      if (event.type === "onboarding_completed") {
+        setIsOnboardingCompleted(true);
+        setOnboardingStep(ONBOARDING_TOTAL_STEPS);
+        setShowOnboardingPromptModal(false);
+        setOnboardingMode("prompt");
+        return;
+      }
+
+      setIsOnboardingCompleted(false);
+      setOnboardingStep(nextStep);
+
+      if (event.type === "onboarding_postponed") {
+        setShowOnboardingPromptModal(false);
+        setOnboardingMode("prompt");
+      }
+    },
+    [],
+  );
 
   async function handleLogoutFromAccountMenu() {
     setIsSetupHintOpen(false);
@@ -5728,118 +5699,119 @@ export default function HomePage() {
           sheetRef={voiceLoginModalSheetRef}
         />
 
-        {isOnboardingResumeModalOpen ? (
+        {isOnboardingModalOpen ? (
           <div
-            className="settingsOverlayBackdrop onboardingResumeModalBackdrop"
+            className={`settingsOverlayBackdrop ${
+              onboardingMode === "steps"
+                ? "onboardingFlowOverlayBackdrop"
+                : "onboardingResumeModalBackdrop"
+            }`}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="onboarding-resume-title"
-            onClick={dismissOnboardingResumeModal}
+            aria-labelledby={
+              onboardingMode === "steps"
+                ? "onboarding-flow-title"
+                : "onboarding-prompt-title"
+            }
+            onClick={closeOnboardingModal}
           >
             <section
-              className="settingsOverlaySheet onboardingResumeModalSheet"
+              className={`settingsOverlaySheet ${
+                onboardingMode === "steps"
+                  ? "onboardingFlowOverlaySheet"
+                  : "onboardingResumeModalSheet"
+              }`}
               onClick={(event) => event.stopPropagation()}
-              ref={onboardingResumeModalRef}
+              ref={onboardingModalRef}
             >
-              <header className="settingsOverlayHeader onboardingResumeModalHeader">
-                <strong id="onboarding-resume-title">Einrichtung abschließen</strong>
-                <button
-                  type="button"
-                  className="settingsOverlayCloseButton"
-                  aria-label="Reminder schließen"
-                  onClick={dismissOnboardingResumeModal}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="topHeaderIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
+              {onboardingMode === "prompt" ? (
+                <>
+                  <header className="settingsOverlayHeader onboardingResumeModalHeader">
+                    <strong id="onboarding-prompt-title">Einrichtung abschließen</strong>
+                    <button
+                      type="button"
+                      className="settingsOverlayCloseButton"
+                      aria-label="Onboarding-Hinweis schließen"
+                      onClick={dismissOnboardingPromptModal}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="topHeaderIcon"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </header>
+                  <p className="onboardingResumeModalText">
+                    Richte deine Firmendaten ein, damit Angebote und Rechnungen
+                    korrekt erstellt werden können.
+                  </p>
+                  <p className="onboardingResumeModalStep">
+                    Aktueller Schritt: {onboardingStep} von {ONBOARDING_TOTAL_STEPS}
+                  </p>
+                  <div className="onboardingResumeModalActions">
+                    <button
+                      type="button"
+                      className="primaryButton"
+                      onClick={startOnboardingFromPrompt}
+                    >
+                      Jetzt starten
+                    </button>
+                    <button
+                      type="button"
+                      className="ghostButton"
+                      onClick={dismissOnboardingPromptModal}
+                    >
+                      Später
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <header className="settingsOverlayHeader onboardingFlowOverlayHeader">
+                    <strong id="onboarding-flow-title">Einrichtung abschließen</strong>
+                    <button
+                      type="button"
+                      className="settingsOverlayCloseButton"
+                      aria-label="Onboarding schließen"
+                      onClick={closeOnboardingModal}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="topHeaderIcon"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </header>
+                  <p className="onboardingFlowOverlayMeta">
+                    Gespeicherter Fortschritt: Schritt {onboardingStep} von{" "}
+                    {ONBOARDING_TOTAL_STEPS}
+                  </p>
+                  <div className="onboardingFlowOverlayFrameWrap onboardingFlowInlineContent">
+                    <OnboardingPageClient
+                      embedded
+                      onEmbeddedEvent={handleEmbeddedOnboardingEvent}
                     />
-                  </svg>
-                </button>
-              </header>
-              <p className="onboardingResumeModalText">
-                Du hast dein Setup noch nicht abgeschlossen. Vervollständige deine
-                Daten, um alle Funktionen nutzen zu können.
-              </p>
-              <p className="onboardingResumeModalStep">
-                Aktueller Schritt: {onboardingStep} von {ONBOARDING_TOTAL_STEPS}
-              </p>
-              <div className="onboardingResumeModalActions">
-                <button
-                  type="button"
-                  className="primaryButton"
-                  onClick={openOnboardingFromReminder}
-                >
-                  Einrichtung fortsetzen
-                </button>
-                <button
-                  type="button"
-                  className="ghostButton"
-                  onClick={dismissOnboardingResumeModal}
-                >
-                  Später
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
-
-        {isOnboardingFlowOverlayOpen ? (
-          <div
-            className="settingsOverlayBackdrop onboardingFlowOverlayBackdrop"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="onboarding-flow-title"
-            onClick={closeOnboardingFlowOverlay}
-          >
-            <section
-              className="settingsOverlaySheet onboardingFlowOverlaySheet"
-              onClick={(event) => event.stopPropagation()}
-              ref={onboardingFlowOverlayRef}
-            >
-              <header className="settingsOverlayHeader onboardingFlowOverlayHeader">
-                <strong id="onboarding-flow-title">Einrichtung fortsetzen</strong>
-                <button
-                  type="button"
-                  className="settingsOverlayCloseButton"
-                  aria-label="Onboarding schließen"
-                  onClick={closeOnboardingFlowOverlay}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="topHeaderIcon"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path
-                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              </header>
-              <p className="onboardingFlowOverlayMeta">
-                Gespeicherter Fortschritt: Schritt {onboardingStep} von{" "}
-                {ONBOARDING_TOTAL_STEPS}
-              </p>
-              <div className="onboardingFlowOverlayFrameWrap">
-                <iframe
-                  src="/onboarding?embedded=1"
-                  title="Onboarding"
-                  className="onboardingFlowOverlayFrame"
-                />
-              </div>
+                  </div>
+                </>
+              )}
             </section>
           </div>
         ) : null}
@@ -6401,25 +6373,6 @@ export default function HomePage() {
               key={documentMode}
               className="documentModeContent"
             >
-              {shouldShowOnboardingReminder ? (
-                <section className="onboardingResumeBanner" role="status">
-                  <p className="onboardingResumeBannerTitle">
-                    Einrichtung noch nicht abgeschlossen
-                  </p>
-                  <p className="onboardingResumeBannerText">
-                    Schritt {onboardingStep} von {ONBOARDING_TOTAL_STEPS}. Schließe
-                    dein Setup ab, um alle Funktionen ohne Einschränkungen zu nutzen.
-                  </p>
-                  <button
-                    type="button"
-                    className="primaryButton onboardingResumeBannerButton"
-                    onClick={openOnboardingFromReminder}
-                  >
-                    Jetzt fortsetzen
-                  </button>
-                </section>
-              ) : null}
-
               <div className="documentModeSwitchTop">
                 <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
                   <button

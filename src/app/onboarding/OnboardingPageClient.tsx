@@ -90,15 +90,25 @@ type OnboardingPatch = {
   onboardingStep?: number;
 };
 
-type EmbeddedOnboardingMessage = {
-  source: "visioro-onboarding-embed";
-  type: "onboarding_ready" | "onboarding_progress" | "onboarding_completed" | "onboarding_postponed";
+export type OnboardingFlowEventType =
+  | "onboarding_ready"
+  | "onboarding_progress"
+  | "onboarding_completed"
+  | "onboarding_postponed";
+
+export type OnboardingFlowEvent = {
+  type: OnboardingFlowEventType;
   onboardingCompleted: boolean;
   onboardingStep: number;
 };
 
+type EmbeddedOnboardingMessage = OnboardingFlowEvent & {
+  source: "visioro-onboarding-embed";
+};
+
 type OnboardingPageClientProps = {
   embedded?: boolean;
+  onEmbeddedEvent?: (event: OnboardingFlowEvent) => void;
 };
 
 function setOnboardingSnoozeCookie(): void {
@@ -115,9 +125,12 @@ function clearOnboardingSnoozeCookie(): void {
   document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`;
 }
 
-function postOnboardingEmbedMessage(
-  payload: Omit<EmbeddedOnboardingMessage, "source">,
+function emitEmbeddedOnboardingEvent(
+  payload: OnboardingFlowEvent,
+  onEmbeddedEvent?: (event: OnboardingFlowEvent) => void,
 ): void {
+  onEmbeddedEvent?.(payload);
+
   if (typeof window === "undefined") {
     return;
   }
@@ -313,6 +326,7 @@ function buildStepPayload(
 
 export default function OnboardingPageClient({
   embedded = false,
+  onEmbeddedEvent,
 }: OnboardingPageClientProps) {
   const router = useRouter();
   const isEmbeddedMode = embedded;
@@ -368,11 +382,14 @@ export default function OnboardingPageClient({
 
         if (nextOnboarding.onboardingCompleted) {
           if (isEmbeddedMode) {
-            postOnboardingEmbedMessage({
-              type: "onboarding_completed",
-              onboardingCompleted: true,
-              onboardingStep: ONBOARDING_TOTAL_STEPS,
-            });
+            emitEmbeddedOnboardingEvent(
+              {
+                type: "onboarding_completed",
+                onboardingCompleted: true,
+                onboardingStep: ONBOARDING_TOTAL_STEPS,
+              },
+              onEmbeddedEvent,
+            );
             return;
           }
           router.replace("/");
@@ -388,11 +405,14 @@ export default function OnboardingPageClient({
             /§\s*19\s*ustg/i.test(nextSettings.euVatNoticeText.trim()),
           );
           if (isEmbeddedMode) {
-            postOnboardingEmbedMessage({
-              type: "onboarding_ready",
-              onboardingCompleted: false,
-              onboardingStep: resumedStep,
-            });
+            emitEmbeddedOnboardingEvent(
+              {
+                type: "onboarding_ready",
+                onboardingCompleted: false,
+                onboardingStep: resumedStep,
+              },
+              onEmbeddedEvent,
+            );
           }
         }
       } catch {
@@ -411,7 +431,7 @@ export default function OnboardingPageClient({
     return () => {
       cancelled = true;
     };
-  }, [isEmbeddedMode, router]);
+  }, [isEmbeddedMode, onEmbeddedEvent, router]);
 
   useEffect(() => {
     const handlePageHide = () => {
@@ -603,11 +623,14 @@ export default function OnboardingPageClient({
     }));
     setCurrentStep(nextStep);
     if (isEmbeddedMode) {
-      postOnboardingEmbedMessage({
-        type: "onboarding_progress",
-        onboardingCompleted: false,
-        onboardingStep: nextStep,
-      });
+      emitEmbeddedOnboardingEvent(
+        {
+          type: "onboarding_progress",
+          onboardingCompleted: false,
+          onboardingStep: nextStep,
+        },
+        onEmbeddedEvent,
+      );
     }
     setError("");
   }
@@ -632,11 +655,14 @@ export default function OnboardingPageClient({
       onboardingStep: previousStep,
     }));
     if (isEmbeddedMode) {
-      postOnboardingEmbedMessage({
-        type: "onboarding_progress",
-        onboardingCompleted: false,
-        onboardingStep: previousStep,
-      });
+      emitEmbeddedOnboardingEvent(
+        {
+          type: "onboarding_progress",
+          onboardingCompleted: false,
+          onboardingStep: previousStep,
+        },
+        onEmbeddedEvent,
+      );
     }
     setError("");
   }
@@ -689,11 +715,14 @@ export default function OnboardingPageClient({
 
     clearOnboardingSnoozeCookie();
     if (isEmbeddedMode) {
-      postOnboardingEmbedMessage({
-        type: "onboarding_completed",
-        onboardingCompleted: true,
-        onboardingStep: ONBOARDING_TOTAL_STEPS,
-      });
+      emitEmbeddedOnboardingEvent(
+        {
+          type: "onboarding_completed",
+          onboardingCompleted: true,
+          onboardingStep: ONBOARDING_TOTAL_STEPS,
+        },
+        onEmbeddedEvent,
+      );
       return;
     }
     router.replace("/");
@@ -715,11 +744,14 @@ export default function OnboardingPageClient({
 
     setOnboardingSnoozeCookie();
     if (isEmbeddedMode) {
-      postOnboardingEmbedMessage({
-        type: "onboarding_postponed",
-        onboardingCompleted: false,
-        onboardingStep: currentStep,
-      });
+      emitEmbeddedOnboardingEvent(
+        {
+          type: "onboarding_postponed",
+          onboardingCompleted: false,
+          onboardingStep: currentStep,
+        },
+        onEmbeddedEvent,
+      );
       return;
     }
     router.replace("/");
