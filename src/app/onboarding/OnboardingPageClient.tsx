@@ -867,9 +867,11 @@ export default function OnboardingPageClient({
 
   if (isLoading) {
     return (
-      <main className="page onboardingPage">
-        <div className="ambient ambientA" aria-hidden />
-        <div className="ambient ambientB" aria-hidden />
+      <main
+        className={`page onboardingPage ${isEmbeddedMode ? "onboardingPageEmbedded" : ""}`}
+      >
+        {!isEmbeddedMode ? <div className="ambient ambientA" aria-hidden /> : null}
+        {!isEmbeddedMode ? <div className="ambient ambientB" aria-hidden /> : null}
         <div className="container onboardingContainer">
           <section className="glassCard onboardingCard onboardingLoadingCard">
             <p className="voiceInfo">Onboarding wird geladen ...</p>
