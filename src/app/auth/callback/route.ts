@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { isUserAccessSetupError } from "@/lib/access/access-errors";
+import { ONBOARDING_SNOOZE_COOKIE_NAME } from "@/lib/onboarding";
 import { ensureUserAccessRecord } from "@/lib/access/user-access";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -55,6 +56,7 @@ function redirectTo(
   request: NextRequest,
   pathname: string,
   query?: Record<string, string>,
+  options?: { clearOnboardingSnooze?: boolean },
 ): NextResponse {
   const target = request.nextUrl.clone();
   target.pathname = pathname;
@@ -66,7 +68,17 @@ function redirectTo(
     }
   }
 
-  return NextResponse.redirect(target);
+  const response = NextResponse.redirect(target);
+  if (options?.clearOnboardingSnooze) {
+    response.cookies.set({
+      name: ONBOARDING_SNOOZE_COOKIE_NAME,
+      value: "",
+      path: "/",
+      expires: new Date(0),
+    });
+  }
+
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -131,7 +143,9 @@ export async function GET(request: NextRequest) {
     }
 
     const target = isRecoveryFlow ? "/auth/reset" : nextPath;
-    return redirectTo(request, target);
+    return redirectTo(request, target, undefined, {
+      clearOnboardingSnooze: true,
+    });
   } catch (error) {
     console.error("[auth/callback] flow failed", error);
     const message =

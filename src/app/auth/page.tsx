@@ -2,6 +2,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VisioroLogoImage } from "@/components/VisioroLogoImage";
+import { ONBOARDING_SNOOZE_COOKIE_NAME } from "@/lib/onboarding";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -74,6 +75,13 @@ async function readApiErrorMessage(response: Response): Promise<string> {
     return "Testzugang konnte serverseitig nicht initialisiert werden.";
   }
   return "Testzugang konnte nicht gestartet werden.";
+}
+
+function clearOnboardingSnoozeCookie(): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`;
 }
 
 export default function AuthPage() {
@@ -194,6 +202,7 @@ export default function AuthPage() {
         if (data.session) {
           setPendingConfirmationEmail("");
           await bootstrapTrial();
+          clearOnboardingSnoozeCookie();
           router.replace("/");
           router.refresh();
           return;
@@ -248,6 +257,7 @@ export default function AuthPage() {
 
       setPendingConfirmationEmail("");
       await bootstrapTrial();
+      clearOnboardingSnoozeCookie();
       router.replace("/");
       router.refresh();
     } catch (submitError) {

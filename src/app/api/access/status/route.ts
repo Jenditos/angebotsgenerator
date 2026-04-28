@@ -15,6 +15,7 @@ import {
   ensureUserAccessRecord,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
+import { readOnboardingStatus } from "@/lib/settings-store";
 
 export async function GET() {
   if (isAuthBypassEnabled()) {
@@ -28,6 +29,11 @@ export async function GET() {
       },
       access: accessRecord,
       state: buildAccessState(accessRecord),
+      onboarding: {
+        onboardingCompleted: true,
+        onboardingCompletedAt: null,
+        onboardingStep: 5,
+      },
     });
   }
 
@@ -37,10 +43,16 @@ export async function GET() {
   }
 
   try {
-    const accessRecord = await ensureUserAccessRecord(
-      authResult.supabase,
-      authResult.user,
-    );
+    const [accessRecord, onboarding] = await Promise.all([
+      ensureUserAccessRecord(
+        authResult.supabase,
+        authResult.user,
+      ),
+      readOnboardingStatus({
+        supabase: authResult.supabase,
+        userId: authResult.user.id,
+      }),
+    ]);
 
     return NextResponse.json({
       authenticated: true,
@@ -50,6 +62,7 @@ export async function GET() {
       },
       access: accessRecord,
       state: buildAccessState(accessRecord),
+      onboarding,
     });
   } catch (error) {
     if (isUserAccessSetupError(error)) {
@@ -57,6 +70,19 @@ export async function GET() {
         userId: authResult.user.id,
       });
       const fallbackAccessRecord = buildTransientTrialAccessRecord(authResult.user);
+      let onboarding = {
+        onboardingCompleted: false,
+        onboardingCompletedAt: null as string | null,
+        onboardingStep: 1,
+      };
+      try {
+        onboarding = await readOnboardingStatus({
+          supabase: authResult.supabase,
+          userId: authResult.user.id,
+        });
+      } catch {
+        // Keep defaults when onboarding status cannot be loaded.
+      }
       return NextResponse.json({
         authenticated: true,
         user: {
@@ -65,6 +91,7 @@ export async function GET() {
         },
         access: fallbackAccessRecord,
         state: buildAccessState(fallbackAccessRecord),
+        onboarding,
         setupWarning: true,
       });
     }

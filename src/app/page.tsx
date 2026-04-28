@@ -94,6 +94,11 @@ type ServicesApiResponse = {
 
 type SettingsApiResponse = {
   settings?: CompanySettings;
+  onboarding?: {
+    onboardingCompleted?: boolean;
+    onboardingCompletedAt?: string | null;
+    onboardingStep?: number;
+  };
   error?: string;
 };
 
@@ -105,6 +110,11 @@ type AccessStatusApiResponse = {
   authenticated?: boolean;
   user?: {
     email?: string;
+  };
+  onboarding?: {
+    onboardingCompleted?: boolean;
+    onboardingCompletedAt?: string | null;
+    onboardingStep?: number;
   };
 };
 
@@ -1052,6 +1062,9 @@ function hasCompletedCompanySettings(settings: CompanySettings | undefined): boo
     return false;
   }
 
+  const hasTaxIdentifier = Boolean(
+    settings.taxNumber.trim() || settings.vatId.trim(),
+  );
   const requiredValues = [
     settings.companyName,
     settings.ownerName,
@@ -1059,11 +1072,13 @@ function hasCompletedCompanySettings(settings: CompanySettings | undefined): boo
     settings.companyPostalCode,
     settings.companyCity,
     settings.companyEmail,
-    settings.companyPhone,
     settings.companyIban,
   ];
 
-  return requiredValues.every((value) => value.trim().length > 0);
+  return (
+    requiredValues.every((value) => value.trim().length > 0) &&
+    hasTaxIdentifier
+  );
 }
 
 function capitalizeEntryStart(value: string): string {
@@ -1720,6 +1735,8 @@ export default function HomePage() {
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
   const [isAuthStatusLoading, setIsAuthStatusLoading] = useState(true);
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(true);
+  const [onboardingStep, setOnboardingStep] = useState(1);
   const [accountIdentity, setAccountIdentity] = useState("");
   const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
@@ -1759,6 +1776,8 @@ export default function HomePage() {
   const isAnyIntakeProcessing =
     isParsingVoice || isParsingPhoto || isStartingPhotoCamera;
   const isKiIntakeLocked = isAuthStatusLoading || !isAuthenticatedUser;
+  const shouldShowOnboardingReminder =
+    isAuthenticatedUser && !isAuthStatusLoading && !isOnboardingCompleted;
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -2453,6 +2472,14 @@ export default function HomePage() {
           if (!isComplete) {
             setIsSetupHintOpen(false);
           }
+
+          if (typeof data.onboarding?.onboardingCompleted === "boolean") {
+            setIsOnboardingCompleted(data.onboarding.onboardingCompleted);
+          }
+          const parsedOnboardingStep = Number(data.onboarding?.onboardingStep);
+          if (Number.isFinite(parsedOnboardingStep)) {
+            setOnboardingStep(Math.max(1, Math.min(5, Math.floor(parsedOnboardingStep))));
+          }
         }
       } catch {
         // Nur UI-Hinweis; Fehler hier blockiert die Seite nicht.
@@ -2480,6 +2507,8 @@ export default function HomePage() {
         if (!response.ok) {
           setIsAuthenticatedUser(false);
           setAccountIdentity("");
+          setIsOnboardingCompleted(true);
+          setOnboardingStep(1);
           return;
         }
 
@@ -2488,12 +2517,21 @@ export default function HomePage() {
         setAccountIdentity(
           typeof data.user?.email === "string" ? data.user.email.trim() : "",
         );
+        setIsOnboardingCompleted(Boolean(data.onboarding?.onboardingCompleted));
+        const parsedOnboardingStep = Number(data.onboarding?.onboardingStep);
+        setOnboardingStep(
+          Number.isFinite(parsedOnboardingStep)
+            ? Math.max(1, Math.min(5, Math.floor(parsedOnboardingStep)))
+            : 1,
+        );
       } catch {
         if (!mounted) {
           return;
         }
         setIsAuthenticatedUser(false);
         setAccountIdentity("");
+        setIsOnboardingCompleted(true);
+        setOnboardingStep(1);
       } finally {
         if (mounted) {
           setIsAuthStatusLoading(false);
@@ -2883,6 +2921,12 @@ export default function HomePage() {
     setIsSetupHintOpen(false);
     closeAccountMenu();
     window.location.href = "/auth";
+  }
+
+  function openOnboardingFromReminder() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    window.location.href = "/onboarding";
   }
 
   async function handleLogoutFromAccountMenu() {
@@ -6111,6 +6155,30 @@ export default function HomePage() {
               key={documentMode}
               className="documentModeContent"
             >
+              {shouldShowOnboardingReminder ? (
+                <section className="glassCard onboardingReminderCard">
+                  <div className="onboardingReminderContent">
+                    <p className="onboardingReminderTitle">
+                      Einrichtung noch nicht abgeschlossen
+                    </p>
+                    <p className="onboardingReminderText">
+                      Du kannst die App bereits nutzen. Für vollständige Angebote und
+                      Rechnungen bitte die Ersteinrichtung abschließen.
+                    </p>
+                    <p className="onboardingReminderMeta">
+                      Aktueller Schritt: {onboardingStep} von 5
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="primaryButton onboardingReminderButton"
+                    onClick={openOnboardingFromReminder}
+                  >
+                    Einrichtung fortsetzen
+                  </button>
+                </section>
+              ) : null}
+
               <div className="documentModeSwitchTop">
                 <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
                   <button

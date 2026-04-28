@@ -4,8 +4,24 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
-import { readSettings, writeSettings } from "@/lib/settings-store";
+import {
+  OnboardingStatusUpdate,
+  readOnboardingStatus,
+  readSettings,
+  writeOnboardingStatus,
+  writeSettings,
+} from "@/lib/settings-store";
+import {
+  getMissingOnboardingRequiredFields,
+  hasCompletedOnboardingRequiredFields,
+} from "@/lib/onboarding";
 import { CompanySettings } from "@/types/offer";
+
+type SettingsPostBody = Partial<CompanySettings> & {
+  onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string | null;
+  onboardingStep?: number | string;
+};
 
 function classifySettingsStoreError(error: unknown): {
   status: number;
@@ -40,12 +56,18 @@ export async function GET() {
   }
 
   try {
-    const settings = await readSettings({
-      supabase: accessResult.supabase,
-      userId: accessResult.user.id,
-    });
+    const [settings, onboarding] = await Promise.all([
+      readSettings({
+        supabase: accessResult.supabase,
+        userId: accessResult.user.id,
+      }),
+      readOnboardingStatus({
+        supabase: accessResult.supabase,
+        userId: accessResult.user.id,
+      }),
+    ]);
     return NextResponse.json(
-      { settings },
+      { settings, onboarding },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -71,10 +93,12 @@ export async function POST(request: Request) {
     const rawBody = (await request.json()) as unknown;
     const body =
       rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
-        ? (rawBody as Partial<CompanySettings>)
+        ? (rawBody as SettingsPostBody)
         : {};
 
     const sanitized: Partial<CompanySettings> = {};
+    let hasSettingsChanges = false;
+    const onboardingUpdate: OnboardingStatusUpdate = {};
 
     const maybeAssignString = (
       key: keyof Pick<
@@ -102,6 +126,7 @@ export async function POST(request: Request) {
       const value = body[key];
       if (typeof value === "string") {
         sanitized[key] = value.trim();
+        hasSettingsChanges = true;
       }
     };
 
@@ -129,6 +154,7 @@ export async function POST(request: Request) {
       if (!trimmedIban) {
         sanitized.companyIban = "";
         sanitized.ibanVerificationStatus = "not_checked";
+        hasSettingsChanges = true;
       } else {
         const ibanValidation = validateIbanInput(trimmedIban);
         if (!ibanValidation.isValid) {
@@ -136,11 +162,13 @@ export async function POST(request: Request) {
         }
         sanitized.companyIban = ibanValidation.formatted;
         sanitized.ibanVerificationStatus = "valid";
+        hasSettingsChanges = true;
       }
     }
 
     if (typeof body.companyBic === "string") {
       sanitized.companyBic = normalizeBicInput(body.companyBic);
+      hasSettingsChanges = true;
     }
 
     if (
@@ -149,12 +177,14 @@ export async function POST(request: Request) {
         body.ibanVerificationStatus === "valid")
     ) {
       sanitized.ibanVerificationStatus = body.ibanVerificationStatus;
+      hasSettingsChanges = true;
     }
 
     if (typeof body.vatRate !== "undefined") {
       const vatRate = Number(body.vatRate);
       if (Number.isFinite(vatRate)) {
         sanitized.vatRate = vatRate;
+        hasSettingsChanges = true;
       }
     }
 
@@ -162,6 +192,7 @@ export async function POST(request: Request) {
       const offerValidityDays = Number(body.offerValidityDays);
       if (Number.isFinite(offerValidityDays)) {
         sanitized.offerValidityDays = offerValidityDays;
+        hasSettingsChanges = true;
       }
     }
 
@@ -169,6 +200,7 @@ export async function POST(request: Request) {
       const invoicePaymentDueDays = Number(body.invoicePaymentDueDays);
       if (Number.isFinite(invoicePaymentDueDays)) {
         sanitized.invoicePaymentDueDays = invoicePaymentDueDays;
+        hasSettingsChanges = true;
       }
     }
 
@@ -176,26 +208,81 @@ export async function POST(request: Request) {
       sanitized.customServiceTypes = body.customServiceTypes
         .map((item) => String(item).trim())
         .filter(Boolean);
+      hasSettingsChanges = true;
     }
 
     if (Array.isArray(body.pdfTableColumns)) {
       sanitized.pdfTableColumns = body.pdfTableColumns;
+      hasSettingsChanges = true;
     }
 
     if (Array.isArray(body.customServices)) {
       sanitized.customServices = body.customServices;
+      hasSettingsChanges = true;
     }
 
     if (typeof body.includeCustomerVatId === "boolean") {
       sanitized.includeCustomerVatId = body.includeCustomerVatId;
+      hasSettingsChanges = true;
     }
 
-    const settings = await writeSettings(sanitized, {
-      supabase: accessResult.supabase,
-      userId: accessResult.user.id,
-    });
+    if (typeof body.onboardingCompleted === "boolean") {
+      onboardingUpdate.onboardingCompleted = body.onboardingCompleted;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "onboardingCompletedAt")) {
+      const onboardingCompletedAt = body.onboardingCompletedAt;
+      if (typeof onboardingCompletedAt === "string" || onboardingCompletedAt === null) {
+        onboardingUpdate.onboardingCompletedAt = onboardingCompletedAt;
+      }
+    }
+
+    if (typeof body.onboardingStep !== "undefined") {
+      const parsedStep = Number(body.onboardingStep);
+      if (Number.isFinite(parsedStep)) {
+        onboardingUpdate.onboardingStep = parsedStep;
+      }
+    }
+
+    const shouldUpdateOnboarding = Object.keys(onboardingUpdate).length > 0;
+
+    const settings = hasSettingsChanges
+      ? await writeSettings(sanitized, {
+          supabase: accessResult.supabase,
+          userId: accessResult.user.id,
+        })
+      : await readSettings({
+          supabase: accessResult.supabase,
+          userId: accessResult.user.id,
+        });
+
+    if (
+      onboardingUpdate.onboardingCompleted === true &&
+      !hasCompletedOnboardingRequiredFields(settings)
+    ) {
+      const missingFields = getMissingOnboardingRequiredFields(settings);
+      return NextResponse.json(
+        {
+          error:
+            "Onboarding kann erst abgeschlossen werden, wenn alle Pflichtfelder ausgefüllt sind.",
+          missingFields,
+        },
+        { status: 400 },
+      );
+    }
+
+    const onboarding = shouldUpdateOnboarding
+      ? await writeOnboardingStatus(onboardingUpdate, {
+          supabase: accessResult.supabase,
+          userId: accessResult.user.id,
+        })
+      : await readOnboardingStatus({
+          supabase: accessResult.supabase,
+          userId: accessResult.user.id,
+        });
+
     return NextResponse.json(
-      { settings },
+      { settings, onboarding },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

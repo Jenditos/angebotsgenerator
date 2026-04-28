@@ -40,6 +40,247 @@
   --interactive-transition-easing: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* Onboarding */
+.onboardingPage {
+  padding-top: 22px;
+}
+
+.onboardingContainer {
+  max-width: 760px;
+}
+
+.onboardingCard {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.onboardingLoadingCard {
+  min-height: 200px;
+  align-items: center;
+  justify-items: center;
+}
+
+.onboardingHeader {
+  display: grid;
+  gap: 8px;
+}
+
+.onboardingHeader h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+  line-height: 1.15;
+  color: #112e58;
+}
+
+.onboardingSavedStepText {
+  margin: 0;
+  color: #5a7398;
+  font-size: 0.82rem;
+}
+
+.onboardingProgressRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.onboardingProgressRow strong {
+  color: #36527e;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+}
+
+.onboardingProgressTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(102, 145, 212, 0.2);
+  overflow: hidden;
+}
+
+.onboardingProgressValue {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(130deg, #3f7fe9, #56b7f7);
+  transition: width 180ms ease;
+}
+
+.onboardingStepCard {
+  border: 1px solid rgba(58, 106, 187, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.onboardingStepTag {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5276a7;
+  font-weight: 700;
+}
+
+.onboardingStepCard h2 {
+  margin: 0;
+  color: #173563;
+  line-height: 1.15;
+}
+
+.onboardingStepDescription {
+  margin: 0;
+  color: #567096;
+  font-size: 0.95rem;
+}
+
+.onboardingGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.onboardingHint {
+  margin: 0;
+  color: #567096;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.onboardingToggle {
+  border: 1px solid rgba(63, 111, 188, 0.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #1e3f6f;
+  background: rgba(255, 255, 255, 0.76);
+  font-size: 0.9rem;
+}
+
+.onboardingToggle input {
+  margin-top: 2px;
+}
+
+.onboardingLogoActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.onboardingActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onboardingActions .primaryButton,
+.onboardingActions .ghostButton {
+  min-width: 140px;
+}
+
+.onboardingSkipRow {
+  display: flex;
+  justify-content: center;
+}
+
+.onboardingSkipButton {
+  border: 0;
+  background: transparent;
+  color: #3c5f92;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 620;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.onboardingSkipButton:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.onboardingReminderCard {
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.onboardingReminderContent {
+  display: grid;
+  gap: 4px;
+}
+
+.onboardingReminderTitle {
+  margin: 0;
+  font-weight: 700;
+  color: #173866;
+}
+
+.onboardingReminderText {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4f6990;
+  line-height: 1.4;
+}
+
+.onboardingReminderMeta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #5d769a;
+}
+
+.onboardingReminderButton {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .onboardingCard {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .onboardingStepCard {
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .onboardingGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .onboardingActions {
+    flex-direction: column-reverse;
+  }
+
+  .onboardingActions .primaryButton,
+  .onboardingActions .ghostButton {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .onboardingReminderCard {
+    grid-template-columns: 1fr;
+  }
+
+  .onboardingReminderButton {
+    width: 100%;
+  }
+}
+
 /* Auth pages */
 .authViewport {
   min-height: 100vh;

@@ -16,11 +16,13 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
+import { ONBOARDING_MAX_STEP, ONBOARDING_MIN_STEP } from "@/lib/onboarding";
 import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
 
 const SETTINGS_FILE_NAME = "company-settings.json";
 const USER_SETTINGS_TABLE = "user_settings";
+const ONBOARDING_FILE_NAME = "onboarding-status.json";
 const MIN_OFFER_VALIDITY_DAYS = 1;
 const MAX_OFFER_VALIDITY_DAYS = 365;
 const MIN_INVOICE_PAYMENT_DUE_DAYS = 0;
@@ -71,14 +73,28 @@ const defaultSettings: CompanySettings = {
 };
 
 let volatileSettingsCache: CompanySettings | null = null;
+let volatileOnboardingStatusCache: OnboardingStatus | null = null;
 
 export function __resetSettingsStoreForTests(): void {
   volatileSettingsCache = null;
+  volatileOnboardingStatusCache = null;
 }
 
 export type SettingsStoreContext = {
   supabase?: SupabaseClient | null;
   userId?: string | null;
+};
+
+export type OnboardingStatus = {
+  onboardingCompleted: boolean;
+  onboardingCompletedAt: string | null;
+  onboardingStep: number;
+};
+
+export type OnboardingStatusUpdate = {
+  onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string | null;
+  onboardingStep?: number;
 };
 
 function cloneDefaultSettings(): CompanySettings {
@@ -87,6 +103,44 @@ function cloneDefaultSettings(): CompanySettings {
     pdfTableColumns: getDefaultPdfTableColumns(),
     customServices: [],
     customServiceTypes: [],
+  };
+}
+
+function clampOnboardingStep(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return ONBOARDING_MIN_STEP;
+  }
+
+  return Math.min(
+    ONBOARDING_MAX_STEP,
+    Math.max(ONBOARDING_MIN_STEP, Math.floor(parsed)),
+  );
+}
+
+function normalizeOnboardingCompletedAt(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+
+  return new Date(parsed).toISOString();
+}
+
+function cloneDefaultOnboardingStatus(): OnboardingStatus {
+  return {
+    onboardingCompleted: false,
+    onboardingCompletedAt: null,
+    onboardingStep: ONBOARDING_MIN_STEP,
   };
 }
 
@@ -233,6 +287,81 @@ function canUseSupabaseContext(
   return Boolean(userId && context?.supabase && hasQueryBuilder);
 }
 
+type UserSettingsRow = {
+  settings_payload?: unknown;
+  onboarding_completed?: unknown;
+  onboarding_completed_at?: unknown;
+  onboarding_step?: unknown;
+};
+
+function parseOnboardingStatusFromRow(row: UserSettingsRow | null): OnboardingStatus {
+  const defaults = cloneDefaultOnboardingStatus();
+  if (!row) {
+    return defaults;
+  }
+
+  const onboardingCompleted = asBoolean(
+    row.onboarding_completed,
+    defaults.onboardingCompleted,
+  );
+  const onboardingStep = clampOnboardingStep(
+    row.onboarding_step ?? defaults.onboardingStep,
+  );
+  const rawCompletedAt = normalizeOnboardingCompletedAt(row.onboarding_completed_at);
+  const onboardingCompletedAt = onboardingCompleted ? rawCompletedAt : null;
+
+  return {
+    onboardingCompleted,
+    onboardingCompletedAt,
+    onboardingStep:
+      onboardingCompleted && onboardingStep < ONBOARDING_MAX_STEP
+        ? ONBOARDING_MAX_STEP
+        : onboardingStep,
+  };
+}
+
+function buildNextOnboardingStatus(
+  current: OnboardingStatus,
+  payload: OnboardingStatusUpdate,
+): OnboardingStatus {
+  const shouldUpdateCompleted = typeof payload.onboardingCompleted === "boolean";
+  const shouldUpdateStep = typeof payload.onboardingStep !== "undefined";
+  const shouldUpdateCompletedAt = Object.hasOwn(payload, "onboardingCompletedAt");
+
+  const nextCompleted = shouldUpdateCompleted
+    ? Boolean(payload.onboardingCompleted)
+    : current.onboardingCompleted;
+
+  let nextStep = shouldUpdateStep
+    ? clampOnboardingStep(payload.onboardingStep)
+    : current.onboardingStep;
+
+  if (nextCompleted) {
+    nextStep = ONBOARDING_MAX_STEP;
+  }
+
+  let nextCompletedAt = current.onboardingCompletedAt;
+  if (shouldUpdateCompletedAt) {
+    nextCompletedAt = normalizeOnboardingCompletedAt(payload.onboardingCompletedAt);
+  }
+
+  if (shouldUpdateCompleted && nextCompleted) {
+    nextCompletedAt = nextCompletedAt ?? new Date().toISOString();
+  } else if (shouldUpdateCompleted && !nextCompleted) {
+    nextCompletedAt = null;
+  }
+
+  if (!nextCompleted) {
+    nextCompletedAt = null;
+  }
+
+  return {
+    onboardingCompleted: nextCompleted,
+    onboardingCompletedAt: nextCompletedAt,
+    onboardingStep: nextStep,
+  };
+}
+
 function parseRawSettingsPayload(
   raw:
     | (Partial<CompanySettings> & {
@@ -360,6 +489,7 @@ function buildNextSettings(
 async function resolveSettingsStorePaths(): Promise<{
   dataDir: string;
   settingsPath: string;
+  onboardingPath: string;
 }> {
   const dataDir = await ensureRuntimeDataDirReady();
   return {
@@ -367,6 +497,10 @@ async function resolveSettingsStorePaths(): Promise<{
     settingsPath: path.join(
       /*turbopackIgnore: true*/ dataDir,
       SETTINGS_FILE_NAME,
+    ),
+    onboardingPath: path.join(
+      /*turbopackIgnore: true*/ dataDir,
+      ONBOARDING_FILE_NAME,
     ),
   };
 }
@@ -441,6 +575,59 @@ async function readSettingsFromRuntimeFile(): Promise<CompanySettings> {
   }
   volatileSettingsCache = resolvedSettings;
   return resolvedSettings;
+}
+
+async function readOnboardingFile(
+  onboardingPath: string,
+): Promise<OnboardingStatus | null> {
+  let fileContents: string;
+  try {
+    fileContents = await readFile(onboardingPath, "utf-8");
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return null;
+    }
+    throw error;
+  }
+
+  let parsedUnknown: unknown;
+  try {
+    parsedUnknown = JSON.parse(fileContents);
+  } catch (error) {
+    throw new Error(
+      `[settings-store] Onboarding-Status ist keine gültige JSON-Datei: ${onboardingPath}`,
+      { cause: error },
+    );
+  }
+
+  const parsed = asObject(parsedUnknown);
+  if (!parsed) {
+    throw new Error(
+      `[settings-store] Unerwartetes Format im Onboarding-Status: ${onboardingPath}`,
+    );
+  }
+
+  const next = parseOnboardingStatusFromRow({
+    onboarding_completed: parsed.onboardingCompleted,
+    onboarding_completed_at: parsed.onboardingCompletedAt,
+    onboarding_step: parsed.onboardingStep,
+  });
+  return next;
+}
+
+async function readOnboardingStatusFromRuntimeFile(): Promise<OnboardingStatus> {
+  const { onboardingPath } = await resolveSettingsStorePaths();
+  const parsed = await readOnboardingFile(onboardingPath);
+
+  if (!parsed) {
+    if (volatileOnboardingStatusCache) {
+      return volatileOnboardingStatusCache;
+    }
+    return cloneDefaultOnboardingStatus();
+  }
+
+  volatileOnboardingStatusCache = parsed;
+  return parsed;
 }
 
 function resolveSettingsPayload(
@@ -556,6 +743,10 @@ export function getDefaultSettings(): CompanySettings {
   return cloneDefaultSettings();
 }
 
+export function getDefaultOnboardingStatus(): OnboardingStatus {
+  return cloneDefaultOnboardingStatus();
+}
+
 export async function readSettings(
   context?: SettingsStoreContext,
 ): Promise<CompanySettings> {
@@ -563,7 +754,9 @@ export async function readSettings(
     const userId = context.userId.trim();
     const { data, error } = await context.supabase
       .from(USER_SETTINGS_TABLE)
-      .select("settings_payload")
+      .select(
+        "settings_payload,onboarding_completed,onboarding_completed_at,onboarding_step",
+      )
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -587,7 +780,8 @@ export async function readSettings(
       return cloneDefaultSettings();
     }
 
-    const rawPayload = (data as { settings_payload?: unknown }).settings_payload;
+    const row = data as UserSettingsRow;
+    const rawPayload = row.settings_payload;
     if (!rawPayload || typeof rawPayload !== "object" || Array.isArray(rawPayload)) {
       return cloneDefaultSettings();
     }
@@ -603,6 +797,45 @@ export async function readSettings(
   }
 
   return readSettingsFromRuntimeFile();
+}
+
+export async function readOnboardingStatus(
+  context?: SettingsStoreContext,
+): Promise<OnboardingStatus> {
+  if (canUseSupabaseContext(context)) {
+    const userId = context.userId.trim();
+    const { data, error } = await context.supabase
+      .from(USER_SETTINGS_TABLE)
+      .select("onboarding_completed,onboarding_completed_at,onboarding_step")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      if (isUserSettingsSetupError(error)) {
+        const code = (error as { code?: string }).code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Verwende Fallback-Onboarding im Runtime-Speicher.`,
+        );
+        return readOnboardingStatusFromRuntimeFile();
+      }
+
+      const code = (error as { code?: string }).code ?? "UNKNOWN";
+      throw new Error(
+        `[settings-store] Supabase-Onboardingstatus konnte nicht geladen werden (${code}).`,
+        { cause: error },
+      );
+    }
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return cloneDefaultOnboardingStatus();
+    }
+
+    const parsed = parseOnboardingStatusFromRow(data as UserSettingsRow);
+    volatileOnboardingStatusCache = parsed;
+    return parsed;
+  }
+
+  return readOnboardingStatusFromRuntimeFile();
 }
 
 async function writeSettingsToRuntimeFile(
@@ -621,6 +854,31 @@ async function writeSettingsToRuntimeFile(
       const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
       console.warn(
         `[settings-store] Persistente Speicherung nicht verfügbar (${code}). Verwende flüchtigen Runtime-Cache.`,
+      );
+    } else {
+      throw error;
+    }
+  }
+
+  return next;
+}
+
+async function writeOnboardingStatusToRuntimeFile(
+  payload: OnboardingStatusUpdate,
+): Promise<OnboardingStatus> {
+  const { dataDir, onboardingPath } = await resolveSettingsStorePaths();
+  const current = await readOnboardingStatusFromRuntimeFile();
+  const next = buildNextOnboardingStatus(current, payload);
+
+  volatileOnboardingStatusCache = next;
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(onboardingPath, JSON.stringify(next, null, 2), "utf-8");
+  } catch (error) {
+    if (isReadonlyStorageError(error)) {
+      const code = (error as NodeJS.ErrnoException | undefined)?.code ?? "UNKNOWN";
+      console.warn(
+        `[settings-store] Persistente Onboarding-Speicherung nicht verfügbar (${code}). Verwende flüchtigen Runtime-Cache.`,
       );
     } else {
       throw error;
@@ -670,4 +928,48 @@ export async function writeSettings(
   }
 
   return writeSettingsToRuntimeFile(payload);
+}
+
+export async function writeOnboardingStatus(
+  payload: OnboardingStatusUpdate,
+  context?: SettingsStoreContext,
+): Promise<OnboardingStatus> {
+  if (canUseSupabaseContext(context)) {
+    const userId = context.userId.trim();
+    const current = await readOnboardingStatus(context);
+    const next = buildNextOnboardingStatus(current, payload);
+
+    const { error } = await context.supabase
+      .from(USER_SETTINGS_TABLE)
+      .upsert(
+        {
+          user_id: userId,
+          onboarding_completed: next.onboardingCompleted,
+          onboarding_completed_at: next.onboardingCompletedAt,
+          onboarding_step: next.onboardingStep,
+        },
+        { onConflict: "user_id" },
+      );
+
+    if (error) {
+      if (isUserSettingsSetupError(error)) {
+        const code = (error as { code?: string }).code ?? "UNKNOWN";
+        console.warn(
+          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Schreibe Onboarding in den Runtime-Speicher.`,
+        );
+        return writeOnboardingStatusToRuntimeFile(next);
+      }
+
+      const code = (error as { code?: string }).code ?? "UNKNOWN";
+      throw new Error(
+        `[settings-store] Supabase-Onboardingstatus konnte nicht gespeichert werden (${code}).`,
+        { cause: error },
+      );
+    }
+
+    volatileOnboardingStatusCache = next;
+    return next;
+  }
+
+  return writeOnboardingStatusToRuntimeFile(payload);
 }

@@ -8,7 +8,9 @@ import {
 } from "@/lib/logo-config";
 import {
   __resetSettingsStoreForTests,
+  readOnboardingStatus,
   readSettings,
+  writeOnboardingStatus,
   writeSettings,
 } from "@/lib/settings-store";
 import { __resetRuntimeDataDirPreparationForTests } from "@/server/services/store-runtime-paths";
@@ -227,5 +229,64 @@ describe("settings-store", () => {
     const persistedRaw = await readFile(settingsPath, "utf8");
     const persisted = JSON.parse(persistedRaw) as CompanySettings;
     expect(persisted.logoDataUrl).toBe("");
+  });
+
+  it("persists onboarding progress and completion state in runtime fallback", async () => {
+    const dataDir = await createTempDir("settings-store-onboarding-runtime-");
+    process.env.DATA_DIR = dataDir;
+    await mkdir(dataDir, { recursive: true });
+
+    await writeOnboardingStatus({
+      onboardingStep: 9,
+      onboardingCompleted: false,
+    });
+    const withClampedStep = await readOnboardingStatus();
+    expect(withClampedStep.onboardingStep).toBe(5);
+    expect(withClampedStep.onboardingCompleted).toBe(false);
+    expect(withClampedStep.onboardingCompletedAt).toBeNull();
+
+    await writeOnboardingStatus({
+      onboardingCompleted: true,
+    });
+    const completed = await readOnboardingStatus();
+    expect(completed.onboardingCompleted).toBe(true);
+    expect(completed.onboardingStep).toBe(5);
+    expect(typeof completed.onboardingCompletedAt).toBe("string");
+
+    await writeOnboardingStatus({
+      onboardingCompleted: false,
+      onboardingStep: 2,
+    });
+    const reset = await readOnboardingStatus();
+    expect(reset.onboardingCompleted).toBe(false);
+    expect(reset.onboardingStep).toBe(2);
+    expect(reset.onboardingCompletedAt).toBeNull();
+  });
+
+  it("persists onboarding status when Supabase user_settings is unavailable", async () => {
+    const dataDir = await createTempDir("settings-store-onboarding-supabase-fallback-");
+    process.env.DATA_DIR = dataDir;
+    await mkdir(dataDir, { recursive: true });
+    const supabase = buildUnavailableUserSettingsSupabase();
+
+    await writeOnboardingStatus(
+      {
+        onboardingCompleted: false,
+        onboardingStep: 3,
+      },
+      {
+        supabase,
+        userId: "user-onboarding-test",
+      },
+    );
+    __resetSettingsStoreForTests();
+
+    const restored = await readOnboardingStatus({
+      supabase,
+      userId: "user-onboarding-test",
+    });
+    expect(restored.onboardingCompleted).toBe(false);
+    expect(restored.onboardingStep).toBe(3);
+    expect(restored.onboardingCompletedAt).toBeNull();
   });
 });
