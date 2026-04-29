@@ -8167,13 +8167,7 @@ export default function HomePage() {
                       <p>{form.customerEmail.trim()}</p>
                     ) : null}
                   </div>
-                ) : (
-                  <p className="selectedServiceHint">
-                    Lade einen gespeicherten Kunden oder erfasse einen neuen
-                    Kunden direkt im Formular. Speichere den Kontakt danach,
-                    damit Projekte sauber darunter abgelegt werden.
-                  </p>
-                )}
+                ) : null}
               </div>
 
               {activeCustomerNumber ? (
