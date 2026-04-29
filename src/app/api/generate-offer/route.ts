@@ -19,6 +19,7 @@ import {
   createStoredOfferRecord,
 } from "@/server/services/offer-store-service";
 import { upsertStoredCustomer } from "@/server/services/customer-store-service";
+import { upsertStoredProject } from "@/server/services/project-store-service";
 import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
 import {
   CompanySettings,
@@ -28,6 +29,8 @@ import {
   GenerateOfferRequest,
   OfferPdfLineItem,
   OfferPositionInput,
+  PROJECT_STATUS_VALUES,
+  ProjectStatus,
 } from "@/types/offer";
 
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
@@ -421,6 +424,12 @@ function buildPaymentDueText(days: number): string {
 
 function normalizeInputValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function resolveProjectStatus(value: unknown): ProjectStatus {
+  return PROJECT_STATUS_VALUES.includes(value as ProjectStatus)
+    ? (value as ProjectStatus)
+    : "new";
 }
 
 function normalizeNumberishInputValue(value: unknown): string {
@@ -912,6 +921,9 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
     const city = body.city?.trim() ?? "";
     const customerEmail = body.customerEmail?.trim() ?? "";
     const serviceDescription = body.serviceDescription?.trim() ?? "";
+    const requestedProjectNumber = normalizeInputValue(body.projectNumber);
+    const projectName = normalizeInputValue(body.projectName);
+    const projectNote = normalizeInputValue(body.projectNote);
     const selectedServices = normalizeSelectedServices(body.selectedServices);
     const composedServiceDescription = composeServiceDescription(
       selectedServices,
@@ -1013,9 +1025,12 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       customerType === "company"
         ? personName
           ? `${companyName} (z. Hd. ${salutation === "frau" ? "Frau" : "Herr"} ${personName})`
-          : companyName
+        : companyName
         : personName;
     const customerAddress = `${street}, ${postalCode} ${city}`;
+    const projectAddress =
+      normalizeInputValue(body.projectAddress) || customerAddress;
+    const projectStatus = resolveProjectStatus(body.projectStatus);
     const settings = resolveCompanySettings(body.settings);
     const ibanValidation = validateIbanInput(settings.companyIban);
     if (!ibanValidation.isValid) {
@@ -1045,6 +1060,9 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
     const requestedCustomerNumber = normalizeInputValue(body.customerNumber);
     let customerNumberForDocument =
       requestedCustomerNumber || buildRuntimeCustomerNumber(now);
+    let projectNumberForDocument = requestedProjectNumber;
+    let projectNameForDocument = projectName;
+    let projectAddressForDocument = projectAddress;
     failureStage = "build_line_items";
     const lineItems = buildPdfLineItems({
       positions: body.positions,
@@ -1177,10 +1195,71 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       );
     }
 
+    if (requestedProjectNumber || projectName) {
+      failureStage = "persist_project";
+      try {
+        const storedProject = await upsertStoredProject({
+          projectNumber: requestedProjectNumber || undefined,
+          customerNumber: customerNumberForDocument,
+          customerType,
+          companyName,
+          salutation,
+          firstName,
+          lastName,
+          street,
+          postalCode,
+          city,
+          customerName,
+          customerAddress,
+          customerEmail,
+          projectName,
+          projectAddress,
+          status: projectStatus,
+          note: projectNote,
+          draftState: {
+            serviceDescription: composedServiceDescription,
+            hours: toDecimalInputValue(hours),
+            hourlyRate: toDecimalInputValue(hourlyRate),
+            materialCost: toDecimalInputValue(materialCost),
+            invoiceDate: toDateInputValue(resolvedInvoiceDate),
+            serviceDate: servicePeriod,
+            paymentDueDays: String(paymentDueDays),
+            positions: draftGroups,
+          },
+          referenceDate: now,
+        });
+        projectNumberForDocument = storedProject.projectNumber;
+        projectNameForDocument = storedProject.projectName;
+        projectAddressForDocument = storedProject.projectAddress;
+      } catch (error) {
+        console.error(
+          `[generate-offer:${requestId}] project_upsert_failed`,
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                runtimeDataDir: resolveRuntimeDataDir(),
+              }
+            : { error, runtimeDataDir: resolveRuntimeDataDir() },
+        );
+        return NextResponse.json(
+          {
+            error:
+              "Projekt konnte nicht gespeichert werden. Bitte erneut versuchen.",
+            requestId,
+          },
+          { status: 500 },
+        );
+      }
+    }
+
     try {
       const storedDocument = await createStoredOfferRecord({
         documentType,
         customerNumber: customerNumberForDocument,
+        projectNumber: projectNumberForDocument,
+        projectName: projectNameForDocument,
+        projectAddress: projectAddressForDocument,
         customerName,
         customerAddress,
         customerEmail,
@@ -1202,15 +1281,27 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
     }
 
     const pdfFilename = `${generatedDocumentNumber}.pdf`;
+    const projectDetailsForPdf = [
+      projectNameForDocument,
+      projectAddressForDocument !== customerAddress
+        ? projectAddressForDocument
+        : "",
+      serviceDescription,
+    ]
+      .filter(Boolean)
+      .join("\n");
     debugOfferLog(requestId, "pdf_payload_preview", {
       documentType,
       documentNumber: generatedDocumentNumber,
       customerNumber: customerNumberForDocument,
+      projectNumber: projectNumberForDocument,
+      projectName: projectNameForDocument,
+      projectAddress: projectAddressForDocument,
       customerName,
       customerAddress,
       customerEmail,
       serviceDescription: composedServiceDescription,
-      projectDetails: serviceDescription,
+      projectDetails: projectDetailsForPdf,
       lineItems,
       settings: {
         companyName: validatedSettings.companyName,
@@ -1259,7 +1350,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       customerAddress,
       customerEmail,
       serviceDescription: composedServiceDescription,
-      projectDetails: serviceDescription,
+      projectDetails: projectDetailsForPdf,
       lineItems,
       settings: safeSettings,
     };
@@ -1268,6 +1359,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
         documentType,
         documentNumber: generatedDocumentNumber,
         customerNumber: customerNumberForDocument,
+        projectNumber: projectNumberForDocument,
         lineItemsCount: lineItems.length,
         hasLogoDataUrl: Boolean(safeSettings.logoDataUrl),
       });
@@ -1336,6 +1428,10 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       emailStatus,
       emailInfo,
       customerNumber: customerNumberForDocument,
+      projectNumber: projectNumberForDocument,
+      projectName: projectNameForDocument,
+      projectAddress: projectAddressForDocument,
+      projectStatus,
       documentType,
       documentNumber: generatedDocumentNumber,
       offerNumber: generatedDocumentNumber,

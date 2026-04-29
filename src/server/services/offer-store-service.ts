@@ -37,6 +37,9 @@ type OfferStorePaths = {
 export type CreateStoredOfferInput = {
   documentType?: DocumentType;
   customerNumber?: string;
+  projectNumber?: string;
+  projectName?: string;
+  projectAddress?: string;
   customerName: string;
   customerAddress: string;
   customerEmail: string;
@@ -155,6 +158,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
   const record = value as Partial<StoredOfferRecord> & {
     offerNumber?: unknown;
     customerNumber?: unknown;
+    projectNumber?: unknown;
   };
   const createdAt = typeof record.createdAt === "string" ? record.createdAt : "";
   const createdAtLegacy =
@@ -206,6 +210,20 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
         ? record.customerNumber.trim()
+        : undefined,
+    projectNumber:
+      typeof record.projectNumber === "string" &&
+      record.projectNumber.trim().length > 0
+        ? record.projectNumber.trim()
+        : undefined,
+    projectName:
+      typeof record.projectName === "string" && record.projectName.trim().length > 0
+        ? record.projectName.trim()
+        : undefined,
+    projectAddress:
+      typeof record.projectAddress === "string" &&
+      record.projectAddress.trim().length > 0
+        ? record.projectAddress.trim()
         : undefined,
     createdAt: normalizedCreatedAt,
     created_at: normalizedCreatedAt,
@@ -518,6 +536,9 @@ export async function createStoredOfferRecord(
       documentType,
       offerNumber: assignedOfferNumber,
       customerNumber: input.customerNumber?.trim() || undefined,
+      projectNumber: input.projectNumber?.trim() || undefined,
+      projectName: input.projectName?.trim() || undefined,
+      projectAddress: input.projectAddress?.trim() || undefined,
       createdAt: generatedAt.toISOString(),
       created_at: "",
       customerName: input.customerName,

@@ -54,6 +54,16 @@ export async function GET(
     const resolvedDocumentType =
       record.documentType === "invoice" ? "invoice" : "offer";
     const documentNumber = record.offerNumber.trim() || rawDocumentNumber;
+    const projectDetails = [
+      record.projectName?.trim() || "",
+      record.projectAddress?.trim() &&
+      record.projectAddress?.trim() !== record.customerAddress.trim()
+        ? record.projectAddress.trim()
+        : "",
+      record.serviceDescription,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     let pdfBuffer: Buffer;
     try {
@@ -72,7 +82,7 @@ export async function GET(
           customerAddress: record.customerAddress,
           customerEmail: record.customerEmail,
           serviceDescription: record.serviceDescription,
-          projectDetails: record.serviceDescription,
+          projectDetails,
           lineItems: record.lineItems,
           settings: safeSettings,
         }),
@@ -93,7 +103,7 @@ export async function GET(
           customerAddress: record.customerAddress,
           customerEmail: record.customerEmail,
           serviceDescription: record.serviceDescription,
-          projectDetails: record.serviceDescription,
+          projectDetails,
           lineItems: record.lineItems,
           settings: {
             ...safeSettings,
