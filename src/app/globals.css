@@ -5921,6 +5921,29 @@ button.customerArchiveSectionToggle {
   gap: 12px;
 }
 
+.customerArchiveDocumentButton {
+  width: 100%;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform var(--interactive-transition-duration)
+      var(--interactive-transition-easing),
+    box-shadow 0.2s ease;
+}
+
+.customerArchiveDocumentButton:hover {
+  border-color: rgba(72, 118, 197, 0.36);
+  background: rgba(235, 245, 255, 0.94);
+  transform: none;
+}
+
+.customerArchiveDocumentButton:active {
+  transform: translateY(0) scale(0.985);
+}
+
 .customerArchiveDocumentMeta {
   display: grid;
   gap: 3px;
@@ -5936,6 +5959,15 @@ button.customerArchiveSectionToggle {
   color: #516b95;
   font-size: 0.78rem;
   line-height: 1.25;
+}
+
+.customerArchiveDocumentMetaAux {
+  color: #516b95;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  text-align: right;
+  max-width: 42%;
+  overflow-wrap: anywhere;
 }
 
 .customerArchiveDocumentLink {

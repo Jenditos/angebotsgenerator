@@ -99,6 +99,11 @@ type DeleteCustomerApiResponse = {
   error?: string;
 };
 
+type SaveCustomerApiResponse = {
+  customer?: StoredCustomerRecord;
+  error?: string;
+};
+
 type ProjectsApiResponse = {
   projects?: StoredProjectRecord[];
   error?: string;
@@ -575,6 +580,38 @@ function buildProjectAddressFallback(currentForm: OfferForm): string {
   return [currentForm.street.trim(), currentForm.postalCode.trim(), currentForm.city.trim()]
     .filter(Boolean)
     .join(", ");
+}
+
+type ProjectCustomerMatcher = {
+  customerNumber?: string;
+  customerName?: string;
+  customerAddress?: string;
+  customerEmail?: string;
+};
+
+function doesProjectMatchCustomer(
+  project: StoredProjectRecord,
+  customer: ProjectCustomerMatcher,
+): boolean {
+  const customerNumber = customer.customerNumber?.trim() ?? "";
+  if (customerNumber && project.customerNumber === customerNumber) {
+    return true;
+  }
+
+  const customerEmail = normalizeSearchValue(customer.customerEmail ?? "");
+  if (customerEmail && normalizeSearchValue(project.customerEmail) === customerEmail) {
+    return true;
+  }
+
+  const customerName = normalizeSearchValue(customer.customerName ?? "");
+  const customerAddress = normalizeSearchValue(customer.customerAddress ?? "");
+
+  return (
+    customerName.length > 0 &&
+    customerAddress.length > 0 &&
+    normalizeSearchValue(project.customerName) === customerName &&
+    normalizeSearchValue(project.customerAddress) === customerAddress
+  );
 }
 
 const VOICE_FIELD_LABELS: Record<string, string> = {
@@ -1792,6 +1829,7 @@ export default function HomePage() {
   const [storedProjects, setStoredProjects] = useState<StoredProjectRecord[]>([]);
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const [isCustomersLoading, setIsCustomersLoading] = useState(false);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
   const [deletingCustomerNumber, setDeletingCustomerNumber] = useState<
     string | null
   >(null);
@@ -1821,6 +1859,9 @@ export default function HomePage() {
     useState("");
   const [selectedArchiveProjectNumber, setSelectedArchiveProjectNumber] =
     useState("");
+  const [projectArchiveCustomerNumber, setProjectArchiveCustomerNumber] =
+    useState("");
+  const [isArchiveProjectsOpen, setIsArchiveProjectsOpen] = useState(true);
   const [isArchiveOffersOpen, setIsArchiveOffersOpen] = useState(false);
   const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(false);
   const [isProjectArchiveOffersOpen, setIsProjectArchiveOffersOpen] =
@@ -1965,13 +2006,90 @@ export default function HomePage() {
       );
     });
   }, [customerSearch, storedCustomers]);
-  const filteredStoredProjects = useMemo(() => {
-    const normalizedQuery = normalizeSearchValue(projectSearch);
-    if (!normalizedQuery) {
-      return storedProjects;
+  const activeCustomerProjects = useMemo(() => {
+    const customerName = buildCustomerNameForStorage(form);
+    const customerAddress = buildCustomerAddressForStorage(form);
+    const customerEmail = form.customerEmail.trim();
+    if (!activeCustomerNumber && !customerName) {
+      return [];
     }
 
-    return storedProjects.filter((project) => {
+    return storedProjects.filter((project) =>
+      doesProjectMatchCustomer(project, {
+        customerNumber: activeCustomerNumber,
+        customerName,
+        customerAddress,
+        customerEmail,
+      }),
+    );
+  }, [activeCustomerNumber, form, storedProjects]);
+  const selectedArchiveCustomerProjects = useMemo(() => {
+    const archiveCustomer =
+      storedCustomers.find(
+        (customer) => customer.customerNumber === selectedArchiveCustomerNumber,
+      ) ?? null;
+    if (!archiveCustomer) {
+      return [];
+    }
+
+    return storedProjects.filter((project) =>
+      doesProjectMatchCustomer(project, {
+        customerNumber: archiveCustomer.customerNumber,
+        customerName: archiveCustomer.customerName,
+        customerAddress: archiveCustomer.customerAddress,
+        customerEmail: archiveCustomer.customerEmail,
+      }),
+    );
+  }, [selectedArchiveCustomerNumber, storedCustomers, storedProjects]);
+  const projectArchiveScopeCustomer = useMemo(() => {
+    if (!projectArchiveCustomerNumber) {
+      return null;
+    }
+
+    return (
+      storedCustomers.find(
+        (customer) => customer.customerNumber === projectArchiveCustomerNumber,
+      ) ?? null
+    );
+  }, [projectArchiveCustomerNumber, storedCustomers]);
+  const projectArchiveScopeCustomerName = useMemo(() => {
+    if (projectArchiveScopeCustomer?.customerName) {
+      return projectArchiveScopeCustomer.customerName;
+    }
+
+    if (projectArchiveCustomerNumber && projectArchiveCustomerNumber === activeCustomerNumber) {
+      return buildCustomerNameForStorage(form);
+    }
+
+    return "";
+  }, [
+    activeCustomerNumber,
+    form,
+    projectArchiveCustomerNumber,
+    projectArchiveScopeCustomer,
+  ]);
+  const filteredStoredProjects = useMemo(() => {
+    const scopeCustomer =
+      projectArchiveCustomerNumber === activeCustomerNumber && !projectArchiveScopeCustomer
+        ? {
+            customerNumber: activeCustomerNumber,
+            customerName: buildCustomerNameForStorage(form),
+            customerAddress: buildCustomerAddressForStorage(form),
+            customerEmail: form.customerEmail.trim(),
+          }
+        : projectArchiveScopeCustomer;
+    const scopedProjects =
+      projectArchiveCustomerNumber && scopeCustomer
+        ? storedProjects.filter((project) =>
+            doesProjectMatchCustomer(project, scopeCustomer),
+          )
+        : storedProjects;
+    const normalizedQuery = normalizeSearchValue(projectSearch);
+    if (!normalizedQuery) {
+      return scopedProjects;
+    }
+
+    return scopedProjects.filter((project) => {
       const searchableParts = [
         project.projectName,
         project.projectAddress,
@@ -1985,7 +2103,7 @@ export default function HomePage() {
         normalizeSearchValue(part).includes(normalizedQuery),
       );
     });
-  }, [projectSearch, storedProjects]);
+  }, [projectArchiveCustomerNumber, projectSearch, storedProjects]);
   const archiveOfferDocuments = useMemo(
     () =>
       archiveDocuments.filter((document) => document.documentType !== "invoice"),
@@ -3220,9 +3338,13 @@ export default function HomePage() {
     setIsClosingCustomerArchive(false);
     setIsCustomerArchiveOpen(true);
     setArchiveError("");
+    setProjectArchiveCustomerNumber("");
 
     if (!isCustomersLoading && storedCustomers.length === 0) {
       void loadStoredCustomers();
+    }
+    if (!isProjectsLoading && storedProjects.length === 0) {
+      void loadStoredProjects();
     }
   }
 
@@ -3256,11 +3378,19 @@ export default function HomePage() {
     setArchiveDocuments([]);
     setArchiveError("");
     setIsArchiveDocumentsLoading(false);
+    setIsArchiveProjectsOpen(true);
     setIsArchiveOffersOpen(false);
     setIsArchiveInvoicesOpen(false);
   }
 
-  function openProjectArchive() {
+  function openProjectArchive(customerNumber?: string, projectNumber?: string) {
+    const resolvedCustomerNumber =
+      customerNumber?.trim() || activeCustomerNumber.trim();
+    if (!resolvedCustomerNumber && !projectNumber?.trim()) {
+      setError("Bitte zuerst einen Kontakt laden oder speichern.");
+      return;
+    }
+
     if (projectArchiveCloseTimeoutRef.current !== null) {
       window.clearTimeout(projectArchiveCloseTimeoutRef.current);
       projectArchiveCloseTimeoutRef.current = null;
@@ -3274,6 +3404,17 @@ export default function HomePage() {
     setIsClosingProjectArchive(false);
     setIsProjectArchiveOpen(true);
     setProjectArchiveError("");
+    setProjectSearch("");
+    setProjectArchiveCustomerNumber(resolvedCustomerNumber);
+
+    if (projectNumber?.trim()) {
+      setSelectedArchiveProjectNumber(projectNumber.trim());
+      setIsProjectArchiveOffersOpen(false);
+      setIsProjectArchiveInvoicesOpen(false);
+      void loadProjectDocuments(projectNumber.trim());
+    } else {
+      clearArchiveProjectSelection();
+    }
 
     if (!isProjectsLoading && storedProjects.length === 0) {
       void loadStoredProjects();
@@ -3296,6 +3437,7 @@ export default function HomePage() {
     projectArchiveCloseTimeoutRef.current = window.setTimeout(() => {
       setIsProjectArchiveOpen(false);
       setIsClosingProjectArchive(false);
+      setProjectArchiveCustomerNumber("");
       setProjectSearch("");
       projectArchiveCloseTimeoutRef.current = null;
     }, 170);
@@ -3361,12 +3503,6 @@ export default function HomePage() {
     setIsSetupHintOpen(false);
     closeAccountMenu();
     openCustomerArchive();
-  }
-
-  function openProjectArchiveFromAccountMenu() {
-    setIsSetupHintOpen(false);
-    closeAccountMenu();
-    openProjectArchive();
   }
 
   function navigateToAuthFromAccountMenu() {
@@ -3443,8 +3579,12 @@ export default function HomePage() {
     }
 
     setSelectedArchiveCustomerNumber(customer.customerNumber);
+    setIsArchiveProjectsOpen(true);
     setIsArchiveOffersOpen(false);
     setIsArchiveInvoicesOpen(false);
+    if (!isProjectsLoading && storedProjects.length === 0) {
+      void loadStoredProjects();
+    }
     void loadCustomerDocuments(customer.customerNumber);
   }
 
@@ -3453,6 +3593,9 @@ export default function HomePage() {
       return;
     }
 
+    if (project.customerNumber) {
+      setProjectArchiveCustomerNumber(project.customerNumber);
+    }
     setSelectedArchiveProjectNumber(project.projectNumber);
     setIsProjectArchiveOffersOpen(false);
     setIsProjectArchiveInvoicesOpen(false);
@@ -3603,6 +3746,103 @@ export default function HomePage() {
     return [currentForm.street.trim(), postalCity].filter(Boolean).join(", ");
   }
 
+  function upsertStoredCustomerState(customer: StoredCustomerRecord) {
+    setStoredCustomers((prev) => {
+      const existingIndex = prev.findIndex(
+        (entry) => entry.customerNumber === customer.customerNumber,
+      );
+      if (existingIndex < 0) {
+        return [customer, ...prev];
+      }
+
+      const next = [...prev];
+      next[existingIndex] = customer;
+      return next.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    });
+  }
+
+  async function persistCurrentCustomer(options?: {
+    silent?: boolean;
+  }): Promise<StoredCustomerRecord | null> {
+    const customerName = buildCustomerNameForStorage(form);
+    const customerAddress = buildCustomerAddressForStorage(form);
+
+    if (!customerName) {
+      setError("Bitte zuerst einen Kontakt oder Ansprechpartner angeben.");
+      return null;
+    }
+
+    if (
+      !form.street.trim() ||
+      !form.postalCode.trim() ||
+      !form.city.trim() ||
+      !customerAddress
+    ) {
+      setError("Bitte zuerst eine vollständige Kundenadresse angeben.");
+      return null;
+    }
+
+    setError("");
+    setCustomersError("");
+    if (!options?.silent) {
+      setPostActionInfo("");
+    }
+    setIsSavingCustomer(true);
+
+    try {
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerType: form.customerType,
+          companyName: form.companyName,
+          salutation: form.salutation,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          street: form.street,
+          postalCode: form.postalCode,
+          city: form.city,
+          customerEmail: form.customerEmail,
+          customerName,
+          customerAddress,
+          draftState: {
+            serviceDescription: form.serviceDescription.trim(),
+            hours: form.hours.trim(),
+            hourlyRate: form.hourlyRate.trim(),
+            materialCost: form.materialCost.trim(),
+            invoiceDate: form.invoiceDate.trim(),
+            serviceDate: form.serviceDate.trim(),
+            paymentDueDays: form.paymentDueDays.trim(),
+            positions: selectedServicesToDraftPayload(selectedServices),
+          },
+        }),
+      });
+      const data = (await response.json()) as SaveCustomerApiResponse;
+      if (!response.ok || !data.customer) {
+        setError(data.error ?? "Kontakt konnte nicht gespeichert werden.");
+        return null;
+      }
+
+      upsertStoredCustomerState(data.customer);
+      setActiveCustomerNumber(data.customer.customerNumber);
+      setForm((prev) => ({
+        ...prev,
+        projectAddress: prev.projectAddress.trim()
+          ? prev.projectAddress
+          : data.customer?.customerAddress ?? prev.projectAddress,
+      }));
+      if (!options?.silent) {
+        setPostActionInfo(`Kontakt ${data.customer.customerName} wurde gespeichert.`);
+      }
+      return data.customer;
+    } catch {
+      setError("Kontakt konnte nicht gespeichert werden.");
+      return null;
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  }
+
   function updateStoredCustomersRealtime(payload: ApiResponse) {
     const customerNumber = payload.customerNumber?.trim();
     if (!customerNumber) {
@@ -3742,6 +3982,7 @@ export default function HomePage() {
     const projectName = form.projectName.trim();
     const customerName = buildCustomerNameForStorage(form);
     const customerAddress = buildCustomerAddressForStorage(form);
+    let customerNumberForProject = activeCustomerNumber.trim();
 
     if (!projectName) {
       setError("Bitte zuerst einen Projektnamen eingeben.");
@@ -3762,13 +4003,21 @@ export default function HomePage() {
     setPostActionInfo("");
     setProjectsError("");
 
+    if (!customerNumberForProject) {
+      const savedCustomer = await persistCurrentCustomer({ silent: true });
+      if (!savedCustomer) {
+        return;
+      }
+      customerNumberForProject = savedCustomer.customerNumber;
+    }
+
     try {
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectNumber: activeProjectNumber || undefined,
-          customerNumber: activeCustomerNumber || undefined,
+          customerNumber: customerNumberForProject || undefined,
           customerType: form.customerType,
           companyName: form.companyName,
           salutation: form.salutation,
@@ -6146,14 +6395,6 @@ export default function HomePage() {
                   type="button"
                   className="accountMenuItem"
                   role="menuitem"
-                  onClick={openProjectArchiveFromAccountMenu}
-                >
-                  Projektarchiv
-                </button>
-                <button
-                  type="button"
-                  className="accountMenuItem"
-                  role="menuitem"
                   onClick={toggleTipsFromAccountMenu}
                 >
                   Tipps
@@ -6324,10 +6565,42 @@ export default function HomePage() {
                       <p>{selectedArchiveCustomer.customerAddress}</p>
                     </div>
 
+                    <div className="projectArchiveActionRow">
+                      <button
+                        type="button"
+                        className="ghostButton"
+                        onClick={() => {
+                          applyStoredCustomer(selectedArchiveCustomer);
+                          closeCustomerArchive();
+                        }}
+                      >
+                        Kontakt ins Formular laden
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton"
+                        onClick={() =>
+                          openProjectArchive(selectedArchiveCustomer.customerNumber)
+                        }
+                      >
+                        Projekte dieses Kontakts
+                      </button>
+                    </div>
+
                     <p className="customerArchiveTitle">
-                      Dokumente für {selectedArchiveCustomer.customerName}
+                      Projekte und Dokumente für {selectedArchiveCustomer.customerName}
                     </p>
 
+                    {isProjectsLoading ? (
+                      <p className="customerArchiveHint">
+                        Projekte werden geladen ...
+                      </p>
+                    ) : null}
+                    {!isProjectsLoading && projectsError ? (
+                      <p className="voiceWarning" role="alert">
+                        {projectsError}
+                      </p>
+                    ) : null}
                     {isArchiveDocumentsLoading ? (
                       <p className="customerArchiveHint">
                         Dokumente werden geladen ...
@@ -6338,109 +6611,146 @@ export default function HomePage() {
                         {archiveError}
                       </p>
                     ) : null}
-                    {!isArchiveDocumentsLoading &&
+                    {!isProjectsLoading &&
+                    !projectsError &&
+                    !isArchiveDocumentsLoading &&
                     !archiveError &&
+                    selectedArchiveCustomerProjects.length === 0 &&
                     archiveDocuments.length === 0 ? (
                       <p className="customerArchiveHint">
-                        Für diesen Kunden sind noch keine Dokumente gespeichert.
+                        Für diesen Kontakt sind noch keine Projekte oder Dokumente gespeichert.
                       </p>
                     ) : null}
 
-                    {!isArchiveDocumentsLoading &&
-                    !archiveError &&
-                    archiveDocuments.length > 0 ? (
-                      <div className="customerArchiveDocumentGroups">
-                        <div className="customerArchiveDocumentGroup">
-                          <button
-                            type="button"
-                            className="customerArchiveSectionToggle"
-                            aria-expanded={isArchiveOffersOpen}
-                            onClick={() =>
-                              setIsArchiveOffersOpen((value) => !value)
-                            }
-                          >
-                            <span className="customerArchiveGroupLabel">
-                              Angebote
-                            </span>
-                            <span className="customerArchiveSectionMeta">
-                              {archiveOfferDocuments.length}
-                            </span>
-                          </button>
-                          {isArchiveOffersOpen ? (
-                            archiveOfferDocuments.length === 0 ? (
-                              <p className="customerArchiveHint customerArchiveHintCompact">
-                                Keine Angebote vorhanden.
-                              </p>
-                            ) : (
-                              <div className="customerArchiveDocumentList">
-                                {archiveOfferDocuments.map((document) => (
-                                  <a
-                                    key={document.documentNumber}
-                                    className="customerArchiveDocumentItem customerArchiveDocumentLink"
-                                    href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    <div className="customerArchiveDocumentMeta">
-                                      <strong>{document.documentNumber}</strong>
-                                      <span>
-                                        Angebot •{" "}
-                                        {formatArchiveDate(document.createdAt)}
-                                      </span>
-                                    </div>
-                                  </a>
-                                ))}
-                              </div>
-                            )
-                          ) : null}
-                        </div>
-
-                        <div className="customerArchiveDocumentGroup">
-                          <button
-                            type="button"
-                            className="customerArchiveSectionToggle"
-                            aria-expanded={isArchiveInvoicesOpen}
-                            onClick={() =>
-                              setIsArchiveInvoicesOpen((value) => !value)
-                            }
-                          >
-                            <span className="customerArchiveGroupLabel">
-                              Rechnungen
-                            </span>
-                            <span className="customerArchiveSectionMeta">
-                              {archiveInvoiceDocuments.length}
-                            </span>
-                          </button>
-                          {isArchiveInvoicesOpen ? (
-                            archiveInvoiceDocuments.length === 0 ? (
-                              <p className="customerArchiveHint customerArchiveHintCompact">
-                                Keine Rechnungen vorhanden.
-                              </p>
-                            ) : (
-                              <div className="customerArchiveDocumentList">
-                                {archiveInvoiceDocuments.map((document) => (
-                                  <a
-                                    key={document.documentNumber}
-                                    className="customerArchiveDocumentItem customerArchiveDocumentLink"
-                                    href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    <div className="customerArchiveDocumentMeta">
-                                      <strong>{document.documentNumber}</strong>
-                                      <span>
-                                        Rechnung •{" "}
-                                        {formatArchiveDate(document.createdAt)}
-                                      </span>
-                                    </div>
-                                  </a>
-                                ))}
-                              </div>
-                            )
-                          ) : null}
-                        </div>
+                    <div className="customerArchiveDocumentGroups">
+                      <div className="customerArchiveDocumentGroup">
+                        <button
+                          type="button"
+                          className="customerArchiveSectionToggle"
+                          aria-expanded={isArchiveProjectsOpen}
+                          onClick={() => setIsArchiveProjectsOpen((value) => !value)}
+                        >
+                          <span className="customerArchiveGroupLabel">Projekte</span>
+                          <span className="customerArchiveSectionMeta">
+                            {selectedArchiveCustomerProjects.length}
+                          </span>
+                        </button>
+                        {isArchiveProjectsOpen ? (
+                          selectedArchiveCustomerProjects.length === 0 ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Keine Projekte für diesen Kontakt vorhanden.
+                            </p>
+                          ) : (
+                            <div className="customerArchiveDocumentList">
+                              {selectedArchiveCustomerProjects.map((project) => (
+                                <button
+                                  key={project.projectNumber}
+                                  type="button"
+                                  className="customerArchiveDocumentItem customerArchiveDocumentButton"
+                                  onClick={() =>
+                                    openProjectArchive(
+                                      selectedArchiveCustomer.customerNumber,
+                                      project.projectNumber,
+                                    )
+                                  }
+                                >
+                                  <div className="customerArchiveDocumentMeta">
+                                    <strong>{project.projectName}</strong>
+                                    <span>
+                                      {project.projectNumber} •{" "}
+                                      {formatProjectStatusLabel(project.status)}
+                                    </span>
+                                  </div>
+                                  <span className="customerArchiveDocumentMetaAux">
+                                    {project.projectAddress}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
                       </div>
-                    ) : null}
+
+                      <div className="customerArchiveDocumentGroup">
+                        <button
+                          type="button"
+                          className="customerArchiveSectionToggle"
+                          aria-expanded={isArchiveOffersOpen}
+                          onClick={() => setIsArchiveOffersOpen((value) => !value)}
+                        >
+                          <span className="customerArchiveGroupLabel">Angebote</span>
+                          <span className="customerArchiveSectionMeta">
+                            {archiveOfferDocuments.length}
+                          </span>
+                        </button>
+                        {isArchiveOffersOpen ? (
+                          archiveOfferDocuments.length === 0 ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Keine Angebote vorhanden.
+                            </p>
+                          ) : (
+                            <div className="customerArchiveDocumentList">
+                              {archiveOfferDocuments.map((document) => (
+                                <a
+                                  key={document.documentNumber}
+                                  className="customerArchiveDocumentItem customerArchiveDocumentLink"
+                                  href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <div className="customerArchiveDocumentMeta">
+                                    <strong>{document.documentNumber}</strong>
+                                    <span>
+                                      Angebot • {formatArchiveDate(document.createdAt)}
+                                    </span>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+
+                      <div className="customerArchiveDocumentGroup">
+                        <button
+                          type="button"
+                          className="customerArchiveSectionToggle"
+                          aria-expanded={isArchiveInvoicesOpen}
+                          onClick={() => setIsArchiveInvoicesOpen((value) => !value)}
+                        >
+                          <span className="customerArchiveGroupLabel">Rechnungen</span>
+                          <span className="customerArchiveSectionMeta">
+                            {archiveInvoiceDocuments.length}
+                          </span>
+                        </button>
+                        {isArchiveInvoicesOpen ? (
+                          archiveInvoiceDocuments.length === 0 ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Keine Rechnungen vorhanden.
+                            </p>
+                          ) : (
+                            <div className="customerArchiveDocumentList">
+                              {archiveInvoiceDocuments.map((document) => (
+                                <a
+                                  key={document.documentNumber}
+                                  className="customerArchiveDocumentItem customerArchiveDocumentLink"
+                                  href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <div className="customerArchiveDocumentMeta">
+                                    <strong>{document.documentNumber}</strong>
+                                    <span>
+                                      Rechnung • {formatArchiveDate(document.createdAt)}
+                                    </span>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -6462,7 +6772,11 @@ export default function HomePage() {
               ref={projectArchiveSheetRef}
             >
               <div className="customerArchiveHeader">
-                <strong id="project-archive-title">Projektarchiv</strong>
+                <strong id="project-archive-title">
+                  {projectArchiveScopeCustomerName
+                    ? `Projekte von ${projectArchiveScopeCustomerName}`
+                    : "Projektarchiv"}
+                </strong>
                 <button
                   type="button"
                   className="customerArchiveCloseButton"
@@ -6494,7 +6808,11 @@ export default function HomePage() {
                       type="search"
                       value={projectSearch}
                       onChange={(event) => setProjectSearch(event.target.value)}
-                      placeholder="Projekt suchen (Name, Kunde, Adresse)"
+                      placeholder={
+                        projectArchiveCustomerNumber
+                          ? "Projekt suchen (Name, Adresse)"
+                          : "Projekt suchen (Name, Kunde, Adresse)"
+                      }
                       aria-label="Gespeicherte Projekte suchen"
                     />
 
@@ -6517,8 +6835,18 @@ export default function HomePage() {
                     ) : null}
                     {!isProjectsLoading &&
                     !projectsError &&
+                    filteredStoredProjects.length === 0 &&
+                    projectArchiveCustomerNumber ? (
+                      <p className="customerArchiveHint">
+                        Für diesen Kontakt sind noch keine Projekte gespeichert.
+                      </p>
+                    ) : null}
+                    {!isProjectsLoading &&
+                    !projectsError &&
+                    filteredStoredProjects.length === 0 &&
                     storedProjects.length > 0 &&
-                    filteredStoredProjects.length === 0 ? (
+                    !projectArchiveCustomerNumber &&
+                    projectSearch.trim() ? (
                       <p className="customerArchiveHint">
                         Keine Projekte zur Suche gefunden.
                       </p>
@@ -6547,7 +6875,9 @@ export default function HomePage() {
                                 <span className="projectStatusBadge">
                                   {formatProjectStatusLabel(project.status)}
                                 </span>
-                                <p>{project.customerName}</p>
+                                {!projectArchiveCustomerNumber ? (
+                                  <p>{project.customerName}</p>
+                                ) : null}
                                 <p>{project.projectAddress}</p>
                               </div>
                               <div className="customerArchiveCustomerMeta">
@@ -6595,7 +6925,9 @@ export default function HomePage() {
                           strokeLinejoin="round"
                         />
                       </svg>
-                      Zurück zur Projektliste
+                      {projectArchiveScopeCustomerName
+                        ? "Zurück zu den Kontaktprojekten"
+                        : "Zurück zur Projektliste"}
                     </button>
 
                     <div className="customerArchiveDetailHeader">
@@ -7309,40 +7641,6 @@ export default function HomePage() {
                   </button>
                   <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
                 </div>
-                <div className={`appSidebarNavItem ${isProjectArchiveOpen ? "active" : ""}`}>
-                  <button
-                    type="button"
-                    className="appSidebarNavIconWrap"
-                    onClick={openProjectArchiveFromAccountMenu}
-                    aria-label="Gespeicherte Projekte öffnen"
-                    title="Gespeicherte Projekte"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <path
-                        d="M5.4 6.4h5.1l1.6 2h6.1a1.9 1.9 0 0 1 1.9 1.9v7.3a1.9 1.9 0 0 1-1.9 1.9H5.8a1.9 1.9 0 0 1-1.9-1.9V8.3a1.9 1.9 0 0 1 1.5-1.9Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M9 12h6m-3-3v6"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                  <span className="appSidebarNavLabel">Projekte</span>
-                </div>
                 <div className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}>
                   <button
                     type="button"
@@ -7831,6 +8129,18 @@ export default function HomePage() {
                   <button
                     type="button"
                     className="ghostButton customerPickerToggle"
+                    disabled={isSavingCustomer}
+                    onClick={() => void persistCurrentCustomer()}
+                  >
+                    {isSavingCustomer
+                      ? "Kontakt wird gespeichert ..."
+                      : activeCustomerNumber
+                        ? "Kontakt aktualisieren"
+                        : "Kontakt speichern"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton customerPickerToggle"
                     onClick={toggleStoredCustomers}
                   >
                     Gespeicherten Kunden laden
@@ -7860,7 +8170,8 @@ export default function HomePage() {
                 ) : (
                   <p className="selectedServiceHint">
                     Lade einen gespeicherten Kunden oder erfasse einen neuen
-                    Kunden direkt im Formular.
+                    Kunden direkt im Formular. Speichere den Kontakt danach,
+                    damit Projekte sauber darunter abgelegt werden.
                   </p>
                 )}
               </div>
@@ -7870,8 +8181,8 @@ export default function HomePage() {
                   <div>
                     <strong>Projekt / Baustelle</strong>
                     <p>
-                      Verbinde Angebote und Rechnungen mit einer konkreten
-                      Baustelle.
+                      Wähle zuerst den Kontakt und ordne danach das passende
+                      Projekt dieser Baustelle zu.
                     </p>
                   </div>
                   {activeProjectNumber || form.projectName.trim() ? (
@@ -7885,9 +8196,12 @@ export default function HomePage() {
                   <button
                     type="button"
                     className="ghostButton customerPickerToggle"
-                    onClick={openProjectArchive}
+                    disabled={!activeCustomerNumber}
+                    onClick={() => openProjectArchive(activeCustomerNumber)}
                   >
-                    Gespeicherte Projekte
+                    {activeCustomerNumber
+                      ? "Projekte dieses Kontakts"
+                      : "Erst Kontakt wählen"}
                   </button>
                   <button
                     type="button"
@@ -7906,6 +8220,23 @@ export default function HomePage() {
                     </button>
                   ) : null}
                 </div>
+
+                {!activeCustomerNumber ? (
+                  <p className="selectedServiceHint">
+                    Speichere oder lade zuerst einen Kontakt. Danach erscheinen
+                    hier die zugehörigen Projekte.
+                  </p>
+                ) : activeCustomerProjects.length > 0 ? (
+                  <p className="selectedServiceHint">
+                    {activeCustomerProjects.length} gespeicherte{" "}
+                    {activeCustomerProjects.length === 1 ? "Projektakte" : "Projektakten"}{" "}
+                    für diesen Kontakt vorhanden.
+                  </p>
+                ) : (
+                  <p className="selectedServiceHint">
+                    Für diesen Kontakt ist noch kein Projekt gespeichert.
+                  </p>
+                )}
 
                 <div className="projectWorkspaceGrid">
                   <label className="field span2">
