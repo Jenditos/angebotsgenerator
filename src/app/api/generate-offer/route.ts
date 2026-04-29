@@ -1252,7 +1252,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
         );
       }
     }
-
+    failureStage = "persist_document_record";
     try {
       const storedDocument = await createStoredOfferRecord({
         documentType,
@@ -1272,11 +1272,32 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       });
       generatedDocumentNumber = storedDocument.offerNumber;
     } catch (error) {
-      console.warn(
+      console.error(
         `[generate-offer:${requestId}] offer_record_persist_failed`,
         error instanceof Error
-          ? { name: error.name, message: error.message }
-          : { error },
+          ? {
+              name: error.name,
+              message: error.message,
+              runtimeDataDir: resolveRuntimeDataDir(),
+              customerNumber: customerNumberForDocument,
+              documentType,
+            }
+          : {
+              error,
+              runtimeDataDir: resolveRuntimeDataDir(),
+              customerNumber: customerNumberForDocument,
+              documentType,
+            },
+      );
+      return NextResponse.json(
+        {
+          error:
+            documentType === "invoice"
+              ? "Rechnung konnte nicht im Archiv gespeichert werden. Bitte erneut versuchen."
+              : "Angebot konnte nicht im Archiv gespeichert werden. Bitte erneut versuchen.",
+          requestId,
+        },
+        { status: 500 },
       );
     }
 
