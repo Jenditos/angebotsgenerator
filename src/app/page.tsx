@@ -8176,193 +8176,187 @@ export default function HomePage() {
                 )}
               </div>
 
-              <section className="projectWorkspacePanel span2" aria-label="Projekt">
-                <div className="projectWorkspaceHeader">
-                  <div>
-                    <strong>Projekt / Baustelle</strong>
-                    <p>
-                      Wähle zuerst den Kontakt und ordne danach das passende
-                      Projekt dieser Baustelle zu.
-                    </p>
+              {activeCustomerNumber ? (
+                <section className="projectWorkspacePanel span2" aria-label="Projekt">
+                  <div className="projectWorkspaceHeader">
+                    <div>
+                      <strong>Projekt / Baustelle</strong>
+                      <p>
+                        Wähle jetzt das passende Projekt zu diesem Kontakt oder lege
+                        eine neue Baustelle an.
+                      </p>
+                    </div>
+                    {activeProjectNumber || form.projectName.trim() ? (
+                      <span className="projectStatusBadge">
+                        {formatProjectStatusLabel(form.projectStatus)}
+                      </span>
+                    ) : null}
                   </div>
-                  {activeProjectNumber || form.projectName.trim() ? (
-                    <span className="projectStatusBadge">
-                      {formatProjectStatusLabel(form.projectStatus)}
-                    </span>
-                  ) : null}
-                </div>
 
-                <div className="projectWorkspaceActions">
-                  <button
-                    type="button"
-                    className="ghostButton customerPickerToggle"
-                    disabled={!activeCustomerNumber}
-                    onClick={() => openProjectArchive(activeCustomerNumber)}
-                  >
-                    {activeCustomerNumber
-                      ? "Projekte dieses Kontakts"
-                      : "Erst Kontakt wählen"}
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton customerPickerToggle"
-                    onClick={() => void saveCurrentProject()}
-                  >
-                    {activeProjectNumber ? "Projekt aktualisieren" : "Projekt speichern"}
-                  </button>
-                  {activeProjectNumber ? (
+                  <div className="projectWorkspaceActions">
                     <button
                       type="button"
-                      className="ghostButton projectClearButton"
-                      onClick={clearActiveProjectSelection}
+                      className="ghostButton customerPickerToggle"
+                      onClick={() => openProjectArchive(activeCustomerNumber)}
                     >
-                      Projekt lösen
+                      Projekte dieses Kontakts
                     </button>
-                  ) : null}
-                </div>
+                    <button
+                      type="button"
+                      className="ghostButton customerPickerToggle"
+                      onClick={() => void saveCurrentProject()}
+                    >
+                      {activeProjectNumber ? "Projekt aktualisieren" : "Projekt speichern"}
+                    </button>
+                    {activeProjectNumber ? (
+                      <button
+                        type="button"
+                        className="ghostButton projectClearButton"
+                        onClick={clearActiveProjectSelection}
+                      >
+                        Projekt lösen
+                      </button>
+                    ) : null}
+                  </div>
 
-                {!activeCustomerNumber ? (
-                  <p className="selectedServiceHint">
-                    Speichere oder lade zuerst einen Kontakt. Danach erscheinen
-                    hier die zugehörigen Projekte.
-                  </p>
-                ) : activeCustomerProjects.length > 0 ? (
-                  <p className="selectedServiceHint">
-                    {activeCustomerProjects.length} gespeicherte{" "}
-                    {activeCustomerProjects.length === 1 ? "Projektakte" : "Projektakten"}{" "}
-                    für diesen Kontakt vorhanden.
-                  </p>
-                ) : (
-                  <p className="selectedServiceHint">
-                    Für diesen Kontakt ist noch kein Projekt gespeichert.
-                  </p>
-                )}
+                  {activeCustomerProjects.length > 0 ? (
+                    <p className="selectedServiceHint">
+                      {activeCustomerProjects.length} gespeicherte{" "}
+                      {activeCustomerProjects.length === 1 ? "Projektakte" : "Projektakten"}{" "}
+                      für diesen Kontakt vorhanden.
+                    </p>
+                  ) : (
+                    <p className="selectedServiceHint">
+                      Für diesen Kontakt ist noch kein Projekt gespeichert.
+                    </p>
+                  )}
 
-                <div className="projectWorkspaceGrid">
-                  <label className="field span2">
-                    <span>Projektname</span>
-                    <input
-                      placeholder="z. B. Badezimmer Renovierung"
-                      autoCapitalize="words"
-                      value={form.projectName}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          projectName: capitalizeEntryStart(event.target.value),
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Baustellenadresse</span>
-                    <input
-                      placeholder="z. B. Musterstraße 10, 40210 Düsseldorf"
-                      autoCapitalize="words"
-                      value={form.projectAddress}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          projectAddress: capitalizeEntryStart(event.target.value),
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Status</span>
-                    <div className="selectWithIndicator">
-                      <select
-                        className="selectWithIndicatorInput"
-                        value={form.projectStatus}
+                  <div className="projectWorkspaceGrid">
+                    <label className="field span2">
+                      <span>Projektname</span>
+                      <input
+                        placeholder="z. B. Badezimmer Renovierung"
+                        autoCapitalize="words"
+                        value={form.projectName}
                         onChange={(event) =>
                           setForm((prev) => ({
                             ...prev,
-                            projectStatus: PROJECT_STATUS_VALUES.includes(
-                              event.target.value as ProjectStatus,
-                            )
-                              ? (event.target.value as ProjectStatus)
-                              : "new",
+                            projectName: capitalizeEntryStart(event.target.value),
                           }))
                         }
-                      >
-                        {PROJECT_STATUS_VALUES.map((statusValue) => (
-                          <option key={statusValue} value={statusValue}>
-                            {formatProjectStatusLabel(statusValue)}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="serviceSearchIndicator" aria-hidden="true">
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="serviceSearchIndicatorIcon"
-                          focusable="false"
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Baustellenadresse</span>
+                      <input
+                        placeholder="z. B. Musterstraße 10, 40210 Düsseldorf"
+                        autoCapitalize="words"
+                        value={form.projectAddress}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            projectAddress: capitalizeEntryStart(event.target.value),
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Status</span>
+                      <div className="selectWithIndicator">
+                        <select
+                          className="selectWithIndicatorInput"
+                          value={form.projectStatus}
+                          onChange={(event) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              projectStatus: PROJECT_STATUS_VALUES.includes(
+                                event.target.value as ProjectStatus,
+                              )
+                                ? (event.target.value as ProjectStatus)
+                                : "new",
+                            }))
+                          }
                         >
-                          <path
-                            d="m8 10 4-4 4 4m-8 4 4 4 4-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </label>
+                          {PROJECT_STATUS_VALUES.map((statusValue) => (
+                            <option key={statusValue} value={statusValue}>
+                              {formatProjectStatusLabel(statusValue)}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="serviceSearchIndicator" aria-hidden="true">
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="serviceSearchIndicatorIcon"
+                            focusable="false"
+                          >
+                            <path
+                              d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </span>
+                      </div>
+                    </label>
 
-                  <label className="field span2">
-                    <span>Projektnotiz</span>
-                    <textarea
-                      className="projectDescriptionTextarea"
-                      rows={3}
-                      placeholder="z. B. Kunde wünscht Ausführung in zwei Abschnitten."
-                      value={form.projectNote}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          projectNote: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-
-                {activeProjectNumber || form.projectName.trim() ? (
-                  <div className="projectSummaryCard">
-                    <div className="projectSummaryHeader">
-                      <strong>
-                        {activeProject?.projectName || form.projectName.trim()}
-                      </strong>
-                      <span>{activeProject?.projectNumber || "Entwurf"}</span>
-                    </div>
-                    <div className="projectSummaryMetaRow">
-                      <span className="projectStatusBadge">
-                        {formatProjectStatusLabel(
-                          activeProject?.status || form.projectStatus,
-                        )}
-                      </span>
-                      <span>
-                        {activeProject?.customerName || buildCustomerNameForStorage(form)}
-                      </span>
-                    </div>
-                    <p>
-                      {activeProject?.projectAddress ||
-                        form.projectAddress.trim() ||
-                        buildProjectAddressFallback(form)}
-                    </p>
-                    {(activeProject?.note || form.projectNote.trim()) ? (
-                      <p>{activeProject?.note || form.projectNote.trim()}</p>
-                    ) : null}
+                    <label className="field span2">
+                      <span>Projektnotiz</span>
+                      <textarea
+                        className="projectDescriptionTextarea"
+                        rows={3}
+                        placeholder="z. B. Kunde wünscht Ausführung in zwei Abschnitten."
+                        value={form.projectNote}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            projectNote: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
                   </div>
-                ) : (
-                  <p className="selectedServiceHint">
-                    Lege hier eine Baustelle an oder lade ein bestehendes
-                    Projekt. Beim Erstellen des Dokuments wird die Zuordnung
-                    automatisch gespeichert.
-                  </p>
-                )}
-              </section>
+
+                  {activeProjectNumber || form.projectName.trim() ? (
+                    <div className="projectSummaryCard">
+                      <div className="projectSummaryHeader">
+                        <strong>
+                          {activeProject?.projectName || form.projectName.trim()}
+                        </strong>
+                        <span>{activeProject?.projectNumber || "Entwurf"}</span>
+                      </div>
+                      <div className="projectSummaryMetaRow">
+                        <span className="projectStatusBadge">
+                          {formatProjectStatusLabel(
+                            activeProject?.status || form.projectStatus,
+                          )}
+                        </span>
+                        <span>
+                          {activeProject?.customerName || buildCustomerNameForStorage(form)}
+                        </span>
+                      </div>
+                      <p>
+                        {activeProject?.projectAddress ||
+                          form.projectAddress.trim() ||
+                          buildProjectAddressFallback(form)}
+                      </p>
+                      {(activeProject?.note || form.projectNote.trim()) ? (
+                        <p>{activeProject?.note || form.projectNote.trim()}</p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="selectedServiceHint">
+                      Lege hier eine Baustelle an oder lade ein bestehendes
+                      Projekt. Beim Erstellen des Dokuments wird die Zuordnung
+                      automatisch gespeichert.
+                    </p>
+                  )}
+                </section>
+              ) : null}
 
               <div
                 className="recipientType span2"
