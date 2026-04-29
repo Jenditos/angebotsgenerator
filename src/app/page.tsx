@@ -1829,7 +1829,7 @@ export default function HomePage() {
   const [storedProjects, setStoredProjects] = useState<StoredProjectRecord[]>([]);
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const [isCustomersLoading, setIsCustomersLoading] = useState(false);
-  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const [, setIsSavingCustomer] = useState(false);
   const [deletingCustomerNumber, setDeletingCustomerNumber] = useState<
     string | null
   >(null);
@@ -3161,14 +3161,6 @@ export default function HomePage() {
     } finally {
       setIsProjectsLoading(false);
     }
-  }
-
-  function toggleStoredCustomers() {
-    if (isCustomerPickerOpen) {
-      closeCustomerPickerPopup();
-      return;
-    }
-    openCustomerPickerPopup();
   }
 
   async function loadCustomerDocuments(customerNumber: string) {
@@ -8125,28 +8117,6 @@ export default function HomePage() {
               </div>
 
               <div className="customerPickerPanel span2">
-                <div className="projectWorkspaceActions">
-                  <button
-                    type="button"
-                    className="ghostButton customerPickerToggle"
-                    disabled={isSavingCustomer}
-                    onClick={() => void persistCurrentCustomer()}
-                  >
-                    {isSavingCustomer
-                      ? "Kontakt wird gespeichert ..."
-                      : activeCustomerNumber
-                        ? "Kontakt aktualisieren"
-                        : "Kontakt speichern"}
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton customerPickerToggle"
-                    onClick={toggleStoredCustomers}
-                  >
-                    Gespeicherten Kunden laden
-                  </button>
-                </div>
-
                 {activeCustomerNumber ? (
                   <div className="projectSummaryCard">
                     <div className="projectSummaryHeader">
