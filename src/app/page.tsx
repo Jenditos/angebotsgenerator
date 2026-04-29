@@ -8145,13 +8145,6 @@ export default function HomePage() {
                   >
                     Gespeicherten Kunden laden
                   </button>
-                  <button
-                    type="button"
-                    className="ghostButton customerPickerToggle"
-                    onClick={openCustomerArchive}
-                  >
-                    Kundenarchiv
-                  </button>
                 </div>
 
                 {activeCustomerNumber ? (
