@@ -159,6 +159,7 @@ type CustomerArchiveDocument = {
   customerName: string;
   projectNumber?: string | null;
   projectName?: string | null;
+  title?: string | null;
   createdAt: string;
 };
 
@@ -3163,7 +3164,8 @@ export default function HomePage() {
     }
   }
 
-  async function loadCustomerDocuments(customerNumber: string) {
+  async function loadCustomerDocuments(customer: StoredCustomerRecord) {
+    const customerNumber = customer.customerNumber.trim();
     if (!customerNumber) {
       if (archiveAbortControllerRef.current) {
         archiveAbortControllerRef.current.abort();
@@ -3185,8 +3187,20 @@ export default function HomePage() {
     setArchiveDocuments([]);
 
     try {
+      const searchParams = new URLSearchParams({
+        customerNumber,
+      });
+      if (customer.customerName.trim()) {
+        searchParams.set("customerName", customer.customerName.trim());
+      }
+      if (customer.customerAddress.trim()) {
+        searchParams.set("customerAddress", customer.customerAddress.trim());
+      }
+      if (customer.customerEmail.trim()) {
+        searchParams.set("customerEmail", customer.customerEmail.trim());
+      }
       const response = await fetch(
-        `/api/customer-documents?customerNumber=${encodeURIComponent(customerNumber)}`,
+        `/api/customer-documents?${searchParams.toString()}`,
         { signal: controller.signal },
       );
       const data = (await response.json()) as CustomerDocumentsApiResponse;
@@ -3238,7 +3252,18 @@ export default function HomePage() {
     }
   }
 
-  async function loadProjectDocuments(projectNumber: string) {
+  async function loadProjectDocuments(
+    project: Pick<
+      StoredProjectRecord,
+      | "projectNumber"
+      | "projectName"
+      | "customerNumber"
+      | "customerName"
+      | "customerAddress"
+      | "customerEmail"
+    >,
+  ) {
+    const projectNumber = project.projectNumber.trim();
     if (!projectNumber) {
       if (projectArchiveAbortControllerRef.current) {
         projectArchiveAbortControllerRef.current.abort();
@@ -3261,8 +3286,26 @@ export default function HomePage() {
     setProjectArchiveDocuments([]);
 
     try {
+      const searchParams = new URLSearchParams({
+        projectNumber,
+      });
+      if (project.projectName.trim()) {
+        searchParams.set("projectName", project.projectName.trim());
+      }
+      if (project.customerNumber?.trim()) {
+        searchParams.set("customerNumber", project.customerNumber.trim());
+      }
+      if (project.customerName.trim()) {
+        searchParams.set("customerName", project.customerName.trim());
+      }
+      if (project.customerAddress.trim()) {
+        searchParams.set("customerAddress", project.customerAddress.trim());
+      }
+      if (project.customerEmail.trim()) {
+        searchParams.set("customerEmail", project.customerEmail.trim());
+      }
       const response = await fetch(
-        `/api/project-documents?projectNumber=${encodeURIComponent(projectNumber)}`,
+        `/api/project-documents?${searchParams.toString()}`,
         { signal: controller.signal },
       );
       const data = (await response.json()) as ProjectDocumentsApiResponse;
@@ -3400,10 +3443,26 @@ export default function HomePage() {
     setProjectArchiveCustomerNumber(resolvedCustomerNumber);
 
     if (projectNumber?.trim()) {
-      setSelectedArchiveProjectNumber(projectNumber.trim());
+      const normalizedProjectNumber = projectNumber.trim();
+      setSelectedArchiveProjectNumber(normalizedProjectNumber);
       setIsProjectArchiveOffersOpen(false);
       setIsProjectArchiveInvoicesOpen(false);
-      void loadProjectDocuments(projectNumber.trim());
+      const selectedProjectRecord =
+        storedProjects.find(
+          (entry) => entry.projectNumber === normalizedProjectNumber,
+        ) ?? null;
+      if (selectedProjectRecord) {
+        void loadProjectDocuments(selectedProjectRecord);
+      } else {
+        void loadProjectDocuments({
+          projectNumber: normalizedProjectNumber,
+          projectName: "",
+          customerNumber: resolvedCustomerNumber || undefined,
+          customerName: buildCustomerNameForStorage(form),
+          customerAddress: buildCustomerAddressForStorage(form),
+          customerEmail: form.customerEmail.trim(),
+        });
+      }
     } else {
       clearArchiveProjectSelection();
     }
@@ -3577,7 +3636,7 @@ export default function HomePage() {
     if (!isProjectsLoading && storedProjects.length === 0) {
       void loadStoredProjects();
     }
-    void loadCustomerDocuments(customer.customerNumber);
+    void loadCustomerDocuments(customer);
   }
 
   function selectArchiveProject(project: StoredProjectRecord) {
@@ -3591,7 +3650,7 @@ export default function HomePage() {
     setSelectedArchiveProjectNumber(project.projectNumber);
     setIsProjectArchiveOffersOpen(false);
     setIsProjectArchiveInvoicesOpen(false);
-    void loadProjectDocuments(project.projectNumber);
+    void loadProjectDocuments(project);
   }
 
   function openInvoiceDatePicker() {
@@ -6696,6 +6755,11 @@ export default function HomePage() {
                                       Angebot • {formatArchiveDate(document.createdAt)}
                                     </span>
                                   </div>
+                                  {document.title ? (
+                                    <span className="customerArchiveDocumentMetaAux">
+                                      {document.title}
+                                    </span>
+                                  ) : null}
                                 </a>
                               ))}
                             </div>
@@ -6736,6 +6800,11 @@ export default function HomePage() {
                                       Rechnung • {formatArchiveDate(document.createdAt)}
                                     </span>
                                   </div>
+                                  {document.title ? (
+                                    <span className="customerArchiveDocumentMetaAux">
+                                      {document.title}
+                                    </span>
+                                  ) : null}
                                 </a>
                               ))}
                             </div>
@@ -7033,6 +7102,11 @@ export default function HomePage() {
                                       Angebot • {formatArchiveDate(document.createdAt)}
                                     </span>
                                   </div>
+                                  {document.title ? (
+                                    <span className="customerArchiveDocumentMetaAux">
+                                      {document.title}
+                                    </span>
+                                  ) : null}
                                 </a>
                               ))}
                             </div>
@@ -7082,6 +7156,11 @@ export default function HomePage() {
                                       {formatArchiveDate(document.createdAt)}
                                     </span>
                                   </div>
+                                  {document.title ? (
+                                    <span className="customerArchiveDocumentMetaAux">
+                                      {document.title}
+                                    </span>
+                                  ) : null}
                                 </a>
                               ))}
                             </div>
@@ -8114,23 +8193,6 @@ export default function HomePage() {
                     ) : null}
                   </>
                 )}
-              </div>
-
-              <div className="customerPickerPanel span2">
-                {activeCustomerNumber ? (
-                  <div className="projectSummaryCard">
-                    <div className="projectSummaryHeader">
-                      <strong>
-                        {buildCustomerNameForStorage(form) || "Aktiver Kunde"}
-                      </strong>
-                      <span>{activeCustomerNumber}</span>
-                    </div>
-                    <p>{buildCustomerAddressForStorage(form)}</p>
-                    {form.customerEmail.trim() ? (
-                      <p>{form.customerEmail.trim()}</p>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
 
               {activeCustomerNumber ? (
