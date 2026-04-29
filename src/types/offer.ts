@@ -7,6 +7,18 @@ export type OfferText = {
 
 export type DocumentType = "offer" | "invoice";
 
+export const PROJECT_STATUS_VALUES = [
+  "new",
+  "site_visit_planned",
+  "offer_sent",
+  "order_confirmed",
+  "in_progress",
+  "completed",
+  "paid",
+] as const;
+
+export type ProjectStatus = (typeof PROJECT_STATUS_VALUES)[number];
+
 export type PdfTableColumnId =
   | "position"
   | "quantity"
@@ -131,6 +143,11 @@ export type CustomerDraftState = {
 export type GenerateOfferRequest = {
   documentType?: DocumentType;
   customerNumber?: string;
+  projectNumber?: string;
+  projectName?: string;
+  projectAddress?: string;
+  projectStatus?: ProjectStatus;
+  projectNote?: string;
   customerType: "person" | "company";
   salutation?: "herr" | "frau";
   companyName?: string;
@@ -180,10 +197,36 @@ export type StoredCustomerRecord = {
   updatedAt: string;
 };
 
+export type StoredProjectRecord = {
+  projectNumber: string;
+  customerNumber?: string;
+  customerType: "person" | "company";
+  companyName: string;
+  salutation: "herr" | "frau";
+  firstName: string;
+  lastName: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  customerName: string;
+  customerAddress: string;
+  customerEmail: string;
+  projectName: string;
+  projectAddress: string;
+  status: ProjectStatus;
+  note: string;
+  draftState?: CustomerDraftState;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type StoredOfferRecord = {
   documentType?: DocumentType;
   offerNumber: string;
   customerNumber?: string;
+  projectNumber?: string;
+  projectName?: string;
+  projectAddress?: string;
   createdAt: string;
   created_at: string;
   customerName: string;

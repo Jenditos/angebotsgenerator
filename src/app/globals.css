@@ -1718,6 +1718,138 @@ h1 {
   border-color: rgba(72, 118, 197, 0.34);
 }
 
+.projectWorkspacePanel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(73, 118, 195, 0.24);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 14px 15px;
+  box-shadow: 0 14px 30px rgba(44, 83, 149, 0.08);
+}
+
+.projectWorkspaceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.projectWorkspaceHeader strong {
+  display: block;
+  color: #1d365f;
+  font-size: 0.96rem;
+}
+
+.projectWorkspaceHeader p {
+  margin-top: 4px;
+  color: #4e6894;
+  font-size: 0.84rem;
+}
+
+.projectWorkspaceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.projectWorkspaceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.projectWorkspaceGrid > * {
+  min-width: 0;
+}
+
+.projectSummaryCard {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(68, 119, 210, 0.22);
+  border-radius: 14px;
+  background: rgba(240, 246, 255, 0.86);
+  padding: 11px 12px;
+}
+
+.projectSummaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.projectSummaryHeader strong {
+  color: #1d365f;
+  font-size: 0.92rem;
+}
+
+.projectSummaryHeader span {
+  color: #355685;
+  font-size: 0.77rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.projectSummaryMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #365989;
+  font-size: 0.8rem;
+}
+
+.projectStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 6px 11px;
+  border: 1px solid rgba(66, 116, 207, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  color: #264d8b;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.projectClearButton {
+  border-color: rgba(79, 115, 190, 0.2);
+}
+
+@media (max-width: 760px) {
+  .projectWorkspaceHeader {
+    display: grid;
+  }
+
+  .projectWorkspaceActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .projectWorkspaceActions > * {
+    width: 100%;
+  }
+
+  .projectWorkspaceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectWorkspaceGrid .span2 {
+    grid-column: auto;
+  }
+
+  .projectArchiveActionRow {
+    display: grid;
+  }
+
+  .projectArchiveActionRow > * {
+    width: 100%;
+  }
+}
+
 h2 {
   margin: 0;
   font-size: 1.24rem;
@@ -5572,6 +5704,19 @@ button.customerArchiveCustomerButton.active {
   gap: 10px;
 }
 
+.projectArchiveListMeta {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.projectArchiveListMeta p {
+  margin: 0;
+  color: #4d6793;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .customerArchiveExpandIcon {
   width: 18px;
   min-width: 18px;
@@ -5640,6 +5785,67 @@ button.customerArchiveBackButton {
   font-size: 0.82rem;
   color: #4f6993;
   overflow-wrap: anywhere;
+}
+
+.projectArchiveInfoCard,
+.projectArchiveNote,
+.projectTimelineCard {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(69, 114, 193, 0.18);
+  border-radius: 14px;
+  background: rgba(245, 249, 255, 0.92);
+  padding: 12px 13px;
+}
+
+.projectArchiveInfoCard p,
+.projectArchiveNote p,
+.projectTimelineItem p {
+  margin: 0;
+  color: #4d6793;
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.projectArchiveNote strong,
+.projectTimelineCard strong {
+  color: #1d365f;
+  font-size: 0.9rem;
+}
+
+.projectArchiveActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.projectDeleteButton {
+  border-color: rgba(214, 92, 118, 0.28);
+  color: #8b2740;
+}
+
+.projectTimelineList {
+  display: grid;
+  gap: 9px;
+}
+
+.projectTimelineItem {
+  display: grid;
+  gap: 4px;
+  border-left: 2px solid rgba(74, 121, 202, 0.24);
+  padding-left: 12px;
+}
+
+.projectTimelineItem span {
+  color: #6d82a8;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.projectTimelineItem strong {
+  color: #1d365f;
+  font-size: 0.87rem;
 }
 
 .customerArchiveChildren {

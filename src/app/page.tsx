@@ -46,8 +46,11 @@ import {
   CustomerDraftGroup,
   DocumentType,
   OfferPositionInput,
+  PROJECT_STATUS_VALUES,
+  ProjectStatus,
   ServiceCatalogItem,
   StoredCustomerRecord,
+  StoredProjectRecord,
 } from "@/types/offer";
 
 type OfferText = {
@@ -64,6 +67,10 @@ type ApiResponse = {
   emailStatus: "not_requested" | "sent" | "not_configured" | "failed";
   emailInfo: string;
   customerNumber?: string;
+  projectNumber?: string;
+  projectName?: string;
+  projectAddress?: string;
+  projectStatus?: ProjectStatus;
   documentType?: DocumentType;
   documentNumber?: string;
   offerNumber?: string;
@@ -88,6 +95,21 @@ type CustomersApiResponse = {
 };
 
 type DeleteCustomerApiResponse = {
+  ok?: boolean;
+  error?: string;
+};
+
+type ProjectsApiResponse = {
+  projects?: StoredProjectRecord[];
+  error?: string;
+};
+
+type SaveProjectApiResponse = {
+  project?: StoredProjectRecord;
+  error?: string;
+};
+
+type DeleteProjectApiResponse = {
   ok?: boolean;
   error?: string;
 };
@@ -130,10 +152,17 @@ type CustomerArchiveDocument = {
   documentType: DocumentType;
   customerNumber?: string | null;
   customerName: string;
+  projectNumber?: string | null;
+  projectName?: string | null;
   createdAt: string;
 };
 
 type CustomerDocumentsApiResponse = {
+  documents?: CustomerArchiveDocument[];
+  error?: string;
+};
+
+type ProjectDocumentsApiResponse = {
   documents?: CustomerArchiveDocument[];
   error?: string;
 };
@@ -288,6 +317,10 @@ type SelectedServiceEntry = {
 };
 
 type OfferForm = {
+  projectName: string;
+  projectAddress: string;
+  projectStatus: ProjectStatus;
+  projectNote: string;
   customerType: "person" | "company";
   companyName: string;
   salutation: "herr" | "frau";
@@ -435,6 +468,10 @@ function buildServiceDateCalendarDays(
 
 function createInitialForm(): OfferForm {
   return {
+    projectName: "",
+    projectAddress: "",
+    projectStatus: "new",
+    projectNote: "",
     customerType: "company",
     companyName: "",
     salutation: "herr",
@@ -459,6 +496,7 @@ const initialForm: OfferForm = createInitialForm();
 type ModeSnapshot = {
   form: OfferForm;
   activeCustomerNumber: string;
+  activeProjectNumber: string;
   selectedServices: SelectedServiceEntry[];
   intakeInputMode: IntakeInputMode;
   hasUsedPrimaryVoiceIntake: boolean;
@@ -495,6 +533,7 @@ function createInitialModeSnapshot(): ModeSnapshot {
   return {
     form: createInitialForm(),
     activeCustomerNumber: "",
+    activeProjectNumber: "",
     selectedServices: [createManualSelectedServiceEntry()],
     intakeInputMode: "voice",
     hasUsedPrimaryVoiceIntake: false,
@@ -512,6 +551,30 @@ function createInitialModeSnapshot(): ModeSnapshot {
     serviceError: "",
     addressSuggestions: [],
   };
+}
+
+const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  new: "Neu",
+  site_visit_planned: "Besichtigung geplant",
+  offer_sent: "Angebot gesendet",
+  order_confirmed: "Auftrag angenommen",
+  in_progress: "In Arbeit",
+  completed: "Fertig",
+  paid: "Bezahlt",
+};
+
+function formatProjectStatusLabel(status: ProjectStatus | undefined): string {
+  if (!status) {
+    return PROJECT_STATUS_LABELS.new;
+  }
+
+  return PROJECT_STATUS_LABELS[status] ?? PROJECT_STATUS_LABELS.new;
+}
+
+function buildProjectAddressFallback(currentForm: OfferForm): string {
+  return [currentForm.street.trim(), currentForm.postalCode.trim(), currentForm.city.trim()]
+    .filter(Boolean)
+    .join(", ");
 }
 
 const VOICE_FIELD_LABELS: Record<string, string> = {
@@ -679,6 +742,12 @@ function hydrateOfferForm(value: unknown): OfferForm {
   }
 
   return {
+    projectName: asString(value.projectName),
+    projectAddress: asString(value.projectAddress),
+    projectStatus: PROJECT_STATUS_VALUES.includes(value.projectStatus as ProjectStatus)
+      ? (value.projectStatus as ProjectStatus)
+      : initial.projectStatus,
+    projectNote: asString(value.projectNote),
     customerType: value.customerType === "person" ? "person" : "company",
     companyName: asString(value.companyName),
     salutation: value.salutation === "frau" ? "frau" : "herr",
@@ -778,6 +847,7 @@ function hydrateModeSnapshot(value: unknown): ModeSnapshot {
   return {
     form: hydrateOfferForm(value.form),
     activeCustomerNumber: asString(value.activeCustomerNumber),
+    activeProjectNumber: asString(value.activeProjectNumber),
     selectedServices: hydrateSelectedServices(value.selectedServices),
     intakeInputMode: value.intakeInputMode === "photo" ? "photo" : "voice",
     hasUsedPrimaryVoiceIntake: value.hasUsedPrimaryVoiceIntake === true,
@@ -1669,6 +1739,7 @@ export default function HomePage() {
   const [isPreparingOfferMailDraft, setIsPreparingOfferMailDraft] =
     useState(false);
   const [activeCustomerNumber, setActiveCustomerNumber] = useState("");
+  const [activeProjectNumber, setActiveProjectNumber] = useState("");
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
     null,
   );
@@ -1718,24 +1789,44 @@ export default function HomePage() {
   const [storedCustomers, setStoredCustomers] = useState<StoredCustomerRecord[]>(
     [],
   );
+  const [storedProjects, setStoredProjects] = useState<StoredProjectRecord[]>([]);
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const [isCustomersLoading, setIsCustomersLoading] = useState(false);
   const [deletingCustomerNumber, setDeletingCustomerNumber] = useState<
     string | null
   >(null);
+  const [isProjectsLoading, setIsProjectsLoading] = useState(false);
+  const [deletingProjectNumber, setDeletingProjectNumber] = useState<
+    string | null
+  >(null);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
   const [customersError, setCustomersError] = useState("");
+  const [projectsError, setProjectsError] = useState("");
   const [isCustomerArchiveOpen, setIsCustomerArchiveOpen] = useState(false);
+  const [isProjectArchiveOpen, setIsProjectArchiveOpen] = useState(false);
   const [archiveDocuments, setArchiveDocuments] = useState<
     CustomerArchiveDocument[]
   >([]);
+  const [projectArchiveDocuments, setProjectArchiveDocuments] = useState<
+    CustomerArchiveDocument[]
+  >([]);
   const [archiveError, setArchiveError] = useState("");
+  const [projectArchiveError, setProjectArchiveError] = useState("");
   const [isArchiveDocumentsLoading, setIsArchiveDocumentsLoading] =
+    useState(false);
+  const [isProjectArchiveDocumentsLoading, setIsProjectArchiveDocumentsLoading] =
     useState(false);
   const [selectedArchiveCustomerNumber, setSelectedArchiveCustomerNumber] =
     useState("");
+  const [selectedArchiveProjectNumber, setSelectedArchiveProjectNumber] =
+    useState("");
   const [isArchiveOffersOpen, setIsArchiveOffersOpen] = useState(false);
   const [isArchiveInvoicesOpen, setIsArchiveInvoicesOpen] = useState(false);
+  const [isProjectArchiveOffersOpen, setIsProjectArchiveOffersOpen] =
+    useState(false);
+  const [isProjectArchiveInvoicesOpen, setIsProjectArchiveInvoicesOpen] =
+    useState(false);
   const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
   const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
   const [isSettingsOverlayOpen, setIsSettingsOverlayOpen] = useState(false);
@@ -1757,6 +1848,7 @@ export default function HomePage() {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [accountIdentity, setAccountIdentity] = useState("");
   const [isClosingCustomerArchive, setIsClosingCustomerArchive] = useState(false);
+  const [isClosingProjectArchive, setIsClosingProjectArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
   const recognitionRef = useRef<any>(null);
   const modeSnapshotsRef = useRef<Record<DocumentMode, ModeSnapshot>>({
@@ -1779,12 +1871,16 @@ export default function HomePage() {
   const archiveLoadRequestRef = useRef(0);
   const archiveAbortControllerRef = useRef<AbortController | null>(null);
   const archiveCloseTimeoutRef = useRef<number | null>(null);
+  const projectArchiveLoadRequestRef = useRef(0);
+  const projectArchiveAbortControllerRef = useRef<AbortController | null>(null);
+  const projectArchiveCloseTimeoutRef = useRef<number | null>(null);
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountMenuCloseTimeoutRef = useRef<number | null>(null);
   const setupHintRef = useRef<HTMLElement | null>(null);
   const onboardingModalRef = useRef<HTMLElement | null>(null);
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
+  const projectArchiveSheetRef = useRef<HTMLElement | null>(null);
   const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
   const photoScanMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1869,6 +1965,27 @@ export default function HomePage() {
       );
     });
   }, [customerSearch, storedCustomers]);
+  const filteredStoredProjects = useMemo(() => {
+    const normalizedQuery = normalizeSearchValue(projectSearch);
+    if (!normalizedQuery) {
+      return storedProjects;
+    }
+
+    return storedProjects.filter((project) => {
+      const searchableParts = [
+        project.projectName,
+        project.projectAddress,
+        project.customerName,
+        project.customerAddress,
+        project.customerEmail,
+        project.projectNumber,
+      ];
+
+      return searchableParts.some((part) =>
+        normalizeSearchValue(part).includes(normalizedQuery),
+      );
+    });
+  }, [projectSearch, storedProjects]);
   const archiveOfferDocuments = useMemo(
     () =>
       archiveDocuments.filter((document) => document.documentType !== "invoice"),
@@ -1886,6 +2003,80 @@ export default function HomePage() {
       ) ?? null,
     [selectedArchiveCustomerNumber, storedCustomers],
   );
+  const projectArchiveOfferDocuments = useMemo(
+    () =>
+      projectArchiveDocuments.filter(
+        (document) => document.documentType !== "invoice",
+      ),
+    [projectArchiveDocuments],
+  );
+  const projectArchiveInvoiceDocuments = useMemo(
+    () =>
+      projectArchiveDocuments.filter(
+        (document) => document.documentType === "invoice",
+      ),
+    [projectArchiveDocuments],
+  );
+  const selectedArchiveProject = useMemo(
+    () =>
+      storedProjects.find(
+        (project) => project.projectNumber === selectedArchiveProjectNumber,
+      ) ?? null,
+    [selectedArchiveProjectNumber, storedProjects],
+  );
+  const activeProject = useMemo(
+    () =>
+      storedProjects.find((project) => project.projectNumber === activeProjectNumber) ??
+      null,
+    [activeProjectNumber, storedProjects],
+  );
+  const projectTimelineEntries = useMemo(() => {
+    if (!selectedArchiveProject) {
+      return [];
+    }
+
+    const entries = [
+      {
+        id: `${selectedArchiveProject.projectNumber}-created`,
+        createdAt: selectedArchiveProject.createdAt,
+        title: "Projekt angelegt",
+        detail: selectedArchiveProject.projectName,
+      },
+      ...(selectedArchiveProject.updatedAt !== selectedArchiveProject.createdAt
+        ? [
+            {
+              id: `${selectedArchiveProject.projectNumber}-updated`,
+              createdAt: selectedArchiveProject.updatedAt,
+              title: "Projekt aktualisiert",
+              detail: formatProjectStatusLabel(selectedArchiveProject.status),
+            },
+          ]
+        : []),
+      ...projectArchiveDocuments.map((document) => ({
+        id: `${document.documentNumber}-${document.createdAt}`,
+        createdAt: document.createdAt,
+        title:
+          document.documentType === "invoice"
+            ? "Rechnung erstellt"
+            : "Angebot erstellt",
+        detail: document.documentNumber,
+      })),
+    ];
+
+    return entries.sort((left, right) => {
+      const rightTs = Date.parse(right.createdAt);
+      const leftTs = Date.parse(left.createdAt);
+      if (
+        Number.isFinite(rightTs) &&
+        Number.isFinite(leftTs) &&
+        rightTs !== leftTs
+      ) {
+        return rightTs - leftTs;
+      }
+
+      return right.id.localeCompare(left.id);
+    });
+  }, [projectArchiveDocuments, selectedArchiveProject]);
   const isInvoiceMode = documentMode === "invoice";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
   const createDocumentFirstInfo = isInvoiceMode
@@ -1902,6 +2093,10 @@ export default function HomePage() {
   useDialogFocusTrap({
     isOpen: isCustomerArchiveOpen,
     containerRef: customerArchiveSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isProjectArchiveOpen,
+    containerRef: projectArchiveSheetRef,
   });
   useDialogFocusTrap({
     isOpen: isSettingsOverlayOpen,
@@ -1989,6 +2184,7 @@ export default function HomePage() {
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
+    setActiveProjectNumber(snapshot.activeProjectNumber);
     setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
     setIntakeInputMode(snapshot.intakeInputMode);
     setHasUsedPrimaryVoiceIntake(snapshot.hasUsedPrimaryVoiceIntake);
@@ -2013,6 +2209,7 @@ export default function HomePage() {
     return {
       form: { ...form },
       activeCustomerNumber,
+      activeProjectNumber,
       selectedServices: cloneSelectedServices(selectedServices),
       intakeInputMode,
       hasUsedPrimaryVoiceIntake,
@@ -2223,6 +2420,13 @@ export default function HomePage() {
         archiveAbortControllerRef.current.abort();
         archiveAbortControllerRef.current = null;
       }
+      if (projectArchiveCloseTimeoutRef.current !== null) {
+        window.clearTimeout(projectArchiveCloseTimeoutRef.current);
+      }
+      if (projectArchiveAbortControllerRef.current) {
+        projectArchiveAbortControllerRef.current.abort();
+        projectArchiveAbortControllerRef.current = null;
+      }
       if (infoLegalCloseTimeoutRef.current !== null) {
         window.clearTimeout(infoLegalCloseTimeoutRef.current);
       }
@@ -2301,6 +2505,7 @@ export default function HomePage() {
   }, [
     addressSuggestions,
     activeCustomerNumber,
+    activeProjectNumber,
     documentMode,
     error,
     form,
@@ -2328,6 +2533,7 @@ export default function HomePage() {
 
     const hasBlockingOverlay =
       isCustomerArchiveOpen ||
+      isProjectArchiveOpen ||
       isInfoLegalOpen ||
       isSettingsOverlayOpen ||
       isCustomerPickerOpen ||
@@ -2358,6 +2564,7 @@ export default function HomePage() {
     };
   }, [
     isCustomerArchiveOpen,
+    isProjectArchiveOpen,
     isInfoLegalOpen,
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
@@ -2374,6 +2581,7 @@ export default function HomePage() {
 
     if (
       !isCustomerArchiveOpen &&
+      !isProjectArchiveOpen &&
       !isInfoLegalOpen &&
       !isSettingsOverlayOpen &&
       !isCustomerPickerOpen &&
@@ -2412,6 +2620,11 @@ export default function HomePage() {
         return;
       }
 
+      if (isProjectArchiveOpen) {
+        closeProjectArchive();
+        return;
+      }
+
       if (isCustomerPickerOpen) {
         closeCustomerPickerPopup();
         return;
@@ -2446,6 +2659,8 @@ export default function HomePage() {
   }, [
     isCustomerArchiveOpen,
     isClosingCustomerArchive,
+    isProjectArchiveOpen,
+    isClosingProjectArchive,
     isInfoLegalOpen,
     isClosingInfoLegal,
     isSettingsOverlayOpen,
@@ -2559,6 +2774,14 @@ export default function HomePage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!activeProjectNumber || isProjectsLoading || storedProjects.length > 0) {
+      return;
+    }
+
+    void loadStoredProjects();
+  }, [activeProjectNumber, isProjectsLoading, storedProjects.length]);
 
   useEffect(() => {
     let mounted = true;
@@ -2800,6 +3023,28 @@ export default function HomePage() {
     }
   }
 
+  async function loadStoredProjects() {
+    setProjectsError("");
+    setIsProjectsLoading(true);
+
+    try {
+      const response = await fetch("/api/projects");
+      const data = (await response.json()) as ProjectsApiResponse;
+      if (!response.ok) {
+        setProjectsError(
+          data.error ?? "Gespeicherte Projekte konnten nicht geladen werden.",
+        );
+        return;
+      }
+
+      setStoredProjects(Array.isArray(data.projects) ? data.projects : []);
+    } catch {
+      setProjectsError("Gespeicherte Projekte konnten nicht geladen werden.");
+    } finally {
+      setIsProjectsLoading(false);
+    }
+  }
+
   function toggleStoredCustomers() {
     if (isCustomerPickerOpen) {
       closeCustomerPickerPopup();
@@ -2883,11 +3128,95 @@ export default function HomePage() {
     }
   }
 
+  async function loadProjectDocuments(projectNumber: string) {
+    if (!projectNumber) {
+      if (projectArchiveAbortControllerRef.current) {
+        projectArchiveAbortControllerRef.current.abort();
+        projectArchiveAbortControllerRef.current = null;
+      }
+      setProjectArchiveDocuments([]);
+      return;
+    }
+
+    const currentLoadRequest = projectArchiveLoadRequestRef.current + 1;
+    projectArchiveLoadRequestRef.current = currentLoadRequest;
+    if (projectArchiveAbortControllerRef.current) {
+      projectArchiveAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    projectArchiveAbortControllerRef.current = controller;
+
+    setProjectArchiveError("");
+    setIsProjectArchiveDocumentsLoading(true);
+    setProjectArchiveDocuments([]);
+
+    try {
+      const response = await fetch(
+        `/api/project-documents?projectNumber=${encodeURIComponent(projectNumber)}`,
+        { signal: controller.signal },
+      );
+      const data = (await response.json()) as ProjectDocumentsApiResponse;
+      if (projectArchiveLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      if (!response.ok) {
+        setProjectArchiveError(
+          data.error ?? "Projekt-Dokumente konnten nicht geladen werden.",
+        );
+        return;
+      }
+
+      const documents = Array.isArray(data.documents) ? data.documents : [];
+      setProjectArchiveDocuments(
+        documents
+          .map((document): CustomerArchiveDocument => ({
+            ...document,
+            documentType: document.documentType === "invoice" ? "invoice" : "offer",
+          }))
+          .sort((left, right) => {
+            const rightTs = Date.parse(right.createdAt);
+            const leftTs = Date.parse(left.createdAt);
+            if (
+              Number.isFinite(rightTs) &&
+              Number.isFinite(leftTs) &&
+              rightTs !== leftTs
+            ) {
+              return rightTs - leftTs;
+            }
+
+            return right.documentNumber.localeCompare(left.documentNumber);
+          }),
+      );
+    } catch (error) {
+      if ((error as { name?: string }).name === "AbortError") {
+        return;
+      }
+      if (projectArchiveLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      setProjectArchiveError("Projekt-Dokumente konnten nicht geladen werden.");
+    } finally {
+      if (projectArchiveAbortControllerRef.current === controller) {
+        projectArchiveAbortControllerRef.current = null;
+      }
+      if (projectArchiveLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      setIsProjectArchiveDocumentsLoading(false);
+    }
+  }
+
   function openCustomerArchive() {
     if (archiveCloseTimeoutRef.current !== null) {
       window.clearTimeout(archiveCloseTimeoutRef.current);
       archiveCloseTimeoutRef.current = null;
     }
+    if (projectArchiveAbortControllerRef.current) {
+      projectArchiveAbortControllerRef.current.abort();
+      projectArchiveAbortControllerRef.current = null;
+    }
+    setIsProjectArchiveOpen(false);
+    setIsClosingProjectArchive(false);
     setIsClosingCustomerArchive(false);
     setIsCustomerArchiveOpen(true);
     setArchiveError("");
@@ -2929,6 +3258,61 @@ export default function HomePage() {
     setIsArchiveDocumentsLoading(false);
     setIsArchiveOffersOpen(false);
     setIsArchiveInvoicesOpen(false);
+  }
+
+  function openProjectArchive() {
+    if (projectArchiveCloseTimeoutRef.current !== null) {
+      window.clearTimeout(projectArchiveCloseTimeoutRef.current);
+      projectArchiveCloseTimeoutRef.current = null;
+    }
+    if (archiveAbortControllerRef.current) {
+      archiveAbortControllerRef.current.abort();
+      archiveAbortControllerRef.current = null;
+    }
+    setIsCustomerArchiveOpen(false);
+    setIsClosingCustomerArchive(false);
+    setIsClosingProjectArchive(false);
+    setIsProjectArchiveOpen(true);
+    setProjectArchiveError("");
+
+    if (!isProjectsLoading && storedProjects.length === 0) {
+      void loadStoredProjects();
+    }
+  }
+
+  function closeProjectArchive() {
+    if (!isProjectArchiveOpen || isClosingProjectArchive) {
+      return;
+    }
+
+    if (projectArchiveAbortControllerRef.current) {
+      projectArchiveAbortControllerRef.current.abort();
+      projectArchiveAbortControllerRef.current = null;
+    }
+    setIsClosingProjectArchive(true);
+    if (projectArchiveCloseTimeoutRef.current !== null) {
+      window.clearTimeout(projectArchiveCloseTimeoutRef.current);
+    }
+    projectArchiveCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsProjectArchiveOpen(false);
+      setIsClosingProjectArchive(false);
+      setProjectSearch("");
+      projectArchiveCloseTimeoutRef.current = null;
+    }, 170);
+  }
+
+  function clearArchiveProjectSelection() {
+    projectArchiveLoadRequestRef.current += 1;
+    if (projectArchiveAbortControllerRef.current) {
+      projectArchiveAbortControllerRef.current.abort();
+      projectArchiveAbortControllerRef.current = null;
+    }
+    setSelectedArchiveProjectNumber("");
+    setProjectArchiveDocuments([]);
+    setProjectArchiveError("");
+    setIsProjectArchiveDocumentsLoading(false);
+    setIsProjectArchiveOffersOpen(false);
+    setIsProjectArchiveInvoicesOpen(false);
   }
 
   function openInfoLegalModal() {
@@ -2977,6 +3361,12 @@ export default function HomePage() {
     setIsSetupHintOpen(false);
     closeAccountMenu();
     openCustomerArchive();
+  }
+
+  function openProjectArchiveFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    openProjectArchive();
   }
 
   function navigateToAuthFromAccountMenu() {
@@ -3056,6 +3446,17 @@ export default function HomePage() {
     setIsArchiveOffersOpen(false);
     setIsArchiveInvoicesOpen(false);
     void loadCustomerDocuments(customer.customerNumber);
+  }
+
+  function selectArchiveProject(project: StoredProjectRecord) {
+    if (selectedArchiveProjectNumber === project.projectNumber) {
+      return;
+    }
+
+    setSelectedArchiveProjectNumber(project.projectNumber);
+    setIsProjectArchiveOffersOpen(false);
+    setIsProjectArchiveInvoicesOpen(false);
+    void loadProjectDocuments(project.projectNumber);
   }
 
   function openInvoiceDatePicker() {
@@ -3194,6 +3595,14 @@ export default function HomePage() {
     return personName;
   }
 
+  function buildCustomerAddressForStorage(currentForm: OfferForm): string {
+    const postalCity = [currentForm.postalCode.trim(), currentForm.city.trim()]
+      .filter(Boolean)
+      .join(" ");
+
+    return [currentForm.street.trim(), postalCity].filter(Boolean).join(", ");
+  }
+
   function updateStoredCustomersRealtime(payload: ApiResponse) {
     const customerNumber = payload.customerNumber?.trim();
     if (!customerNumber) {
@@ -3202,7 +3611,7 @@ export default function HomePage() {
 
     const nowIso = new Date().toISOString();
     const customerName = buildCustomerNameForStorage(form);
-    const customerAddress = `${form.street.trim()}, ${form.postalCode.trim()} ${form.city.trim()}`;
+    const customerAddress = buildCustomerAddressForStorage(form);
 
     const optimisticCustomer: StoredCustomerRecord = {
       customerNumber,
@@ -3249,14 +3658,318 @@ export default function HomePage() {
     });
   }
 
-  function applyStoredCustomer(customer: StoredCustomerRecord) {
-    const draftState = customer.draftState;
+  function updateStoredProjectsRealtime(payload: ApiResponse) {
+    const projectNumber = payload.projectNumber?.trim();
+    if (!projectNumber) {
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const customerName = buildCustomerNameForStorage(form);
+    const customerAddress = buildCustomerAddressForStorage(form);
+    const projectName =
+      payload.projectName?.trim() || form.projectName.trim() || activeProject?.projectName || "";
+    const projectAddress =
+      payload.projectAddress?.trim() || form.projectAddress.trim() || customerAddress;
+    const projectStatus = payload.projectStatus ?? form.projectStatus;
+
+    if (!projectName) {
+      return;
+    }
+
+    const optimisticProject: StoredProjectRecord = {
+      projectNumber,
+      customerNumber: payload.customerNumber?.trim() || activeCustomerNumber || undefined,
+      customerType: form.customerType,
+      companyName: form.companyName.trim(),
+      salutation: form.salutation,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      street: form.street.trim(),
+      postalCode: form.postalCode.trim(),
+      city: form.city.trim(),
+      customerName,
+      customerAddress,
+      customerEmail: form.customerEmail.trim(),
+      projectName,
+      projectAddress,
+      status: projectStatus,
+      note: form.projectNote.trim(),
+      draftState: {
+        serviceDescription: form.serviceDescription.trim(),
+        hours: form.hours.trim(),
+        hourlyRate: form.hourlyRate.trim(),
+        materialCost: form.materialCost.trim(),
+        invoiceDate: form.invoiceDate.trim(),
+        serviceDate: form.serviceDate.trim(),
+        paymentDueDays: form.paymentDueDays.trim(),
+        positions: selectedServicesToDraftPayload(selectedServices),
+      },
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    setStoredProjects((prev) => {
+      const existingIndex = prev.findIndex(
+        (project) => project.projectNumber === projectNumber,
+      );
+      if (existingIndex < 0) {
+        return [optimisticProject, ...prev];
+      }
+
+      const mergedCreatedAt = prev[existingIndex].createdAt || nowIso;
+      const next = [...prev];
+      next[existingIndex] = {
+        ...optimisticProject,
+        createdAt: mergedCreatedAt,
+      };
+      return next.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    });
+  }
+
+  function clearActiveProjectSelection() {
+    setActiveProjectNumber("");
+    setForm((prev) => ({
+      ...prev,
+      projectName: "",
+      projectAddress: "",
+      projectStatus: "new",
+      projectNote: "",
+    }));
+  }
+
+  async function saveCurrentProject() {
+    const projectName = form.projectName.trim();
+    const customerName = buildCustomerNameForStorage(form);
+    const customerAddress = buildCustomerAddressForStorage(form);
+
+    if (!projectName) {
+      setError("Bitte zuerst einen Projektnamen eingeben.");
+      return;
+    }
+
+    if (!customerName) {
+      setError("Bitte zuerst einen Kunden oder Ansprechpartner angeben.");
+      return;
+    }
+
+    if (!customerAddress) {
+      setError("Bitte zuerst eine Kundenadresse angeben.");
+      return;
+    }
+
+    setError("");
+    setPostActionInfo("");
+    setProjectsError("");
+
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectNumber: activeProjectNumber || undefined,
+          customerNumber: activeCustomerNumber || undefined,
+          customerType: form.customerType,
+          companyName: form.companyName,
+          salutation: form.salutation,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          street: form.street,
+          postalCode: form.postalCode,
+          city: form.city,
+          customerName,
+          customerAddress,
+          customerEmail: form.customerEmail,
+          projectName,
+          projectAddress:
+            form.projectAddress.trim() || buildProjectAddressFallback(form),
+          projectStatus: form.projectStatus,
+          projectNote: form.projectNote,
+          draftState: {
+            serviceDescription: form.serviceDescription.trim(),
+            hours: form.hours.trim(),
+            hourlyRate: form.hourlyRate.trim(),
+            materialCost: form.materialCost.trim(),
+            invoiceDate: form.invoiceDate.trim(),
+            serviceDate: form.serviceDate.trim(),
+            paymentDueDays: form.paymentDueDays.trim(),
+            positions: selectedServicesToDraftPayload(selectedServices),
+          },
+        }),
+      });
+      const data = (await response.json()) as SaveProjectApiResponse;
+      if (!response.ok || !data.project) {
+        setError(data.error ?? "Projekt konnte nicht gespeichert werden.");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        projectName: data.project?.projectName ?? prev.projectName,
+        projectAddress: data.project?.projectAddress ?? prev.projectAddress,
+        projectStatus: data.project?.status ?? prev.projectStatus,
+        projectNote: data.project?.note ?? prev.projectNote,
+      }));
+      setActiveProjectNumber(data.project.projectNumber);
+      setStoredProjects((prev) => {
+        const existingIndex = prev.findIndex(
+          (project) => project.projectNumber === data.project?.projectNumber,
+        );
+        if (existingIndex < 0) {
+          return [data.project!, ...prev];
+        }
+
+        const next = [...prev];
+        next[existingIndex] = data.project!;
+        return next.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+      });
+      setPostActionInfo(
+        `Projekt ${data.project.projectName} wurde gespeichert.`,
+      );
+    } catch {
+      setError("Projekt konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function deleteStoredProject(project: StoredProjectRecord) {
+    const confirmed = window.confirm(
+      `${project.projectName} wirklich löschen?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setProjectsError("");
+    setDeletingProjectNumber(project.projectNumber);
+
+    try {
+      const response = await fetch(
+        `/api/projects?projectNumber=${encodeURIComponent(project.projectNumber)}`,
+        { method: "DELETE" },
+      );
+      const data = (await response.json()) as DeleteProjectApiResponse;
+      if (!response.ok || !data.ok) {
+        setProjectsError(data.error ?? "Projekt konnte nicht gelöscht werden.");
+        return;
+      }
+
+      setStoredProjects((prev) =>
+        prev.filter((entry) => entry.projectNumber !== project.projectNumber),
+      );
+      if (selectedArchiveProjectNumber === project.projectNumber) {
+        clearArchiveProjectSelection();
+      }
+      if (activeProjectNumber === project.projectNumber) {
+        clearActiveProjectSelection();
+      }
+    } catch {
+      setProjectsError("Gespeichertes Projekt konnte nicht gelöscht werden.");
+    } finally {
+      setDeletingProjectNumber((prev) =>
+        prev === project.projectNumber ? null : prev,
+      );
+    }
+  }
+
+  function applyStoredProject(project: StoredProjectRecord) {
+    const draftState = project.draftState;
     const draftSelectedServices = selectedServicesFromDraftPayload(
       draftState?.positions,
     );
 
     setForm((prev) => ({
       ...prev,
+      projectName: capitalizeEntryStart(project.projectName),
+      projectAddress: capitalizeEntryStart(project.projectAddress),
+      projectStatus: project.status,
+      projectNote: project.note,
+      customerType: project.customerType,
+      companyName: capitalizeEntryStart(project.companyName),
+      salutation: project.salutation,
+      firstName: capitalizeEntryStart(project.firstName),
+      lastName: capitalizeEntryStart(project.lastName),
+      street: capitalizeEntryStart(project.street),
+      postalCode: project.postalCode,
+      city: capitalizeEntryStart(project.city),
+      customerEmail: project.customerEmail,
+      serviceDescription: draftState?.serviceDescription
+        ? capitalizeEntryStart(draftState.serviceDescription)
+        : prev.serviceDescription,
+      hours: draftState?.hours ?? prev.hours,
+      hourlyRate: draftState?.hourlyRate ?? prev.hourlyRate,
+      materialCost: draftState?.materialCost ?? prev.materialCost,
+      invoiceDate: draftState?.invoiceDate || prev.invoiceDate,
+      serviceDate: draftState?.serviceDate ?? prev.serviceDate,
+      paymentDueDays: draftState?.paymentDueDays || prev.paymentDueDays,
+    }));
+    setSelectedServices(draftSelectedServices);
+    setActiveCustomerNumber(project.customerNumber ?? "");
+    setActiveProjectNumber(project.projectNumber);
+    setActivePriceSubitemId(null);
+    setAddressSuggestions([]);
+    if (project.customerNumber) {
+      const projectCustomerNumber = project.customerNumber;
+      setStoredCustomers((prev) => {
+        const existingIndex = prev.findIndex(
+          (customer) => customer.customerNumber === projectCustomerNumber,
+        );
+        const projectCustomer: StoredCustomerRecord = {
+          customerNumber: projectCustomerNumber,
+          customerType: project.customerType,
+          companyName: project.companyName,
+          salutation: project.salutation,
+          firstName: project.firstName,
+          lastName: project.lastName,
+          street: project.street,
+          postalCode: project.postalCode,
+          city: project.city,
+          customerEmail: project.customerEmail,
+          customerName: project.customerName,
+          customerAddress: project.customerAddress,
+          draftState: project.draftState,
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+        };
+
+        if (existingIndex < 0) {
+          return [projectCustomer, ...prev];
+        }
+
+        const next = [...prev];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          ...projectCustomer,
+        };
+        return next;
+      });
+    }
+    setProjectSearch("");
+    setProjectsError("");
+  }
+
+  function applyStoredCustomer(customer: StoredCustomerRecord) {
+    const draftState = customer.draftState;
+    const draftSelectedServices = selectedServicesFromDraftPayload(
+      draftState?.positions,
+    );
+    const shouldResetProject =
+      Boolean(
+        activeProjectNumber &&
+          activeProject?.customerNumber &&
+          activeProject.customerNumber !== customer.customerNumber,
+      );
+    const nextProjectAddress = `${customer.street}, ${customer.postalCode} ${customer.city}`;
+
+    setForm((prev) => ({
+      ...prev,
+      projectName: shouldResetProject ? "" : prev.projectName,
+      projectAddress: shouldResetProject
+        ? nextProjectAddress
+        : prev.projectAddress.trim()
+        ? prev.projectAddress
+        : nextProjectAddress,
+      projectStatus: shouldResetProject ? "new" : prev.projectStatus,
+      projectNote: shouldResetProject ? "" : prev.projectNote,
       customerType: customer.customerType,
       companyName: capitalizeEntryStart(customer.companyName),
       salutation: customer.salutation,
@@ -3278,6 +3991,9 @@ export default function HomePage() {
     }));
     setSelectedServices(draftSelectedServices);
     setActiveCustomerNumber(customer.customerNumber);
+    if (shouldResetProject) {
+      setActiveProjectNumber("");
+    }
     setActivePriceSubitemId(null);
     setAddressSuggestions([]);
     if (customerPickerCloseTimeoutRef.current !== null) {
@@ -5128,6 +5844,9 @@ export default function HomePage() {
             ...form,
             documentType: documentMode,
             customerNumber: activeCustomerNumber || undefined,
+            projectNumber: activeProjectNumber || undefined,
+            projectAddress:
+              form.projectAddress.trim() || buildProjectAddressFallback(form),
             selectedServices: selectedServicesPayload,
             selectedServiceEntries: selectedServiceEntriesPayload,
             positions: positionsPayload,
@@ -5174,7 +5893,11 @@ export default function HomePage() {
       if (payload.customerNumber?.trim()) {
         setActiveCustomerNumber(payload.customerNumber.trim());
       }
+      if (payload.projectNumber?.trim()) {
+        setActiveProjectNumber(payload.projectNumber.trim());
+      }
       updateStoredCustomersRealtime(payload);
+      updateStoredProjectsRealtime(payload);
       if (
         payload.customerNumber &&
         payload.documentNumber &&
@@ -5197,7 +5920,32 @@ export default function HomePage() {
           return [nextDocument, ...deduplicated];
         });
       }
+      if (
+        payload.projectNumber &&
+        payload.documentNumber &&
+        selectedArchiveProjectNumber &&
+        payload.projectNumber === selectedArchiveProjectNumber
+      ) {
+        const nextDocument: CustomerArchiveDocument = {
+          documentNumber: payload.documentNumber,
+          documentType:
+            payload.documentType === "invoice" ? "invoice" : "offer",
+          customerNumber: payload.customerNumber,
+          customerName: buildCustomerNameForStorage(form),
+          projectNumber: payload.projectNumber,
+          projectName: payload.projectName || form.projectName.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        setProjectArchiveDocuments((prev) => {
+          const deduplicated = prev.filter(
+            (document) =>
+              document.documentNumber !== nextDocument.documentNumber,
+          );
+          return [nextDocument, ...deduplicated];
+        });
+      }
       void loadStoredCustomers();
+      void loadStoredProjects();
       const payloadMode =
         payload.documentType === "invoice" ? "invoice" : documentMode;
       let hasDownloadedPdfOnCreate = false;
@@ -5393,6 +6141,14 @@ export default function HomePage() {
                   onClick={openCustomerArchiveFromAccountMenu}
                 >
                   Kundenarchiv
+                </button>
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
+                  onClick={openProjectArchiveFromAccountMenu}
+                >
+                  Projektarchiv
                 </button>
                 <button
                   type="button"
@@ -5684,6 +6440,336 @@ export default function HomePage() {
                           ) : null}
                         </div>
                       </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {isProjectArchiveOpen ? (
+          <div
+            className={`customerArchiveBackdrop ${isClosingProjectArchive ? "closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-archive-title"
+            onClick={closeProjectArchive}
+          >
+            <section
+              className={`customerArchiveSheet ${isClosingProjectArchive ? "closing" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+              ref={projectArchiveSheetRef}
+            >
+              <div className="customerArchiveHeader">
+                <strong id="project-archive-title">Projektarchiv</strong>
+                <button
+                  type="button"
+                  className="customerArchiveCloseButton"
+                  aria-label="Projektarchiv schließen"
+                  onClick={closeProjectArchive}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="customerArchiveTree">
+                {!selectedArchiveProject ? (
+                  <>
+                    <input
+                      className="customerPickerSearch"
+                      type="search"
+                      value={projectSearch}
+                      onChange={(event) => setProjectSearch(event.target.value)}
+                      placeholder="Projekt suchen (Name, Kunde, Adresse)"
+                      aria-label="Gespeicherte Projekte suchen"
+                    />
+
+                    {isProjectsLoading ? (
+                      <p className="customerArchiveHint">
+                        Gespeicherte Projekte werden geladen ...
+                      </p>
+                    ) : null}
+                    {!isProjectsLoading && projectsError ? (
+                      <p className="voiceWarning" role="alert">
+                        {projectsError}
+                      </p>
+                    ) : null}
+                    {!isProjectsLoading &&
+                    !projectsError &&
+                    storedProjects.length === 0 ? (
+                      <p className="customerArchiveHint">
+                        Noch keine gespeicherten Projekte vorhanden.
+                      </p>
+                    ) : null}
+                    {!isProjectsLoading &&
+                    !projectsError &&
+                    storedProjects.length > 0 &&
+                    filteredStoredProjects.length === 0 ? (
+                      <p className="customerArchiveHint">
+                        Keine Projekte zur Suche gefunden.
+                      </p>
+                    ) : null}
+
+                    {!isProjectsLoading &&
+                    !projectsError &&
+                    filteredStoredProjects.length > 0 ? (
+                      <div className="customerArchiveList" role="list">
+                        {filteredStoredProjects.map((project) => (
+                          <div
+                            key={project.projectNumber}
+                            className="customerArchiveNode"
+                            role="listitem"
+                          >
+                            <button
+                              type="button"
+                              className="customerArchiveCustomerButton"
+                              onClick={() => selectArchiveProject(project)}
+                            >
+                              <div className="customerArchiveCustomerHead">
+                                <strong>{project.projectName}</strong>
+                                <span>{project.projectNumber}</span>
+                              </div>
+                              <div className="projectArchiveListMeta">
+                                <span className="projectStatusBadge">
+                                  {formatProjectStatusLabel(project.status)}
+                                </span>
+                                <p>{project.customerName}</p>
+                                <p>{project.projectAddress}</p>
+                              </div>
+                              <div className="customerArchiveCustomerMeta">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  className="customerArchiveExpandIcon"
+                                  aria-hidden="true"
+                                  focusable="false"
+                                >
+                                  <path
+                                    d="m10 7 5 5-5 5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.9"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </div>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="customerArchiveDetailView">
+                    <button
+                      type="button"
+                      className="customerArchiveBackButton"
+                      onClick={clearArchiveProjectSelection}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="customerArchiveBackIcon"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="m14.6 6.7-5.2 5.3 5.2 5.3"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.9"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Zurück zur Projektliste
+                    </button>
+
+                    <div className="customerArchiveDetailHeader">
+                      <strong>{selectedArchiveProject.projectName}</strong>
+                      <span>{selectedArchiveProject.projectNumber}</span>
+                      <p>{selectedArchiveProject.projectAddress}</p>
+                    </div>
+
+                    <div className="projectArchiveInfoCard">
+                      <div className="projectSummaryMetaRow">
+                        <span className="projectStatusBadge">
+                          {formatProjectStatusLabel(selectedArchiveProject.status)}
+                        </span>
+                        <span>{selectedArchiveProject.customerName}</span>
+                      </div>
+                      <p>{selectedArchiveProject.customerAddress}</p>
+                      {selectedArchiveProject.customerEmail ? (
+                        <p>{selectedArchiveProject.customerEmail}</p>
+                      ) : null}
+                    </div>
+
+                    {selectedArchiveProject.note ? (
+                      <div className="projectArchiveNote">
+                        <strong>Notiz</strong>
+                        <p>{selectedArchiveProject.note}</p>
+                      </div>
+                    ) : null}
+
+                    <div className="projectArchiveActionRow">
+                      <button
+                        type="button"
+                        className="ghostButton"
+                        onClick={() => {
+                          applyStoredProject(selectedArchiveProject);
+                          closeProjectArchive();
+                        }}
+                      >
+                        Projekt ins Formular laden
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton projectDeleteButton"
+                        disabled={
+                          deletingProjectNumber ===
+                          selectedArchiveProject.projectNumber
+                        }
+                        onClick={() => void deleteStoredProject(selectedArchiveProject)}
+                      >
+                        Projekt löschen
+                      </button>
+                    </div>
+
+                    <div className="projectTimelineCard">
+                      <strong>Verlauf</strong>
+                      {projectTimelineEntries.length === 0 ? (
+                        <p className="customerArchiveHint customerArchiveHintCompact">
+                          Für dieses Projekt gibt es noch keine Einträge.
+                        </p>
+                      ) : (
+                        <div className="projectTimelineList">
+                          {projectTimelineEntries.map((entry) => (
+                            <div key={entry.id} className="projectTimelineItem">
+                              <span>{formatArchiveDate(entry.createdAt)}</span>
+                              <strong>{entry.title}</strong>
+                              <p>{entry.detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="customerArchiveDocumentGroups">
+                      <div className="customerArchiveDocumentGroup">
+                        <button
+                          type="button"
+                          className="customerArchiveSectionToggle"
+                          aria-expanded={isProjectArchiveOffersOpen}
+                          onClick={() =>
+                            setIsProjectArchiveOffersOpen((value) => !value)
+                          }
+                        >
+                          <span className="customerArchiveGroupLabel">
+                            Angebote
+                          </span>
+                          <span className="customerArchiveSectionMeta">
+                            {projectArchiveOfferDocuments.length}
+                          </span>
+                        </button>
+                        {isProjectArchiveOffersOpen ? (
+                          isProjectArchiveDocumentsLoading ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Dokumente werden geladen ...
+                            </p>
+                          ) : projectArchiveOfferDocuments.length === 0 ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Keine Angebote vorhanden.
+                            </p>
+                          ) : (
+                            <div className="customerArchiveDocumentList">
+                              {projectArchiveOfferDocuments.map((document) => (
+                                <a
+                                  key={document.documentNumber}
+                                  className="customerArchiveDocumentItem customerArchiveDocumentLink"
+                                  href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <div className="customerArchiveDocumentMeta">
+                                    <strong>{document.documentNumber}</strong>
+                                    <span>
+                                      Angebot • {formatArchiveDate(document.createdAt)}
+                                    </span>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+
+                      <div className="customerArchiveDocumentGroup">
+                        <button
+                          type="button"
+                          className="customerArchiveSectionToggle"
+                          aria-expanded={isProjectArchiveInvoicesOpen}
+                          onClick={() =>
+                            setIsProjectArchiveInvoicesOpen((value) => !value)
+                          }
+                        >
+                          <span className="customerArchiveGroupLabel">
+                            Rechnungen
+                          </span>
+                          <span className="customerArchiveSectionMeta">
+                            {projectArchiveInvoiceDocuments.length}
+                          </span>
+                        </button>
+                        {isProjectArchiveInvoicesOpen ? (
+                          isProjectArchiveDocumentsLoading ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Dokumente werden geladen ...
+                            </p>
+                          ) : projectArchiveInvoiceDocuments.length === 0 ? (
+                            <p className="customerArchiveHint customerArchiveHintCompact">
+                              Keine Rechnungen vorhanden.
+                            </p>
+                          ) : (
+                            <div className="customerArchiveDocumentList">
+                              {projectArchiveInvoiceDocuments.map((document) => (
+                                <a
+                                  key={document.documentNumber}
+                                  className="customerArchiveDocumentItem customerArchiveDocumentLink"
+                                  href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <div className="customerArchiveDocumentMeta">
+                                    <strong>{document.documentNumber}</strong>
+                                    <span>
+                                      Rechnung •{" "}
+                                      {formatArchiveDate(document.createdAt)}
+                                    </span>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {!isProjectArchiveDocumentsLoading && projectArchiveError ? (
+                      <p className="voiceWarning" role="alert">
+                        {projectArchiveError}
+                      </p>
                     ) : null}
                   </div>
                 )}
@@ -6223,6 +7309,40 @@ export default function HomePage() {
                   </button>
                   <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
                 </div>
+                <div className={`appSidebarNavItem ${isProjectArchiveOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="appSidebarNavIconWrap"
+                    onClick={openProjectArchiveFromAccountMenu}
+                    aria-label="Gespeicherte Projekte öffnen"
+                    title="Gespeicherte Projekte"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="appSidebarNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M5.4 6.4h5.1l1.6 2h6.1a1.9 1.9 0 0 1 1.9 1.9v7.3a1.9 1.9 0 0 1-1.9 1.9H5.8a1.9 1.9 0 0 1-1.9-1.9V8.3a1.9 1.9 0 0 1 1.5-1.9Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9 12h6m-3-3v6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <span className="appSidebarNavLabel">Projekte</span>
+                </div>
                 <div className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}>
                   <button
                     type="button"
@@ -6705,6 +7825,213 @@ export default function HomePage() {
                   </>
                 )}
               </div>
+
+              <div className="customerPickerPanel span2">
+                <div className="projectWorkspaceActions">
+                  <button
+                    type="button"
+                    className="ghostButton customerPickerToggle"
+                    onClick={toggleStoredCustomers}
+                  >
+                    Gespeicherten Kunden laden
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton customerPickerToggle"
+                    onClick={openCustomerArchive}
+                  >
+                    Kundenarchiv
+                  </button>
+                </div>
+
+                {activeCustomerNumber ? (
+                  <div className="projectSummaryCard">
+                    <div className="projectSummaryHeader">
+                      <strong>
+                        {buildCustomerNameForStorage(form) || "Aktiver Kunde"}
+                      </strong>
+                      <span>{activeCustomerNumber}</span>
+                    </div>
+                    <p>{buildCustomerAddressForStorage(form)}</p>
+                    {form.customerEmail.trim() ? (
+                      <p>{form.customerEmail.trim()}</p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="selectedServiceHint">
+                    Lade einen gespeicherten Kunden oder erfasse einen neuen
+                    Kunden direkt im Formular.
+                  </p>
+                )}
+              </div>
+
+              <section className="projectWorkspacePanel span2" aria-label="Projekt">
+                <div className="projectWorkspaceHeader">
+                  <div>
+                    <strong>Projekt / Baustelle</strong>
+                    <p>
+                      Verbinde Angebote und Rechnungen mit einer konkreten
+                      Baustelle.
+                    </p>
+                  </div>
+                  {activeProjectNumber || form.projectName.trim() ? (
+                    <span className="projectStatusBadge">
+                      {formatProjectStatusLabel(form.projectStatus)}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="projectWorkspaceActions">
+                  <button
+                    type="button"
+                    className="ghostButton customerPickerToggle"
+                    onClick={openProjectArchive}
+                  >
+                    Gespeicherte Projekte
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton customerPickerToggle"
+                    onClick={() => void saveCurrentProject()}
+                  >
+                    {activeProjectNumber ? "Projekt aktualisieren" : "Projekt speichern"}
+                  </button>
+                  {activeProjectNumber ? (
+                    <button
+                      type="button"
+                      className="ghostButton projectClearButton"
+                      onClick={clearActiveProjectSelection}
+                    >
+                      Projekt lösen
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="projectWorkspaceGrid">
+                  <label className="field span2">
+                    <span>Projektname</span>
+                    <input
+                      placeholder="z. B. Badezimmer Renovierung"
+                      autoCapitalize="words"
+                      value={form.projectName}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          projectName: capitalizeEntryStart(event.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Baustellenadresse</span>
+                    <input
+                      placeholder="z. B. Musterstraße 10, 40210 Düsseldorf"
+                      autoCapitalize="words"
+                      value={form.projectAddress}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          projectAddress: capitalizeEntryStart(event.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Status</span>
+                    <div className="selectWithIndicator">
+                      <select
+                        className="selectWithIndicatorInput"
+                        value={form.projectStatus}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            projectStatus: PROJECT_STATUS_VALUES.includes(
+                              event.target.value as ProjectStatus,
+                            )
+                              ? (event.target.value as ProjectStatus)
+                              : "new",
+                          }))
+                        }
+                      >
+                        {PROJECT_STATUS_VALUES.map((statusValue) => (
+                          <option key={statusValue} value={statusValue}>
+                            {formatProjectStatusLabel(statusValue)}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="serviceSearchIndicator" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="serviceSearchIndicatorIcon"
+                          focusable="false"
+                        >
+                          <path
+                            d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="field span2">
+                    <span>Projektnotiz</span>
+                    <textarea
+                      className="projectDescriptionTextarea"
+                      rows={3}
+                      placeholder="z. B. Kunde wünscht Ausführung in zwei Abschnitten."
+                      value={form.projectNote}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          projectNote: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                {activeProjectNumber || form.projectName.trim() ? (
+                  <div className="projectSummaryCard">
+                    <div className="projectSummaryHeader">
+                      <strong>
+                        {activeProject?.projectName || form.projectName.trim()}
+                      </strong>
+                      <span>{activeProject?.projectNumber || "Entwurf"}</span>
+                    </div>
+                    <div className="projectSummaryMetaRow">
+                      <span className="projectStatusBadge">
+                        {formatProjectStatusLabel(
+                          activeProject?.status || form.projectStatus,
+                        )}
+                      </span>
+                      <span>
+                        {activeProject?.customerName || buildCustomerNameForStorage(form)}
+                      </span>
+                    </div>
+                    <p>
+                      {activeProject?.projectAddress ||
+                        form.projectAddress.trim() ||
+                        buildProjectAddressFallback(form)}
+                    </p>
+                    {(activeProject?.note || form.projectNote.trim()) ? (
+                      <p>{activeProject?.note || form.projectNote.trim()}</p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="selectedServiceHint">
+                    Lege hier eine Baustelle an oder lade ein bestehendes
+                    Projekt. Beim Erstellen des Dokuments wird die Zuordnung
+                    automatisch gespeichert.
+                  </p>
+                )}
+              </section>
 
               <div
                 className="recipientType span2"
