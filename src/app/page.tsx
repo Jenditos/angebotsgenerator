@@ -4713,9 +4713,7 @@ export default function HomePage() {
     setPendingPhotoCaptureFiles(nextFiles);
     setPhotoError("");
     setVoiceMissingFields([]);
-    setPhotoInfo(
-      `${formatPhotoCountLabel(nextFiles.length)} ausgewählt. Die kleine Zahl zeigt die Reihenfolge der Übernahme.`,
-    );
+    setPhotoInfo(`${formatPhotoCountLabel(nextFiles.length)} ausgewählt.`);
   }
 
   function openPhotoUploadPicker(options?: { append?: boolean; keepSheetOpen?: boolean }) {
@@ -7583,7 +7581,7 @@ export default function HomePage() {
                 </div>
                 <p className="photoCameraHint">
                   {pendingPhotoCaptureFiles.length > 0
-                    ? `${formatPhotoCountLabel(pendingPhotoCaptureFiles.length)} sind bereit. Die kleine Zahl oben rechts zeigt die Reihenfolge. Wenn alles drauf ist, tippe auf "Fertig und übernehmen".`
+                    ? `${formatPhotoCountLabel(pendingPhotoCaptureFiles.length)} sind bereit. Wenn alles drauf ist, tippe auf "Fertig und übernehmen".`
                     : `Nimm die Fotos nacheinander auf. Wenn alles erfasst ist, tippe auf "Fertig und übernehmen". Maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos pro Vorgang.`}
                 </p>
                 {pendingPhotoPreviewItems.length > 0 && photoCameraStreamRef.current ? (
