@@ -1338,6 +1338,8 @@ const INTAKE_SYSTEM_PROMPT =
   "Ignoriere Steuerungs-/Befehlssprache (z. B. 'mach mir mal bitte', 'trag mal ein', 'schreib bitte rein', 'erstelle ein Angebot für', 'füge hinzu', 'notiere') und Füllwörter (z. B. 'ähm', 'also', 'ja', 'bitte', 'mal', 'quasi', 'genau'). " +
   "Erfasse nur relevante Daten und ordne sie semantisch korrekt zu (customer/document/items/timeCalculation/appointment). " +
   "items dürfen ausschließlich echte Leistungen, Materialien oder explizite Anfahrt-Positionen enthalten, nie Befehlsreste. " +
+  "Formular-Metadaten wie Rechnungsdatum, Leistungszeitraum, Zahlungsziel, E-Mail, PLZ, Ort, Bezeichnung, Menge, Einheit oder Einzelpreis dürfen niemals als items erscheinen. " +
+  "Wenn keine echte Position erkennbar ist, schreibe die freie Leistungsangabe in serviceDescription/document.notes statt künstliche items zu erzeugen. " +
   "Arbeitszeit (z. B. '2 Stunden Arbeit', 'Arbeitszeit 3 h', 'Montagezeit', 'Geselle 3 Stunden', 'Meister 2 Stunden', 'vor Ort 6 Stunden') gehört ausschließlich in timeCalculation und darf nicht in items dupliziert werden. " +
   "Wenn Mengen/Einheiten/Preise fehlen, lasse Felder leer bzw. null. Nichts raten. " +
   "Unsichere Daten zurückhaltend behandeln, confidence setzen und needs_review=true lassen. " +
@@ -1674,11 +1676,15 @@ ${INTAKE_FEW_SHOTS}`,
 }
 
 export async function parseOfferIntakeFromImage(
-  imageDataUrl: string,
+  imageDataUrls: string | string[],
 ): Promise<IntakeParseResult> {
   const openai = getClient();
-  const cleanImageDataUrl = imageDataUrl.trim();
-  if (!cleanImageDataUrl) {
+  const normalizedImageDataUrls = (
+    Array.isArray(imageDataUrls) ? imageDataUrls : [imageDataUrls]
+  )
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (normalizedImageDataUrls.length === 0) {
     return { fields: {}, usedFallback: true, fallbackReason: "model_error" };
   }
 
@@ -1705,7 +1711,7 @@ export async function parseOfferIntakeFromImage(
           content: [
             {
               type: "text",
-              text: `Analysiere dieses Foto und gib nur strukturiertes JSON zurück.
+              text: `Analysiere diese ${normalizedImageDataUrls.length} Foto${normalizedImageDataUrls.length === 1 ? "" : "s"} gemeinsam und gib nur strukturiertes JSON zurück.
 
 Regeln:
 - Nur valide JSON-Antwort.
@@ -1713,6 +1719,10 @@ Regeln:
 - Keine Erklärungen.
 - Unsichere/leere Werte leer lassen.
 - Nichts raten.
+- Nutze Informationen aus allen Fotos zusammen.
+- Führe Kundendaten, Adressen, Positionen und Preise aus mehreren Fotos in einer gemeinsamen Antwort zusammen.
+- Doppelte Positionen nicht mehrfach ausgeben.
+- Wenn sich Angaben zwischen Fotos widersprechen, nimm nur den sichersten Wert und setze needs_review auf true.
 
 Antwort-JSON-Schema:
 ${INTAKE_JSON_SCHEMA}
@@ -1720,13 +1730,13 @@ ${INTAKE_JSON_SCHEMA}
 Few-Shot-Beispiele:
 ${INTAKE_FEW_SHOTS}`,
             },
-            {
-              type: "image_url",
+            ...normalizedImageDataUrls.map((url) => ({
+              type: "image_url" as const,
               image_url: {
-                url: cleanImageDataUrl,
-                detail: "high",
+                url,
+                detail: "high" as const,
               },
-            },
+            })),
           ],
         },
       ],

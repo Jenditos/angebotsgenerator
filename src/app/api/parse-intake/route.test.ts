@@ -117,6 +117,74 @@ describe("POST /api/parse-intake", () => {
     expect(parseOfferIntakeMock).not.toHaveBeenCalled();
   });
 
+  it("routes multiple photos to the image parser as a combined request", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeFromImageMock.mockResolvedValue({
+      fields: {
+        companyName: "Malerbetrieb Blau",
+        street: "Hauptstraße 5",
+        customerType: "company",
+      },
+      usedFallback: false,
+      sourceText: "Malerbetrieb Blau Hauptstraße 5",
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrls: [
+            "data:image/jpeg;base64,QUJDRA==",
+            "data:image/jpeg;base64,RUZHSA==",
+          ],
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: { companyName?: string; street?: string };
+      inputMode?: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.inputMode).toBe("photo");
+    expect(payload.fields?.companyName).toBe("Malerbetrieb Blau");
+    expect(payload.fields?.street).toBe("Hauptstraße 5");
+    expect(parseOfferIntakeFromImageMock).toHaveBeenCalledWith([
+      "data:image/jpeg;base64,QUJDRA==",
+      "data:image/jpeg;base64,RUZHSA==",
+    ]);
+  });
+
+  it("rejects more than 10 uploaded photos before model call", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrls: Array.from({ length: 11 }, () => "data:image/jpeg;base64,QUJDRA=="),
+        }),
+      }),
+    );
+    const payload = (await response.json()) as { error?: string };
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toContain("maximal 10 Fotos");
+    expect(parseOfferIntakeFromImageMock).not.toHaveBeenCalled();
+  });
+
   it("drops redundant autofilled descriptions and bogus EUR positions", async () => {
     requireAppAccessMock.mockResolvedValue({
       ok: true,
@@ -253,6 +321,111 @@ describe("POST /api/parse-intake", () => {
       "Wasserhahn austauschen",
     );
     expect(payload.fields?.positions?.[0]?.quantity).toBeUndefined();
+  });
+
+  it("uses serviceDescription instead of creating an artificial position when no real item is found", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {
+        serviceDescription: "Fliesenarbeiten",
+      },
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: [],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript: "Bitte Fliesenarbeiten eintragen.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: { serviceDescription?: string; positions?: Array<unknown> };
+      shouldAutofillServiceDescription?: boolean;
+      noRelevantData?: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(false);
+    expect(payload.fields?.serviceDescription).toBe("Fliesenarbeiten");
+    expect(payload.fields?.positions).toBeUndefined();
+    expect(payload.shouldAutofillServiceDescription).toBe(true);
+  });
+
+  it("filters form-meta entries and deduplicates structured item descriptions", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {
+        positions: [
+          {
+            description: "Fliesenarbeiten",
+            quantity: 100,
+            unit: "Stück",
+            unitPrice: 18,
+          },
+          {
+            description: "Leistungszeitraum eine Woche Zahlungsziel",
+            quantity: 14,
+            unit: "Tag",
+          },
+          {
+            description: "Fliesenarbeiten 100 Stück Einzelpreis 18",
+          },
+        ],
+      },
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: [],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript:
+            "Fliesenarbeiten 100 Stück Einzelpreis 18, Leistungszeitraum eine Woche, Zahlungsziel 14 Tage.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: {
+        positions?: Array<{
+          description?: string;
+          quantity?: number;
+          unit?: string;
+          unitPrice?: number;
+        }>;
+      };
+      noRelevantData?: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(false);
+    expect(payload.fields?.positions).toEqual([
+      expect.objectContaining({
+        description: "Fliesenarbeiten",
+        quantity: 100,
+        unit: "Stück",
+        unitPrice: 18,
+      }),
+    ]);
   });
 
   it("moves labor-only positions into time calculation and removes them from items", async () => {
