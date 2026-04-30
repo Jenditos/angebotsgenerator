@@ -10778,12 +10778,15 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 }
 
 .photoSelectionPreviewStrip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .photoSelectionPreviewThumb {
+  flex: 0 0 88px;
+  width: 88px;
   aspect-ratio: 1 / 1;
 }
 
@@ -11034,6 +11037,11 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     padding: 10px;
+  }
+
+  .photoSelectionPreviewThumb {
+    flex-basis: 72px;
+    width: 72px;
   }
 
   .photoCameraActions {
