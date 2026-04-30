@@ -10726,6 +10726,67 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   background: #061528;
 }
 
+.photoSelectionPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  min-height: 100%;
+  align-content: start;
+  background: #f4f8fc;
+}
+
+.photoSelectionPreviewItem,
+.photoSelectionPreviewThumb {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(180, 203, 229, 0.88);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(20, 48, 87, 0.08);
+}
+
+.photoSelectionPreviewItem {
+  aspect-ratio: 1 / 1;
+}
+
+.photoSelectionPreviewImage,
+.photoSelectionPreviewThumbImage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  background: #dfe9f4;
+}
+
+.photoSelectionPreviewBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #1f5fc2;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 24px;
+  text-align: center;
+  box-shadow: 0 6px 12px rgba(18, 63, 132, 0.24);
+}
+
+.photoSelectionPreviewStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+.photoSelectionPreviewThumb {
+  aspect-ratio: 1 / 1;
+}
+
 .photoCameraStatus {
   position: absolute;
   inset: 0;
@@ -10746,14 +10807,121 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 }
 
 .photoCameraActions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 9px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .photoCameraActions button {
-  min-height: 42px;
+  min-height: 48px;
+  width: 100%;
+}
+
+.photoCameraHint {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(187, 211, 239, 0.9);
+  background: #f7fbff;
+  color: #365274;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+button.photoCameraActionPrimary,
+button.photoCameraActionPrimary:hover:not(:disabled),
+button.photoCameraActionPrimary:active:not(:disabled),
+button.photoCameraActionPrimary:focus-visible {
+  color: #ffffff !important;
+  border-color: #1f59c7 !important;
+  background: #2f71db !important;
+  background-image: none !important;
+  box-shadow: 0 10px 22px rgba(35, 90, 177, 0.24) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+button.photoCameraActionPrimary:hover:not(:disabled) {
+  background: #245fbe !important;
+}
+
+button.photoCameraActionPrimary:active:not(:disabled) {
+  background: #1f54a6 !important;
+}
+
+button.photoCameraActionPrimary:disabled {
+  opacity: 1 !important;
+  cursor: not-allowed;
+  color: #6a82a1 !important;
+  border-color: #c6d7eb !important;
+  background: #e8f0fa !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+button.photoCameraActionSecondary,
+button.photoCameraActionSecondary:hover:not(:disabled),
+button.photoCameraActionSecondary:active:not(:disabled),
+button.photoCameraActionSecondary:focus-visible {
+  color: #163d6f !important;
+  border-color: #c8d8ea !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  box-shadow: 0 8px 18px rgba(16, 46, 89, 0.08) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+button.photoCameraActionSecondary:hover:not(:disabled) {
+  border-color: #9fb8d6 !important;
+  background: #f5f9fd !important;
+}
+
+button.photoCameraActionSecondary:active:not(:disabled) {
+  background: #edf4fb !important;
+}
+
+button.photoCameraActionSecondary:disabled {
+  opacity: 1 !important;
+  cursor: not-allowed;
+  color: #7890ae !important;
+  border-color: #d4e0ed !important;
+  background: #f4f8fc !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.photoCameraTertiaryActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+button.photoCameraLinkButton,
+button.photoCameraLinkButton:hover:not(:disabled),
+button.photoCameraLinkButton:active:not(:disabled),
+button.photoCameraLinkButton:focus-visible {
+  min-height: auto;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  background-image: none !important;
+  color: #2f5d93 !important;
+  box-shadow: none !important;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+button.photoCameraLinkButton:hover:not(:disabled),
+button.photoCameraLinkButton:focus-visible {
+  color: #173d6c !important;
+  text-decoration: underline;
 }
 
 .intakeFlowHint {
@@ -10862,12 +11030,14 @@ body {
     min-height: 220px;
   }
 
-  .photoCameraActions {
-    justify-content: stretch;
+  .photoSelectionPreviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
   }
 
-  .photoCameraActions button {
-    flex: 1 1 150px;
+  .photoCameraActions {
+    grid-template-columns: 1fr;
   }
 }
 

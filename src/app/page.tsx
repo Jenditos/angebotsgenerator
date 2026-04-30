@@ -316,6 +316,12 @@ type ServiceSubitemEntry = {
   price: string;
 };
 
+type PendingPhotoPreviewItem = {
+  id: string;
+  name: string;
+  url: string;
+};
+
 type SelectedServiceEntry = {
   id: string;
   label: string;
@@ -1826,6 +1832,9 @@ export default function HomePage() {
   const [pendingPhotoCaptureFiles, setPendingPhotoCaptureFiles] = useState<File[]>(
     [],
   );
+  const [pendingPhotoPreviewItems, setPendingPhotoPreviewItems] = useState<
+    PendingPhotoPreviewItem[]
+  >([]);
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
   const [serviceSearch, setServiceSearch] = useState("");
@@ -1930,6 +1939,7 @@ export default function HomePage() {
   const photoUploadInputRef = useRef<HTMLInputElement | null>(null);
   const photoCameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const photoCameraStreamRef = useRef<MediaStream | null>(null);
+  const shouldAppendNextPhotoUploadRef = useRef(false);
   const finalTranscriptRef = useRef("");
   const settingsOverlayCloseTimeoutRef = useRef<number | null>(null);
   const customerPickerCloseTimeoutRef = useRef<number | null>(null);
@@ -2010,6 +2020,21 @@ export default function HomePage() {
   useEffect(() => {
     setTodayDateValue(todayDateInputValue());
   }, []);
+
+  useEffect(() => {
+    const nextPreviewItems = pendingPhotoCaptureFiles.map((file, index) => ({
+      id: `${file.name}-${file.lastModified}-${index}`,
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+    setPendingPhotoPreviewItems(nextPreviewItems);
+
+    return () => {
+      nextPreviewItems.forEach((item) => {
+        URL.revokeObjectURL(item.url);
+      });
+    };
+  }, [pendingPhotoCaptureFiles]);
 
   const filteredStoredCustomers = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(customerSearch);
@@ -4617,6 +4642,115 @@ export default function HomePage() {
     closePhotoCameraWithOptions();
   }
 
+  function validateSelectedPhotoFiles(files: File[]): string | null {
+    if (files.length === 0) {
+      return "Bitte mindestens ein Foto auswählen.";
+    }
+
+    if (files.length > MAX_PHOTO_UPLOAD_COUNT) {
+      return `Bitte maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos gleichzeitig auswählen.`;
+    }
+
+    for (const [index, file] of files.entries()) {
+      if (!file.type.startsWith("image/")) {
+        return files.length > 1
+          ? `Datei ${index + 1} ist kein gültiges Bild.`
+          : "Bitte ein gültiges Bild auswählen.";
+      }
+
+      if (file.size > MAX_LOCAL_PHOTO_FILE_BYTES) {
+        return files.length > 1
+          ? `Foto ${index + 1} ist zu groß. Bitte auf maximal ${Math.round(
+              MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
+            ).toLocaleString("de-DE")} MB reduzieren.`
+          : `Das Foto ist zu groß. Bitte auf maximal ${Math.round(
+              MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
+            ).toLocaleString("de-DE")} MB reduzieren.`;
+      }
+    }
+
+    return null;
+  }
+
+  function stopActiveVoiceRecognition() {
+    if (!recognitionRef.current) {
+      return;
+    }
+
+    shouldAutoApplyVoiceRef.current = false;
+    pauseRequestedRef.current = false;
+    recognitionRef.current.stop();
+    recognitionRef.current = null;
+    setIsListening(false);
+    setIsSpeechPaused(false);
+  }
+
+  function stagePhotoFiles(
+    fileOrFiles: File | File[],
+    options?: { append?: boolean },
+  ) {
+    const selectedFiles = (Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles])
+      .filter((file): file is File => file instanceof File);
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    const nextFiles = options?.append
+      ? [...pendingPhotoCaptureFiles, ...selectedFiles]
+      : selectedFiles;
+    const validationError = validateSelectedPhotoFiles(nextFiles);
+    if (validationError) {
+      setPhotoError(validationError);
+      setPhotoInfo("");
+      return;
+    }
+
+    stopActiveVoiceRecognition();
+    stopPhotoCameraStream();
+    switchIntakeMode("photo");
+    setIsPhotoCameraOpen(true);
+    setIsStartingPhotoCamera(false);
+    setPendingPhotoCaptureFiles(nextFiles);
+    setPhotoError("");
+    setVoiceMissingFields([]);
+    setPhotoInfo(
+      `${formatPhotoCountLabel(nextFiles.length)} ausgewählt. Die kleine Zahl zeigt die Reihenfolge der Übernahme.`,
+    );
+  }
+
+  function openPhotoUploadPicker(options?: { append?: boolean; keepSheetOpen?: boolean }) {
+    if (isAnyIntakeProcessing) {
+      return;
+    }
+
+    if (isKiIntakeLocked) {
+      setPhotoError("");
+      setPhotoInfo("");
+      setIsPhotoScanSheetOpen(false);
+      openVoiceLoginModal();
+      return;
+    }
+
+    switchIntakeMode("photo");
+    setIsPhotoScanSheetOpen(false);
+    setPhotoError("");
+    setPhotoInfo("");
+    shouldAppendNextPhotoUploadRef.current = options?.append === true;
+
+    if (options?.keepSheetOpen) {
+      setIsPhotoCameraOpen(true);
+      setIsStartingPhotoCamera(false);
+    } else {
+      setIsPhotoCameraOpen(false);
+    }
+
+    if (!options?.append) {
+      setPendingPhotoCaptureFiles([]);
+    }
+
+    photoUploadInputRef.current?.click();
+  }
+
   function resolvePhotoCameraErrorMessage(error: unknown): string {
     const name =
       error && typeof error === "object" && "name" in error
@@ -4661,6 +4795,7 @@ export default function HomePage() {
       return;
     }
 
+    shouldAppendNextPhotoUploadRef.current = false;
     stopPhotoCameraStream();
     setIsPhotoCameraOpen(true);
     setIsStartingPhotoCamera(true);
@@ -5765,48 +5900,14 @@ export default function HomePage() {
       return;
     }
 
-    if (selectedFiles.length > MAX_PHOTO_UPLOAD_COUNT) {
-      setPhotoError(
-        `Bitte maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos gleichzeitig auswählen.`,
-      );
+    const validationError = validateSelectedPhotoFiles(selectedFiles);
+    if (validationError) {
+      setPhotoError(validationError);
       setPhotoInfo("");
       return;
     }
 
-    for (const [index, file] of selectedFiles.entries()) {
-      if (!file.type.startsWith("image/")) {
-        setPhotoError(
-          selectedFiles.length > 1
-            ? `Datei ${index + 1} ist kein gültiges Bild.`
-            : "Bitte ein gültiges Bild auswählen.",
-        );
-        setPhotoInfo("");
-        return;
-      }
-
-      if (file.size > MAX_LOCAL_PHOTO_FILE_BYTES) {
-        setPhotoError(
-          selectedFiles.length > 1
-            ? `Foto ${index + 1} ist zu groß. Bitte auf maximal ${Math.round(
-                MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
-              ).toLocaleString("de-DE")} MB reduzieren.`
-            : `Das Foto ist zu groß. Bitte auf maximal ${Math.round(
-                MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
-              ).toLocaleString("de-DE")} MB reduzieren.`,
-        );
-        setPhotoInfo("");
-        return;
-      }
-    }
-
-    if (recognitionRef.current) {
-      shouldAutoApplyVoiceRef.current = false;
-      pauseRequestedRef.current = false;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      setIsListening(false);
-      setIsSpeechPaused(false);
-    }
+    stopActiveVoiceRecognition();
 
     const parseRequestId = photoParseRequestRef.current + 1;
     photoParseRequestRef.current = parseRequestId;
@@ -5912,10 +6013,13 @@ export default function HomePage() {
     const selectedFiles = Array.from(event.target.files ?? []);
     event.target.value = "";
     if (selectedFiles.length === 0) {
+      shouldAppendNextPhotoUploadRef.current = false;
       return;
     }
-    setPendingPhotoCaptureFiles([]);
-    void handlePhotoFileSelection(selectedFiles);
+
+    const shouldAppend = shouldAppendNextPhotoUploadRef.current;
+    shouldAppendNextPhotoUploadRef.current = false;
+    stagePhotoFiles(selectedFiles, { append: shouldAppend });
   }
 
   function triggerPhotoCaptureInput() {
@@ -5923,24 +6027,7 @@ export default function HomePage() {
   }
 
   function triggerPhotoUploadInput() {
-    if (isAnyIntakeProcessing) {
-      return;
-    }
-
-    if (isKiIntakeLocked) {
-      setPhotoError("");
-      setPhotoInfo("");
-      setIsPhotoScanSheetOpen(false);
-      openVoiceLoginModal();
-      return;
-    }
-
-    switchIntakeMode("photo");
-    setIsPhotoScanSheetOpen(false);
-    setPhotoError("");
-    setPhotoInfo("");
-    setPendingPhotoCaptureFiles([]);
-    photoUploadInputRef.current?.click();
+    openPhotoUploadPicker();
   }
 
   function createPdfFile(pdfBase64: string, filename: string) {
@@ -7456,74 +7543,121 @@ export default function HomePage() {
               </div>
               <div className="photoCameraBody">
                 <div className="photoCameraPreview">
-                  <video
-                    ref={photoCameraVideoRef}
-                    className="photoCameraVideo"
-                    autoPlay
-                    muted
-                    playsInline
-                  />
-                  {isStartingPhotoCamera ? (
-                    <div className="photoCameraStatus">Kamera wird gestartet ...</div>
-                  ) : null}
-                  {photoError ? (
-                    <div className="photoCameraStatus photoCameraStatusError">
-                      {photoError}
+                  {pendingPhotoPreviewItems.length > 0 &&
+                  !photoCameraStreamRef.current ? (
+                    <div className="photoSelectionPreviewGrid">
+                      {pendingPhotoPreviewItems.map((item, index) => (
+                        <figure key={item.id} className="photoSelectionPreviewItem">
+                          <img
+                            src={item.url}
+                            alt={`Ausgewähltes Foto ${index + 1}`}
+                            className="photoSelectionPreviewImage"
+                          />
+                          <span className="photoSelectionPreviewBadge">
+                            {index + 1}
+                          </span>
+                        </figure>
+                      ))}
                     </div>
-                  ) : null}
+                  ) : (
+                    <>
+                      <video
+                        ref={photoCameraVideoRef}
+                        className="photoCameraVideo"
+                        autoPlay
+                        muted
+                        playsInline
+                      />
+                      {isStartingPhotoCamera ? (
+                        <div className="photoCameraStatus">
+                          Kamera wird gestartet ...
+                        </div>
+                      ) : null}
+                      {photoError ? (
+                        <div className="photoCameraStatus photoCameraStatusError">
+                          {photoError}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
-                <p className="intakeFlowHint">
+                <p className="photoCameraHint">
                   {pendingPhotoCaptureFiles.length > 0
-                    ? `${formatPhotoCountLabel(pendingPhotoCaptureFiles.length)} aufgenommen. Maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos werden gemeinsam ausgewertet.`
-                    : `Du kannst bis zu ${MAX_PHOTO_UPLOAD_COUNT} Fotos aufnehmen und danach die gemeinsame Auswertung starten.`}
+                    ? `${formatPhotoCountLabel(pendingPhotoCaptureFiles.length)} sind bereit. Die kleine Zahl oben rechts zeigt die Reihenfolge. Wenn alles drauf ist, tippe auf "Fertig und übernehmen".`
+                    : `Nimm die Fotos nacheinander auf. Wenn alles erfasst ist, tippe auf "Fertig und übernehmen". Maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos pro Vorgang.`}
                 </p>
+                {pendingPhotoPreviewItems.length > 0 && photoCameraStreamRef.current ? (
+                  <div className="photoSelectionPreviewStrip" aria-label="Ausgewählte Fotos">
+                    {pendingPhotoPreviewItems.map((item, index) => (
+                      <figure key={item.id} className="photoSelectionPreviewThumb">
+                        <img
+                          src={item.url}
+                          alt={`Ausgewähltes Foto ${index + 1}`}
+                          className="photoSelectionPreviewThumbImage"
+                        />
+                        <span className="photoSelectionPreviewBadge">
+                          {index + 1}
+                        </span>
+                      </figure>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="photoCameraActions">
+                  {photoCameraStreamRef.current ? (
+                    <button
+                      type="button"
+                      className="primaryButton photoCameraActionPrimary"
+                      onClick={capturePhotoFromCamera}
+                      disabled={
+                        isStartingPhotoCamera ||
+                        pendingPhotoCaptureFiles.length >= MAX_PHOTO_UPLOAD_COUNT
+                      }
+                    >
+                      {pendingPhotoCaptureFiles.length > 0
+                        ? "Weiteres Foto"
+                        : "Foto aufnehmen"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primaryButton photoCameraActionPrimary"
+                      onClick={() => {
+                        openPhotoUploadPicker({
+                          append: pendingPhotoCaptureFiles.length > 0,
+                          keepSheetOpen: true,
+                        });
+                      }}
+                      disabled={pendingPhotoCaptureFiles.length >= MAX_PHOTO_UPLOAD_COUNT}
+                    >
+                      {pendingPhotoCaptureFiles.length > 0
+                        ? "Weitere Fotos auswählen"
+                        : "Fotos auswählen"}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="primaryButton"
-                    onClick={capturePhotoFromCamera}
-                    disabled={
-                      isStartingPhotoCamera ||
-                      !photoCameraStreamRef.current ||
-                      pendingPhotoCaptureFiles.length >= MAX_PHOTO_UPLOAD_COUNT
-                    }
-                  >
-                    Foto hinzufügen
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton"
+                    className="ghostButton photoCameraActionSecondary"
                     onClick={submitCapturedPhotosForAnalysis}
                     disabled={pendingPhotoCaptureFiles.length === 0 || isAnyIntakeProcessing}
                   >
-                    Auswertung starten
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton"
-                    onClick={() => {
-                      closePhotoCamera();
-                      triggerPhotoUploadInput();
-                    }}
-                  >
-                    Fotos hochladen
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton"
-                    onClick={() => setPendingPhotoCaptureFiles([])}
-                    disabled={pendingPhotoCaptureFiles.length === 0}
-                  >
-                    Zurücksetzen
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostButton"
-                    onClick={closePhotoCamera}
-                  >
-                    Abbrechen
+                    Fertig und übernehmen
                   </button>
                 </div>
+                {pendingPhotoCaptureFiles.length > 0 ? (
+                  <div className="photoCameraTertiaryActions">
+                    <button
+                      type="button"
+                      className="photoCameraLinkButton"
+                      onClick={() => {
+                        setPendingPhotoCaptureFiles([]);
+                        setPhotoError("");
+                        setPhotoInfo("Neue Fotos können jetzt aufgenommen werden.");
+                      }}
+                    >
+                      Neu beginnen
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </section>
           </div>
