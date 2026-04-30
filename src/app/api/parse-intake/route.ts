@@ -43,9 +43,16 @@ const INVALID_POSITION_DESCRIPTION_KEYS = new Set([
   "euro",
   "preis",
 ]);
+const POSITION_UNIT_PATTERN =
+  "quadratmetern?|qm|m²|m2|kubikmetern?|cbm|m³|m3|metern?|m|stück|stueck|stk|kilogramm|kg|tonnen?|t|liter|l|stunden?|std|h|tage?|tag|pauschal(?:e)?";
+const NON_POSITION_FIELD_PATTERN =
+  /\b(?:leistungszeitraum|leistungsdatum|rechnungsdatum|zahlungsziel|f(?:ä|ae)lligkeit|kunden?-?e-?mail|e-?mail|adresse|plz|ort|rechnungsnummer|angebotsnummer|kundennummer|steuersatz|mwst|mehrwertsteuer)\b/i;
+const POSITION_FORM_META_TOKEN_PATTERN =
+  /\b(?:bezeichnung|menge|einheit|einzelpreis|gesamtpreis|gesamtbetrag|preis|ep)\b/gi;
 const PHOTO_DATA_URL_PATTERN =
   /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_PHOTO_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_PHOTO_UPLOAD_COUNT = 10;
 const FILLER_TOKEN_PATTERN =
   /\b(?:ähm|aehm|also|ja|bitte|mal|quasi|genau|halt|eben)\b/gi;
 const LEADING_FILLER_PATTERN =
@@ -98,6 +105,7 @@ type ParseIntakeRequestBody = {
   inputMode?: ParseIntakeInputMode;
   transcript?: string;
   photoDataUrl?: string;
+  photoDataUrls?: string[];
 };
 
 type IntakeVoicePosition = {
@@ -790,6 +798,16 @@ function sanitizePositionDescription(value: string | undefined): string | undefi
   return cleaned;
 }
 
+function hasNonPositionFieldHints(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  return NON_POSITION_FIELD_PATTERN.test(
+    normalizeGermanUmlauts(value.toLowerCase()),
+  );
+}
+
 function normalizeDescriptionForComparison(value: string | undefined): string {
   if (!value) {
     return "";
@@ -821,7 +839,7 @@ function parseEmbeddedQuantityAndUnit(value: string): {
   unit?: string;
 } {
   const embeddedMatch = value.match(
-    /^(.*?)(\d+(?:[.,]\d+)?)\s*(quadratmetern?|qm|m²|m2|kubikmetern?|cbm|m³|m3|metern?|m|stück|stueck|stk|kilogramm|kg|tonnen?|t|liter|l|stunden?|std|h|tage?|tag|pauschal(?:e)?)$/i,
+    new RegExp(`^(.*?)(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})$`, "i"),
   );
   if (!embeddedMatch) {
     return { description: value };
@@ -833,12 +851,47 @@ function parseEmbeddedQuantityAndUnit(value: string): {
   return { description, quantity, unit };
 }
 
+function parseEmbeddedPositionDetails(value: string): {
+  description: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice?: number;
+} {
+  const embeddedPriceMatch = value.match(
+    new RegExp(
+      `^(.*?)(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})\\s+(?:einzelpreis|ep|preis)\\s*(\\d+(?:[.,]\\d+)?)(?:\\s*(?:eur|euro|€))?$`,
+      "i",
+    ),
+  );
+  if (embeddedPriceMatch) {
+    const description =
+      sanitizePositionDescription(embeddedPriceMatch[1]) ?? value;
+    const quantity = parseQuantityValue(embeddedPriceMatch[2]);
+    const unit = normalizeUnitLabel(embeddedPriceMatch[3]);
+    const unitPrice = parseQuantityValue(embeddedPriceMatch[4]);
+    return { description, quantity, unit, unitPrice };
+  }
+
+  const embedded = parseEmbeddedQuantityAndUnit(value);
+  return {
+    description: embedded.description,
+    quantity: embedded.quantity,
+    unit: embedded.unit,
+  };
+}
+
 function extractTranscriptUnitHints(transcript: string): IntakeVoicePosition[] {
   const hints: IntakeVoicePosition[] = [];
   const seen = new Set<string>();
   const patterns = [
-    /([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\- ]{1,90}?)\s+(\d+(?:[.,]\d+)?)\s*(quadratmetern?|qm|m²|m2|kubikmetern?|cbm|m³|m3|metern?|m|stück|stueck|stk|kilogramm|kg|tonnen?|t|liter|l|stunden?|std|h|tage?|tag|pauschal(?:e)?)/gi,
-    /(\d+(?:[.,]\d+)?)\s*(quadratmetern?|qm|m²|m2|kubikmetern?|cbm|m³|m3|metern?|m|stück|stueck|stk|kilogramm|kg|tonnen?|t|liter|l|stunden?|std|h|tage?|tag|pauschal(?:e)?)\s+([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\- ]{1,90})/gi,
+    new RegExp(
+      `([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\\- ]{1,90}?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})`,
+      "gi",
+    ),
+    new RegExp(
+      `(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})\\s+([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\\- ]{1,90})`,
+      "gi",
+    ),
   ];
 
   for (const pattern of patterns) {
@@ -880,7 +933,7 @@ function mergePositionsWithTranscriptHints(
     const normalizedDescription = sanitizePositionDescription(position.description);
     const embedded =
       normalizedDescription !== undefined
-        ? parseEmbeddedQuantityAndUnit(normalizedDescription)
+        ? parseEmbeddedPositionDetails(normalizedDescription)
         : { description: normalizedDescription ?? "" };
 
     return {
@@ -892,6 +945,7 @@ function mergePositionsWithTranscriptHints(
         embedded.unit ??
         position.unit ??
         undefined,
+      unitPrice: parseQuantityValue(position.unitPrice) ?? embedded.unitPrice,
     } satisfies IntakeVoicePosition;
   });
 
@@ -963,23 +1017,6 @@ function mergePositionsWithTranscriptHints(
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function buildFallbackPositionFromServiceDescription(
-  serviceDescription: string | undefined,
-): IntakeVoicePosition[] | undefined {
-  const cleaned = sanitizePositionDescription(serviceDescription);
-  if (!cleaned) {
-    return undefined;
-  }
-  return [
-    {
-      description: cleaned,
-      quantity: undefined,
-      unit: undefined,
-      unitPrice: undefined,
-    },
-  ];
-}
-
 function hasRelevantBusinessData(input: {
   fields: Record<string, unknown>;
   positions: IntakeVoicePosition[] | undefined;
@@ -1041,10 +1078,25 @@ function normalizeConfidenceScore(value: unknown): number {
 }
 
 function hasInvalidPositionDescription(value: string | undefined): boolean {
-  const normalizedKey = normalizePositionKey(
-    sanitizePositionDescription(value) ?? value,
-  );
-  return !normalizedKey || INVALID_POSITION_DESCRIPTION_KEYS.has(normalizedKey);
+  const sanitizedValue = sanitizePositionDescription(value) ?? value;
+  const normalizedKey = normalizePositionKey(sanitizedValue);
+  if (!normalizedKey || INVALID_POSITION_DESCRIPTION_KEYS.has(normalizedKey)) {
+    return true;
+  }
+  if (hasNonPositionFieldHints(sanitizedValue)) {
+    return true;
+  }
+
+  const strippedMetaValue = normalizeGermanUmlauts(
+    (sanitizedValue ?? "").toLowerCase(),
+  )
+    .replace(POSITION_FORM_META_TOKEN_PATTERN, " ")
+    .replace(new RegExp(POSITION_UNIT_PATTERN, "gi"), " ")
+    .replace(/\d+(?:[.,]\d+)?/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return strippedMetaValue.length === 0;
 }
 
 function filterMeaningfulPositions(
@@ -1054,9 +1106,46 @@ function filterMeaningfulPositions(
     return undefined;
   }
 
-  const filtered = positions.filter(
-    (position) => !hasInvalidPositionDescription(position.description),
-  );
+  const filtered: IntakeVoicePosition[] = [];
+  const seen = new Set<string>();
+
+  for (const position of positions) {
+    const normalizedDescription = sanitizePositionDescription(position.description);
+    if (!normalizedDescription) {
+      continue;
+    }
+
+    const embedded = parseEmbeddedPositionDetails(normalizedDescription);
+    if (hasInvalidPositionDescription(embedded.description)) {
+      continue;
+    }
+
+    const normalizedPosition: IntakeVoicePosition = {
+      ...position,
+      description: embedded.description,
+      quantity: parseQuantityValue(position.quantity) ?? embedded.quantity,
+      unit:
+        normalizeUnitLabel(position.unit) ??
+        embedded.unit ??
+        position.unit ??
+        undefined,
+      unitPrice: parseQuantityValue(position.unitPrice) ?? embedded.unitPrice,
+    };
+
+    const key = [
+      normalizePositionKey(normalizedPosition.group),
+      normalizePositionKey(normalizedPosition.description),
+      normalizedPosition.quantity ?? "",
+      normalizePositionKey(normalizedPosition.unit),
+      normalizedPosition.unitPrice ?? "",
+    ].join("|");
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    filtered.push(normalizedPosition);
+  }
 
   return filtered.length > 0 ? filtered : undefined;
 }
@@ -1161,6 +1250,62 @@ function validatePhotoDataUrl(photoDataUrl: string): {
   return { ok: true };
 }
 
+function validatePhotoDataUrls(input: {
+  photoDataUrl?: string;
+  photoDataUrls?: string[];
+}): {
+  ok: boolean;
+  status?: number;
+  error?: string;
+  photoDataUrls?: string[];
+} {
+  const normalizedPhotoDataUrls = Array.isArray(input.photoDataUrls)
+    ? input.photoDataUrls.map((entry) => String(entry ?? "").trim())
+    : [];
+  const normalizedSinglePhotoDataUrl = input.photoDataUrl?.trim() ?? "";
+  const photoDataUrls =
+    normalizedPhotoDataUrls.length > 0
+      ? normalizedPhotoDataUrls
+      : normalizedSinglePhotoDataUrl
+        ? [normalizedSinglePhotoDataUrl]
+        : [];
+
+  if (photoDataUrls.length === 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Bitte mindestens ein Foto aufnehmen oder hochladen.",
+    };
+  }
+
+  if (photoDataUrls.length > MAX_PHOTO_UPLOAD_COUNT) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Bitte maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos gleichzeitig hochladen.`,
+    };
+  }
+
+  for (const [index, photoDataUrl] of photoDataUrls.entries()) {
+    const validation = validatePhotoDataUrl(photoDataUrl);
+    if (!validation.ok) {
+      return {
+        ok: false,
+        status: validation.status,
+        error:
+          photoDataUrls.length > 1
+            ? `Foto ${index + 1}: ${validation.error ?? "Fotodaten konnten nicht verarbeitet werden."}`
+            : validation.error,
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    photoDataUrls,
+  };
+}
+
 export async function POST(request: Request) {
   const accessResult = await requireAppAccess();
   if (!accessResult.ok) {
@@ -1173,12 +1318,32 @@ export async function POST(request: Request) {
     const body = (await request.json()) as ParseIntakeRequestBody;
     requestMode = body.inputMode === "photo" ? "photo" : "voice";
     const transcript = body.transcript?.trim() ?? "";
+    const normalizedPhotoDataUrls = Array.isArray(body.photoDataUrls)
+      ? body.photoDataUrls.map((entry) => String(entry ?? "").trim())
+      : [];
     const photoDataUrl = body.photoDataUrl?.trim() ?? "";
     console.log("[parse-intake] request received", {
       inputMode: requestMode,
       transcriptLength: transcript.length,
-      photoPayloadLength: photoDataUrl.length,
+      photoCount:
+        normalizedPhotoDataUrls.length > 0
+          ? normalizedPhotoDataUrls.length
+          : photoDataUrl
+            ? 1
+            : 0,
+      photoPayloadLength:
+        normalizedPhotoDataUrls.length > 0
+          ? normalizedPhotoDataUrls.reduce((sum, entry) => sum + entry.length, 0)
+          : photoDataUrl.length,
     });
+
+    const photoValidation =
+      requestMode === "photo"
+        ? validatePhotoDataUrls({
+            photoDataUrl,
+            photoDataUrls: body.photoDataUrls,
+          })
+        : null;
 
     if (requestMode === "voice") {
       if (transcript.length < 8) {
@@ -1207,26 +1372,39 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      const validation = validatePhotoDataUrl(photoDataUrl);
-      if (!validation.ok) {
+      if (!photoValidation?.ok) {
         console.warn("[parse-intake] invalid photo payload", {
-          status: validation.status,
-          photoPayloadLength: photoDataUrl.length,
+          status: photoValidation?.status,
+          photoCount:
+            normalizedPhotoDataUrls.length > 0
+              ? normalizedPhotoDataUrls.length
+              : photoDataUrl
+                ? 1
+                : 0,
+          photoPayloadLength:
+            normalizedPhotoDataUrls.length > 0
+              ? normalizedPhotoDataUrls.reduce((sum, entry) => sum + entry.length, 0)
+              : photoDataUrl.length,
         });
         return NextResponse.json(
           {
             error:
-              validation.error ??
+              photoValidation?.error ??
               "Fotodaten konnten nicht verarbeitet werden.",
           },
-          { status: validation.status ?? 400 },
+          { status: photoValidation?.status ?? 400 },
         );
       }
     }
 
+    const photoDataUrls =
+      requestMode === "photo"
+        ? photoValidation?.photoDataUrls ?? []
+        : [];
+
     const parsed =
       requestMode === "photo"
-        ? await parseOfferIntakeFromImage(photoDataUrl)
+        ? await parseOfferIntakeFromImage(photoDataUrls)
         : await parseOfferIntake(transcript);
     const sourceText =
       requestMode === "voice" ? transcript : parsed.sourceText?.trim() ?? "";
@@ -1270,23 +1448,24 @@ export async function POST(request: Request) {
       normalizeCraftCompounds(parsed.fields.serviceDescription),
       sourceText,
     );
-    const serviceDescriptionResult = serviceDescriptionExplicitlyMentioned
-      ? serviceDescriptionCandidate
-      : { value: undefined, ignored: serviceDescriptionCandidate.ignored };
     for (const ignoredValue of serviceDescriptionCandidate.ignored) {
       ignoredCollector.add(ignoredValue);
     }
-    const normalizedPositions =
-      normalizedPositionsFromModel ??
-      buildFallbackPositionFromServiceDescription(
-        serviceDescriptionCandidate.value,
-      );
+    const normalizedPositions = normalizedPositionsFromModel;
     const normalizedEmail = normalizeCustomerEmail({
       transcript: sourceText,
       parsedEmail: parsed.fields.customerEmail,
       firstName: parsed.fields.firstName,
       lastName: parsed.fields.lastName,
     });
+    const hasPositions =
+      Array.isArray(normalizedPositions) && normalizedPositions.length > 0;
+    const shouldAutofillNormalizedServiceDescription =
+      serviceDescriptionExplicitlyMentioned ||
+      (!hasPositions && Boolean(serviceDescriptionCandidate.value));
+    const serviceDescriptionResult = shouldAutofillNormalizedServiceDescription
+      ? serviceDescriptionCandidate
+      : { value: undefined, ignored: serviceDescriptionCandidate.ignored };
     const normalizedServiceDescription = isRedundantAutofilledServiceDescription({
       serviceDescription: serviceDescriptionResult.value,
       positions: normalizedPositions,
@@ -1350,7 +1529,9 @@ export async function POST(request: Request) {
     const customerType =
       parsed.fields.customerType ??
       (normalizedFields.companyName ? "company" : "person");
-    const hasPositions = Array.isArray(normalizedFields.positions) && normalizedFields.positions.length > 0;
+    const normalizedFieldsHavePositions =
+      Array.isArray(normalizedFields.positions) &&
+      normalizedFields.positions.length > 0;
 
     const baseRequired = [
       "street",
@@ -1359,7 +1540,7 @@ export async function POST(request: Request) {
       "customerEmail",
       "hours",
       "hourlyRate",
-      ...(serviceDescriptionExplicitlyMentioned && !hasPositions
+      ...(!normalizedFieldsHavePositions
         ? ["serviceDescription"]
         : []),
     ];
@@ -1437,7 +1618,7 @@ export async function POST(request: Request) {
       },
       missingFields,
       missingFieldKeys,
-      shouldAutofillServiceDescription: serviceDescriptionExplicitlyMentioned,
+      shouldAutofillServiceDescription: shouldAutofillNormalizedServiceDescription,
       usedFallback: parsed.usedFallback,
       fallbackReason: parsed.fallbackReason ?? null,
       inputMode: requestMode,

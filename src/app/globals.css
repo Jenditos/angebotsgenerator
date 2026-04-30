@@ -3691,7 +3691,8 @@ textarea:focus {
     border-radius: 13px;
   }
 
-  .serviceDateRangeDay {
+  .serviceDateRangeDay,
+  .serviceDateRangeDaySpacer {
     min-height: 38px;
     font-size: 0.84rem;
   }
@@ -4857,10 +4858,13 @@ button.recipientTypeButton.active {
 
 .dateInputWithIcon .invoiceMetaInput[type="date"] {
   width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
   padding-left: 12px;
   padding-right: 44px;
   text-align: left;
   font-variant-numeric: tabular-nums;
+  background-image: none !important;
 }
 
 .dateInputWithIcon
@@ -4874,7 +4878,10 @@ button.recipientTypeButton.active {
 
 .dateInputWithIcon
   .invoiceMetaInput[type="date"]::-webkit-calendar-picker-indicator {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  margin: 0;
 }
 
 button.dateInputIconButton {
@@ -4934,7 +4941,8 @@ button.dateInputIconButton:active {
   z-index: 80;
   border: 1px solid rgba(71, 117, 193, 0.28);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.97);
+  background: #ffffff;
+  background-image: none !important;
   box-shadow: 0 16px 32px rgba(37, 74, 136, 0.2);
   padding: 10px;
   display: grid;
@@ -4963,9 +4971,12 @@ button.dateInputIconButton:active {
   min-height: 30px;
   border-radius: 9px;
   border: 1px solid rgba(68, 116, 196, 0.24);
-  background: rgba(244, 250, 255, 0.95);
+  background: #ffffff !important;
+  background-image: none !important;
   color: #335786;
   box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4997,21 +5008,44 @@ button.dateInputIconButton:active {
   gap: 4px;
 }
 
+.serviceDateRangeDaySpacer {
+  min-height: 34px;
+}
+
 .serviceDateRangeDay {
   min-height: 34px;
   padding: 0;
-  border: 1px solid transparent;
+  border: 1px solid rgba(212, 225, 244, 0.94);
   border-radius: 9px;
-  background: transparent;
+  background: #ffffff !important;
+  background-image: none !important;
   color: #214272;
   box-shadow: none;
   font-size: 0.82rem;
   font-weight: 600;
   line-height: 1;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
-.serviceDateRangeDay.isOutside {
-  color: #8a9bb9;
+.serviceDateRangeMonthButton:hover:not(:disabled),
+.serviceDateRangeMonthButton:active:not(:disabled),
+.serviceDateRangeDay:hover:not(:disabled),
+.serviceDateRangeDay:active:not(:disabled) {
+  background: #ffffff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.serviceDateRangeMonthButton:hover:not(:disabled),
+.serviceDateRangeDay:hover:not(:disabled) {
+  border-color: rgba(135, 170, 219, 0.96);
+}
+
+.serviceDateRangeDay.isToday {
+  border-color: rgba(63, 127, 233, 0.9);
+  color: #184b89;
+  box-shadow: inset 0 0 0 1px rgba(63, 127, 233, 0.14);
 }
 
 .serviceDateRangeDay.isInRange {
@@ -5024,6 +5058,13 @@ button.dateInputIconButton:active {
   background: rgba(72, 136, 238, 0.96);
   color: #ffffff;
   border-color: rgba(58, 122, 225, 0.92);
+}
+
+.serviceDateRangeDay:focus-visible,
+.serviceDateRangeMonthButton:focus-visible {
+  outline: none;
+  border-color: rgba(98, 149, 230, 0.92);
+  box-shadow: 0 0 0 3px rgba(92, 151, 241, 0.18) !important;
 }
 
 .serviceDateRangeFooter {

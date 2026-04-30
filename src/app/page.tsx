@@ -455,17 +455,32 @@ function buildServiceDateCalendarDays(
   const firstOfMonth = new Date(year, month - 1, 1);
   const weekdayIndex = firstOfMonth.getDay();
   const leadingDays = (weekdayIndex + 6) % 7;
-  const gridStart = new Date(year, month - 1, 1 - leadingDays);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const trailingDays = (7 - ((leadingDays + daysInMonth) % 7)) % 7;
   const calendarDays: ServiceDateCalendarDay[] = [];
 
-  for (let dayIndex = 0; dayIndex < 42; dayIndex += 1) {
-    const currentDate = new Date(gridStart);
-    currentDate.setDate(gridStart.getDate() + dayIndex);
-    const currentMonth = currentDate.getMonth() === month - 1;
+  for (let dayIndex = 0; dayIndex < leadingDays; dayIndex += 1) {
+    calendarDays.push({
+      dateValue: "",
+      dayNumber: 0,
+      inCurrentMonth: false,
+    });
+  }
+
+  for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
+    const currentDate = new Date(year, month - 1, dayNumber);
     calendarDays.push({
       dateValue: toDateInputValue(currentDate),
-      dayNumber: currentDate.getDate(),
-      inCurrentMonth: currentMonth,
+      dayNumber,
+      inCurrentMonth: true,
+    });
+  }
+
+  for (let dayIndex = 0; dayIndex < trailingDays; dayIndex += 1) {
+    calendarDays.push({
+      dateValue: "",
+      dayNumber: 0,
+      inCurrentMonth: false,
     });
   }
 
@@ -715,6 +730,7 @@ const UNIT_OPTIONS = [
 ];
 
 const SERVICE_DATE_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const MAX_PHOTO_UPLOAD_COUNT = 10;
 const MAX_LOCAL_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
 const PHOTO_MAX_DIMENSION = 1920;
 const PHOTO_JPEG_QUALITY = 0.88;
@@ -1721,6 +1737,10 @@ async function preparePhotoDataUrl(file: File): Promise<string> {
   return optimized?.startsWith("data:image/") ? optimized : inputDataUrl;
 }
 
+function formatPhotoCountLabel(count: number): string {
+  return count === 1 ? "1 Foto" : `${count} Fotos`;
+}
+
 function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
   const quantity = parseLocaleNumber(subitem.quantity);
   const price = parseLocaleNumber(subitem.price);
@@ -1803,6 +1823,9 @@ export default function HomePage() {
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
   const [photoInfo, setPhotoInfo] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [pendingPhotoCaptureFiles, setPendingPhotoCaptureFiles] = useState<File[]>(
+    [],
+  );
   const [serviceCatalog, setServiceCatalog] =
     useState<ServiceCatalogItem[]>(getSeedServices());
   const [serviceSearch, setServiceSearch] = useState("");
@@ -1822,6 +1845,7 @@ export default function HomePage() {
   const [serviceDateCalendarMonth, setServiceDateCalendarMonth] = useState(
     toMonthStartValue(todayDateInputValue()),
   );
+  const [todayDateValue, setTodayDateValue] = useState("");
   const [serviceInfo, setServiceInfo] = useState("");
   const [serviceError, setServiceError] = useState("");
   const [storedCustomers, setStoredCustomers] = useState<StoredCustomerRecord[]>(
@@ -1982,6 +2006,11 @@ export default function HomePage() {
     }
     return "Start- und Enddatum auswählen";
   }, [serviceDateRangeEnd, serviceDateRangeStart]);
+
+  useEffect(() => {
+    setTodayDateValue(todayDateInputValue());
+  }, []);
+
   const filteredStoredCustomers = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(customerSearch);
     if (!normalizedQuery) {
@@ -4573,10 +4602,19 @@ export default function HomePage() {
     }
   }
 
-  function closePhotoCamera() {
+  function closePhotoCameraWithOptions(options?: {
+    clearCapturedPhotos?: boolean;
+  }) {
     stopPhotoCameraStream();
     setIsPhotoCameraOpen(false);
     setIsStartingPhotoCamera(false);
+    if (options?.clearCapturedPhotos !== false) {
+      setPendingPhotoCaptureFiles([]);
+    }
+  }
+
+  function closePhotoCamera() {
+    closePhotoCameraWithOptions();
   }
 
   function resolvePhotoCameraErrorMessage(error: unknown): string {
@@ -4615,6 +4653,7 @@ export default function HomePage() {
     setIsPhotoScanSheetOpen(false);
     setPhotoError("");
     setPhotoInfo("");
+    setPendingPhotoCaptureFiles([]);
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setPhotoError("Kamera-Liveansicht wird in diesem Browser nicht unterstützt.");
@@ -4658,6 +4697,11 @@ export default function HomePage() {
   }
 
   async function capturePhotoFromCamera() {
+    if (pendingPhotoCaptureFiles.length >= MAX_PHOTO_UPLOAD_COUNT) {
+      setPhotoError(`Bitte maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos aufnehmen.`);
+      return;
+    }
+
     const video = photoCameraVideoRef.current;
     if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
       setPhotoError("Kamera ist noch nicht bereit.");
@@ -4687,8 +4731,29 @@ export default function HomePage() {
     const file = new File([blob], `aufnahme-${Date.now()}.jpg`, {
       type: "image/jpeg",
     });
-    closePhotoCamera();
-    void handlePhotoFileSelection(file);
+    let nextCount = 0;
+    setPendingPhotoCaptureFiles((prev) => {
+      const next = [...prev, file].slice(0, MAX_PHOTO_UPLOAD_COUNT);
+      nextCount = next.length;
+      return next;
+    });
+    setPhotoError("");
+    setPhotoInfo(
+      nextCount >= MAX_PHOTO_UPLOAD_COUNT
+        ? `${formatPhotoCountLabel(nextCount)} aufgenommen. Starte jetzt die Auswertung.`
+        : `${formatPhotoCountLabel(nextCount)} aufgenommen. Du kannst weitere Fotos hinzufügen oder die Auswertung starten.`,
+    );
+  }
+
+  function submitCapturedPhotosForAnalysis() {
+    if (pendingPhotoCaptureFiles.length === 0 || isAnyIntakeProcessing) {
+      return;
+    }
+
+    const filesToAnalyze = pendingPhotoCaptureFiles.slice(0, MAX_PHOTO_UPLOAD_COUNT);
+    closePhotoCameraWithOptions({ clearCapturedPhotos: false });
+    setPendingPhotoCaptureFiles([]);
+    void handlePhotoFileSelection(filesToAnalyze);
   }
 
   function startSpeechInput() {
@@ -5686,7 +5751,13 @@ export default function HomePage() {
     }
   }
 
-  async function handlePhotoFileSelection(file: File) {
+  async function handlePhotoFileSelection(fileOrFiles: File | File[]) {
+    const selectedFiles = (Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles])
+      .filter((file): file is File => file instanceof File);
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
     if (isKiIntakeLocked) {
       setPhotoError("");
       setPhotoInfo("");
@@ -5694,20 +5765,38 @@ export default function HomePage() {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setPhotoError("Bitte ein gültiges Bild auswählen.");
+    if (selectedFiles.length > MAX_PHOTO_UPLOAD_COUNT) {
+      setPhotoError(
+        `Bitte maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos gleichzeitig auswählen.`,
+      );
       setPhotoInfo("");
       return;
     }
 
-    if (file.size > MAX_LOCAL_PHOTO_FILE_BYTES) {
-      setPhotoError(
-        `Das Foto ist zu groß. Bitte auf maximal ${Math.round(
-          MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
-        ).toLocaleString("de-DE")} MB reduzieren.`,
-      );
-      setPhotoInfo("");
-      return;
+    for (const [index, file] of selectedFiles.entries()) {
+      if (!file.type.startsWith("image/")) {
+        setPhotoError(
+          selectedFiles.length > 1
+            ? `Datei ${index + 1} ist kein gültiges Bild.`
+            : "Bitte ein gültiges Bild auswählen.",
+        );
+        setPhotoInfo("");
+        return;
+      }
+
+      if (file.size > MAX_LOCAL_PHOTO_FILE_BYTES) {
+        setPhotoError(
+          selectedFiles.length > 1
+            ? `Foto ${index + 1} ist zu groß. Bitte auf maximal ${Math.round(
+                MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
+              ).toLocaleString("de-DE")} MB reduzieren.`
+            : `Das Foto ist zu groß. Bitte auf maximal ${Math.round(
+                MAX_LOCAL_PHOTO_FILE_BYTES / (1024 * 1024),
+              ).toLocaleString("de-DE")} MB reduzieren.`,
+        );
+        setPhotoInfo("");
+        return;
+      }
     }
 
     if (recognitionRef.current) {
@@ -5724,23 +5813,40 @@ export default function HomePage() {
 
     setIsParsingPhoto(true);
     setPhotoError("");
-    setPhotoInfo("Foto wird verarbeitet ...");
+    setPhotoInfo(
+      selectedFiles.length === 1
+        ? "Foto wird verarbeitet ..."
+        : `${formatPhotoCountLabel(selectedFiles.length)} werden verarbeitet ...`,
+    );
     setVoiceMissingFields([]);
 
     try {
-      const preparedPhotoDataUrl = await preparePhotoDataUrl(file);
-      if (parseRequestId !== photoParseRequestRef.current) {
-        return;
+      const preparedPhotoDataUrls: string[] = [];
+      for (const [index, file] of selectedFiles.entries()) {
+        setPhotoInfo(
+          selectedFiles.length === 1
+            ? "Foto wird vorbereitet ..."
+            : `Foto ${index + 1} von ${selectedFiles.length} wird vorbereitet ...`,
+        );
+        const preparedPhotoDataUrl = await preparePhotoDataUrl(file);
+        if (parseRequestId !== photoParseRequestRef.current) {
+          return;
+        }
+        preparedPhotoDataUrls.push(preparedPhotoDataUrl);
       }
 
-      setPhotoInfo("Informationen werden mit KI analysiert ...");
+      setPhotoInfo(
+        selectedFiles.length === 1
+          ? "Informationen werden mit KI analysiert ..."
+          : `${formatPhotoCountLabel(selectedFiles.length)} werden mit KI analysiert ...`,
+      );
 
       const response = await fetch("/api/parse-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inputMode: "photo",
-          photoDataUrl: preparedPhotoDataUrl,
+          photoDataUrls: preparedPhotoDataUrls,
         }),
       });
       if (parseRequestId !== photoParseRequestRef.current) {
@@ -5753,13 +5859,16 @@ export default function HomePage() {
       if (!response.ok) {
         const errorText = data.error ?? "Fotodaten konnten nicht verarbeitet werden.";
         if (response.status === 401) {
+          setPhotoInfo("");
           setPhotoError("Bitte zuerst einloggen, um die KI-Fotofunktion zu nutzen.");
           return;
         }
         if (response.status === 402) {
+          setPhotoInfo("");
           setPhotoError(errorText);
           return;
         }
+        setPhotoInfo("");
         setPhotoError(errorText);
         return;
       }
@@ -5782,6 +5891,7 @@ export default function HomePage() {
           fields.positions,
         );
         console.log("[photo] parse applied", {
+          photoCount: selectedFiles.length,
           positionsCount: parsedServiceEntries.length,
         });
       } else {
@@ -5799,12 +5909,13 @@ export default function HomePage() {
   }
 
   function onPhotoInputChange(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0];
+    const selectedFiles = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       return;
     }
-    void handlePhotoFileSelection(selectedFile);
+    setPendingPhotoCaptureFiles([]);
+    void handlePhotoFileSelection(selectedFiles);
   }
 
   function triggerPhotoCaptureInput() {
@@ -5828,6 +5939,7 @@ export default function HomePage() {
     setIsPhotoScanSheetOpen(false);
     setPhotoError("");
     setPhotoInfo("");
+    setPendingPhotoCaptureFiles([]);
     photoUploadInputRef.current?.click();
   }
 
@@ -7319,7 +7431,7 @@ export default function HomePage() {
               ref={photoCameraSheetRef}
             >
               <div className="settingsOverlayHeader photoCameraHeader">
-                <strong id="photo-camera-title">Foto aufnehmen</strong>
+                <strong id="photo-camera-title">Fotos aufnehmen</strong>
                 <button
                   type="button"
                   className="settingsOverlayCloseButton"
@@ -7360,14 +7472,31 @@ export default function HomePage() {
                     </div>
                   ) : null}
                 </div>
+                <p className="intakeFlowHint">
+                  {pendingPhotoCaptureFiles.length > 0
+                    ? `${formatPhotoCountLabel(pendingPhotoCaptureFiles.length)} aufgenommen. Maximal ${MAX_PHOTO_UPLOAD_COUNT} Fotos werden gemeinsam ausgewertet.`
+                    : `Du kannst bis zu ${MAX_PHOTO_UPLOAD_COUNT} Fotos aufnehmen und danach die gemeinsame Auswertung starten.`}
+                </p>
                 <div className="photoCameraActions">
                   <button
                     type="button"
                     className="primaryButton"
                     onClick={capturePhotoFromCamera}
-                    disabled={isStartingPhotoCamera || !photoCameraStreamRef.current}
+                    disabled={
+                      isStartingPhotoCamera ||
+                      !photoCameraStreamRef.current ||
+                      pendingPhotoCaptureFiles.length >= MAX_PHOTO_UPLOAD_COUNT
+                    }
                   >
-                    Auslösen
+                    Foto hinzufügen
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton"
+                    onClick={submitCapturedPhotosForAnalysis}
+                    disabled={pendingPhotoCaptureFiles.length === 0 || isAnyIntakeProcessing}
+                  >
+                    Auswertung starten
                   </button>
                   <button
                     type="button"
@@ -7377,7 +7506,15 @@ export default function HomePage() {
                       triggerPhotoUploadInput();
                     }}
                   >
-                    Foto hochladen
+                    Fotos hochladen
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton"
+                    onClick={() => setPendingPhotoCaptureFiles([])}
+                    disabled={pendingPhotoCaptureFiles.length === 0}
+                  >
+                    Zurücksetzen
                   </button>
                   <button
                     type="button"
@@ -7899,6 +8036,7 @@ export default function HomePage() {
                   type="file"
                   accept="image/*"
                   capture="environment"
+                  multiple
                   onChange={onPhotoInputChange}
                   style={{ display: "none" }}
                 />
@@ -7906,6 +8044,7 @@ export default function HomePage() {
                   ref={photoUploadInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={onPhotoInputChange}
                   style={{ display: "none" }}
                 />
@@ -7974,7 +8113,7 @@ export default function HomePage() {
                           onClick={triggerPhotoCaptureInput}
                           disabled={isAnyIntakeProcessing}
                         >
-                          Foto aufnehmen
+                          Fotos aufnehmen
                         </button>
                         <button
                           type="button"
@@ -7983,7 +8122,7 @@ export default function HomePage() {
                           onClick={triggerPhotoUploadInput}
                           disabled={isAnyIntakeProcessing}
                         >
-                          Foto hochladen
+                          Fotos hochladen
                         </button>
                       </div>
                     ) : null}
@@ -8151,8 +8290,9 @@ export default function HomePage() {
                   <>
                     {!photoInfo && !photoError ? (
                       <p className="intakeFlowHint">
-                        Klicke auf den roten Kamera-Button, um ein Foto
-                        aufzunehmen oder hochzuladen.
+                        Klicke auf den roten Kamera-Button, um bis zu{" "}
+                        {MAX_PHOTO_UPLOAD_COUNT} Fotos aufzunehmen oder
+                        hochzuladen. Alle Bilder werden gemeinsam ausgewertet.
                       </p>
                     ) : null}
                     {photoInfo || photoError ? (
@@ -8741,9 +8881,20 @@ export default function HomePage() {
                           </div>
 
                           <div className="serviceDateRangeGrid">
-                            {serviceDateCalendarDays.map((day) => {
+                            {serviceDateCalendarDays.map((day, index) => {
+                              if (!day.inCurrentMonth || !day.dateValue) {
+                                return (
+                                  <span
+                                    key={`service-date-spacer-${index}`}
+                                    className="serviceDateRangeDaySpacer"
+                                    aria-hidden="true"
+                                  />
+                                );
+                              }
+
                               const isStart = day.dateValue === serviceDateRangeStart;
                               const isEnd = day.dateValue === serviceDateRangeEnd;
+                              const isToday = day.dateValue === todayDateValue;
                               const hasFullRange =
                                 Boolean(serviceDateRangeStart) &&
                                 Boolean(serviceDateRangeEnd);
@@ -8756,10 +8907,11 @@ export default function HomePage() {
                                 <button
                                   key={day.dateValue}
                                   type="button"
-                                  className={`serviceDateRangeDay ${day.inCurrentMonth ? "" : "isOutside"} ${isInRange ? "isInRange" : ""} ${isStart ? "isStart" : ""} ${isEnd ? "isEnd" : ""}`}
+                                  className={`serviceDateRangeDay ${isToday ? "isToday" : ""} ${isInRange ? "isInRange" : ""} ${isStart ? "isStart" : ""} ${isEnd ? "isEnd" : ""}`}
                                   onClick={() =>
                                     selectServiceDateRangeDay(day.dateValue)
                                   }
+                                  aria-current={isToday ? "date" : undefined}
                                 >
                                   {day.dayNumber}
                                 </button>
