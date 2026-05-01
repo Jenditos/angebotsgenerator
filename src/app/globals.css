@@ -11416,3 +11416,93 @@ html {
     line-height: 1.35 !important;
   }
 }
+
+/* Keep these dialogs centered like the legal/info dialog. */
+:is(
+    .settingsOverlayBackdrop.settingsPrimaryBackdrop,
+    .settingsOverlayBackdrop.tipsOverlayBackdrop,
+    .customerArchiveBackdrop,
+    .customerPickerModalBackdrop
+  ) {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Settings: compact support for up to 2 additional bank accounts */
+.settingsAdditionalBankActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.settingsAddBankAccountButton,
+.settingsUseMainBankAccountButton,
+.settingsAdditionalBankRemoveButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #2c5a98;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settingsAddBankAccountButton:hover,
+.settingsUseMainBankAccountButton:hover,
+.settingsAdditionalBankRemoveButton:hover {
+  color: #1e4e8f;
+}
+
+.settingsAdditionalBankLimitHint {
+  font-size: 0.8rem;
+  color: #60759a;
+}
+
+.settingsAdditionalBankAccount {
+  border-top: 1px dashed rgba(72, 118, 197, 0.26);
+  padding-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.settingsAdditionalBankAccountHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settingsAdditionalBankAccountTitle {
+  font-size: 0.84rem;
+  color: #294a79;
+}
+
+.settingsAdditionalBankAccountGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settingsAdditionalBankDefaultToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #2e4d7b;
+}
+
+.settingsAdditionalBankDefaultToggle input[type="radio"] {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .settingsAdditionalBankAccountGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

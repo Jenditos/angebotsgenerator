@@ -7,6 +7,7 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
+import { MAIN_BANK_ACCOUNT_ID } from "@/lib/bank-accounts";
 import {
   LOGO_ALLOWED_FORMATS_LABEL,
   LOGO_UPLOAD_ACCEPT_ATTRIBUTE,
@@ -47,6 +48,8 @@ const emptySettings: CompanySettings = {
   companyBic: "",
   companyBankName: "",
   ibanVerificationStatus: "not_checked",
+  additionalBankAccounts: [],
+  defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
   taxNumber: "",
   vatId: "",
   companyCountry: "",

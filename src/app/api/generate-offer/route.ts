@@ -12,6 +12,12 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
+import {
+  MAIN_BANK_ACCOUNT_ID,
+  normalizeDefaultBankAccountId,
+  resolvePreferredPaymentBankAccount,
+  sanitizeAdditionalBankAccounts,
+} from "@/lib/bank-accounts";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
@@ -47,6 +53,8 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   companyBic: "",
   companyBankName: "",
   ibanVerificationStatus: "not_checked",
+  additionalBankAccounts: [],
+  defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -123,6 +131,7 @@ function resolveCompanySettings(
   if (!isObjectRecord(payload)) {
     return {
       ...FALLBACK_COMPANY_SETTINGS,
+      additionalBankAccounts: [...FALLBACK_COMPANY_SETTINGS.additionalBankAccounts],
       pdfTableColumns: [...FALLBACK_COMPANY_SETTINGS.pdfTableColumns],
       customServices: [...FALLBACK_COMPANY_SETTINGS.customServices],
       customServiceTypes: [...FALLBACK_COMPANY_SETTINGS.customServiceTypes],
@@ -134,6 +143,13 @@ function resolveCompanySettings(
       ? formatIbanForDisplay(payload.companyIban)
       : FALLBACK_COMPANY_SETTINGS.companyIban;
   const resolvedIbanValidation = validateIbanInput(resolvedCompanyIban);
+  const resolvedAdditionalBankAccounts = sanitizeAdditionalBankAccounts(
+    payload.additionalBankAccounts,
+  );
+  const resolvedDefaultBankAccountId = normalizeDefaultBankAccountId(
+    payload.defaultBankAccountId,
+    resolvedAdditionalBankAccounts,
+  );
 
   return {
     companyName:
@@ -181,6 +197,8 @@ function resolveCompanySettings(
       payload.ibanVerificationStatus === "valid" && resolvedIbanValidation.isValid
         ? "valid"
         : "not_checked",
+    additionalBankAccounts: resolvedAdditionalBankAccounts,
+    defaultBankAccountId: resolvedDefaultBankAccountId,
     taxNumber:
       typeof payload.taxNumber === "string"
         ? payload.taxNumber.trim()
@@ -1032,8 +1050,16 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       normalizeInputValue(body.projectAddress) || customerAddress;
     const projectStatus = resolveProjectStatus(body.projectStatus);
     const settings = resolveCompanySettings(body.settings);
-    const ibanValidation = validateIbanInput(settings.companyIban);
-    if (!ibanValidation.isValid) {
+    const mainIbanValidation = validateIbanInput(settings.companyIban);
+    const validatedSettings: CompanySettings = {
+      ...settings,
+      companyIban: mainIbanValidation.formatted,
+      ibanVerificationStatus: mainIbanValidation.isValid ? "valid" : "not_checked",
+    };
+    const preferredPaymentBankAccount = resolvePreferredPaymentBankAccount(
+      validatedSettings,
+    );
+    if (!preferredPaymentBankAccount.isValid) {
       return NextResponse.json(
         {
           error:
@@ -1042,14 +1068,19 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
         { status: 400 },
       );
     }
-    const validatedSettings: CompanySettings = {
-      ...settings,
-      companyIban: ibanValidation.formatted,
-      ibanVerificationStatus: "valid",
-    };
+    const settingsForDocument: CompanySettings =
+      preferredPaymentBankAccount.source === "additional"
+        ? {
+            ...validatedSettings,
+            companyIban: preferredPaymentBankAccount.iban,
+            companyBic: preferredPaymentBankAccount.bic,
+            companyBankName: preferredPaymentBankAccount.bankName,
+            ibanVerificationStatus: "valid",
+          }
+        : validatedSettings;
     const paymentDueDays =
       documentType === "invoice"
-        ? parsePaymentDueDays(validatedSettings.invoicePaymentDueDays)
+        ? parsePaymentDueDays(settingsForDocument.invoicePaymentDueDays)
         : requestedPaymentDueDays;
     const now = new Date();
     const generatedCreatedAt = now.toISOString();
@@ -1093,16 +1124,16 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       );
     }
     const safeSettings = {
-      ...validatedSettings,
+      ...settingsForDocument,
       logoDataUrl:
-        typeof validatedSettings.logoDataUrl === "string" &&
-        validatedSettings.logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH
-          ? validatedSettings.logoDataUrl
+        typeof settingsForDocument.logoDataUrl === "string" &&
+        settingsForDocument.logoDataUrl.length <= MAX_LOGO_DATA_URL_LENGTH
+          ? settingsForDocument.logoDataUrl
           : "",
     };
     const senderName =
-      validatedSettings.companyName?.trim() ||
-      validatedSettings.ownerName?.trim() ||
+      settingsForDocument.companyName?.trim() ||
+      settingsForDocument.ownerName?.trim() ||
       "";
     const mailText = buildEmailText({
       documentType,
@@ -1325,28 +1356,30 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       projectDetails: projectDetailsForPdf,
       lineItems,
       settings: {
-        companyName: validatedSettings.companyName,
-        ownerName: validatedSettings.ownerName,
-        companyStreet: validatedSettings.companyStreet,
-        companyPostalCode: validatedSettings.companyPostalCode,
-        companyCity: validatedSettings.companyCity,
-        companyEmail: validatedSettings.companyEmail,
-        companyPhone: validatedSettings.companyPhone,
-        companyWebsite: validatedSettings.companyWebsite,
-        companyIbanPresent: Boolean(validatedSettings.companyIban),
-        companyIbanLast4: validatedSettings.companyIban
+        companyName: settingsForDocument.companyName,
+        ownerName: settingsForDocument.ownerName,
+        companyStreet: settingsForDocument.companyStreet,
+        companyPostalCode: settingsForDocument.companyPostalCode,
+        companyCity: settingsForDocument.companyCity,
+        companyEmail: settingsForDocument.companyEmail,
+        companyPhone: settingsForDocument.companyPhone,
+        companyWebsite: settingsForDocument.companyWebsite,
+        companyIbanPresent: Boolean(settingsForDocument.companyIban),
+        companyIbanLast4: settingsForDocument.companyIban
           .replace(/\s+/g, "")
           .slice(-4),
-        companyBicPresent: Boolean(validatedSettings.companyBic),
-        companyBankNamePresent: Boolean(validatedSettings.companyBankName),
-        ibanVerificationStatus: validatedSettings.ibanVerificationStatus,
-        senderCopyEmail: validatedSettings.senderCopyEmail,
-        logoDataUrlPresent: Boolean(validatedSettings.logoDataUrl),
-        pdfTableColumnsCount: validatedSettings.pdfTableColumns.length,
-        vatRate: validatedSettings.vatRate,
-        offerValidityDays: validatedSettings.offerValidityDays,
-        invoicePaymentDueDays: validatedSettings.invoicePaymentDueDays,
-        offerTermsTextLength: validatedSettings.offerTermsText.length,
+        companyBicPresent: Boolean(settingsForDocument.companyBic),
+        companyBankNamePresent: Boolean(settingsForDocument.companyBankName),
+        ibanVerificationStatus: settingsForDocument.ibanVerificationStatus,
+        senderCopyEmail: settingsForDocument.senderCopyEmail,
+        logoDataUrlPresent: Boolean(settingsForDocument.logoDataUrl),
+        pdfTableColumnsCount: settingsForDocument.pdfTableColumns.length,
+        vatRate: settingsForDocument.vatRate,
+        offerValidityDays: settingsForDocument.offerValidityDays,
+        invoicePaymentDueDays: settingsForDocument.invoicePaymentDueDays,
+        offerTermsTextLength: settingsForDocument.offerTermsText.length,
+        paymentBankAccountSource: preferredPaymentBankAccount.source,
+        paymentBankAccountId: preferredPaymentBankAccount.accountId,
       },
     });
 

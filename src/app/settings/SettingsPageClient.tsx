@@ -20,6 +20,12 @@ import {
   validateIbanInput,
 } from "@/lib/iban";
 import {
+  MAIN_BANK_ACCOUNT_ID,
+  MAX_ADDITIONAL_BANK_ACCOUNTS,
+  normalizeDefaultBankAccountId,
+  sanitizeAdditionalBankAccounts,
+} from "@/lib/bank-accounts";
+import {
   LOGO_ALLOWED_FORMATS_LABEL,
   LOGO_UPLOAD_ACCEPT_ATTRIBUTE,
   MAX_LOGO_DATA_URL_LENGTH,
@@ -35,6 +41,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import {
+  AdditionalBankAccount,
   CompanySettings,
   IbanVerificationStatus,
   PdfTableColumnConfig,
@@ -53,6 +60,8 @@ const emptySettings: CompanySettings = {
   companyBic: "",
   companyBankName: "",
   ibanVerificationStatus: "not_checked",
+  additionalBankAccounts: [],
+  defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -79,6 +88,7 @@ const SETTINGS_KEEPALIVE_MAX_BODY_BYTES = 60_000;
 const LOGO_DOWNSCALE_FACTOR = 0.82;
 const LOGO_MAX_DOWNSCALE_ATTEMPTS = 6;
 const LOGO_JPEG_QUALITIES = [0.92, 0.86, 0.8, 0.74, 0.68];
+const ADDITIONAL_BANK_ACCOUNT_ID_PREFIX = "bank-extra";
 
 function sortPdfColumns(
   columns: PdfTableColumnConfig[],
@@ -286,6 +296,13 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
   const formattedIban = formatIbanForDisplay(asString(input.companyIban));
   const ibanValidation = validateIbanInput(formattedIban);
   const draftIbanStatus = resolveIbanVerificationStatus(input.ibanVerificationStatus);
+  const additionalBankAccounts = sanitizeAdditionalBankAccounts(
+    input.additionalBankAccounts,
+  );
+  const defaultBankAccountId = normalizeDefaultBankAccountId(
+    input.defaultBankAccountId,
+    additionalBankAccounts,
+  );
 
   return {
     companyName: asString(input.companyName),
@@ -303,6 +320,8 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
       draftIbanStatus === "valid" && ibanValidation.isValid
         ? "valid"
         : "not_checked",
+    additionalBankAccounts,
+    defaultBankAccountId,
     taxNumber: asString(input.taxNumber),
     vatId: asString(input.vatId),
     companyCountry: asString(input.companyCountry, emptySettings.companyCountry),
@@ -456,6 +475,18 @@ function areSettingsEqual(left: CompanySettings, right: CompanySettings): boolea
 type InvoiceDuePreset = "immediate" | "seven" | "fourteen" | "custom";
 type PdfColumnDropPosition = "before" | "after";
 
+function createAdditionalBankAccount(index: number): AdditionalBankAccount {
+  return {
+    id: `${ADDITIONAL_BANK_ACCOUNT_ID_PREFIX}-${Date.now()}-${index}-${Math.random()
+      .toString(36)
+      .slice(2, 7)}`,
+    label: "",
+    iban: "",
+    bic: "",
+    bankName: "",
+  };
+}
+
 function toInvoiceDuePreset(days: number): InvoiceDuePreset {
   if (days === 0) {
     return "immediate";
@@ -507,6 +538,20 @@ export default function SettingsPage() {
   );
   const ibanStatusLabel =
     settings.ibanVerificationStatus === "valid" ? "gültig" : "nicht geprüft";
+  const normalizedAdditionalBankAccounts = useMemo(
+    () => sanitizeAdditionalBankAccounts(settings.additionalBankAccounts),
+    [settings.additionalBankAccounts],
+  );
+  const normalizedDefaultBankAccountId = useMemo(
+    () =>
+      normalizeDefaultBankAccountId(
+        settings.defaultBankAccountId,
+        normalizedAdditionalBankAccounts,
+      ),
+    [settings.defaultBankAccountId, normalizedAdditionalBankAccounts],
+  );
+  const canAddAdditionalBankAccount =
+    normalizedAdditionalBankAccounts.length < MAX_ADDITIONAL_BANK_ACCOUNTS;
 
   useEffect(() => {
     latestSettingsRef.current = settings;
@@ -582,6 +627,9 @@ export default function SettingsPage() {
           nextIbanVerificationStatus = "valid";
         }
 
+        const sanitizedAdditionalBankAccounts = sanitizeAdditionalBankAccounts(
+          nextSettings.additionalBankAccounts,
+        );
         const payloadSettings: CompanySettings = {
           ...nextSettings,
           companyWebsite: websiteValidation.isValid
@@ -590,6 +638,11 @@ export default function SettingsPage() {
           companyIban: nextIban,
           companyBic: normalizeBicInput(nextSettings.companyBic),
           ibanVerificationStatus: nextIbanVerificationStatus,
+          additionalBankAccounts: sanitizedAdditionalBankAccounts,
+          defaultBankAccountId: normalizeDefaultBankAccountId(
+            nextSettings.defaultBankAccountId,
+            sanitizedAdditionalBankAccounts,
+          ),
         };
         const payloadBody = JSON.stringify(payloadSettings);
         const shouldUseKeepalive =
@@ -1098,6 +1151,73 @@ export default function SettingsPage() {
     setSettings((prev) => ({
       ...prev,
       companyBic: normalizedValue,
+    }));
+  }
+
+  function addAdditionalBankAccount() {
+    setSettings((prev) => {
+      const sanitizedAccounts = sanitizeAdditionalBankAccounts(
+        prev.additionalBankAccounts,
+      );
+      if (sanitizedAccounts.length >= MAX_ADDITIONAL_BANK_ACCOUNTS) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        additionalBankAccounts: [
+          ...sanitizedAccounts,
+          createAdditionalBankAccount(sanitizedAccounts.length),
+        ],
+      };
+    });
+  }
+
+  function updateAdditionalBankAccount(
+    accountId: string,
+    patch: Partial<AdditionalBankAccount>,
+  ) {
+    setSettings((prev) => ({
+      ...prev,
+      additionalBankAccounts: prev.additionalBankAccounts.map((account) =>
+        account.id === accountId
+          ? {
+              ...account,
+              ...patch,
+            }
+          : account,
+      ),
+    }));
+  }
+
+  function removeAdditionalBankAccount(accountId: string) {
+    setSettings((prev) => {
+      const nextAccounts = prev.additionalBankAccounts.filter(
+        (account) => account.id !== accountId,
+      );
+      const nextDefaultBankAccountId =
+        prev.defaultBankAccountId === accountId
+          ? MAIN_BANK_ACCOUNT_ID
+          : prev.defaultBankAccountId;
+
+      return {
+        ...prev,
+        additionalBankAccounts: nextAccounts,
+        defaultBankAccountId: normalizeDefaultBankAccountId(
+          nextDefaultBankAccountId,
+          nextAccounts,
+        ),
+      };
+    });
+  }
+
+  function setDefaultBankAccount(accountId: string) {
+    setSettings((prev) => ({
+      ...prev,
+      defaultBankAccountId: normalizeDefaultBankAccountId(
+        accountId,
+        prev.additionalBankAccounts,
+      ),
     }));
   }
 
@@ -1723,6 +1843,142 @@ export default function SettingsPage() {
                     }
                   />
                 </label>
+
+                <div className="field span2 settingsAdditionalBankActions">
+                  {canAddAdditionalBankAccount ? (
+                    <button
+                      type="button"
+                      className="settingsAddBankAccountButton"
+                      onClick={addAdditionalBankAccount}
+                    >
+                      + Weitere Bankverbindung hinzufügen
+                    </button>
+                  ) : (
+                    <small className="settingsAdditionalBankLimitHint">
+                      Maximal 3 Bankverbindungen möglich.
+                    </small>
+                  )}
+                  {normalizedDefaultBankAccountId !== MAIN_BANK_ACCOUNT_ID ? (
+                    <button
+                      type="button"
+                      className="settingsUseMainBankAccountButton"
+                      onClick={() => setDefaultBankAccount(MAIN_BANK_ACCOUNT_ID)}
+                    >
+                      Hauptkonto als Standard verwenden
+                    </button>
+                  ) : null}
+                </div>
+
+                {normalizedAdditionalBankAccounts.map((account, index) => {
+                  const accountIbanValidation = validateIbanInput(account.iban);
+                  const isDefaultAccount =
+                    normalizedDefaultBankAccountId === account.id;
+
+                  return (
+                    <div
+                      key={account.id}
+                      className="field span2 settingsAdditionalBankAccount"
+                    >
+                      <div className="settingsAdditionalBankAccountHeader">
+                        <strong className="settingsAdditionalBankAccountTitle">
+                          Weitere Bankverbindung {index + 1}
+                        </strong>
+                        <button
+                          type="button"
+                          className="settingsAdditionalBankRemoveButton"
+                          onClick={() => removeAdditionalBankAccount(account.id)}
+                        >
+                          Entfernen
+                        </button>
+                      </div>
+
+                      <div className="settingsAdditionalBankAccountGrid">
+                        <label className="field span2">
+                          <span>Bezeichnung / Kontoname (optional)</span>
+                          <input
+                            value={account.label}
+                            autoCapitalize="words"
+                            placeholder="z. B. Rücklagenkonto"
+                            onChange={(event) =>
+                              updateAdditionalBankAccount(account.id, {
+                                label: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+
+                        <label className="field span2 settingsIbanField">
+                          <span>IBAN</span>
+                          <input
+                            value={account.iban}
+                            inputMode="text"
+                            autoCapitalize="characters"
+                            autoCorrect="off"
+                            placeholder="z. B. DE89 3704 0044 0532 0130 00"
+                            onChange={(event) =>
+                              updateAdditionalBankAccount(account.id, {
+                                iban: formatIbanForDisplay(event.target.value),
+                              })
+                            }
+                          />
+                          <div className="settingsIbanMeta">
+                            <small
+                              className={`settingsIbanHint ${
+                                accountIbanValidation.isValid ? "isValid" : "isInvalid"
+                              } ${
+                                account.iban.trim().length > 0 ? "isVisible" : ""
+                              }`}
+                            >
+                              {account.iban.trim().length > 0
+                                ? accountIbanValidation.message
+                                : "Die IBAN wird lokal auf Format, Länge und Prüfziffer geprüft."}
+                            </small>
+                          </div>
+                        </label>
+
+                        <label className="field">
+                          <span>BIC (optional)</span>
+                          <input
+                            value={account.bic}
+                            autoCapitalize="characters"
+                            autoCorrect="off"
+                            placeholder="z. B. COBADEFFXXX"
+                            onChange={(event) =>
+                              updateAdditionalBankAccount(account.id, {
+                                bic: normalizeBicInput(event.target.value),
+                              })
+                            }
+                          />
+                        </label>
+
+                        <label className="field">
+                          <span>Bankname (optional)</span>
+                          <input
+                            value={account.bankName}
+                            autoCapitalize="words"
+                            placeholder="z. B. Musterbank AG"
+                            onChange={(event) =>
+                              updateAdditionalBankAccount(account.id, {
+                                bankName: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
+
+                      <label className="settingsAdditionalBankDefaultToggle">
+                        <input
+                          type="radio"
+                          name="settingsDefaultBankAccount"
+                          checked={isDefaultAccount}
+                          disabled={!accountIbanValidation.isValid}
+                          onChange={() => setDefaultBankAccount(account.id)}
+                        />
+                        <span>Als Standard verwenden</span>
+                      </label>
+                    </div>
+                  );
+                })}
 
                 <div className="field span2 settingsInvoiceDueField">
                   <span>Zahlungsziel für Rechnungen</span>

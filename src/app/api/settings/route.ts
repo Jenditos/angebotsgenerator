@@ -112,6 +112,7 @@ export async function POST(request: Request) {
         | "companyPhone"
         | "companyWebsite"
         | "companyBankName"
+        | "defaultBankAccountId"
         | "taxNumber"
         | "vatId"
         | "companyCountry"
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
     maybeAssignString("companyPhone");
     maybeAssignString("companyWebsite");
     maybeAssignString("companyBankName");
+    maybeAssignString("defaultBankAccountId");
     maybeAssignString("taxNumber");
     maybeAssignString("vatId");
     maybeAssignString("companyCountry");
@@ -218,6 +220,11 @@ export async function POST(request: Request) {
 
     if (Array.isArray(body.customServices)) {
       sanitized.customServices = body.customServices;
+      hasSettingsChanges = true;
+    }
+
+    if (Array.isArray(body.additionalBankAccounts)) {
+      sanitized.additionalBankAccounts = body.additionalBankAccounts;
       hasSettingsChanges = true;
     }
 

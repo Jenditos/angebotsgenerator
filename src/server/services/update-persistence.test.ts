@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { MAIN_BANK_ACCOUNT_ID } from "@/lib/bank-accounts";
 import { readSettings } from "@/lib/settings-store";
 import { listStoredCustomers } from "@/server/services/customer-store-service";
 import { listStoredOfferRecords } from "@/server/services/offer-store-service";
@@ -25,6 +26,8 @@ function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySett
     companyBic: "COBADEFFXXX",
     companyBankName: "Musterbank AG",
     ibanVerificationStatus: "valid",
+    additionalBankAccounts: [],
+    defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
     taxNumber: "TAX_TEST_1",
     vatId: "VAT_TEST_1",
     companyCountry: "COUNTRY_TEST",

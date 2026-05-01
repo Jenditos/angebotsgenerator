@@ -16,6 +16,11 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
+import {
+  MAIN_BANK_ACCOUNT_ID,
+  normalizeDefaultBankAccountId,
+  sanitizeAdditionalBankAccounts,
+} from "@/lib/bank-accounts";
 import { ONBOARDING_MAX_STEP, ONBOARDING_MIN_STEP } from "@/lib/onboarding";
 import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
@@ -53,6 +58,8 @@ const defaultSettings: CompanySettings = {
   companyBic: "",
   companyBankName: "",
   ibanVerificationStatus: "not_checked",
+  additionalBankAccounts: [],
+  defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -100,6 +107,7 @@ export type OnboardingStatusUpdate = {
 function cloneDefaultSettings(): CompanySettings {
   return {
     ...defaultSettings,
+    additionalBankAccounts: [],
     pdfTableColumns: getDefaultPdfTableColumns(),
     customServices: [],
     customServiceTypes: [],
@@ -400,6 +408,18 @@ function buildNextSettings(
     current.companyBankName,
     payload.companyBankName,
   ).slice(0, MAX_BANK_NAME_LENGTH);
+  const nextAdditionalBankAccounts =
+    typeof payload.additionalBankAccounts === "undefined"
+      ? sanitizeAdditionalBankAccounts(current.additionalBankAccounts)
+      : sanitizeAdditionalBankAccounts(payload.additionalBankAccounts);
+  const requestedDefaultBankAccountId =
+    typeof payload.defaultBankAccountId === "string"
+      ? payload.defaultBankAccountId
+      : current.defaultBankAccountId;
+  const nextDefaultBankAccountId = normalizeDefaultBankAccountId(
+    requestedDefaultBankAccountId,
+    nextAdditionalBankAccounts,
+  );
 
   return {
     companyName: resolveStringUpdate(current.companyName, payload.companyName),
@@ -420,6 +440,8 @@ function buildNextSettings(
     companyBic: nextBic,
     companyBankName: nextBankName,
     ibanVerificationStatus: nextIbanVerificationStatus,
+    additionalBankAccounts: nextAdditionalBankAccounts,
+    defaultBankAccountId: nextDefaultBankAccountId,
     taxNumber: resolveStringUpdate(current.taxNumber, payload.taxNumber),
     vatId: resolveStringUpdate(current.vatId, payload.vatId),
     companyCountry: resolveStringUpdate(
@@ -650,6 +672,13 @@ function resolveSettingsPayload(
     parsed.ibanVerificationStatus === "valid" && resolvedIbanValidation.isValid
       ? "valid"
       : "not_checked";
+  const resolvedAdditionalBankAccounts = sanitizeAdditionalBankAccounts(
+    parsed.additionalBankAccounts,
+  );
+  const resolvedDefaultBankAccountId = normalizeDefaultBankAccountId(
+    parsed.defaultBankAccountId,
+    resolvedAdditionalBankAccounts,
+  );
 
   return {
     companyName: asTrimmedString(parsed.companyName, defaultSettings.companyName),
@@ -682,6 +711,8 @@ function resolveSettingsPayload(
       defaultSettings.companyBankName,
     ).slice(0, MAX_BANK_NAME_LENGTH),
     ibanVerificationStatus: resolvedIbanStatus,
+    additionalBankAccounts: resolvedAdditionalBankAccounts,
+    defaultBankAccountId: resolvedDefaultBankAccountId,
     taxNumber: asTrimmedString(parsed.taxNumber, defaultSettings.taxNumber),
     vatId: asTrimmedString(parsed.vatId, defaultSettings.vatId),
     companyCountry: asTrimmedString(

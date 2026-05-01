@@ -13,6 +13,7 @@ import {
   writeOnboardingStatus,
   writeSettings,
 } from "@/lib/settings-store";
+import { MAIN_BANK_ACCOUNT_ID } from "@/lib/bank-accounts";
 import { __resetRuntimeDataDirPreparationForTests } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
 
@@ -30,6 +31,8 @@ function buildSettingsFixture(overrides?: Partial<CompanySettings>): CompanySett
     companyBic: "COBADEFFXXX",
     companyBankName: "Musterbank AG",
     ibanVerificationStatus: "valid",
+    additionalBankAccounts: [],
+    defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
     taxNumber: "TAX_TEST_1",
     vatId: "VAT_TEST_1",
     companyCountry: "COUNTRY_TEST",

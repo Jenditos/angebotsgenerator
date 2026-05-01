@@ -34,6 +34,11 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
+import {
+  MAIN_BANK_ACCOUNT_ID,
+  normalizeDefaultBankAccountId,
+  sanitizeAdditionalBankAccounts,
+} from "@/lib/bank-accounts";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { useDialogFocusTrap } from "@/lib/ui/use-dialog-focus-trap";
 import {
@@ -760,6 +765,8 @@ const fallbackCompanySettings: CompanySettings = {
   companyBic: "",
   companyBankName: "",
   ibanVerificationStatus: "not_checked",
+  additionalBankAccounts: [],
+  defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
   taxNumber: "",
   vatId: "",
   companyCountry: "",
@@ -962,6 +969,14 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
     return null;
   }
 
+  const additionalBankAccounts = sanitizeAdditionalBankAccounts(
+    value.additionalBankAccounts,
+  );
+  const defaultBankAccountId = normalizeDefaultBankAccountId(
+    value.defaultBankAccountId,
+    additionalBankAccounts,
+  );
+
   return {
     companyName: asString(value.companyName, fallbackCompanySettings.companyName),
     ownerName: asString(value.ownerName, fallbackCompanySettings.ownerName),
@@ -998,6 +1013,8 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
     ),
     ibanVerificationStatus:
       value.ibanVerificationStatus === "valid" ? "valid" : "not_checked",
+    additionalBankAccounts,
+    defaultBankAccountId,
     taxNumber: asString(value.taxNumber, fallbackCompanySettings.taxNumber),
     vatId: asString(value.vatId, fallbackCompanySettings.vatId),
     companyCountry: asString(
@@ -7663,7 +7680,7 @@ export default function HomePage() {
 
         {shouldRenderSettingsOverlay ? (
           <div
-            className={`settingsOverlayBackdrop ${isClosingSettingsOverlay ? "closing" : ""} ${isSettingsOverlayVisible ? "" : "isHidden"}`}
+            className={`settingsOverlayBackdrop settingsPrimaryBackdrop ${isClosingSettingsOverlay ? "closing" : ""} ${isSettingsOverlayVisible ? "" : "isHidden"}`}
             role={isSettingsOverlayVisible ? "dialog" : undefined}
             aria-modal={isSettingsOverlayVisible ? "true" : undefined}
             aria-hidden={isSettingsOverlayVisible ? undefined : "true"}
