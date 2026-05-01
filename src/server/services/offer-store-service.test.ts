@@ -227,4 +227,69 @@ describe("offer-store-service", () => {
       await rm(dataDir, { recursive: true, force: true });
     }
   });
+
+  it("continues a custom configured invoice number style with letters", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "invoice-store-custom-style-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+    const currentYear = new Date().getFullYear();
+
+    try {
+      const firstInvoice = await createStoredOfferRecord(
+        {
+          ...createSampleInput("invoice-custom-1"),
+          documentType: "invoice",
+          configuredLastInvoiceNumber: `RG-${currentYear}-AB-025`,
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+      const secondInvoice = await createStoredOfferRecord(
+        {
+          ...createSampleInput("invoice-custom-2"),
+          documentType: "invoice",
+          configuredLastInvoiceNumber: `RG-${currentYear}-AB-025`,
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(firstInvoice.offerNumber).toBe(`RG-${currentYear}-AB-026`);
+      expect(secondInvoice.offerNumber).toBe(`RG-${currentYear}-AB-027`);
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("supports custom invoice styles where letters are after the number", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "invoice-store-custom-suffix-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+    const currentYear = new Date().getFullYear();
+
+    try {
+      const invoice = await createStoredOfferRecord(
+        {
+          ...createSampleInput("invoice-custom-suffix"),
+          documentType: "invoice",
+          configuredLastInvoiceNumber: `RE-${currentYear}-025A`,
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(invoice.offerNumber).toBe(`RE-${currentYear}-026A`);
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
 });

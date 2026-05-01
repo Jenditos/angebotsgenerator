@@ -2874,6 +2874,59 @@ textarea:focus {
   box-shadow: 0 20px 36px rgba(58, 123, 235, 0.46);
 }
 
+.settingsSaveFeedback {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #2c4f82;
+  font-weight: 600;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.settingsSaveFeedbackSuccess {
+  color: #2f6a3e;
+}
+
+.settingsSaveLoadingDots {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 1.4em;
+  gap: 2px;
+}
+
+.settingsSaveLoadingDots > span {
+  display: inline-block;
+  line-height: 1;
+  opacity: 0.22;
+  animation: settingsSaveDotPulse 1s infinite ease-in-out;
+}
+
+.settingsSaveLoadingDots > span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.settingsSaveLoadingDots > span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes settingsSaveDotPulse {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translateY(-1px);
+  }
+}
+
 @media (min-width: 761px) {
   .submitActionRow {
     justify-self: center;

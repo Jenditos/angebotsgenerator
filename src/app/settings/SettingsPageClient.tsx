@@ -506,6 +506,7 @@ export default function SettingsPage() {
   const isEmbedded = searchParams?.get("embedded") === "1";
   const [settings, setSettings] = useState<CompanySettings>(emptySettings);
   const [saveStatus, setSaveStatus] = useState("");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [error, setError] = useState("");
   const [ibanFieldTouched, setIbanFieldTouched] = useState(false);
   const [isSettingsHydrated, setIsSettingsHydrated] = useState(false);
@@ -593,130 +594,86 @@ export default function SettingsPage() {
     ) => {
       const requestId = ++settingsSaveRequestRef.current;
       const runPersist = async (): Promise<boolean> => {
-        if (mode === "manual") {
+        if (mode !== "autosave") {
+          setIsSavingSettings(true);
           setSaveStatus("");
           setError("");
-        } else if (mode === "reset") {
-          setError("");
         }
-
-        const websiteValidation = validateWebsiteInput(nextSettings.companyWebsite);
-        if (!websiteValidation.isValid) {
-          if (mode !== "autosave") {
-            setSaveStatus("");
-            setError("Bitte geben Sie eine gültige URL ein.");
-            return false;
-          }
-        }
-
-        let nextIban = formatIbanForDisplay(nextSettings.companyIban);
-        let nextIbanVerificationStatus: IbanVerificationStatus = "not_checked";
-
-        if (mode !== "reset") {
-          const ibanValidation = validateIbanInput(nextSettings.companyIban);
-          if (!ibanValidation.isValid) {
-            if (mode !== "autosave") {
-              setSaveStatus("");
-              setError(ibanValidation.message);
-              setIbanFieldTouched(true);
-            }
-            return false;
-          }
-
-          nextIban = ibanValidation.formatted;
-          nextIbanVerificationStatus = "valid";
-        }
-
-        const sanitizedAdditionalBankAccounts = sanitizeAdditionalBankAccounts(
-          nextSettings.additionalBankAccounts,
-        );
-        const payloadSettings: CompanySettings = {
-          ...nextSettings,
-          companyWebsite: websiteValidation.isValid
-            ? websiteValidation.normalized
-            : nextSettings.companyWebsite.trim(),
-          companyIban: nextIban,
-          companyBic: normalizeBicInput(nextSettings.companyBic),
-          ibanVerificationStatus: nextIbanVerificationStatus,
-          additionalBankAccounts: sanitizedAdditionalBankAccounts,
-          defaultBankAccountId: normalizeDefaultBankAccountId(
-            nextSettings.defaultBankAccountId,
-            sanitizedAdditionalBankAccounts,
-          ),
-        };
-        const payloadBody = JSON.stringify(payloadSettings);
-        const shouldUseKeepalive =
-          Boolean(options?.keepalive) &&
-          payloadBody.length <= SETTINGS_KEEPALIVE_MAX_BODY_BYTES;
 
         try {
-          const response = await fetch("/api/settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: payloadBody,
-            keepalive: shouldUseKeepalive,
-          });
-
-          const data = (await response.json()) as {
-            settings?: CompanySettings;
-            error?: string;
-          };
-          if (settingsSaveRequestRef.current !== requestId) {
-            return false;
-          }
-
-          const applyResolvedSettings = (resolvedSettings: CompanySettings) => {
-            setSettings((prev) =>
-              areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
-            );
-            writeSettingsDraftToSessionStorage(resolvedSettings);
-            setIsAutosaveEnabled(true);
-            setError("");
-            if (resolvedSettings.logoDataUrl === payloadSettings.logoDataUrl) {
-              hasLocalLogoChangeRef.current = false;
-            }
-            hasPendingAutosaveRef.current = false;
-
-            if (mode === "manual") {
-              setSaveStatus("Einstellungen wurden gespeichert.");
-            } else if (mode === "reset") {
-              setSaveStatus("Einstellungen wurden zurückgesetzt.");
-            }
-          };
-
-          if (!response.ok) {
+          const websiteValidation = validateWebsiteInput(nextSettings.companyWebsite);
+          if (!websiteValidation.isValid) {
             if (mode !== "autosave") {
-              const reconciledSettings =
-                await reconcileSettingsAfterFailedSave(payloadSettings);
-              if (reconciledSettings) {
-                applyResolvedSettings(reconciledSettings);
-                return true;
-              }
-              setError(data.error ?? "Speichern fehlgeschlagen");
+              setSaveStatus("");
+              setError("Bitte geben Sie eine gültige URL ein.");
+              return false;
             }
-            return false;
           }
 
-          const resolvedSettings = data.settings ?? payloadSettings;
-          applyResolvedSettings(resolvedSettings);
+          let nextIban = formatIbanForDisplay(nextSettings.companyIban);
+          let nextIbanVerificationStatus: IbanVerificationStatus = "not_checked";
 
-          return true;
-        } catch {
-          if (settingsSaveRequestRef.current !== requestId) {
-            return false;
+          if (mode !== "reset") {
+            const ibanValidation = validateIbanInput(nextSettings.companyIban);
+            if (!ibanValidation.isValid) {
+              if (mode !== "autosave") {
+                setSaveStatus("");
+                setError(ibanValidation.message);
+                setIbanFieldTouched(true);
+              }
+              return false;
+            }
+
+            nextIban = ibanValidation.formatted;
+            nextIbanVerificationStatus = "valid";
           }
 
-          if (mode !== "autosave") {
-            const reconciledSettings =
-              await reconcileSettingsAfterFailedSave(payloadSettings);
-            if (reconciledSettings) {
+          const sanitizedAdditionalBankAccounts = sanitizeAdditionalBankAccounts(
+            nextSettings.additionalBankAccounts,
+          );
+          const payloadSettings: CompanySettings = {
+            ...nextSettings,
+            companyWebsite: websiteValidation.isValid
+              ? websiteValidation.normalized
+              : nextSettings.companyWebsite.trim(),
+            companyIban: nextIban,
+            companyBic: normalizeBicInput(nextSettings.companyBic),
+            ibanVerificationStatus: nextIbanVerificationStatus,
+            additionalBankAccounts: sanitizedAdditionalBankAccounts,
+            defaultBankAccountId: normalizeDefaultBankAccountId(
+              nextSettings.defaultBankAccountId,
+              sanitizedAdditionalBankAccounts,
+            ),
+          };
+          const payloadBody = JSON.stringify(payloadSettings);
+          const shouldUseKeepalive =
+            Boolean(options?.keepalive) &&
+            payloadBody.length <= SETTINGS_KEEPALIVE_MAX_BODY_BYTES;
+
+          try {
+            const response = await fetch("/api/settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: payloadBody,
+              keepalive: shouldUseKeepalive,
+            });
+
+            const data = (await response.json()) as {
+              settings?: CompanySettings;
+              error?: string;
+            };
+            if (settingsSaveRequestRef.current !== requestId) {
+              return false;
+            }
+
+            const applyResolvedSettings = (resolvedSettings: CompanySettings) => {
               setSettings((prev) =>
-                areSettingsEqual(prev, reconciledSettings) ? prev : reconciledSettings,
+                areSettingsEqual(prev, resolvedSettings) ? prev : resolvedSettings,
               );
-              writeSettingsDraftToSessionStorage(reconciledSettings);
+              writeSettingsDraftToSessionStorage(resolvedSettings);
               setIsAutosaveEnabled(true);
               setError("");
-              if (reconciledSettings.logoDataUrl === payloadSettings.logoDataUrl) {
+              if (resolvedSettings.logoDataUrl === payloadSettings.logoDataUrl) {
                 hasLocalLogoChangeRef.current = false;
               }
               hasPendingAutosaveRef.current = false;
@@ -726,12 +683,61 @@ export default function SettingsPage() {
               } else if (mode === "reset") {
                 setSaveStatus("Einstellungen wurden zurückgesetzt.");
               }
+            };
 
-              return true;
+            if (!response.ok) {
+              if (mode !== "autosave") {
+                const reconciledSettings =
+                  await reconcileSettingsAfterFailedSave(payloadSettings);
+                if (reconciledSettings) {
+                  applyResolvedSettings(reconciledSettings);
+                  return true;
+                }
+                setError(data.error ?? "Speichern fehlgeschlagen");
+              }
+              return false;
             }
-            setError("Netzwerkfehler beim Speichern.");
+
+            const resolvedSettings = data.settings ?? payloadSettings;
+            applyResolvedSettings(resolvedSettings);
+
+            return true;
+          } catch {
+            if (settingsSaveRequestRef.current !== requestId) {
+              return false;
+            }
+
+            if (mode !== "autosave") {
+              const reconciledSettings =
+                await reconcileSettingsAfterFailedSave(payloadSettings);
+              if (reconciledSettings) {
+                setSettings((prev) =>
+                  areSettingsEqual(prev, reconciledSettings) ? prev : reconciledSettings,
+                );
+                writeSettingsDraftToSessionStorage(reconciledSettings);
+                setIsAutosaveEnabled(true);
+                setError("");
+                if (reconciledSettings.logoDataUrl === payloadSettings.logoDataUrl) {
+                  hasLocalLogoChangeRef.current = false;
+                }
+                hasPendingAutosaveRef.current = false;
+
+                if (mode === "manual") {
+                  setSaveStatus("Einstellungen wurden gespeichert.");
+                } else if (mode === "reset") {
+                  setSaveStatus("Einstellungen wurden zurückgesetzt.");
+                }
+
+                return true;
+              }
+              setError("Netzwerkfehler beim Speichern.");
+            }
+            return false;
           }
-          return false;
+        } finally {
+          if (mode !== "autosave" && settingsSaveRequestRef.current === requestId) {
+            setIsSavingSettings(false);
+          }
         }
       };
 
@@ -2070,6 +2076,9 @@ export default function SettingsPage() {
                   <span>Letzte Angebotsnummer</span>
                   <input
                     value={settings.lastOfferNumber}
+                    inputMode="text"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
                     onChange={(e) =>
                       setSettings((prev) => ({
                         ...prev,
@@ -2084,6 +2093,9 @@ export default function SettingsPage() {
                   <span>Letzte Rechnungsnummer</span>
                   <input
                     value={settings.lastInvoiceNumber}
+                    inputMode="text"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
                     onChange={(e) =>
                       setSettings((prev) => ({
                         ...prev,
@@ -2227,7 +2239,21 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
-          {saveStatus ? <p className="success">{saveStatus}</p> : null}
+          {isSavingSettings ? (
+            <p className="settingsSaveFeedback" role="status" aria-live="polite">
+              <span>Einstellungen werden gespeichert</span>
+              <span className="settingsSaveLoadingDots" aria-hidden="true">
+                <span>.</span>
+                <span>.</span>
+                <span>.</span>
+              </span>
+            </p>
+          ) : null}
+          {!isSavingSettings && saveStatus ? (
+            <p className="settingsSaveFeedback settingsSaveFeedbackSuccess">
+              {saveStatus}
+            </p>
+          ) : null}
           {error ? (
             <p
               className={

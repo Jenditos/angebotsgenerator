@@ -57,6 +57,9 @@ const STALE_LOCK_AFTER_MS = 15_000;
 
 const OFFER_NUMBER_PATTERN = /^ANG-(\d{4})-(\d{3,})$/;
 const INVOICE_NUMBER_PATTERN = /^RE-(\d{4})-(\d{3,})$/;
+const YEAR_TOKEN_PATTERN = /(19\d{2}|20\d{2}|21\d{2})/g;
+const LAST_YEAR_TOKEN_PATTERN =
+  /(19\d{2}|20\d{2}|21\d{2})(?!.*(19\d{2}|20\d{2}|21\d{2}))/;
 
 function resolveDocumentType(value: unknown): DocumentType {
   return value === "invoice" ? "invoice" : "offer";
@@ -69,6 +72,82 @@ function formatDocumentNumber(
 ): string {
   const prefix = documentType === "invoice" ? "RE" : "ANG";
   return `${prefix}-${year}-${String(sequence).padStart(3, "0")}`;
+}
+
+function resolveYearToken(value: string, fallbackYear: number): number {
+  const matches = Array.from(value.matchAll(YEAR_TOKEN_PATTERN));
+  const token = matches.length > 0 ? matches[matches.length - 1]?.[1] : undefined;
+  if (!token) {
+    return fallbackYear;
+  }
+
+  const year = Number(token);
+  return Number.isFinite(year) ? year : fallbackYear;
+}
+
+function findLastDigitRun(value: string): {
+  start: number;
+  end: number;
+  value: string;
+} | null {
+  const pattern = /\d+/g;
+  let match = pattern.exec(value);
+  let lastMatch: RegExpExecArray | null = null;
+  while (match) {
+    lastMatch = match;
+    match = pattern.exec(value);
+  }
+
+  if (!lastMatch) {
+    return null;
+  }
+
+  return {
+    start: lastMatch.index,
+    end: lastMatch.index + lastMatch[0].length,
+    value: lastMatch[0],
+  };
+}
+
+function replaceLastYearToken(value: string, year: number): string {
+  return value.replace(LAST_YEAR_TOKEN_PATTERN, String(year));
+}
+
+function formatDocumentNumberWithTemplate(input: {
+  documentType: DocumentType;
+  template: unknown;
+  year: number;
+  sequence: number;
+}): string {
+  const defaultValue = formatDocumentNumber(
+    input.documentType,
+    input.year,
+    input.sequence,
+  );
+  const template = asTrimmedString(input.template);
+  if (!template) {
+    return defaultValue;
+  }
+
+  if (parseStrictDocumentNumber(input.documentType, template)) {
+    return defaultValue;
+  }
+
+  const digitRun = findLastDigitRun(template);
+  if (!digitRun) {
+    return defaultValue;
+  }
+
+  const before = replaceLastYearToken(template.slice(0, digitRun.start), input.year);
+  const after = template.slice(digitRun.end);
+  if (!before.trim() && !after.trim()) {
+    return defaultValue;
+  }
+
+  const sequenceWidth = Math.max(3, digitRun.value.length);
+  const sequenceValue = String(input.sequence).padStart(sequenceWidth, "0");
+
+  return `${before}${sequenceValue}${after}`;
 }
 
 function toPositiveInteger(value: unknown): number | null {
@@ -94,7 +173,7 @@ function getYearFromDateString(value: string): number {
   return Number.isFinite(year) ? year : new Date().getFullYear();
 }
 
-function parseDocumentNumber(
+function parseStrictDocumentNumber(
   documentType: DocumentType,
   value: unknown,
 ): { year: number; sequence: number } | null {
@@ -121,16 +200,62 @@ function parseDocumentNumber(
   };
 }
 
+function parseDocumentNumber(
+  documentType: DocumentType,
+  value: unknown,
+  fallbackYear: number,
+): { year: number; sequence: number } | null {
+  const strict = parseStrictDocumentNumber(documentType, value);
+  if (strict) {
+    return strict;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  // Preserve legacy behavior for offer numbers that were saved as plain integers.
+  if (documentType === "offer" && /^\d+$/.test(trimmed)) {
+    return null;
+  }
+
+  const digitRun = findLastDigitRun(trimmed);
+  if (!digitRun) {
+    return null;
+  }
+
+  const sequence = Number(digitRun.value);
+  if (!Number.isFinite(sequence) || sequence <= 0) {
+    return null;
+  }
+
+  return {
+    year: resolveYearToken(trimmed, fallbackYear),
+    sequence: Math.floor(sequence),
+  };
+}
+
 function normalizeDocumentNumber(
   documentType: DocumentType,
   rawValue: unknown,
   fallbackYear: number,
 ): { year: number; sequence: number; value: string } | null {
-  const parsed = parseDocumentNumber(documentType, rawValue);
+  const parsed = parseDocumentNumber(documentType, rawValue, fallbackYear);
   if (parsed) {
+    const rawTemplate = asTrimmedString(rawValue);
     return {
       ...parsed,
-      value: formatDocumentNumber(documentType, parsed.year, parsed.sequence),
+      value: formatDocumentNumberWithTemplate({
+        documentType,
+        template: rawTemplate,
+        year: parsed.year,
+        sequence: parsed.sequence,
+      }),
     };
   }
 
@@ -172,7 +297,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
   const inferredDocumentType =
     record.documentType === "invoice" || record.documentType === "offer"
       ? record.documentType
-      : parseDocumentNumber("invoice", record.offerNumber)
+      : parseStrictDocumentNumber("invoice", record.offerNumber)
         ? "invoice"
         : "offer";
   const normalizedOfferNumber = normalizeDocumentNumber(
@@ -252,7 +377,7 @@ function highestSequenceForYear(
       return highest;
     }
 
-    const parsed = parseDocumentNumber(documentType, offer.offerNumber);
+    const parsed = parseDocumentNumber(documentType, offer.offerNumber, year);
     if (!parsed || parsed.year !== year) {
       return highest;
     }
@@ -526,11 +651,16 @@ export async function createStoredOfferRecord(
       currentYear,
     });
     const nextSequence = baseSequence + 1;
-    const assignedOfferNumber = formatDocumentNumber(
+    const currentDocumentLastNumber =
+      documentType === "invoice"
+        ? store.lastInvoiceNumber
+        : store.lastOfferNumber;
+    const assignedOfferNumber = formatDocumentNumberWithTemplate({
       documentType,
-      currentYear,
-      nextSequence,
-    );
+      template: configuredLastNumber || currentDocumentLastNumber,
+      year: currentYear,
+      sequence: nextSequence,
+    });
 
     const nextRecord: StoredOfferRecord = {
       documentType,
