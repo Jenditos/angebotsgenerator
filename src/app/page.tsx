@@ -9630,9 +9630,23 @@ export default function HomePage() {
 
             </form>
 
+            {isSubmitting ? (
+              <p className="documentCreateFeedback" role="status" aria-live="polite">
+                <span>{singularDocumentLabel} wird erstellt</span>
+                <span className="documentCreateLoadingDots" aria-hidden="true">
+                  <span>.</span>
+                  <span>.</span>
+                  <span>.</span>
+                </span>
+              </p>
+            ) : null}
             {error ? <p className="error">{error}</p> : null}
-            {!error && postActionInfo ? (
-              <p className={`voiceInfo${isCreateDocumentHint ? " postActionError" : ""}`} role="status" aria-live="polite">
+            {!isSubmitting && !error && postActionInfo ? (
+              <p
+                className={`documentCreateFeedback ${isCreateDocumentHint ? "documentCreateFeedbackError" : "documentCreateFeedbackSuccess"}`}
+                role="status"
+                aria-live="polite"
+              >
                 {postActionInfo}
               </p>
             ) : null}
