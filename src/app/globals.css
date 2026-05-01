@@ -3147,7 +3147,15 @@ textarea:focus {
 
 .settingsInvoiceDueOption input[type="radio"]:checked {
   border-color: rgba(68, 127, 239, 0.88);
-  box-shadow: inset 0 0 0 3px rgba(66, 126, 239, 0.9);
+  background-color: #ffffff;
+  background-image: radial-gradient(
+    circle at center,
+    rgba(66, 126, 239, 0.96) 0 39%,
+    transparent 42%
+  );
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: 0 0 0 1px rgba(66, 126, 239, 0.2);
 }
 
 .settingsInvoiceDueOption input[type="radio"]:focus-visible {
@@ -3829,7 +3837,12 @@ textarea:focus {
   }
 
   .settingsInvoiceDueOption input[type="radio"]:checked {
-    box-shadow: inset 0 0 0 2.7px rgba(66, 126, 239, 0.9);
+    background-image: radial-gradient(
+      circle at center,
+      rgba(66, 126, 239, 0.96) 0 41%,
+      transparent 44%
+    );
+    box-shadow: 0 0 0 1px rgba(66, 126, 239, 0.22);
   }
 
   .settingsInvoiceDueHint {

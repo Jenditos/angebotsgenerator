@@ -83,6 +83,8 @@ function removeNonAlphaNumeric(value: string): string {
   return value.replace(/[^A-Za-z0-9]/g, "");
 }
 
+const MAX_BIC_INPUT_LENGTH = 32;
+
 function calculateIbanChecksumRemainder(normalizedIban: string): number {
   const rearranged = `${normalizedIban.slice(4)}${normalizedIban.slice(0, 4)}`;
   let remainder = 0;
@@ -115,7 +117,9 @@ export function formatIbanForDisplay(value: string): string {
 }
 
 export function normalizeBicInput(value: string): string {
-  return removeNonAlphaNumeric(value).toUpperCase().slice(0, 11);
+  return removeNonAlphaNumeric(value)
+    .toUpperCase()
+    .slice(0, MAX_BIC_INPUT_LENGTH);
 }
 
 export function validateIbanInput(value: string): {
