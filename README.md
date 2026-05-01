@@ -1,4 +1,4 @@
-# KI-Angebotsgenerator (Next.js)
+# VISIORO (Next.js)
 
 Web-App für Handwerker und Dienstleister:
 - Formular ausfüllen (Vorname, Nachname, Adresse, E-Mail, Leistung, Stunden, Kosten)
