@@ -11798,8 +11798,14 @@ html {
   grid-template-columns: 210px minmax(0, 1fr) !important;
 }
 
+/* Top-Bereich: Logo + Nav ohne riesige Gaps */
+.appFrameWithSidebar .appSidebarTop {
+  gap: 12px !important;
+}
+
 /* Nav list */
-.appSidebarNav {
+.appFrameWithSidebar .appSidebarNav,
+.appFrameWithSidebar .appSidebarBottom {
   gap: 3px !important;
   padding: 0 8px !important;
 }
@@ -12004,4 +12010,72 @@ button.submitButton:active:not(:disabled) {
   .appFrameWithSidebar {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ==========================================================================
+   Angebote / Rechnungen — Underline-Tabs (Richtung A, App-Farben)
+   ========================================================================== */
+
+/* Container: kein Box-Rahmen, nur untere Trennlinie */
+.appFrameWithSidebar .documentModeSwitch,
+.appFrameWithSidebar .documentModeSwitch:hover,
+.appFrameWithSidebar .documentModeSwitch:focus-within {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0 !important;
+  grid-template-columns: unset !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(20, 121, 255, 0.15) !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Beide Buttons: kein Hintergrund, nur Text + Bottom-Border */
+.appFrameWithSidebar .documentModeSwitchButton,
+.appFrameWithSidebar .documentModeSwitchButton:hover,
+.appFrameWithSidebar .documentModeSwitchButton:active,
+.appFrameWithSidebar .documentModeSwitchButton:focus,
+.appFrameWithSidebar .documentModeSwitchButton:focus-visible {
+  flex: 0 0 auto !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  margin-bottom: -1px !important;
+  padding: 12px 24px 13px !important;
+  font-size: 0.93rem !important;
+  font-weight: 600 !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: color 160ms ease, border-color 160ms ease !important;
+  outline: none !important;
+}
+
+/* Hover — etwas dunkler */
+@media (hover: hover) and (pointer: fine) {
+  .appFrameWithSidebar .documentModeSwitchButton:hover {
+    color: var(--vis-dark) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
+/* Aktiver Tab — blauer Unterstrich + dunkler Text */
+.appFrameWithSidebar .documentModeSwitchButton.active,
+.appFrameWithSidebar .documentModeSwitchButton[aria-pressed="true"],
+button.appFrameWithSidebar .documentModeSwitchButton.active {
+  color: var(--vis-dark) !important;
+  border-bottom-color: var(--vis-primary) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
 }
