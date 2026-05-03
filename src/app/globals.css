@@ -9500,21 +9500,27 @@ body,
     color var(--vis-reference-transition) !important;
 }
 
-/* Sidebar dark theme — text + icon colors */
+/* Sidebar light theme — passend zur App-Palette */
 .appSidebar .appSidebarNavItem,
 .appSidebar .appSidebarActionButton {
   cursor: pointer !important;
-  color: rgba(180, 210, 255, 0.6) !important;
+  color: var(--vis-dark) !important;
+  opacity: 0.65;
 }
 
 .appSidebar .appSidebarNavItem.active,
 .appSidebar .appSidebarActionButton.active {
-  color: #e0f0ff !important;
+  color: var(--vis-primary) !important;
+  opacity: 1;
+  background: rgba(20, 121, 255, 0.08) !important;
+  border-left: 2px solid var(--vis-primary) !important;
+  padding-left: 8px !important;
 }
 
 .appSidebar .appSidebarNavLabel {
   color: inherit !important;
   cursor: pointer !important;
+  opacity: 1 !important;
 }
 
 .appSidebar .appSidebarNavIconWrap {
@@ -9527,16 +9533,17 @@ body,
 
 .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap,
 .appSidebar .appSidebarActionButton.active .appSidebarNavIconWrap {
-  background: rgba(63, 127, 233, 0.22) !important;
-  color: #7ab8ff !important;
+  background: rgba(20, 121, 255, 0.1) !important;
+  color: var(--vis-primary) !important;
   box-shadow: none !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .appSidebar .appSidebarNavItem:hover,
   .appSidebar .appSidebarActionButton:hover {
-    color: #d0e8ff !important;
-    background: rgba(63, 127, 233, 0.14) !important;
+    opacity: 1 !important;
+    color: var(--vis-dark) !important;
+    background: rgba(20, 121, 255, 0.07) !important;
   }
 
   .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap,
@@ -9545,9 +9552,9 @@ body,
   .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
     border: none !important;
     outline: none !important;
-    background: rgba(63, 127, 233, 0.2) !important;
+    background: rgba(20, 121, 255, 0.12) !important;
     background-image: none !important;
-    color: #7ab8ff !important;
+    color: var(--vis-primary) !important;
     box-shadow: none !important;
     transform: none !important;
     opacity: 1 !important;
@@ -9557,8 +9564,8 @@ body,
   .appSidebar .appSidebarActionButton:hover .appSidebarNavIcon,
   .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover .appSidebarNavIcon,
   .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover .appSidebarNavIcon {
-    color: #7ab8ff !important;
-    fill: #7ab8ff !important;
+    color: var(--vis-primary) !important;
+    fill: var(--vis-primary) !important;
   }
 }
 
@@ -9662,15 +9669,15 @@ body,
   }
 }
 
-/* Start page: dark sidebar + tinted content area */
+/* Start page: sidebar uses app's own blue-light palette */
 @media (min-width: 981px) {
   .appFrameWithSidebar {
     background: transparent !important;
   }
 
   .appFrameWithSidebar .appSidebar {
-    background: #0c1e3a !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    background: #eef3fc !important;
+    border-right: 1px solid rgba(20, 121, 255, 0.1) !important;
   }
 
   .appFrameWithSidebar .appMainContent {
@@ -11785,34 +11792,15 @@ html {
    DESIGN POLISH — Sidebar, Buttons, Hover, Spacing
    ========================================================================== */
 
-/* ── Sidebar: dunkel + horizontal layout (wie Richtung B, App-Farben) ── */
+/* ── Sidebar: horizontal layout, App-Farben ── */
 
 .appFrameWithSidebar {
   grid-template-columns: 210px minmax(0, 1fr) !important;
 }
 
-.appSidebar {
-  background: #0c1e3a !important;
-  padding: 20px 0 12px !important;
-  border-right: 1px solid rgba(255,255,255,0.06) !important;
-  box-shadow: none !important;
-}
-
-.appSidebarTop {
-  gap: 20px !important;
-}
-
-/* Logo area */
-.appSidebarBrandWrap {
-  width: 100% !important;
-  margin-inline: 0 !important;
-  padding: 0 16px 16px !important;
-  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
-}
-
 /* Nav list */
 .appSidebarNav {
-  gap: 2px !important;
+  gap: 3px !important;
   padding: 0 8px !important;
 }
 
@@ -11823,62 +11811,23 @@ html {
   align-items: center !important;
   justify-content: flex-start !important;
   gap: 10px !important;
-  padding: 10px 10px !important;
+  padding: 9px 10px !important;
   border-radius: 10px !important;
   text-align: left !important;
-  color: rgba(180, 210, 255, 0.55) !important;
-  transition: background 160ms ease, color 160ms ease !important;
+  transition: background 160ms ease, color 160ms ease, opacity 160ms ease !important;
   min-height: 40px !important;
 }
 
-.appSidebarNavItem:hover,
-.appSidebarActionButton:hover {
-  background: rgba(63, 127, 233, 0.14) !important;
-  color: rgba(210, 232, 255, 0.9) !important;
-}
-
-.appSidebarNavItem.active {
-  background: rgba(63, 127, 233, 0.2) !important;
-  color: #e0f0ff !important;
-  border-left: 2px solid #3f7fe9 !important;
-  padding-left: 8px !important;
-}
-
-/* Icon wrap — clean, no heavy shadow */
+/* Icon wrap — clean */
 .appSidebarNavIconWrap {
   width: 30px !important;
   height: 30px !important;
   border-radius: 8px !important;
   border: none !important;
-  background: transparent !important;
   box-shadow: none !important;
   color: inherit !important;
   flex-shrink: 0 !important;
-  transition: none !important;
-}
-
-.appSidebarNavItem.active .appSidebarNavIconWrap {
-  background: rgba(63, 127, 233, 0.22) !important;
-  color: #7ab8ff !important;
-  box-shadow: none !important;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .appSidebarNavItem:hover .appSidebarNavIconWrap,
-  .appSidebarActionButton:hover .appSidebarNavIconWrap,
-  .appSidebarNavIconWrap:hover {
-    transform: none !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    border-color: transparent !important;
-    color: inherit !important;
-    box-shadow: none !important;
-  }
-  .appSidebarNavItem:hover .appSidebarNavIcon,
-  .appSidebarActionButton:hover .appSidebarNavIcon,
-  .appSidebarNavIconWrap:hover .appSidebarNavIcon {
-    color: inherit !important;
-  }
+  transition: background 160ms ease !important;
 }
 
 /* Icon size */
@@ -11887,7 +11836,7 @@ html {
   height: 18px !important;
 }
 
-/* Label — visible on dark bg, horizontal */
+/* Label */
 .appSidebarNavLabel {
   font-size: 13px !important;
   font-weight: 500 !important;
@@ -11902,9 +11851,9 @@ html {
 
 /* Bottom section */
 .appSidebarBottom {
-  padding: 8px 8px 0 !important;
-  border-top: 1px solid rgba(255,255,255,0.07) !important;
-  gap: 2px !important;
+  padding: 8px !important;
+  border-top: 1px solid rgba(20, 121, 255, 0.1) !important;
+  gap: 3px !important;
   margin-top: 0 !important;
 }
 
