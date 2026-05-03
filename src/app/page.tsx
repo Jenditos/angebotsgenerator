@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   getSeedServices,
   hasServiceLabel,
@@ -49,6 +50,7 @@ import { ONBOARDING_TOTAL_STEPS, clampOnboardingStep } from "@/lib/onboarding";
 import {
   CompanySettings,
   CustomerDraftGroup,
+  DocumentTaxInfo,
   DocumentType,
   OfferPositionInput,
   PROJECT_STATUS_VALUES,
@@ -238,6 +240,7 @@ type IntakeReviewConflict = {
 type VoiceParseResponse = {
   fields: ParsedVoiceFields;
   timeCalculation?: ParsedVoiceTimeCalculation;
+  tax?: DocumentTaxInfo | null;
   missingFields: string[];
   missingFieldKeys?: string[];
   shouldAutofillServiceDescription?: boolean;
@@ -288,6 +291,7 @@ type PhotoReviewDraft = {
   confidence: ParsedVoiceConfidence;
   needsReview: boolean;
   documentType: "offer" | "invoice" | "unknown";
+  documentTax: DocumentTaxInfo | null;
   conflicts: IntakeReviewConflict[];
 };
 
@@ -527,6 +531,7 @@ const initialForm: OfferForm = createInitialForm();
 
 type ModeSnapshot = {
   form: OfferForm;
+  documentTax: DocumentTaxInfo | null;
   activeCustomerNumber: string;
   activeProjectNumber: string;
   selectedServices: SelectedServiceEntry[];
@@ -564,6 +569,7 @@ function cloneSelectedServices(
 function createInitialModeSnapshot(): ModeSnapshot {
   return {
     form: createInitialForm(),
+    documentTax: null,
     activeCustomerNumber: "",
     activeProjectNumber: "",
     selectedServices: [createManualSelectedServiceEntry()],
@@ -913,6 +919,7 @@ function hydrateModeSnapshot(value: unknown): ModeSnapshot {
 
   return {
     form: hydrateOfferForm(value.form),
+    documentTax: normalizeDocumentTaxInfo(value.documentTax) ?? null,
     activeCustomerNumber: asString(value.activeCustomerNumber),
     activeProjectNumber: asString(value.activeProjectNumber),
     selectedServices: hydrateSelectedServices(value.selectedServices),
@@ -1764,6 +1771,20 @@ function formatPhotoCountLabel(count: number): string {
   return count === 1 ? "1 Foto" : `${count} Fotos`;
 }
 
+function buildDocumentTaxInfoMessage(
+  documentTax: DocumentTaxInfo | null | undefined,
+): string {
+  if (!documentTax || documentTax.treatment === "standard") {
+    return "";
+  }
+
+  if (documentTax.treatment === "reverse_charge") {
+    return " Reverse-Charge erkannt. Für dieses Dokument wird keine MwSt. berechnet.";
+  }
+
+  return " Steuerbefreiung erkannt. Für dieses Dokument wird keine MwSt. berechnet.";
+}
+
 function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
   const quantity = parseLocaleNumber(subitem.quantity);
   const price = parseLocaleNumber(subitem.price);
@@ -1812,6 +1833,7 @@ export default function HomePage() {
   const router = useRouter();
   const [documentMode, setDocumentMode] = useState<DocumentMode>("offer");
   const [form, setForm] = useState<OfferForm>(initialForm);
+  const [documentTax, setDocumentTax] = useState<DocumentTaxInfo | null>(null);
   const [error, setError] = useState("");
   const [postActionInfo, setPostActionInfo] = useState("");
   const [autosaveFeedback, setAutosaveFeedback] = useState<"saved" | null>(null);
@@ -2390,6 +2412,7 @@ export default function HomePage() {
 
   function applyModeSnapshot(snapshot: ModeSnapshot) {
     setForm({ ...snapshot.form });
+    setDocumentTax(snapshot.documentTax ? { ...snapshot.documentTax } : null);
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
     setActiveProjectNumber(snapshot.activeProjectNumber);
     setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
@@ -2415,6 +2438,7 @@ export default function HomePage() {
   function createCurrentModeSnapshot(): ModeSnapshot {
     return {
       form: { ...form },
+      documentTax: documentTax ? { ...documentTax } : null,
       activeCustomerNumber,
       activeProjectNumber,
       selectedServices: cloneSelectedServices(selectedServices),
@@ -2713,6 +2737,7 @@ export default function HomePage() {
     addressSuggestions,
     activeCustomerNumber,
     activeProjectNumber,
+    documentTax,
     documentMode,
     error,
     form,
@@ -3953,6 +3978,7 @@ export default function HomePage() {
             serviceDate: form.serviceDate.trim(),
             paymentDueDays: form.paymentDueDays.trim(),
             positions: selectedServicesToDraftPayload(selectedServices),
+            documentTax: documentTax ? { ...documentTax } : null,
           },
         }),
       });
@@ -4014,6 +4040,7 @@ export default function HomePage() {
         serviceDate: form.serviceDate.trim(),
         paymentDueDays: form.paymentDueDays.trim(),
         positions: selectedServicesToDraftPayload(selectedServices),
+        documentTax: documentTax ? { ...documentTax } : null,
       },
       createdAt: nowIso,
       updatedAt: nowIso,
@@ -4083,6 +4110,7 @@ export default function HomePage() {
         serviceDate: form.serviceDate.trim(),
         paymentDueDays: form.paymentDueDays.trim(),
         positions: selectedServicesToDraftPayload(selectedServices),
+        documentTax: documentTax ? { ...documentTax } : null,
       },
       createdAt: nowIso,
       updatedAt: nowIso,
@@ -4108,6 +4136,7 @@ export default function HomePage() {
 
   function clearActiveProjectSelection() {
     setActiveProjectNumber("");
+    setDocumentTax(null);
     setForm((prev) => ({
       ...prev,
       projectName: "",
@@ -4182,6 +4211,7 @@ export default function HomePage() {
             serviceDate: form.serviceDate.trim(),
             paymentDueDays: form.paymentDueDays.trim(),
             positions: selectedServicesToDraftPayload(selectedServices),
+            documentTax: documentTax ? { ...documentTax } : null,
           },
         }),
       });
@@ -4265,6 +4295,7 @@ export default function HomePage() {
     const draftSelectedServices = selectedServicesFromDraftPayload(
       draftState?.positions,
     );
+    setDocumentTax(normalizeDocumentTaxInfo(draftState?.documentTax) ?? null);
 
     setForm((prev) => ({
       ...prev,
@@ -4341,6 +4372,7 @@ export default function HomePage() {
     const draftSelectedServices = selectedServicesFromDraftPayload(
       draftState?.positions,
     );
+    setDocumentTax(normalizeDocumentTaxInfo(draftState?.documentTax) ?? null);
     const shouldResetProject =
       Boolean(
         activeProjectNumber &&
@@ -5525,6 +5557,7 @@ export default function HomePage() {
       input.response.document?.type === "invoice"
         ? input.response.document.type
         : "unknown";
+    const documentTax = normalizeDocumentTaxInfo(input.response.tax) ?? null;
     const documentType =
       parsedDocumentType !== "unknown" && parsedDocumentType !== documentMode
         ? documentMode
@@ -5604,6 +5637,7 @@ export default function HomePage() {
       confidence: input.response.confidence ?? {},
       needsReview: input.response.needsReview !== false,
       documentType,
+      documentTax,
       conflicts,
     };
   }
@@ -5688,6 +5722,7 @@ export default function HomePage() {
     );
 
     setForm((prev) => buildNextFormFromReviewDraft(draft, prev));
+    setDocumentTax(draft.documentTax ? { ...draft.documentTax } : null);
 
     if (parsedServiceEntries.length > 0) {
       setSelectedServices(parsedServiceEntries);
@@ -5791,11 +5826,12 @@ export default function HomePage() {
       applyIntakeReviewDraft(reviewDraft);
     const applyText = " Daten wurden direkt in die Formularfelder übernommen.";
     const tableText = positionsCount > 0 ? " Positionen wurden erkannt." : "";
+    const taxText = buildDocumentTaxInfoMessage(reviewDraft.documentTax);
     const missingText =
       remainingMissingLabels.length > 0
         ? ` Bitte noch ergänzen: ${remainingMissingLabels.join(", ")}.`
         : " Alle Kernfelder wurden erkannt.";
-    const infoMessage = `${modeText}${applyText}${tableText}${missingText}`;
+    const infoMessage = `${modeText}${applyText}${tableText}${taxText}${missingText}`;
 
     if (input.mode === "voice") {
       setVoiceInfo(infoMessage);
@@ -6375,6 +6411,7 @@ export default function HomePage() {
           body: JSON.stringify({
             ...form,
             documentType: documentMode,
+            documentTax: documentTax ? { ...documentTax } : null,
             customerNumber: activeCustomerNumber || undefined,
             projectNumber: activeProjectNumber || undefined,
             projectAddress:

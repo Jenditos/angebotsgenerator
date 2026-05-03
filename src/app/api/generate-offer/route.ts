@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
 import { requireAppAccess } from "@/lib/access/guards";
+import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   MAX_LOGO_DATA_URL_LENGTH,
   sanitizeCompanyLogoDataUrl,
@@ -947,6 +948,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       selectedServices,
       serviceDescription,
     );
+    const documentTax = normalizeDocumentTaxInfo(body.documentTax) ?? null;
     const sendEmailRequested = Boolean(body.sendEmail);
     const requestedPaymentDueDays = parsePaymentDueDays(body.paymentDueDays);
     const resolvedInvoiceDate =
@@ -1201,6 +1203,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
           serviceDate: servicePeriod,
           paymentDueDays: String(paymentDueDays),
           positions: draftGroups,
+          documentTax,
         },
         referenceDate: now,
       });
@@ -1256,6 +1259,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
             serviceDate: servicePeriod,
             paymentDueDays: String(paymentDueDays),
             positions: draftGroups,
+            documentTax,
           },
           referenceDate: now,
         });
@@ -1296,6 +1300,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
         customerEmail,
         serviceDescription: composedServiceDescription,
         lineItems,
+        documentTax,
         offer,
         configuredLastOfferNumber: validatedSettings.lastOfferNumber,
         configuredLastInvoiceNumber: validatedSettings.lastInvoiceNumber,
@@ -1355,6 +1360,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       serviceDescription: composedServiceDescription,
       projectDetails: projectDetailsForPdf,
       lineItems,
+      documentTax,
       settings: {
         companyName: settingsForDocument.companyName,
         ownerName: settingsForDocument.ownerName,
@@ -1378,6 +1384,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
         offerValidityDays: settingsForDocument.offerValidityDays,
         invoicePaymentDueDays: settingsForDocument.invoicePaymentDueDays,
         offerTermsTextLength: settingsForDocument.offerTermsText.length,
+        documentTax,
         paymentBankAccountSource: preferredPaymentBankAccount.source,
         paymentBankAccountId: preferredPaymentBankAccount.accountId,
       },
@@ -1406,6 +1413,7 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       serviceDescription: composedServiceDescription,
       projectDetails: projectDetailsForPdf,
       lineItems,
+      documentTax,
       settings: safeSettings,
     };
     try {

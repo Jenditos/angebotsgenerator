@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   CustomerDraftGroup,
   CustomerDraftState,
@@ -163,6 +164,7 @@ function sanitizeCustomerDraftState(value: unknown): CustomerDraftState | undefi
     serviceDate: asTrimmedString(record.serviceDate),
     paymentDueDays: asTrimmedString(record.paymentDueDays),
     positions,
+    documentTax: normalizeDocumentTaxInfo(record.documentTax) ?? null,
   };
 }
 

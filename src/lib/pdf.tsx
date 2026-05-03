@@ -8,6 +8,11 @@ import {
   View,
 } from "@react-pdf/renderer";
 import {
+  appendDocumentTaxNotice,
+  buildDocumentTaxLabel,
+  resolveDocumentTax,
+} from "@/lib/document-tax";
+import {
   getDefaultPdfTableColumns,
   sortPdfTableColumns,
 } from "@/lib/pdf-table-config";
@@ -18,6 +23,7 @@ import {
 import {
   DocumentType,
   CompanySettings,
+  DocumentTaxInfo,
   OfferPdfLineItem,
   OfferText,
   PdfTableColumnId,
@@ -404,6 +410,7 @@ type OfferPdfDocumentProps = {
   serviceDescription: string;
   projectDetails?: string;
   lineItems: OfferPdfLineItem[];
+  documentTax?: DocumentTaxInfo | null;
   settings: CompanySettings;
 };
 
@@ -694,6 +701,7 @@ export function OfferPdfDocument({
   serviceDescription,
   projectDetails,
   lineItems,
+  documentTax,
   settings,
 }: OfferPdfDocumentProps) {
   const customerAddressLines = splitAddressLines(customerAddress);
@@ -738,7 +746,12 @@ export function OfferPdfDocument({
     year: "numeric",
   });
 
-  const vatRate = clampNumber(settings.vatRate, 0, 100);
+  const resolvedDocumentTax = resolveDocumentTax({
+    vatRate: clampNumber(settings.vatRate, 0, 100),
+    settingsNoticeText: settings.euVatNoticeText,
+    documentTax,
+  });
+  const vatRate = resolvedDocumentTax.vatRate;
   const offerValidityDays = clampNumber(settings.offerValidityDays, 1, 365);
   const validUntilDate = addDays(documentDate, offerValidityDays).toLocaleDateString(
     "de-DE",
@@ -819,15 +832,23 @@ export function OfferPdfDocument({
   const totalAmount = subtotal + vatAmount;
   const termsText = settings.offerTermsText?.trim();
   const sanitizedInvoiceTermsText = sanitizeInvoiceTermsText(termsText || "");
+  const taxNoteText = resolvedDocumentTax.noticeText?.trim() || "";
+  const taxLabel = buildDocumentTaxLabel({
+    treatment: resolvedDocumentTax.treatment,
+    vatRate,
+  });
   const notesText =
     resolvedDocumentType === "invoice"
-      ? [
-          "Diese Rechnung ist gemäß ausgewiesenem Zahlungsziel fällig.",
-          sanitizedInvoiceTermsText,
-        ]
-          .filter(Boolean)
-          .join(" ")
-      : termsText || "";
+      ? appendDocumentTaxNotice(
+          [
+            "Diese Rechnung ist gemäß ausgewiesenem Zahlungsziel fällig.",
+            sanitizedInvoiceTermsText,
+          ]
+            .filter(Boolean)
+            .join(" "),
+          taxNoteText,
+        )
+      : appendDocumentTaxNotice(termsText || "", taxNoteText);
 
   const chunkStartItemIndex: number[] = [];
   let consumedItems = 0;
@@ -1059,9 +1080,7 @@ export function OfferPdfDocument({
                       <Text style={styles.totalsValue}>{formatMoney(subtotal)} €</Text>
                     </View>
                     <View style={styles.totalsRow}>
-                      <Text
-                        style={styles.totalsLabel}
-                      >{`MwSt. (${vatRate.toFixed(vatRate % 1 === 0 ? 0 : 1)}%)`}</Text>
+                      <Text style={styles.totalsLabel}>{taxLabel}</Text>
                       <Text style={styles.totalsValue}>{formatMoney(vatAmount)} €</Text>
                     </View>
                     <View style={styles.totalsDivider} />

@@ -6,6 +6,12 @@ export type OfferText = {
 };
 
 export type DocumentType = "offer" | "invoice";
+export type DocumentTaxTreatment = "standard" | "reverse_charge" | "vat_exempt";
+
+export type DocumentTaxInfo = {
+  treatment: DocumentTaxTreatment;
+  noticeText?: string;
+};
 
 export const PROJECT_STATUS_VALUES = [
   "new",
@@ -148,10 +154,12 @@ export type CustomerDraftState = {
   serviceDate: string;
   paymentDueDays: string;
   positions: CustomerDraftGroup[];
+  documentTax?: DocumentTaxInfo | null;
 };
 
 export type GenerateOfferRequest = {
   documentType?: DocumentType;
+  documentTax?: DocumentTaxInfo | null;
   customerNumber?: string;
   projectNumber?: string;
   projectName?: string;
@@ -244,5 +252,6 @@ export type StoredOfferRecord = {
   customerEmail: string;
   serviceDescription: string;
   lineItems: OfferPdfLineItem[];
+  documentTax?: DocumentTaxInfo | null;
   offer: OfferText;
 };

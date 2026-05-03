@@ -84,6 +84,7 @@ export async function GET(
           serviceDescription: record.serviceDescription,
           projectDetails,
           lineItems: record.lineItems,
+          documentTax: record.documentTax ?? null,
           settings: safeSettings,
         }),
       );
@@ -105,6 +106,7 @@ export async function GET(
           serviceDescription: record.serviceDescription,
           projectDetails,
           lineItems: record.lineItems,
+          documentTax: record.documentTax ?? null,
           settings: {
             ...safeSettings,
             logoDataUrl: "",

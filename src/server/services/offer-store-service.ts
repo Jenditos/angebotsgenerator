@@ -9,8 +9,10 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   DocumentType,
+  DocumentTaxInfo,
   OfferPdfLineItem,
   OfferText,
   StoredOfferRecord,
@@ -45,6 +47,7 @@ export type CreateStoredOfferInput = {
   customerEmail: string;
   serviceDescription: string;
   lineItems: OfferPdfLineItem[];
+  documentTax?: DocumentTaxInfo | null;
   offer: OfferText;
   configuredLastOfferNumber?: string;
   configuredLastInvoiceNumber?: string;
@@ -357,6 +360,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     customerEmail,
     serviceDescription,
     lineItems,
+    documentTax: normalizeDocumentTaxInfo(record.documentTax) ?? null,
     offer: {
       subject: asTrimmedString(offerRecord.subject),
       intro: asTrimmedString(offerRecord.intro),
@@ -676,6 +680,7 @@ export async function createStoredOfferRecord(
       customerEmail: input.customerEmail,
       serviceDescription: input.serviceDescription,
       lineItems: input.lineItems,
+      documentTax: normalizeDocumentTaxInfo(input.documentTax) ?? null,
       offer: input.offer,
     };
     nextRecord.created_at = nextRecord.createdAt;

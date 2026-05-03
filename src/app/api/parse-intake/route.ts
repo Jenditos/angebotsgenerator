@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
+import { detectDocumentTaxInfo } from "@/lib/document-tax";
 import { parseOfferIntake, parseOfferIntakeFromImage } from "@/lib/openai";
 import { MAX_VOICE_TRANSCRIPT_LENGTH } from "@/lib/user-input";
 
@@ -1562,6 +1563,10 @@ export async function POST(request: Request) {
       items: normalizeConfidenceScore(parsed.confidence?.items),
       document: normalizeConfidenceScore(parsed.confidence?.document),
     };
+    const documentTax =
+      parsed.tax ??
+      detectDocumentTaxInfo(parsed.document?.notes) ??
+      detectDocumentTaxInfo(sourceText);
     const needsReview =
       typeof parsed.needsReview === "boolean"
         ? parsed.needsReview
@@ -1579,6 +1584,7 @@ export async function POST(request: Request) {
       positionsCount: normalizedFields.positions?.length ?? 0,
       laborHours: laborHours ?? null,
       documentType,
+      taxTreatment: documentTax?.treatment ?? "standard",
       ignoredCount: ignoredText.length,
       hasRelevantData,
     });
@@ -1600,6 +1606,7 @@ export async function POST(request: Request) {
           title: parsed.document?.title ?? "",
           notes: parsed.document?.notes ?? "",
         },
+        tax: documentTax,
         appointment: parsed.appointment ?? { date: "", time: "" },
         timeCalculation: normalizedTimeCalculation,
         confidence,
@@ -1628,6 +1635,7 @@ export async function POST(request: Request) {
         title: parsed.document?.title ?? "",
         notes: parsed.document?.notes ?? "",
       },
+      tax: documentTax,
       appointment: parsed.appointment ?? { date: "", time: "" },
       timeCalculation: normalizedTimeCalculation,
       confidence,
