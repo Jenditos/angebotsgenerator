@@ -161,6 +161,56 @@ describe("POST /api/parse-intake", () => {
     ]);
   });
 
+  it("detects reverse-charge tax hints from OCR source text", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeFromImageMock.mockResolvedValue({
+      fields: {
+        customerType: "company",
+        companyName: "Baucut Beton Bohren Schneiden",
+        street: "Bütze Str.39",
+        postalCode: "6922",
+        city: "Wolfurt",
+        positions: [
+          {
+            description: "Kernbohrungen",
+            quantity: 13,
+            unit: "Stück",
+            unitPrice: 35,
+          },
+        ],
+      },
+      usedFallback: false,
+      sourceText:
+        "Bei den vorgenannten Leistungen handelt es sich um sonstige Leistungen EG nach § 13b UStG. Der Leistungsempfänger schuldet die Umsatzsteuer (Reverse-Charge)",
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      tax?: { treatment?: string; noticeText?: string };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.tax).toEqual(
+      expect.objectContaining({
+        treatment: "reverse_charge",
+      }),
+    );
+    expect(payload.tax?.noticeText).toContain("§ 13b UStG");
+  });
+
   it("rejects more than 10 uploaded photos before model call", async () => {
     requireAppAccessMock.mockResolvedValue({
       ok: true,

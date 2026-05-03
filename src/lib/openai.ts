@@ -1,6 +1,7 @@
 import OpenAI from "openai";
+import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import { getSeedServices, normalizeSearchValue } from "@/lib/service-catalog";
-import { OfferPromptInput, OfferText } from "@/types/offer";
+import { DocumentTaxInfo, OfferPromptInput, OfferText } from "@/types/offer";
 
 let client: OpenAI | null = null;
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
@@ -381,6 +382,7 @@ export type ParsedIntakeConfidence = {
 export type IntakeParseResult = {
   fields: ParsedIntakeFields;
   timeCalculation?: ParsedIntakeTimeCalculation;
+  tax?: DocumentTaxInfo;
   usedFallback: boolean;
   fallbackReason?: "no_api_key" | "model_error";
   sourceText?: string;
@@ -1164,6 +1166,10 @@ const INTAKE_JSON_SCHEMA = `{
     "date": "string",
     "time": "string"
   },
+  "tax": {
+    "treatment": "standard|reverse_charge|vat_exempt|unknown",
+    "notice": "string"
+  },
   "ignored_text": ["string"],
   "confidence": {
     "customer": "number(0-1)",
@@ -1213,6 +1219,10 @@ Output:
   "appointment": {
     "date": "",
     "time": ""
+  },
+  "tax": {
+    "treatment": "standard",
+    "notice": ""
   },
   "ignored_text": ["Mach mir bitte"],
   "confidence": {
@@ -1269,6 +1279,10 @@ Output:
     "date": "",
     "time": ""
   },
+  "tax": {
+    "treatment": "standard",
+    "notice": ""
+  },
   "ignored_text": [],
   "confidence": {
     "customer": 0.91,
@@ -1324,6 +1338,10 @@ Output:
     "date": "",
     "time": ""
   },
+  "tax": {
+    "treatment": "standard",
+    "notice": ""
+  },
   "ignored_text": [],
   "confidence": {
     "customer": 0.82,
@@ -1339,6 +1357,7 @@ const INTAKE_SYSTEM_PROMPT =
   "Erfasse nur relevante Daten und ordne sie semantisch korrekt zu (customer/document/items/timeCalculation/appointment). " +
   "items dürfen ausschließlich echte Leistungen, Materialien oder explizite Anfahrt-Positionen enthalten, nie Befehlsreste. " +
   "Formular-Metadaten wie Rechnungsdatum, Leistungszeitraum, Zahlungsziel, E-Mail, PLZ, Ort, Bezeichnung, Menge, Einheit oder Einzelpreis dürfen niemals als items erscheinen. " +
+  "Wenn Steuerhinweise wie Reverse-Charge, § 13b UStG, 'Leistungsempfänger schuldet die Umsatzsteuer', § 19 UStG, 'keine Umsatzsteuer' oder 'umsatzsteuerfrei' vorkommen, erfasse sie in tax.treatment und tax.notice. " +
   "Wenn keine echte Position erkennbar ist, schreibe die freie Leistungsangabe in serviceDescription/document.notes statt künstliche items zu erzeugen. " +
   "Arbeitszeit (z. B. '2 Stunden Arbeit', 'Arbeitszeit 3 h', 'Montagezeit', 'Geselle 3 Stunden', 'Meister 2 Stunden', 'vor Ort 6 Stunden') gehört ausschließlich in timeCalculation und darf nicht in items dupliziert werden. " +
   "Wenn Mengen/Einheiten/Preise fehlen, lasse Felder leer bzw. null. Nichts raten. " +
@@ -1470,6 +1489,7 @@ function splitCustomerName(name: string | undefined): {
 function parseIntakeModelPayload(raw: string): {
   fields: ParsedIntakeFields;
   timeCalculation?: ParsedIntakeTimeCalculation;
+  tax?: DocumentTaxInfo;
   sourceText?: string;
   ignoredText?: string[];
   confidence?: ParsedIntakeConfidence;
@@ -1484,6 +1504,7 @@ function parseIntakeModelPayload(raw: string): {
   const document = asRecord(parsed.document);
   const appointment = asRecord(parsed.appointment);
   const confidence = asRecord(parsed.confidence);
+  const tax = normalizeDocumentTaxInfo(parsed.tax);
   const timeCalculation = normalizeTimeCalculation(parsed.timeCalculation);
 
   const customerName = normalizeTextValue(customer?.name);
@@ -1565,6 +1586,7 @@ function parseIntakeModelPayload(raw: string): {
   return {
     fields: resultFields,
     timeCalculation: resolvedTimeCalculation,
+    tax,
     sourceText: normalizeTextValue(parsed.sourceText),
     ignoredText:
       normalizeTextArray(parsed.ignored_text).length > 0
@@ -1657,6 +1679,7 @@ ${INTAKE_FEW_SHOTS}`,
     return {
       fields: payload.fields,
       timeCalculation: payload.timeCalculation,
+      tax: payload.tax,
       usedFallback: false,
       sourceText: payload.sourceText,
       ignoredText: payload.ignoredText,
@@ -1751,6 +1774,7 @@ ${INTAKE_FEW_SHOTS}`,
     return {
       fields: payload.fields,
       timeCalculation: payload.timeCalculation,
+      tax: payload.tax,
       usedFallback: false,
       sourceText: payload.sourceText,
       ignoredText: payload.ignoredText,
