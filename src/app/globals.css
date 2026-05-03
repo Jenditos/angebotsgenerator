@@ -11765,3 +11765,279 @@ html {
     max-width: 24px;
   }
 }
+
+/* ==========================================================================
+   DESIGN POLISH — Sidebar, Buttons, Hover, Spacing
+   ========================================================================== */
+
+/* ── Sidebar: dunkel + horizontal layout (wie Richtung B, App-Farben) ── */
+
+.appFrameWithSidebar {
+  grid-template-columns: 210px minmax(0, 1fr) !important;
+}
+
+.appSidebar {
+  background: #0c1e3a !important;
+  padding: 20px 0 12px !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+.appSidebarTop {
+  gap: 20px !important;
+}
+
+/* Logo area */
+.appSidebarBrandWrap {
+  width: 100% !important;
+  margin-inline: 0 !important;
+  padding: 0 16px 16px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+}
+
+/* Nav list */
+.appSidebarNav {
+  gap: 2px !important;
+  padding: 0 8px !important;
+}
+
+/* Nav items — horizontal row */
+.appSidebarNavItem,
+.appSidebarActionButton {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 10px !important;
+  border-radius: 10px !important;
+  text-align: left !important;
+  color: rgba(180, 210, 255, 0.55) !important;
+  transition: background 160ms ease, color 160ms ease !important;
+  min-height: 40px !important;
+}
+
+.appSidebarNavItem:hover,
+.appSidebarActionButton:hover {
+  background: rgba(63, 127, 233, 0.14) !important;
+  color: rgba(210, 232, 255, 0.9) !important;
+}
+
+.appSidebarNavItem.active {
+  background: rgba(63, 127, 233, 0.2) !important;
+  color: #e0f0ff !important;
+  border-left: 2px solid #3f7fe9 !important;
+  padding-left: 8px !important;
+}
+
+/* Icon wrap — clean, no heavy shadow */
+.appSidebarNavIconWrap {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  flex-shrink: 0 !important;
+  transition: none !important;
+}
+
+.appSidebarNavItem.active .appSidebarNavIconWrap {
+  background: rgba(63, 127, 233, 0.22) !important;
+  color: #7ab8ff !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebarActionButton:hover .appSidebarNavIconWrap,
+  .appSidebarNavIconWrap:hover {
+    transform: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
+  }
+  .appSidebarNavItem:hover .appSidebarNavIcon,
+  .appSidebarActionButton:hover .appSidebarNavIcon,
+  .appSidebarNavIconWrap:hover .appSidebarNavIcon {
+    color: inherit !important;
+  }
+}
+
+/* Icon size */
+.appSidebarNavIcon {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Label — visible on dark bg, horizontal */
+.appSidebarNavLabel {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  color: inherit !important;
+  line-height: 1.2 !important;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Bottom section */
+.appSidebarBottom {
+  padding: 8px 8px 0 !important;
+  border-top: 1px solid rgba(255,255,255,0.07) !important;
+  gap: 2px !important;
+  margin-top: 0 !important;
+}
+
+/* ── Button System — einheitliche Größen, Hover, Active ── */
+
+/* Base */
+.primaryButton,
+.ghostButton,
+.customerPickerToggle {
+  min-height: 44px !important;
+  border-radius: 10px !important;
+  transition:
+    background 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 120ms ease,
+    opacity 180ms ease !important;
+}
+
+/* Primary hover lift */
+button.primaryButton:hover:not(:disabled),
+a.primaryButton:hover,
+button.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+button.primaryButton:active:not(:disabled),
+button.submitButton:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+/* Ghost hover */
+.ghostButton:hover:not(:disabled),
+.customerPickerToggle:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+.ghostButton:active:not(:disabled),
+.customerPickerToggle:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+/* Submit button */
+.submitButton {
+  min-height: 52px !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+}
+
+/* E-Mail CTA — gleichwertig neben Submit */
+.submitMailButton {
+  min-height: 52px !important;
+  border-radius: 12px !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.submitActionRow {
+  gap: 10px !important;
+}
+
+/* Recipient type buttons */
+.recipientTypeButton {
+  min-height: 40px !important;
+  border-radius: 8px !important;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease !important;
+}
+
+/* Document mode switch (Angebote / Rechnungen tabs) */
+.documentModeSwitchButton {
+  transition: background 160ms ease, color 160ms ease !important;
+}
+
+/* Customer picker toggle */
+.customerPickerToggle {
+  font-size: 0.84rem !important;
+  padding: 10px 14px !important;
+}
+
+/* Projekt clear button */
+.projectClearButton {
+  min-height: 40px !important;
+  border-radius: 8px !important;
+  font-size: 0.82rem !important;
+}
+
+/* ── Spacing — einheitliche Abstände im Formular ── */
+
+/* Projektworkspace */
+.projectWorkspaceActions {
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.projectWorkspaceGrid {
+  gap: 14px 16px !important;
+}
+
+/* Formular-Felder */
+.field {
+  gap: 6px !important;
+}
+
+.field > span,
+.field > label {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border-radius: 10px !important;
+  min-height: 44px !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+.field textarea {
+  min-height: unset !important;
+}
+
+/* Submit feedback row — Fehler/Erfolg besser sichtbar */
+.documentCreateFeedback {
+  font-size: 0.88rem !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  background: rgba(44, 79, 130, 0.06) !important;
+  border: 1px solid rgba(44, 79, 130, 0.12) !important;
+  margin-top: 4px !important;
+}
+
+.documentCreateFeedbackSuccess {
+  background: rgba(31, 157, 102, 0.07) !important;
+  border-color: rgba(31, 157, 102, 0.18) !important;
+}
+
+.documentCreateFeedbackError {
+  background: rgba(192, 50, 26, 0.07) !important;
+  border-color: rgba(192, 50, 26, 0.18) !important;
+}
+
+/* ── Mobile: Sidebar bleibt versteckt ── */
+@media (max-width: 980px) {
+  .appFrameWithSidebar {
+    grid-template-columns: 1fr !important;
+  }
+}
