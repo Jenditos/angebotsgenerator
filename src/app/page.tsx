@@ -1814,6 +1814,7 @@ export default function HomePage() {
   const [form, setForm] = useState<OfferForm>(initialForm);
   const [error, setError] = useState("");
   const [postActionInfo, setPostActionInfo] = useState("");
+  const [autosaveFeedback, setAutosaveFeedback] = useState<"saved" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [offerMailActionState, setOfferMailActionState] =
     useState<OfferMailActionState | null>(null);
@@ -1974,6 +1975,9 @@ export default function HomePage() {
   const onboardingModalRef = useRef<HTMLElement | null>(null);
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const projectArchiveSheetRef = useRef<HTMLElement | null>(null);
+  const projectNameInputRef = useRef<HTMLInputElement | null>(null);
+  const customerNameInputRef = useRef<HTMLInputElement | null>(null);
+  const streetInputRef = useRef<HTMLInputElement | null>(null);
   const settingsOverlaySheetRef = useRef<HTMLElement | null>(null);
   const customerPickerModalSheetRef = useRef<HTMLElement | null>(null);
   const photoScanMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1981,6 +1985,19 @@ export default function HomePage() {
   const photoCameraSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
+  function setErrorAndFocus(message: string, ref?: React.RefObject<HTMLInputElement | null>) {
+    setError(message);
+    if (ref?.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => ref.current?.focus(), 200);
+    }
+  }
+
+  function flashAutosave() {
+    setAutosaveFeedback("saved");
+    setTimeout(() => setAutosaveFeedback(null), 2500);
+  }
+
   const isOnboardingModalOpen =
     showOnboardingPromptModal || onboardingMode === "steps";
   const isAnyIntakeProcessing =
@@ -3890,7 +3907,7 @@ export default function HomePage() {
     const customerAddress = buildCustomerAddressForStorage(form);
 
     if (!customerName) {
-      setError("Bitte zuerst einen Kontakt oder Ansprechpartner angeben.");
+      setErrorAndFocus("Bitte zuerst einen Kontakt oder Ansprechpartner angeben.", customerNameInputRef);
       return null;
     }
 
@@ -3900,7 +3917,7 @@ export default function HomePage() {
       !form.city.trim() ||
       !customerAddress
     ) {
-      setError("Bitte zuerst eine vollständige Kundenadresse angeben.");
+      setErrorAndFocus("Bitte zuerst eine vollständige Kundenadresse angeben.", streetInputRef);
       return null;
     }
 
@@ -4107,17 +4124,17 @@ export default function HomePage() {
     let customerNumberForProject = activeCustomerNumber.trim();
 
     if (!projectName) {
-      setError("Bitte zuerst einen Projektnamen eingeben.");
+      setErrorAndFocus("Bitte zuerst einen Projektnamen eingeben.", projectNameInputRef);
       return;
     }
 
     if (!customerName) {
-      setError("Bitte zuerst einen Kunden oder Ansprechpartner angeben.");
+      setErrorAndFocus("Bitte zuerst einen Kunden oder Ansprechpartner angeben.", customerNameInputRef);
       return;
     }
 
     if (!customerAddress) {
-      setError("Bitte zuerst eine Kundenadresse angeben.");
+      setErrorAndFocus("Bitte zuerst eine Kundenadresse angeben.", streetInputRef);
       return;
     }
 
@@ -4197,6 +4214,7 @@ export default function HomePage() {
       setPostActionInfo(
         `Projekt ${data.project.projectName} wurde gespeichert.`,
       );
+      flashAutosave();
     } catch {
       setError("Projekt konnte nicht gespeichert werden.");
     }
@@ -6751,9 +6769,12 @@ export default function HomePage() {
                     {!isCustomersLoading &&
                     !customersError &&
                     storedCustomers.length === 0 ? (
-                      <p className="customerArchiveHint">
-                        Noch keine gespeicherten Kunden vorhanden.
-                      </p>
+                      <div className="customerArchiveEmptyState">
+                        <p className="customerArchiveEmptyTitle">Noch kein Kunde gespeichert</p>
+                        <p className="customerArchiveHint">
+                          Fülle das Formular aus und klicke auf „Kontakt speichern" — danach erscheint der Kunde hier.
+                        </p>
+                      </div>
                     ) : null}
 
                     {!isCustomersLoading &&
@@ -8171,6 +8192,43 @@ export default function HomePage() {
               <section className="workspaceGrid workspaceGridSingle dashboardWorkspace">
               <article className="glassCard formCard dashboardPrimaryCard">
             <form onSubmit={onSubmit} className="formGrid dashboardFormGrid">
+
+              {/* ── Progress Stepper ── */}
+              <div className="formProgressStepper span2" aria-label="Fortschritt">
+                <div className={`formProgressStep ${activeCustomerNumber ? "done" : "active"}`}>
+                  <span className="formProgressStepDot">{activeCustomerNumber ? "✓" : "1"}</span>
+                  <span className="formProgressStepLabel">Kundendaten</span>
+                </div>
+                <div className="formProgressConnector" />
+                <div className={`formProgressStep ${
+                  activeCustomerNumber &&
+                  selectedServices.some((s) => s.subitems.some((sub) => sub.description.trim() && sub.price.trim()))
+                    ? "done"
+                    : activeCustomerNumber ? "active" : ""
+                }`}>
+                  <span className="formProgressStepDot">
+                    {activeCustomerNumber &&
+                     selectedServices.some((s) => s.subitems.some((sub) => sub.description.trim() && sub.price.trim()))
+                      ? "✓" : "2"}
+                  </span>
+                  <span className="formProgressStepLabel">Leistungen</span>
+                </div>
+                <div className="formProgressConnector" />
+                <div className={`formProgressStep ${
+                  activeCustomerNumber &&
+                  selectedServices.some((s) => s.subitems.some((sub) => sub.description.trim() && sub.price.trim()))
+                    ? "active" : ""
+                }`}>
+                  <span className="formProgressStepDot">3</span>
+                  <span className="formProgressStepLabel">Abschicken</span>
+                </div>
+                {autosaveFeedback === "saved" ? (
+                  <span className="autosaveBadge" role="status" aria-live="polite">
+                    ✓ Gespeichert
+                  </span>
+                ) : null}
+              </div>
+
               <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">
                   <strong>Per KI erfassen</strong>
@@ -8505,16 +8563,16 @@ export default function HomePage() {
                     <button
                       type="button"
                       className="ghostButton customerPickerToggle"
-                      onClick={() => openProjectArchive(activeCustomerNumber)}
+                      onClick={() => void saveCurrentProject()}
                     >
-                      Projekte dieses Kontakts
+                      {activeProjectNumber ? "Projekt aktualisieren" : "Projekt speichern"}
                     </button>
                     <button
                       type="button"
                       className="ghostButton customerPickerToggle"
-                      onClick={() => void saveCurrentProject()}
+                      onClick={() => openProjectArchive(activeCustomerNumber)}
                     >
-                      {activeProjectNumber ? "Projekt aktualisieren" : "Projekt speichern"}
+                      Projekte dieses Kontakts
                     </button>
                     {activeProjectNumber ? (
                       <button
@@ -8543,6 +8601,7 @@ export default function HomePage() {
                     <label className="field span2">
                       <span>Projektname</span>
                       <input
+                        ref={projectNameInputRef}
                         placeholder="z. B. Badezimmer Renovierung"
                         autoCapitalize="words"
                         value={form.projectName}
@@ -8701,6 +8760,7 @@ export default function HomePage() {
                   <span>Firma</span>
                   <input
                     required
+                    ref={customerNameInputRef}
                     autoComplete="organization"
                     autoCapitalize="words"
                     value={form.companyName}
@@ -8791,6 +8851,7 @@ export default function HomePage() {
                 <div className="addressAutocomplete">
                   <input
                     required
+                    ref={streetInputRef}
                     autoComplete="address-line1"
                     autoCapitalize="words"
                     value={form.street}
