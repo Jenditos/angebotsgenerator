@@ -10325,6 +10325,24 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   transition: opacity 120ms ease;
 }
 
+/* Tighten the settings popup header so it lines up with the embedded content. */
+.settingsOverlaySheetMain {
+  gap: 0 !important;
+}
+
+.settingsOverlayHeaderMain {
+  margin-bottom: 8px !important;
+  padding: 0 16px !important;
+}
+
+.settingsOverlayFrameWrapMain {
+  margin-top: 0 !important;
+}
+
+.settingsEmbeddedContainerOverlay {
+  padding-top: 8px !important;
+}
+
 /* Dashboard tips panel */
 .dashboardTipsPanel {
   display: grid;

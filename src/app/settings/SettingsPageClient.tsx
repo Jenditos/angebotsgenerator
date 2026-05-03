@@ -1414,7 +1414,7 @@ export default function SettingsPage() {
       <div
         className={`container settingsPageTransition ${
           isLeavingSettings ? "closing" : ""
-        } ${isEmbedded ? "settingsEmbeddedContainer" : ""}`}
+        } ${isEmbedded ? "settingsEmbeddedContainer settingsEmbeddedContainerOverlay" : ""}`}
       >
         {!isEmbedded ? (
           <header className="topHeaderMinimal">

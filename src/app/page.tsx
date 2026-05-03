@@ -7688,11 +7688,11 @@ export default function HomePage() {
             onClick={isSettingsOverlayVisible ? closeSettingsOverlay : undefined}
           >
             <section
-              className={`settingsOverlaySheet ${isClosingSettingsOverlay ? "closing" : ""}`}
+              className={`settingsOverlaySheet settingsOverlaySheetMain ${isClosingSettingsOverlay ? "closing" : ""}`}
               onClick={(event) => event.stopPropagation()}
               ref={settingsOverlaySheetRef}
             >
-              <div className="settingsOverlayHeader">
+              <div className="settingsOverlayHeader settingsOverlayHeaderMain">
                 <strong id="settings-overlay-title">Einstellungen</strong>
                 <button
                   type="button"
@@ -7717,7 +7717,7 @@ export default function HomePage() {
                 </button>
               </div>
               <div
-                className={`settingsOverlayFrameWrap ${isSettingsOverlayFrameLoaded ? "isLoaded" : "isLoading"}`}
+                className={`settingsOverlayFrameWrap settingsOverlayFrameWrapMain ${isSettingsOverlayFrameLoaded ? "isLoaded" : "isLoading"}`}
               >
                 {!isSettingsOverlayFrameLoaded ? (
                   <div className="settingsOverlayFrameLoading" role="status" aria-live="polite">
