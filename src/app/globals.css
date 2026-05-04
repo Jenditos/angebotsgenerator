@@ -12762,3 +12762,597 @@ button.ghostButton:active:not(:disabled),
 .appSidebarActionButton:hover:not(.active) {
   transform: none !important;
 }
+
+/* ==========================================================================
+   BUTTON SYSTEM v3 — Vollständiges visuelles Redesign
+   Base + Hover + Active + Disabled für jeden Button-Typ.
+   Keine Shadows die geclippt werden können.
+   ========================================================================== */
+
+/* ── Tokens (ergänzen v2) ── */
+:root {
+  --btn-font:         600;
+  --btn-font-sm:      0.82rem;
+  --btn-font-md:      0.88rem;
+  --btn-font-lg:      0.95rem;
+  --btn-r-sm:         8px;
+  --btn-r-md:         10px;
+  --btn-r-lg:         12px;
+  --btn-h-sm:         32px;
+  --btn-h-md:         40px;
+  --btn-h-lg:         44px;
+  --btn-h-xl:         52px;
+}
+
+/* ────────────────────────────────────────────────────
+   1. PRIMARY — solid blau, weißer Text
+   Lift auf hover. Kein externer Shadow (Clipping-Fix).
+──────────────────────────────────────────────────── */
+button.primaryButton,
+a.primaryButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: var(--btn-h-lg) !important;
+  padding: 0 20px !important;
+  border-radius: var(--btn-r-lg) !important;
+  font-size: var(--btn-font-md) !important;
+  font-weight: var(--btn-font) !important;
+  letter-spacing: 0.01em !important;
+  background: var(--c-p, #1479ff) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: 1.5px solid transparent !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    background var(--btn-t, 150ms ease),
+    transform 120ms ease,
+    box-shadow var(--btn-t, 150ms ease) !important;
+}
+
+button.primaryButton:hover:not(:disabled),
+a.primaryButton:hover {
+  background: var(--c-p-hover, #1165e0) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: translateY(-1px) !important;
+}
+
+button.primaryButton:active:not(:disabled) {
+  background: var(--c-p-active, #0f56c8) !important;
+  background-image: none !important;
+  transform: translateY(0) scale(0.984) !important;
+  box-shadow: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   2. SUBMIT — wie primary, aber höher
+──────────────────────────────────────────────────── */
+button.submitButton {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-height: var(--btn-h-xl) !important;
+  padding: 0 24px !important;
+  border-radius: var(--btn-r-lg) !important;
+  font-size: var(--btn-font-lg) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  background: var(--c-p, #1479ff) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: 1.5px solid transparent !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    background var(--btn-t, 150ms ease),
+    transform 120ms ease !important;
+}
+
+button.submitButton:hover:not(:disabled) {
+  background: var(--c-p-hover, #1165e0) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
+}
+
+button.submitButton:active:not(:disabled) {
+  background: var(--c-p-active, #0f56c8) !important;
+  background-image: none !important;
+  transform: translateY(0) scale(0.984) !important;
+}
+
+/* ────────────────────────────────────────────────────
+   3. GHOST — transparent mit Border
+──────────────────────────────────────────────────── */
+button.ghostButton,
+a.ghostButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: var(--btn-h-lg) !important;
+  padding: 0 18px !important;
+  border-radius: var(--btn-r-lg) !important;
+  font-size: var(--btn-font-md) !important;
+  font-weight: var(--btn-font) !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: #1e3a5f !important;
+  border: 1.5px solid rgba(72, 116, 195, 0.3) !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    background var(--btn-t, 150ms ease),
+    border-color var(--btn-t, 150ms ease),
+    color var(--btn-t, 150ms ease) !important;
+}
+
+button.ghostButton:hover:not(:disabled),
+a.ghostButton:hover {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  color: #1e3a5f !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.ghostButton:active:not(:disabled) {
+  background: #e2e8f0 !important;
+  background-image: none !important;
+  transform: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   4. SUBMIT MAIL — gleiche Größe wie submit, ghost-style
+──────────────────────────────────────────────────── */
+button.submitMailButton {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  min-height: var(--btn-h-xl) !important;
+  padding: 0 20px !important;
+  border-radius: var(--btn-r-lg) !important;
+  font-size: var(--btn-font-md) !important;
+  font-weight: var(--btn-font) !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: #1e3a5f !important;
+  border: 1.5px solid rgba(72, 116, 195, 0.3) !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    background var(--btn-t, 150ms ease),
+    border-color var(--btn-t, 150ms ease),
+    color var(--btn-t, 150ms ease) !important;
+}
+
+button.submitMailButton:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  color: #1e3a5f !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.submitMailButton:active:not(:disabled) {
+  background: #e2e8f0 !important;
+  background-image: none !important;
+}
+
+button.submitMailButton:disabled {
+  opacity: 0.42 !important;
+  cursor: not-allowed !important;
+}
+
+/* ────────────────────────────────────────────────────
+   5. CLOSE / X Buttons (alle Popups)
+──────────────────────────────────────────────────── */
+:is(
+  .settingsOverlayCloseButton,
+  .customerArchiveCloseButton,
+  .customerPickerModalCloseButton,
+  .infoLegalCloseButton,
+  .voiceLoginModalCloseButton,
+  .dashboardTipsCloseButton,
+  .customerArchiveBackButton
+) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: var(--btn-r-md) !important;
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    color var(--btn-t, 150ms ease) !important;
+}
+
+:is(
+  .settingsOverlayCloseButton,
+  .customerArchiveCloseButton,
+  .customerPickerModalCloseButton,
+  .infoLegalCloseButton,
+  .voiceLoginModalCloseButton,
+  .dashboardTipsCloseButton,
+  .customerArchiveBackButton
+):hover:not(:disabled) {
+  background: #e2e8f0 !important;
+  background-image: none !important;
+  color: #1e293b !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+:is(
+  .settingsOverlayCloseButton,
+  .customerArchiveCloseButton,
+  .customerPickerModalCloseButton,
+  .infoLegalCloseButton,
+  .voiceLoginModalCloseButton,
+  .dashboardTipsCloseButton
+):active:not(:disabled) {
+  background: #cbd5e1 !important;
+  background-image: none !important;
+  transform: scale(0.92) !important;
+}
+
+/* ────────────────────────────────────────────────────
+   6. DANGER / DELETE Buttons
+──────────────────────────────────────────────────── */
+:is(
+  .settingsDeleteButton,
+  .settingsLogoDeleteButton,
+  .positionsDeleteButton
+) {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.25) !important;
+  color: #dc2626 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    background var(--btn-t, 150ms ease),
+    border-color var(--btn-t, 150ms ease) !important;
+}
+
+:is(
+  .settingsDeleteButton,
+  .settingsLogoDeleteButton,
+  .positionsDeleteButton
+):hover:not(:disabled) {
+  background: #fee2e2 !important;
+  background-image: none !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+:is(
+  .settingsDeleteButton,
+  .settingsLogoDeleteButton,
+  .positionsDeleteButton
+):active:not(:disabled) {
+  background: #fecaca !important;
+  background-image: none !important;
+  transform: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   7. KI-Aufnahme Buttons (intakePrimary)
+──────────────────────────────────────────────────── */
+button.intakePrimaryActionButtonPrimary {
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  font-size: 0.86rem !important;
+  background: #1479ff !important;
+  background-image: none !important;
+  background-color: #1479ff !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    transform 120ms ease !important;
+}
+
+button.intakePrimaryActionButtonPrimary:hover:not(:disabled) {
+  background: #1165e0 !important;
+  background-image: none !important;
+  background-color: #1165e0 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
+}
+
+button.intakePrimaryActionButtonPrimary:active:not(:disabled) {
+  background: #0f56c8 !important;
+  background-image: none !important;
+  transform: scale(0.97) !important;
+}
+
+button.intakePrimaryActionButtonSecondary {
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    border-color var(--btn-t, 150ms ease) !important;
+}
+
+button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.26) !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   8. Voice Action Buttons (Start/Stop/Pause/Resume/Clear)
+──────────────────────────────────────────────────── */
+button.voiceActionButtonStart {
+  border-radius: 999px !important;
+  background: rgba(255, 232, 237, 0.95) !important;
+  background-image: none !important;
+  color: #892339 !important;
+  border: 1.5px solid rgba(194, 41, 67, 0.3) !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    border-color var(--btn-t, 150ms ease) !important;
+}
+
+button.voiceActionButtonStart:hover:not(:disabled) {
+  background: rgba(255, 220, 228, 0.98) !important;
+  background-image: none !important;
+  border-color: rgba(194, 41, 67, 0.5) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonStop {
+  border-radius: var(--btn-r-md) !important;
+  background: rgba(255, 232, 237, 0.95) !important;
+  background-image: none !important;
+  color: #892339 !important;
+  border: 1.5px solid rgba(194, 41, 67, 0.3) !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonStop:hover:not(:disabled) {
+  background: rgba(255, 220, 228, 0.98) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonPause {
+  border-radius: var(--btn-r-md) !important;
+  background: rgba(255, 247, 224, 0.95) !important;
+  background-image: none !important;
+  color: #7a5510 !important;
+  border: 1.5px solid rgba(192, 141, 43, 0.3) !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonPause:hover:not(:disabled) {
+  background: rgba(255, 241, 204, 0.98) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonResume {
+  border-radius: var(--btn-r-md) !important;
+  background: rgba(232, 248, 240, 0.95) !important;
+  background-image: none !important;
+  color: #1f684b !important;
+  border: 1.5px solid rgba(34, 153, 88, 0.3) !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonResume:hover:not(:disabled) {
+  background: rgba(213, 242, 228, 0.98) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonClear {
+  border-radius: var(--btn-r-md) !important;
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  color: #475569 !important;
+  border: 1.5px solid rgba(100, 116, 139, 0.2) !important;
+  box-shadow: none !important;
+}
+
+button.voiceActionButtonClear:hover:not(:disabled) {
+  background: #e2e8f0 !important;
+  background-image: none !important;
+  color: #334155 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   9. Customer Picker Toggle
+──────────────────────────────────────────────────── */
+button.customerPickerToggle {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(72, 116, 195, 0.28) !important;
+  color: #1e3a5f !important;
+  border-radius: var(--btn-r-md) !important;
+  font-size: var(--btn-font-sm) !important;
+  font-weight: var(--btn-font) !important;
+  min-height: var(--btn-h-md) !important;
+  padding: 0 14px !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    border-color var(--btn-t, 150ms ease) !important;
+}
+
+button.customerPickerToggle:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  color: #1e3a5f !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.customerPickerToggle:active:not(:disabled) {
+  background: #e2e8f0 !important;
+  background-image: none !important;
+  transform: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   10. Suggestions (Leistungen, Adressen)
+──────────────────────────────────────────────────── */
+.serviceSuggestionButton,
+.positionsTypeaheadList button,
+.addressSuggestionButton {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: background-color var(--btn-t, 150ms ease) !important;
+}
+
+.serviceSuggestionButton:hover,
+.positionsTypeaheadList button:hover {
+  background: rgba(20, 121, 255, 0.07) !important;
+  background-image: none !important;
+  color: #1479ff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.addressSuggestionButton:hover {
+  background: rgba(20, 121, 255, 0.06) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   11. Archive / List Items
+──────────────────────────────────────────────────── */
+.customerArchiveCustomerButton,
+.customerArchiveDocumentButton,
+.customerArchiveSectionToggle,
+.customerPickerItem,
+.customerPickerApplyButton {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: background-color var(--btn-t, 150ms ease) !important;
+}
+
+.customerArchiveCustomerButton:hover,
+.customerArchiveDocumentButton:hover,
+.customerArchiveSectionToggle:hover,
+.customerPickerItem:hover,
+.customerPickerApplyButton:hover {
+  background: rgba(20, 121, 255, 0.05) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   12. Auth Buttons
+──────────────────────────────────────────────────── */
+.authPrimaryButton,
+.authGithubCard .authGithubPrimaryButton {
+  background: #1479ff !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: var(--btn-r-lg) !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--btn-t, 150ms ease),
+    transform 120ms ease !important;
+}
+
+.authPrimaryButton:hover:not(:disabled),
+.authGithubCard .authGithubPrimaryButton:hover:not(:disabled) {
+  background: #1165e0 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
+}
+
+.authSecondaryButton,
+.authGithubCard .authGithubPasskeyButton {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(72, 116, 195, 0.28) !important;
+  color: #1e3a5f !important;
+  border-radius: var(--btn-r-lg) !important;
+  box-shadow: none !important;
+}
+
+.authSecondaryButton:hover:not(:disabled),
+.authGithubCard .authGithubPasskeyButton:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ────────────────────────────────────────────────────
+   13. Overflow-Fix: Clipping verhindern
+   Containers die Shadows abschneiden auf visible setzen.
+──────────────────────────────────────────────────── */
+.glassCard,
+.formCard,
+.dashboardPrimaryCard,
+.customerArchiveSheet,
+.settingsOverlaySheet,
+.customerPickerListModal {
+  overflow: visible !important;
+}
+
+/* Ausnahmen die overflow:hidden BRAUCHEN (Listen, Scrollbereiche) */
+.customerArchiveTree,
+.customerArchiveDocumentList,
+.positionsTypeaheadList,
+.serviceSuggestionList,
+.addressSuggestions {
+  overflow: hidden !important;
+}
