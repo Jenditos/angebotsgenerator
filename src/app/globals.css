@@ -13876,3 +13876,8 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   gap: 0 !important;
   text-align: left !important;
 }
+
+/* Header bündig mit Feldern: kein eigenes lr-padding, nur Card-Padding */
+.onboardingPageEmbedded .onboardingHeader {
+  padding: 4px 0 16px !important;
+}
