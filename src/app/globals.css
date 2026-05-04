@@ -13766,3 +13766,28 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
     transform: none !important;
   }
 }
+
+/* Compatibility override: force the visible icon square blue on direct hover
+   for both the new isolated button class and the legacy sidebar button class. */
+@media (hover: hover) and (pointer: fine) {
+  .appSidebar button.sidebarQuickNavButton:hover:not(:disabled),
+  .appSidebar button.sidebarQuickNavButton:focus-visible,
+  .appSidebar button.appSidebarNavIconWrap:hover:not(:disabled),
+  .appSidebar button.appSidebarNavIconWrap:focus-visible {
+    background: #116fe5 !important;
+    background-color: #116fe5 !important;
+    background-image: none !important;
+    border-color: #116fe5 !important;
+    color: #ffffff !important;
+    box-shadow: 0 18px 36px rgba(17, 111, 229, 0.3) !important;
+    transform: none !important;
+  }
+
+  .appSidebar button.sidebarQuickNavButton:hover .sidebarQuickNavIcon,
+  .appSidebar button.sidebarQuickNavButton:focus-visible .sidebarQuickNavIcon,
+  .appSidebar button.appSidebarNavIconWrap:hover .appSidebarNavIcon,
+  .appSidebar button.appSidebarNavIconWrap:focus-visible .appSidebarNavIcon {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+  }
+}
