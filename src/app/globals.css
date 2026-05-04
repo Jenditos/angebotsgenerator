@@ -14140,8 +14140,8 @@ a.primaryButton:hover {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 14px !important;
-  padding: 8px 10px !important;
+  gap: 10px !important;
+  padding: 6px 8px !important;
   text-align: center !important;
   border-radius: 0 !important;
   min-height: unset !important;
@@ -14152,9 +14152,9 @@ a.primaryButton:hover {
 .appSidebar button.sidebarQuickNavButton {
   all: unset;
   box-sizing: border-box !important;
-  width: 96px !important;
-  height: 92px !important;
-  border-radius: 24px !important;
+  width: 68px !important;
+  height: 68px !important;
+  border-radius: 18px !important;
   border: 1px solid #d6dfeb !important;
   background: #dfe4ea !important;
   background-image: none !important;
@@ -14173,8 +14173,8 @@ a.primaryButton:hover {
 }
 
 .appSidebar .sidebarQuickNavIcon {
-  width: 34px !important;
-  height: 34px !important;
+  width: 24px !important;
+  height: 24px !important;
   color: #1479ff !important;
   fill: #1479ff !important;
   flex-shrink: 0 !important;
@@ -14182,7 +14182,7 @@ a.primaryButton:hover {
 }
 
 .appSidebar .sidebarQuickNavLabel {
-  font-size: 0.76rem !important;
+  font-size: 0.64rem !important;
   font-weight: 700 !important;
   color: var(--vis-dark, #193b68) !important;
   text-align: center !important;
@@ -14199,7 +14199,7 @@ a.primaryButton:hover {
 
 .appFrameWithSidebar .appSidebarNav,
 .appFrameWithSidebar .appSidebarBottom {
-  gap: 36px !important;
+  gap: 28px !important;
   padding: 0 !important;
 }
 
