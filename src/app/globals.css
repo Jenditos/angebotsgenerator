@@ -13801,3 +13801,78 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   text-align: left !important;
   justify-items: start !important;
 }
+
+/* Revert: Kästchen/Grid wieder wie sie waren */
+.onboardingPageEmbedded .onboardingGrid {
+  text-align: unset !important;
+  justify-items: unset !important;
+}
+.onboardingPageEmbedded .onboardingGrid label,
+.onboardingPageEmbedded .onboardingGrid .field {
+  text-align: left !important;
+}
+.onboardingPageEmbedded .onboardingStepCard {
+  text-align: left !important;
+  align-items: unset !important;
+}
+
+/* ==========================================================================
+   Onboarding Header — finales Design (nur oberer Bereich)
+   ========================================================================== */
+
+.onboardingHeaderMain {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  width: 100% !important;
+}
+
+/* Step-Badge: kleine blaue Pille ganz oben */
+.onboardingStepBadge {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: #1479ff !important;
+  background: rgba(20, 121, 255, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 3px 10px !important;
+  margin-bottom: 4px !important;
+}
+
+/* Titel: groß, bold, klar */
+.onboardingPageEmbedded .heroEyebrow {
+  font-size: 1.22rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  text-transform: none !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+/* Beschreibung: direkt darunter, etwas Abstand */
+.onboardingPageEmbedded .heroText {
+  font-size: 0.84rem !important;
+  color: #64748b !important;
+  line-height: 1.55 !important;
+  margin: 6px 0 0 !important;
+  text-align: left !important;
+  max-width: none !important;
+}
+
+/* Header-Block: padding + separator */
+.onboardingPageEmbedded .onboardingHeader {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  padding: 4px 24px 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 16px !important;
+  gap: 0 !important;
+  text-align: left !important;
+}

@@ -922,12 +922,10 @@ export default function OnboardingPageClient({
               />
             </div>
             <div className="onboardingHeaderMain">
-              <div className="onboardingHeaderText">
-                <p className="heroEyebrow">Ersteinrichtung</p>
-                <span className="onboardingStepBadge">
-                  Schritt {currentStep} von {ONBOARDING_TOTAL_STEPS}
-                </span>
-              </div>
+              <span className="onboardingStepBadge">
+                Schritt {currentStep} von {ONBOARDING_TOTAL_STEPS}
+              </span>
+              <p className="heroEyebrow">Ersteinrichtung</p>
               <p className="heroText">
                 Bitte richte dein Konto einmalig ein. Danach kommst du direkt zur App.
               </p>
