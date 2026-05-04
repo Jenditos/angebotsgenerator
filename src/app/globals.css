@@ -13881,3 +13881,70 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
 .onboardingPageEmbedded .onboardingHeader {
   padding: 4px 0 16px !important;
 }
+
+/* ==========================================================================
+   Hover-Farben — final: kein Gradient, passendes Blau
+   ========================================================================== */
+
+/* ── Sidebar: originales Blau zurück ── */
+.appSidebar .appSidebarNavItem:hover:not(.active),
+.appSidebar .appSidebarActionButton:hover:not(.active) {
+  background: rgba(20, 121, 255, 0.1) !important;
+  color: #1479ff !important;
+  opacity: 1 !important;
+}
+
+/* ── Ghost / Secondary: zartes App-Blau statt grau ── */
+button.ghostButton:hover:not(:disabled),
+a.ghostButton:hover,
+button.customerPickerToggle:hover:not(:disabled),
+button.submitMailButton:hover:not(:disabled),
+button.authSecondaryButton:hover:not(:disabled) {
+  background: rgba(20, 121, 255, 0.07) !important;
+  background-color: rgba(20, 121, 255, 0.07) !important;
+  background-image: none !important;
+  border-color: rgba(20, 121, 255, 0.25) !important;
+  color: #1479ff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ── Primary: etwas dunkleres Blau, kein Gradient ── */
+button.primaryButton:hover:not(:disabled),
+button.submitButton:hover:not(:disabled),
+a.primaryButton:hover {
+  background: #1062d4 !important;
+  background-color: #1062d4 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-color: #1062d4 !important;
+  box-shadow: none !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Toggle inaktiv: zartes Blau ── */
+.documentModeSwitchButton:not(.active):hover,
+.recipientTypeButton:not(.active):hover {
+  background: rgba(20, 121, 255, 0.08) !important;
+  background-image: none !important;
+  color: #1479ff !important;
+}
+
+/* ── Customer Picker Items ── */
+.customerArchiveCustomerButton:hover,
+.customerPickerItem:hover,
+.customerPickerApplyButton:hover,
+.customerArchiveDocumentButton:hover,
+.customerArchiveSectionToggle:hover {
+  background: rgba(20, 121, 255, 0.06) !important;
+  background-image: none !important;
+}
+
+/* ── Suggestions ── */
+.serviceSuggestionButton:hover,
+.positionsTypeaheadList button:hover,
+.addressSuggestionButton:hover {
+  background: rgba(20, 121, 255, 0.07) !important;
+  background-image: none !important;
+  color: #1479ff !important;
+}
