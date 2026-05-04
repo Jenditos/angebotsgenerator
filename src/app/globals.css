@@ -11860,3 +11860,18 @@ html {
   background: #e2e8f0 !important;
   color: #1e293b !important;
 }
+
+/* ==========================================================================
+   Submit Buttons — engerer Abstand, reduzierter Shadow-Spread
+   ========================================================================== */
+
+.submitActionRow {
+  gap: 7px !important;
+}
+
+.submitActionRow .submitButton {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 8px 18px rgba(25, 58, 108, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
