@@ -14057,3 +14057,124 @@ a.primaryButton:hover {
   text-overflow: unset !important;
   display: block !important;
 }
+
+/* ==========================================================================
+   SIDEBAR — alle meine Änderungen überschrieben, zurück zum Original
+   ========================================================================== */
+
+/* Weißer Hintergrund, original Breite */
+@media (min-width: 981px) {
+  .appFrameWithSidebar .appSidebar {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(20, 121, 255, 0.08) !important;
+  }
+}
+
+.appFrameWithSidebar {
+  grid-template-columns: 172px minmax(0, 1fr) !important;
+}
+
+/* Nav-Items: vertikal, original Abstände */
+.appSidebarNavItem,
+.appSidebarActionButton {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 5px 9px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  min-height: unset !important;
+  opacity: 1 !important;
+  color: var(--vis-dark) !important;
+  transition: none !important;
+}
+
+/* Hover auf dem ITEM: kein Hintergrund */
+.appSidebarNavItem:hover,
+.appSidebarActionButton:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  color: var(--vis-dark) !important;
+}
+
+/* Icon-Wrap: original Größe + Stil */
+.appSidebarNavIconWrap {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(25, 59, 104, 0.22) !important;
+  background: rgba(25, 59, 104, 0.1) !important;
+  background-image: none !important;
+  box-shadow: 0 4px 10px rgba(20, 121, 255, 0.3) !important;
+  color: #1479ff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease !important;
+}
+
+/* Aktiv: blaue Icon-Box */
+.appSidebarNavItem.active .appSidebarNavIconWrap,
+.appSidebarActionButton.active .appSidebarNavIconWrap {
+  background: rgba(25, 59, 104, 0.1) !important;
+  border-color: rgba(25, 59, 104, 0.26) !important;
+  color: #1479ff !important;
+  box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
+}
+
+/* Hover: NUR die Icon-Box wird blau */
+@media (hover: hover) and (pointer: fine) {
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap {
+    background: rgba(20, 121, 255, 0.3) !important;
+    background-image: none !important;
+    border-color: rgba(20, 121, 255, 0.3) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+  }
+
+  .appSidebar .appSidebarNavItem:hover,
+  .appSidebar .appSidebarActionButton:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+}
+
+/* Icon-Größe original */
+.appSidebarNavIcon {
+  width: 23px !important;
+  height: 23px !important;
+}
+
+/* Label */
+.appSidebarNavLabel {
+  font-size: 0.44rem !important;
+  font-weight: 700 !important;
+  color: var(--vis-dark) !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  display: block !important;
+}
+
+/* Nav-Abstände original */
+.appFrameWithSidebar .appSidebarTop {
+  gap: 64px !important;
+}
+
+.appFrameWithSidebar .appSidebarNav,
+.appFrameWithSidebar .appSidebarBottom {
+  gap: 36px !important;
+  padding: 0 !important;
+}
