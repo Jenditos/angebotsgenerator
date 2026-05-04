@@ -4258,8 +4258,8 @@ a.ghostButton,
     opacity 0.2s ease;
 }
 
-button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
-button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
+button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.onboardingSkipButton):not(.onboardingSkipLink),
+button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.onboardingSkipButton):not(.onboardingSkipLink),
 .positionsTypeaheadList button:hover,
 a.primaryButton:hover,
 a.ghostButton:hover,
@@ -13404,4 +13404,69 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
 .onboardingPageEmbedded .onboardingSkipButton:hover {
   color: #475569 !important;
   text-decoration-color: #475569 !important;
+}
+
+/* ── Skip-Button: echter Text-Link, kein Button-Look ── */
+.onboardingSkipButton,
+button.onboardingSkipButton {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 2px 0 !important;
+  font-size: 0.78rem !important;
+  font-weight: 400 !important;
+  color: #94a3b8 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-color: rgba(148,163,184,0.5) !important;
+  cursor: pointer !important;
+  display: inline !important;
+  min-height: unset !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+.onboardingSkipButton:hover,
+button.onboardingSkipButton:hover {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  color: #64748b !important;
+  text-decoration-color: #64748b !important;
+}
+
+.onboardingSkipButton:active,
+button.onboardingSkipButton:active {
+  background: none !important;
+  transform: none !important;
+}
+
+/* Skip-Row mehr Luft */
+.onboardingPageEmbedded .onboardingSkipRow {
+  justify-content: center !important;
+  padding-top: 8px !important;
+  margin-top: 4px !important;
+}
+
+/* Mehr Abstand zwischen Buttons und Skip-Link */
+.onboardingPageEmbedded .onboardingActions {
+  gap: 8px !important;
+  margin-top: 8px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Modal höher damit nichts eingequetscht wird */
+.settingsOverlaySheet.onboardingFlowOverlaySheet {
+  height: min(calc(100vh - 48px), 780px) !important;
+  max-height: min(calc(100vh - 48px), 780px) !important;
+  padding: 24px !important;
+  gap: 14px !important;
 }
