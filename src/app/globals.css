@@ -14217,8 +14217,6 @@ a.primaryButton:hover {
   fill: #ffffff !important;
 }
 
-.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavButton,
-.appSidebar .sidebarQuickNavItem:focus-within .sidebarQuickNavButton,
 .appSidebar button.sidebarQuickNavButton:hover,
 .appSidebar button.sidebarQuickNavButton:focus-visible {
   background: #1479ff !important;
@@ -14230,8 +14228,6 @@ a.primaryButton:hover {
   transform: none !important;
 }
 
-.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavIcon,
-.appSidebar .sidebarQuickNavItem:focus-within .sidebarQuickNavIcon,
 .appSidebar button.sidebarQuickNavButton:hover .sidebarQuickNavIcon,
 .appSidebar button.sidebarQuickNavButton:focus-visible .sidebarQuickNavIcon {
   color: #ffffff !important;
