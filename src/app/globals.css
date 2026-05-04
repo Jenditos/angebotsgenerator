@@ -14237,3 +14237,136 @@ a.primaryButton:hover {
   color: #ffffff !important;
   fill: #ffffff !important;
 }
+
+/* Mobile final: stabilize single-column layout after sidebar refactors */
+@media (max-width: 760px) {
+  .page {
+    padding-inline: 8px !important;
+  }
+
+  .dashboardCanvas {
+    gap: 12px !important;
+  }
+
+  .dashboardCanvas > .topHeaderMinimal {
+    display: flex !important;
+    min-height: 48px !important;
+    padding-inline: 4px !important;
+  }
+
+  .dashboardCanvas > .topHeaderMinimal .topHeaderMobileBrandLogo {
+    width: min(118px, 52vw) !important;
+    max-width: 118px !important;
+    height: auto !important;
+  }
+
+  .appFrameWithSidebar {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  .appFrameWithSidebar .appMainContent {
+    padding: 0 6px 12px !important;
+    gap: 12px !important;
+  }
+
+  .appFrameWithSidebar .documentModeSwitchTop {
+    padding-inline: 0 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .appFrameWithSidebar .documentModeSwitch {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .appFrameWithSidebar .documentModeSwitchButton {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .formGrid,
+  .dashboardFormGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .span2 {
+    grid-column: auto !important;
+  }
+
+  .appFrameWithSidebar .dashboardMainShell,
+  .appFrameWithSidebar .dashboardPrimaryCard,
+  .formCard {
+    border-radius: 18px !important;
+    padding: 14px !important;
+  }
+
+  .formProgressStepper {
+    flex-wrap: wrap !important;
+    row-gap: 10px !important;
+    padding: 8px 0 2px !important;
+  }
+
+  .autosaveBadge {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel {
+    padding: 14px !important;
+    row-gap: 12px !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader p {
+    max-width: none !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .intakePrimaryActions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .intakePrimaryActionButtonPrimary {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .appFrameWithSidebar .dashboardVoicePanel .voiceStatusCard {
+    width: 100% !important;
+  }
+
+  .appFrameWithSidebar .recipientType {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 0 !important;
+  }
+
+  .appFrameWithSidebar .recipientType > span:first-child {
+    margin: 0 !important;
+    font-size: var(--text-label-size) !important;
+  }
+
+  .appFrameWithSidebar .recipientTypeButtons {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+
+  .appFrameWithSidebar .recipientTypeButton {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+  }
+}
