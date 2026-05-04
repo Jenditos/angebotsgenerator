@@ -13755,8 +13755,6 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .appSidebar .appSidebarNavItem:hover > .sidebarQuickNavButton,
-  .appSidebar .appSidebarActionButton:hover > .sidebarQuickNavButton,
   .appSidebar .sidebarQuickNavButton:hover,
   .appSidebar .sidebarQuickNavButton:focus-visible {
     background: #116fe5 !important;
