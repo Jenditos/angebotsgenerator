@@ -14220,12 +14220,12 @@ a.primaryButton:hover {
 
 .appSidebar button.sidebarQuickNavButton:hover,
 .appSidebar button.sidebarQuickNavButton:focus-visible {
-  background: linear-gradient(135deg, #1479ff 0%, #56b7f7 100%) !important;
-  background-color: #1479ff !important;
-  background-image: linear-gradient(135deg, #1479ff 0%, #56b7f7 100%) !important;
-  border-color: #1479ff !important;
+  background: #116FE5 !important;
+  background-color: #116FE5 !important;
+  background-image: none !important;
+  border-color: #116FE5 !important;
   color: #ffffff !important;
-  box-shadow: 0 10px 22px rgba(20, 121, 255, 0.24) !important;
+  box-shadow: 0 10px 22px rgba(17, 111, 229, 0.24) !important;
   transform: none !important;
 }
 
