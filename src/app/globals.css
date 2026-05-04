@@ -13530,3 +13530,63 @@ button.onboardingSkipButton:active {
   padding: 0 2px 12px !important;
   gap: 0 !important;
 }
+
+/* ==========================================================================
+   CLOSE BUTTONS — endgültig sauber, kein Shadow, kein Blur
+   Wie Profis: transparent base, zartes gray hover, kein Lift
+   ========================================================================== */
+button.settingsOverlayCloseButton,
+button.customerArchiveCloseButton,
+button.customerPickerModalCloseButton,
+button.infoLegalCloseButton,
+button.voiceLoginModalCloseButton,
+button.dashboardTipsCloseButton,
+button.customerArchiveBackButton {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: #94a3b8 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease, color 150ms ease !important;
+  transform: none !important;
+}
+
+button.settingsOverlayCloseButton:hover:not(:disabled),
+button.customerArchiveCloseButton:hover:not(:disabled),
+button.customerPickerModalCloseButton:hover:not(:disabled),
+button.infoLegalCloseButton:hover:not(:disabled),
+button.voiceLoginModalCloseButton:hover:not(:disabled),
+button.dashboardTipsCloseButton:hover:not(:disabled),
+button.customerArchiveBackButton:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06) !important;
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  background-image: none !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  transform: none !important;
+}
+
+button.settingsOverlayCloseButton:active:not(:disabled),
+button.customerArchiveCloseButton:active:not(:disabled),
+button.customerPickerModalCloseButton:active:not(:disabled),
+button.infoLegalCloseButton:active:not(:disabled),
+button.voiceLoginModalCloseButton:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.1) !important;
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  background-image: none !important;
+  transform: scale(0.9) !important;
+}
