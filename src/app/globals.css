@@ -11636,3 +11636,74 @@ html {
   border: none !important;
   box-shadow: 0 1px 4px rgba(20, 121, 255, 0.15) !important;
 }
+
+/* ==========================================================================
+   Progress Stepper
+   ========================================================================== */
+
+.formProgressStepper {
+  display: flex;
+  align-items: center;
+  padding: 14px 4px 6px;
+}
+
+.formProgressStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.35;
+  transition: opacity 220ms ease;
+}
+
+.formProgressStep.active { opacity: 1; }
+.formProgressStep.done   { opacity: 0.72; }
+
+.formProgressStepDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(63, 127, 233, 0.1);
+  border: 1.5px solid rgba(63, 127, 233, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2c5ba8;
+  flex-shrink: 0;
+  transition: background 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.formProgressStep.active .formProgressStepDot {
+  background: #3f7fe9;
+  border-color: #3f7fe9;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(63, 127, 233, 0.38);
+}
+
+.formProgressStep.done .formProgressStepDot {
+  background: #1f9d66;
+  border-color: #1f9d66;
+  color: #ffffff;
+}
+
+.formProgressStepLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #10203a);
+  white-space: nowrap;
+}
+
+.formProgressConnector {
+  flex: 1;
+  height: 1.5px;
+  background: rgba(63, 127, 233, 0.15);
+  min-width: 16px;
+  max-width: 52px;
+  margin: 0 8px;
+}
+
+@media (max-width: 480px) {
+  .formProgressStepLabel { display: none; }
+  .formProgressConnector { min-width: 10px; max-width: 20px; }
+}
