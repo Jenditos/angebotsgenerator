@@ -14182,7 +14182,7 @@ a.primaryButton:hover {
 }
 
 .appSidebar .sidebarQuickNavLabel {
-  font-size: 0.62rem !important;
+  font-size: var(--text-label-size) !important;
   font-weight: 700 !important;
   color: var(--vis-dark, #193b68) !important;
   text-align: center !important;
@@ -14216,21 +14216,21 @@ a.primaryButton:hover {
   fill: #ffffff !important;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .appSidebar button.sidebarQuickNavButton:hover,
-  .appSidebar button.sidebarQuickNavButton:focus-visible {
-    background: #1479ff !important;
-    background-color: #1479ff !important;
-    background-image: none !important;
-    border-color: #1479ff !important;
-    color: #ffffff !important;
-    box-shadow: none !important;
-    transform: none !important;
-  }
+.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavButton,
+.appSidebar button.sidebarQuickNavButton:hover,
+.appSidebar button.sidebarQuickNavButton:focus-visible {
+  background: #1479ff !important;
+  background-color: #1479ff !important;
+  background-image: none !important;
+  border-color: #1479ff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
 
-  .appSidebar button.sidebarQuickNavButton:hover .sidebarQuickNavIcon,
-  .appSidebar button.sidebarQuickNavButton:focus-visible .sidebarQuickNavIcon {
-    color: #ffffff !important;
-    fill: #ffffff !important;
-  }
+.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavIcon,
+.appSidebar button.sidebarQuickNavButton:hover .sidebarQuickNavIcon,
+.appSidebar button.sidebarQuickNavButton:focus-visible .sidebarQuickNavIcon {
+  color: #ffffff !important;
+  fill: #ffffff !important;
 }
