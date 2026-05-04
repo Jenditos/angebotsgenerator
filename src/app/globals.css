@@ -13470,3 +13470,14 @@ button.onboardingSkipButton:active {
   padding: 24px !important;
   gap: 14px !important;
 }
+
+/* Modal ohne Meta-Zeile: 2-row grid statt 3 */
+.settingsOverlaySheet.onboardingFlowOverlaySheet {
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 12px !important;
+}
+
+/* Header etwas mehr Abstand nach unten zum Content */
+.onboardingFlowOverlayHeader {
+  padding-bottom: 4px !important;
+}

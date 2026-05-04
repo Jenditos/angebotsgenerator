@@ -7561,10 +7561,6 @@ export default function HomePage() {
                       </svg>
                     </button>
                   </header>
-                  <p className="onboardingFlowOverlayMeta">
-                    Gespeicherter Fortschritt: Schritt {onboardingStep} von{" "}
-                    {ONBOARDING_TOTAL_STEPS}
-                  </p>
                   <div className="onboardingFlowOverlayFrameWrap onboardingFlowInlineContent">
                     <OnboardingPageClient
                       embedded

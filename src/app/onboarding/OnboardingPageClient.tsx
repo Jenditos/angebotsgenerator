@@ -921,10 +921,6 @@ export default function OnboardingPageClient({
             <p className="heroText">
               Bitte richte dein Konto einmalig ein. Danach kommst du direkt zur App.
             </p>
-            <p className="onboardingSavedStepText">
-              Gespeicherter Fortschritt: Schritt {onboardingState.onboardingStep} von{" "}
-              {ONBOARDING_TOTAL_STEPS}
-            </p>
             <div className="onboardingProgressRow" aria-hidden>
               <div className="onboardingProgressTrack">
                 <span
