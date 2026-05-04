@@ -9454,10 +9454,12 @@ body,
    ========================================================================== */
 /* Small sidebar/menu icon buttons: clear default, hover and active states */
 .appSidebar .appSidebarNavIconWrap {
-  border: 0 !important;
+  border: 1px solid transparent !important;
   outline: none !important;
-  background: transparent !important;
+  background: #dfe4ea !important;
   background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   color: #1479ff !important;
   box-shadow: none !important;
 }
@@ -9469,12 +9471,12 @@ body,
 
 .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap,
 .appSidebar .appSidebarActionButton.active .appSidebarNavIconWrap {
-  border: 0 !important;
+  border-color: #1479ff !important;
   outline: none !important;
   background: #1479ff !important;
   background-image: none !important;
   color: #ffffff !important;
-  box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+  box-shadow: none !important;
 }
 
 .appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap .appSidebarNavIcon,
@@ -9486,8 +9488,6 @@ body,
 .appSidebar .appSidebarNavIconWrap,
 .appSidebar .appSidebarNavIcon {
   transition:
-    transform var(--vis-reference-transition),
-    box-shadow var(--vis-reference-transition),
     border-color var(--vis-reference-transition),
     background-color var(--vis-reference-transition),
     color var(--vis-reference-transition) !important;
@@ -9507,11 +9507,13 @@ body,
   /* Parent/text hover stays default; only the icon square reacts */
   .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover),
   .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap:not(:hover) {
-    border: 0 !important;
+    border-color: transparent !important;
     outline: none !important;
-    background: transparent !important;
+    background: #dfe4ea !important;
     background-image: none !important;
     color: #1479ff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
     transform: none !important;
     opacity: 1 !important;
@@ -9528,14 +9530,16 @@ body,
 
   .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
   .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
-    border: 1px solid #116fe6 !important;
+    border-color: #1479ff !important;
     outline: none !important;
-    background: #116fe6 !important;
-    background-color: #116fe6 !important;
+    background: #1479ff !important;
+    background-color: #1479ff !important;
     background-image: none !important;
     color: #ffffff !important;
-    box-shadow: 0 18px 36px rgba(20, 121, 255, 0.3) !important;
-    transform: var(--vis-reference-hover-transform) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    transform: none !important;
     opacity: 1 !important;
   }
 
@@ -11316,9 +11320,9 @@ button.primaryButton.voiceLoginModalPrimaryButton:focus-visible {
   button.primaryButton.voiceLoginModalPrimaryButton:hover:not(:disabled),
   button.primaryButton.voiceLoginModalPrimaryButton:active:not(:disabled),
   button.primaryButton.voiceLoginModalPrimaryButton:focus-visible {
-    background: #116fe6 !important;
-    background-color: #116fe6 !important;
-    border-color: #116fe6 !important;
+    background: #1479ff !important;
+    background-color: #1479ff !important;
+    border-color: #1479ff !important;
   }
 }
 
