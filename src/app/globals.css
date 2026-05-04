@@ -13356,3 +13356,33 @@ button.customerPickerToggle:active:not(:disabled) {
 .addressSuggestions {
   overflow: hidden !important;
 }
+
+/* KI-Aufnahme + Foto: Originalfarben */
+button.intakePrimaryActionButtonPrimary {
+  background: var(--vis-accent-c, #14ebff) !important;
+  background-color: var(--vis-accent-c, #14ebff) !important;
+  background-image: none !important;
+  color: var(--vis-dark, #193b68) !important;
+  border: none !important;
+}
+button.intakePrimaryActionButtonPrimary:hover:not(:disabled) {
+  background: #0fd4e8 !important;
+  background-color: #0fd4e8 !important;
+  background-image: none !important;
+  color: var(--vis-dark, #193b68) !important;
+  transform: translateY(-1px) !important;
+}
+button.intakePrimaryActionButtonSecondary {
+  background: linear-gradient(135deg, #ff5265 0%, #df1f35 100%) !important;
+  background-color: #df1f35 !important;
+  background-image: linear-gradient(135deg, #ff5265 0%, #df1f35 100%) !important;
+  color: #ffffff !important;
+  border: 1.5px solid #ff5e70 !important;
+}
+button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff3d52 0%, #c91a2e 100%) !important;
+  background-image: linear-gradient(135deg, #ff3d52 0%, #c91a2e 100%) !important;
+  border-color: #ff4d62 !important;
+  transform: none !important;
+}
+.intakePhotoScanIcon { color: #ffffff !important; }
