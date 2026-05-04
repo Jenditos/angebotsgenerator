@@ -11784,74 +11784,98 @@ html {
    DESIGN POLISH — Sidebar, Buttons, Hover, Spacing
    ========================================================================== */
 
-/* ── Sidebar: horizontal layout, App-Farben ── */
+/* ── Sidebar: vertikal, kompakt, passend ── */
 
 .appFrameWithSidebar {
-  grid-template-columns: 210px minmax(0, 1fr) !important;
+  grid-template-columns: 172px minmax(0, 1fr) !important;
 }
 
-/* Top-Bereich: Logo + Nav ohne riesige Gaps */
+/* Top-Bereich: Logo + Nav eng zusammen */
 .appFrameWithSidebar .appSidebarTop {
-  gap: 12px !important;
+  gap: 8px !important;
 }
 
-/* Nav list */
+/* Nav list — kompakte Abstände */
 .appFrameWithSidebar .appSidebarNav,
 .appFrameWithSidebar .appSidebarBottom {
-  gap: 3px !important;
+  gap: 4px !important;
   padding: 0 8px !important;
 }
 
-/* Nav items — horizontal row */
+/* Nav items — vertikal (Icon oben, Label unten) */
 .appSidebarNavItem,
 .appSidebarActionButton {
-  flex-direction: row !important;
+  flex-direction: column !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 10px !important;
-  padding: 9px 10px !important;
-  border-radius: 10px !important;
-  text-align: left !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  padding: 8px 6px !important;
+  border-radius: 12px !important;
+  text-align: center !important;
   transition: background 160ms ease, color 160ms ease, opacity 160ms ease !important;
-  min-height: 40px !important;
+  min-height: unset !important;
+  width: 100% !important;
 }
 
-/* Icon wrap — clean */
+/* Hover-Hintergrund sichtbar */
+.appSidebarNavItem:hover,
+.appSidebarActionButton:hover {
+  background: rgba(20, 121, 255, 0.07) !important;
+}
+
+/* Aktiv: leichte Hervorhebung */
+.appSidebarNavItem.active {
+  background: rgba(20, 121, 255, 0.1) !important;
+}
+
+/* Icon wrap — kompakt, kein Rahmen */
 .appSidebarNavIconWrap {
-  width: 30px !important;
-  height: 30px !important;
-  border-radius: 8px !important;
-  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(20, 121, 255, 0.18) !important;
+  background: rgba(20, 121, 255, 0.08) !important;
   box-shadow: none !important;
-  color: inherit !important;
+  color: var(--vis-primary) !important;
   flex-shrink: 0 !important;
-  transition: background 160ms ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 160ms ease, box-shadow 160ms ease !important;
+}
+
+.appSidebarNavItem.active .appSidebarNavIconWrap {
+  background: rgba(20, 121, 255, 0.18) !important;
+  border-color: rgba(20, 121, 255, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(20, 121, 255, 0.22) !important;
 }
 
 /* Icon size */
 .appSidebarNavIcon {
-  width: 18px !important;
-  height: 18px !important;
+  width: 17px !important;
+  height: 17px !important;
 }
 
-/* Label */
+/* Label — kurz, zentriert, kein Wrap */
 .appSidebarNavLabel {
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.01em !important;
-  color: inherit !important;
+  font-size: 0.62rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  color: var(--vis-dark) !important;
   line-height: 1.2 !important;
   display: block !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  text-align: center !important;
 }
 
 /* Bottom section */
 .appSidebarBottom {
-  padding: 8px !important;
+  padding: 8px 8px !important;
   border-top: 1px solid rgba(20, 121, 255, 0.1) !important;
-  gap: 3px !important;
+  gap: 4px !important;
   margin-top: 0 !important;
 }
 
@@ -12004,73 +12028,7 @@ button.submitButton:active:not(:disabled) {
   }
 }
 
-/* ==========================================================================
-   Angebote / Rechnungen — Underline-Tabs (Richtung A, App-Farben)
-   ========================================================================== */
-
-/* Container: kein Box-Rahmen, nur untere Trennlinie */
-.appFrameWithSidebar .documentModeSwitch,
-.appFrameWithSidebar .documentModeSwitch:hover,
-.appFrameWithSidebar .documentModeSwitch:focus-within {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 0 !important;
-  grid-template-columns: unset !important;
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid rgba(20, 121, 255, 0.15) !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-  width: 100% !important;
-  max-width: none !important;
-}
-
-/* Beide Buttons: kein Hintergrund, nur Text + Bottom-Border */
-.appFrameWithSidebar .documentModeSwitchButton,
-.appFrameWithSidebar .documentModeSwitchButton:hover,
-.appFrameWithSidebar .documentModeSwitchButton:active,
-.appFrameWithSidebar .documentModeSwitchButton:focus,
-.appFrameWithSidebar .documentModeSwitchButton:focus-visible {
-  flex: 0 0 auto !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  border-bottom: 2px solid transparent !important;
-  border-radius: 0 !important;
-  margin-bottom: -1px !important;
-  padding: 12px 24px 13px !important;
-  font-size: 0.93rem !important;
-  font-weight: 600 !important;
-  color: var(--muted) !important;
-  box-shadow: none !important;
-  cursor: pointer !important;
-  transition: color 160ms ease, border-color 160ms ease !important;
-  outline: none !important;
-}
-
-/* Hover — etwas dunkler */
-@media (hover: hover) and (pointer: fine) {
-  .appFrameWithSidebar .documentModeSwitchButton:hover {
-    color: var(--vis-dark) !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    transform: none !important;
-  }
-}
-
-/* Aktiver Tab — blauer Unterstrich + dunkler Text */
-.appFrameWithSidebar .documentModeSwitchButton.active,
-.appFrameWithSidebar .documentModeSwitchButton[aria-pressed="true"],
-button.appFrameWithSidebar .documentModeSwitchButton.active {
-  color: var(--vis-dark) !important;
-  border-bottom-color: var(--vis-primary) !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-  font-weight: 700 !important;
-}
+/* Angebote/Rechnungen: original Pillen-Stil beibehalten (kein Override) */
 
 
 /* ==========================================================================
@@ -12079,27 +12037,27 @@ button.appFrameWithSidebar .documentModeSwitchButton.active {
 
 /* ── 1. KI-Box: passend zur App, nicht dominant ── */
 
-/* Hintergrund: sehr zartes Blau statt dunkler Block */
+/* KI-Box: kräftiges Blau wie Original */
 .appFrameWithSidebar .dashboardVoicePanel {
-  background: rgba(20, 121, 255, 0.05) !important;
-  border: 1px solid rgba(20, 121, 255, 0.14) !important;
-  box-shadow: none !important;
+  background: #2f5faa !important;
+  border: 1px solid rgba(20, 80, 200, 0.3) !important;
+  box-shadow: 0 12px 32px rgba(20, 80, 200, 0.22) !important;
 }
 
-/* KI-Text-Farben auf hellem Hintergrund */
+/* KI-Text: weiß auf blauem Hintergrund */
 .appFrameWithSidebar .dashboardVoicePanel :is(strong, p, span, .field > span) {
-  color: var(--vis-dark) !important;
+  color: #ffffff !important;
 }
 
 .appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader strong {
   font-size: 0.95rem !important;
   font-weight: 700 !important;
-  color: var(--vis-dark) !important;
+  color: #ffffff !important;
 }
 
 .appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader p {
   font-size: 0.82rem !important;
-  color: var(--muted) !important;
+  color: rgba(255,255,255,0.75) !important;
 }
 
 /* KI-Aufnahme Hauptbutton: App-Blau statt Teal */
@@ -12119,31 +12077,37 @@ button.appFrameWithSidebar .documentModeSwitchButton.active {
   transform: translateY(-1px) !important;
 }
 
-/* Kamera-Button: blau statt rot */
+/* Kamera-Button: weiß-transparent auf blauem Hintergrund */
 .appFrameWithSidebar button.intakePrimaryActionButtonSecondary {
-  color: var(--vis-primary) !important;
-  background-color: rgba(20, 121, 255, 0.1) !important;
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.18) !important;
   background-image: none !important;
-  border-color: rgba(20, 121, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
   box-shadow: none !important;
 }
 
 .appFrameWithSidebar button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
-  background-color: rgba(20, 121, 255, 0.18) !important;
+  background-color: rgba(255, 255, 255, 0.28) !important;
   background-image: none !important;
-  border-color: rgba(20, 121, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
   box-shadow: none !important;
 }
 
 .appFrameWithSidebar .intakePhotoScanIcon {
-  color: var(--vis-primary) !important;
+  color: #ffffff !important;
 }
 
 /* Textarea im KI-Panel */
 .appFrameWithSidebar .dashboardVoicePanel .field input,
 .appFrameWithSidebar .dashboardVoicePanel textarea {
-  background: rgba(255,255,255,0.85) !important;
-  border-color: rgba(20,121,255,0.18) !important;
+  background: rgba(255,255,255,0.12) !important;
+  border-color: rgba(255,255,255,0.2) !important;
+  color: #ffffff !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .field input::placeholder,
+.appFrameWithSidebar .dashboardVoicePanel textarea::placeholder {
+  color: rgba(255,255,255,0.5) !important;
 }
 
 /* ── 2. Firma/Privatperson — kompakter Segmented Control ── */
