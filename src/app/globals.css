@@ -13386,3 +13386,22 @@ button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
   transform: none !important;
 }
 .intakePhotoScanIcon { color: #ffffff !important; }
+
+/* Skip-Link "Später einrichten": kein Button-Hover, nur Farbwechsel */
+.onboardingPageEmbedded .onboardingSkipButton,
+.onboardingPageEmbedded .onboardingSkipButton:hover,
+.onboardingPageEmbedded .onboardingSkipButton:active,
+.onboardingPageEmbedded .onboardingSkipButton:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  padding: 4px 2px !important;
+  border-radius: 0 !important;
+}
+.onboardingPageEmbedded .onboardingSkipButton:hover {
+  color: #475569 !important;
+  text-decoration-color: #475569 !important;
+}
