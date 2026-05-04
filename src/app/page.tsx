@@ -7537,8 +7537,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <header className="settingsOverlayHeader onboardingFlowOverlayHeader">
-                    <strong id="onboarding-flow-title">Einrichtung abschließen</strong>
+                  <div className="onboardingFlowCloseRow">
                     <button
                       type="button"
                       className="settingsOverlayCloseButton"
@@ -7560,7 +7559,7 @@ export default function HomePage() {
                         />
                       </svg>
                     </button>
-                  </header>
+                  </div>
                   <div className="onboardingFlowOverlayFrameWrap onboardingFlowInlineContent">
                     <OnboardingPageClient
                       embedded
