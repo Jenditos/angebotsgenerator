@@ -14128,7 +14128,6 @@ a.primaryButton:hover {
 
 /* Sidebar final: komplett isolierte Navigation ohne Altlasten */
 .appSidebar .sidebarQuickNavItem,
-.appSidebar .sidebarQuickNavItem:hover,
 .appSidebar .sidebarQuickNavItem:focus-within {
   background: transparent !important;
   background-color: transparent !important;
@@ -14216,7 +14215,6 @@ a.primaryButton:hover {
   fill: #ffffff !important;
 }
 
-.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavButton,
 .appSidebar button.sidebarQuickNavButton:hover,
 .appSidebar button.sidebarQuickNavButton:focus-visible {
   background: #1479ff !important;
@@ -14228,7 +14226,6 @@ a.primaryButton:hover {
   transform: none !important;
 }
 
-.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavIcon,
 .appSidebar button.sidebarQuickNavButton:hover .sidebarQuickNavIcon,
 .appSidebar button.sidebarQuickNavButton:focus-visible .sidebarQuickNavIcon {
   color: #ffffff !important;
