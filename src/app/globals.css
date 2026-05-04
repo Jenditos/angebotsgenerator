@@ -3525,7 +3525,6 @@ textarea:focus {
 }
 
 .error {
-  /* overridden below in the review improvements block */
   color: var(--danger);
   font-weight: 700;
 }
@@ -8507,24 +8506,18 @@ button.ghostButton.voiceActionButton.voiceActionButtonStart,
 
 .appSidebarNav,
 .appSidebarBottom {
-  gap: 3px !important;
-  padding: 0 8px !important;
+  gap: var(--space-5) !important;
 }
 
 .appSidebarNavItem,
 .appSidebarActionButton {
-  gap: 10px !important;
-  padding: 9px 10px !important;
-  min-height: 40px !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  border-radius: 10px !important;
+  gap: var(--space-2) !important;
+  padding: var(--space-2) !important;
+  min-height: 72px;
 }
 
 .appSidebarNavIconWrap {
-  margin: 0 !important;
-  flex-shrink: 0 !important;
+  margin: 0 auto;
 }
 
 .appSidebarNavLabel {
@@ -9500,72 +9493,56 @@ body,
     color var(--vis-reference-transition) !important;
 }
 
-/* Sidebar light theme — passend zur App-Palette */
 .appSidebar .appSidebarNavItem,
-.appSidebar .appSidebarActionButton {
-  cursor: pointer !important;
-  color: var(--vis-dark) !important;
-  opacity: 0.65;
-}
-
-.appSidebar .appSidebarNavItem.active,
-.appSidebar .appSidebarActionButton.active {
-  color: var(--vis-primary) !important;
-  opacity: 1;
-  background: rgba(20, 121, 255, 0.08) !important;
-  border-left: 2px solid var(--vis-primary) !important;
-  padding-left: 8px !important;
-}
-
+.appSidebar .appSidebarActionButton,
 .appSidebar .appSidebarNavLabel {
-  color: inherit !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
+  cursor: default !important;
 }
 
 .appSidebar .appSidebarNavIconWrap {
   cursor: pointer !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: inherit !important;
-}
-
-.appSidebar .appSidebarNavItem.active .appSidebarNavIconWrap,
-.appSidebar .appSidebarActionButton.active .appSidebarNavIconWrap {
-  background: rgba(20, 121, 255, 0.1) !important;
-  color: var(--vis-primary) !important;
-  box-shadow: none !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .appSidebar .appSidebarNavItem:hover,
-  .appSidebar .appSidebarActionButton:hover {
-    opacity: 1 !important;
-    color: var(--vis-dark) !important;
-    background: rgba(20, 121, 255, 0.07) !important;
-  }
-
-  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap,
-  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap,
-  .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
-  .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
-    border: none !important;
+  /* Parent/text hover stays default; only the icon square reacts */
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover),
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap:not(:hover) {
+    border: 0 !important;
     outline: none !important;
-    background: rgba(20, 121, 255, 0.12) !important;
+    background: rgba(25, 59, 104, 0.1) !important;
     background-image: none !important;
-    color: var(--vis-primary) !important;
+    color: #1479ff !important;
     box-shadow: none !important;
     transform: none !important;
     opacity: 1 !important;
   }
 
-  .appSidebar .appSidebarNavItem:hover .appSidebarNavIcon,
-  .appSidebar .appSidebarActionButton:hover .appSidebarNavIcon,
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap:not(:hover) .appSidebarNavIcon,
+  .appSidebar
+    .appSidebarActionButton:hover
+    .appSidebarNavIconWrap:not(:hover)
+    .appSidebarNavIcon {
+    color: #1479ff !important;
+    fill: #1479ff !important;
+  }
+
+  .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
+  .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
+    border: 1px solid #116fe6 !important;
+    outline: none !important;
+    background: #116fe6 !important;
+    background-color: #116fe6 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 18px 36px rgba(20, 121, 255, 0.3) !important;
+    transform: var(--vis-reference-hover-transform) !important;
+    opacity: 1 !important;
+  }
+
   .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover .appSidebarNavIcon,
   .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover .appSidebarNavIcon {
-    color: var(--vis-primary) !important;
-    fill: var(--vis-primary) !important;
+    color: #ffffff !important;
+    fill: #ffffff !important;
   }
 }
 
@@ -9669,15 +9646,15 @@ body,
   }
 }
 
-/* Start page: sidebar uses app's own blue-light palette */
+/* Start page: subtle split between white sidebar and tinted content area */
 @media (min-width: 981px) {
   .appFrameWithSidebar {
     background: transparent !important;
   }
 
   .appFrameWithSidebar .appSidebar {
-    background: #eef3fc !important;
-    border-right: 1px solid rgba(20, 121, 255, 0.1) !important;
+    background: #ffffff !important;
+    border-right: 1px solid rgba(20, 121, 255, 0.08) !important;
   }
 
   .appFrameWithSidebar .appMainContent {
@@ -11625,498 +11602,8 @@ html {
 }
 
 /* ==========================================================================
-   Progress Stepper
+   Kundenart Toggle — kompakter Segmented Control
    ========================================================================== */
-.formProgressStepper {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 14px 4px 6px;
-  position: relative;
-}
-
-.formProgressStep {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0.35;
-  transition: opacity 220ms ease;
-}
-
-.formProgressStep.active {
-  opacity: 1;
-}
-
-.formProgressStep.done {
-  opacity: 0.72;
-}
-
-.formProgressStepDot {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(63, 127, 233, 0.12);
-  border: 1.5px solid rgba(63, 127, 233, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #2c5ba8;
-  flex-shrink: 0;
-  transition: background 220ms ease, border-color 220ms ease;
-}
-
-.formProgressStep.active .formProgressStepDot {
-  background: var(--primary-a);
-  border-color: var(--primary-a);
-  color: white;
-  box-shadow: 0 4px 12px rgba(63, 127, 233, 0.35);
-}
-
-.formProgressStep.done .formProgressStepDot {
-  background: #1f9d66;
-  border-color: #1f9d66;
-  color: white;
-}
-
-.formProgressStepLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.formProgressConnector {
-  flex: 1;
-  height: 1.5px;
-  background: rgba(63, 127, 233, 0.18);
-  min-width: 16px;
-  max-width: 48px;
-  margin: 0 8px;
-}
-
-/* ==========================================================================
-   Autosave Badge
-   ========================================================================== */
-.autosaveBadge {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 600;
-  color: #1f9d66;
-  background: rgba(31, 157, 102, 0.1);
-  border: 1px solid rgba(31, 157, 102, 0.25);
-  border-radius: 20px;
-  padding: 3px 10px;
-  animation: autosaveFadeIn 300ms ease;
-}
-
-@keyframes autosaveFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ==========================================================================
-   Error — more visible inline style
-   ========================================================================== */
-.error {
-  color: #c0321a !important;
-  font-weight: 700;
-  background: rgba(192, 50, 26, 0.07);
-  border: 1px solid rgba(192, 50, 26, 0.2);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-top: 8px;
-  font-size: 0.88rem;
-  display: block;
-}
-
-/* ==========================================================================
-   Kundenarchiv Empty State
-   ========================================================================== */
-.customerArchiveEmptyState {
-  padding: 32px 20px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.customerArchiveEmptyTitle {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-/* voicePanel dark gradient removed — dashboardVoicePanel handles this correctly */
-
-/* ==========================================================================
-   Submit Action Row — equal visual weight for both CTAs
-   ========================================================================== */
-.submitMailButton {
-  background: var(--liquid-button-bg) !important;
-  border: 1.5px solid rgba(63, 127, 233, 0.35) !important;
-  color: #1a3d7a !important;
-  font-weight: 700 !important;
-  min-height: 56px !important;
-}
-
-.submitMailButton:hover:not(:disabled) {
-  background: var(--liquid-button-bg-hover) !important;
-  border-color: rgba(63, 127, 233, 0.55) !important;
-}
-
-/* ==========================================================================
-   Mobile — stepper compact
-   ========================================================================== */
-@media (max-width: 480px) {
-  .formProgressStepLabel {
-    display: none;
-  }
-  .formProgressConnector {
-    min-width: 12px;
-    max-width: 24px;
-  }
-}
-
-/* ==========================================================================
-   DESIGN POLISH — Sidebar, Buttons, Hover, Spacing
-   ========================================================================== */
-
-/* ── Sidebar: vertikal, kompakt, passend ── */
-
-.appFrameWithSidebar {
-  grid-template-columns: 172px minmax(0, 1fr) !important;
-}
-
-/* Top-Bereich: Logo + Nav eng zusammen */
-.appFrameWithSidebar .appSidebarTop {
-  gap: 8px !important;
-}
-
-/* Nav list — kompakte Abstände */
-.appFrameWithSidebar .appSidebarNav,
-.appFrameWithSidebar .appSidebarBottom {
-  gap: 4px !important;
-  padding: 0 8px !important;
-}
-
-/* Nav items — vertikal (Icon oben, Label unten) */
-.appSidebarNavItem,
-.appSidebarActionButton {
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px !important;
-  padding: 8px 6px !important;
-  border-radius: 12px !important;
-  text-align: center !important;
-  transition: background 160ms ease, color 160ms ease, opacity 160ms ease !important;
-  min-height: unset !important;
-  width: 100% !important;
-}
-
-/* Hover-Hintergrund sichtbar */
-.appSidebarNavItem:hover,
-.appSidebarActionButton:hover {
-  background: rgba(20, 121, 255, 0.07) !important;
-}
-
-/* Aktiv: leichte Hervorhebung */
-.appSidebarNavItem.active {
-  background: rgba(20, 121, 255, 0.1) !important;
-}
-
-/* Icon wrap — kompakt, kein Rahmen */
-.appSidebarNavIconWrap {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(20, 121, 255, 0.18) !important;
-  background: rgba(20, 121, 255, 0.08) !important;
-  box-shadow: none !important;
-  color: var(--vis-primary) !important;
-  flex-shrink: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: background 160ms ease, box-shadow 160ms ease !important;
-}
-
-.appSidebarNavItem.active .appSidebarNavIconWrap {
-  background: rgba(20, 121, 255, 0.18) !important;
-  border-color: rgba(20, 121, 255, 0.35) !important;
-  box-shadow: 0 4px 12px rgba(20, 121, 255, 0.22) !important;
-}
-
-/* Icon size */
-.appSidebarNavIcon {
-  width: 17px !important;
-  height: 17px !important;
-}
-
-/* Label — kurz, zentriert, kein Wrap */
-.appSidebarNavLabel {
-  font-size: 0.62rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
-  color: var(--vis-dark) !important;
-  line-height: 1.2 !important;
-  display: block !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  max-width: 100% !important;
-  text-align: center !important;
-}
-
-/* Bottom section */
-.appSidebarBottom {
-  padding: 8px 8px !important;
-  border-top: 1px solid rgba(20, 121, 255, 0.1) !important;
-  gap: 4px !important;
-  margin-top: 0 !important;
-}
-
-/* ── Button System — einheitliche Größen, Hover, Active ── */
-
-/* Base */
-.primaryButton,
-.ghostButton,
-.customerPickerToggle {
-  min-height: 44px !important;
-  border-radius: 10px !important;
-  transition:
-    background 180ms ease,
-    background-color 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    transform 120ms ease,
-    opacity 180ms ease !important;
-}
-
-/* Primary hover lift */
-button.primaryButton:hover:not(:disabled),
-a.primaryButton:hover,
-button.submitButton:hover:not(:disabled) {
-  transform: translateY(-1px) !important;
-}
-button.primaryButton:active:not(:disabled),
-button.submitButton:active:not(:disabled) {
-  transform: translateY(0) !important;
-}
-
-/* Ghost hover */
-.ghostButton:hover:not(:disabled),
-.customerPickerToggle:hover:not(:disabled) {
-  transform: translateY(-1px) !important;
-}
-.ghostButton:active:not(:disabled),
-.customerPickerToggle:active:not(:disabled) {
-  transform: translateY(0) !important;
-}
-
-/* Submit button */
-.submitButton {
-  min-height: 52px !important;
-  font-size: 0.95rem !important;
-  font-weight: 700 !important;
-  border-radius: 12px !important;
-}
-
-/* E-Mail CTA — gleichwertig neben Submit */
-.submitMailButton {
-  min-height: 52px !important;
-  border-radius: 12px !important;
-  font-size: 0.9rem !important;
-  font-weight: 600 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-.submitActionRow {
-  gap: 10px !important;
-}
-
-/* Recipient type buttons */
-.recipientTypeButton {
-  min-height: 40px !important;
-  border-radius: 8px !important;
-  transition: background 160ms ease, color 160ms ease, border-color 160ms ease !important;
-}
-
-/* Document mode switch (Angebote / Rechnungen tabs) */
-.documentModeSwitchButton {
-  transition: background 160ms ease, color 160ms ease !important;
-}
-
-/* Customer picker toggle */
-.customerPickerToggle {
-  font-size: 0.84rem !important;
-  padding: 10px 14px !important;
-}
-
-/* Projekt clear button */
-.projectClearButton {
-  min-height: 40px !important;
-  border-radius: 8px !important;
-  font-size: 0.82rem !important;
-}
-
-/* ── Spacing — einheitliche Abstände im Formular ── */
-
-/* Projektworkspace */
-.projectWorkspaceActions {
-  gap: 8px !important;
-  flex-wrap: wrap !important;
-}
-
-.projectWorkspaceGrid {
-  gap: 14px 16px !important;
-}
-
-/* Formular-Felder */
-.field {
-  gap: 6px !important;
-}
-
-.field > span,
-.field > label {
-  font-size: 0.8rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
-}
-
-.field input,
-.field select,
-.field textarea {
-  border-radius: 10px !important;
-  min-height: 44px !important;
-  transition: border-color 160ms ease, box-shadow 160ms ease !important;
-}
-
-.field textarea {
-  min-height: unset !important;
-}
-
-/* Submit feedback row — Fehler/Erfolg besser sichtbar */
-.documentCreateFeedback {
-  font-size: 0.88rem !important;
-  padding: 8px 12px !important;
-  border-radius: 8px !important;
-  background: rgba(44, 79, 130, 0.06) !important;
-  border: 1px solid rgba(44, 79, 130, 0.12) !important;
-  margin-top: 4px !important;
-}
-
-.documentCreateFeedbackSuccess {
-  background: rgba(31, 157, 102, 0.07) !important;
-  border-color: rgba(31, 157, 102, 0.18) !important;
-}
-
-.documentCreateFeedbackError {
-  background: rgba(192, 50, 26, 0.07) !important;
-  border-color: rgba(192, 50, 26, 0.18) !important;
-}
-
-/* ── Mobile: Sidebar bleibt versteckt ── */
-@media (max-width: 980px) {
-  .appFrameWithSidebar {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* Angebote/Rechnungen: original Pillen-Stil beibehalten (kein Override) */
-
-
-/* ==========================================================================
-   POLISH ROUND 2 — KI-Box, Toggle, Stepper, Sections, Sidebar
-   ========================================================================== */
-
-/* ── 1. KI-Box: passend zur App, nicht dominant ── */
-
-/* KI-Box: kräftiges Blau wie Original */
-.appFrameWithSidebar .dashboardVoicePanel {
-  background: #2f5faa !important;
-  border: 1px solid rgba(20, 80, 200, 0.3) !important;
-  box-shadow: 0 12px 32px rgba(20, 80, 200, 0.22) !important;
-}
-
-/* KI-Text: weiß auf blauem Hintergrund */
-.appFrameWithSidebar .dashboardVoicePanel :is(strong, p, span, .field > span) {
-  color: #ffffff !important;
-}
-
-.appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader strong {
-  font-size: 0.95rem !important;
-  font-weight: 700 !important;
-  color: #ffffff !important;
-}
-
-.appFrameWithSidebar .dashboardVoicePanel .voicePanelHeader p {
-  font-size: 0.82rem !important;
-  color: rgba(255,255,255,0.75) !important;
-}
-
-/* KI-Aufnahme Hauptbutton: App-Blau statt Teal */
-.appFrameWithSidebar button.intakePrimaryActionButtonPrimary {
-  color: #ffffff !important;
-  background: var(--vis-primary) !important;
-  background-color: var(--vis-primary) !important;
-  background-image: none !important;
-  border-color: var(--vis-primary) !important;
-  box-shadow: 0 8px 20px rgba(20, 121, 255, 0.3) !important;
-}
-
-.appFrameWithSidebar button.intakePrimaryActionButtonPrimary:hover:not(:disabled) {
-  background: #1165e0 !important;
-  border-color: #1165e0 !important;
-  box-shadow: 0 10px 24px rgba(20, 121, 255, 0.38) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* Kamera-Button: weiß-transparent auf blauem Hintergrund */
-.appFrameWithSidebar button.intakePrimaryActionButtonSecondary {
-  color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.18) !important;
-  background-image: none !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  box-shadow: none !important;
-}
-
-.appFrameWithSidebar button.intakePrimaryActionButtonSecondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.28) !important;
-  background-image: none !important;
-  border-color: rgba(255, 255, 255, 0.45) !important;
-  box-shadow: none !important;
-}
-
-.appFrameWithSidebar .intakePhotoScanIcon {
-  color: #ffffff !important;
-}
-
-/* Textarea im KI-Panel */
-.appFrameWithSidebar .dashboardVoicePanel .field input,
-.appFrameWithSidebar .dashboardVoicePanel textarea {
-  background: rgba(255,255,255,0.12) !important;
-  border-color: rgba(255,255,255,0.2) !important;
-  color: #ffffff !important;
-}
-
-.appFrameWithSidebar .dashboardVoicePanel .field input::placeholder,
-.appFrameWithSidebar .dashboardVoicePanel textarea::placeholder {
-  color: rgba(255,255,255,0.5) !important;
-}
-
-/* ── 2. Firma/Privatperson — kompakter Segmented Control ── */
-
-.appFrameWithSidebar .recipientType {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-}
 
 .appFrameWithSidebar .recipientTypeButtons {
   display: inline-flex !important;
@@ -12148,100 +11635,4 @@ button.submitButton:active:not(:disabled) {
   color: var(--vis-dark) !important;
   border: none !important;
   box-shadow: 0 1px 4px rgba(20, 121, 255, 0.15) !important;
-}
-
-/* ── 3. Formular-Sektionsheader ── */
-
-.formSectionHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 4px 0 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.formSectionHeader::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: rgba(20, 121, 255, 0.1);
-}
-
-/* Abstand vor Sektionen im Formular */
-.appFrameWithSidebar .recipientType {
-  margin-top: 8px !important;
-}
-
-/* ── 4. Progress Stepper — verfeinert ── */
-
-.formProgressStepper {
-  padding: 10px 2px 14px !important;
-  gap: 0 !important;
-}
-
-.formProgressStep {
-  gap: 7px !important;
-}
-
-.formProgressStepDot {
-  width: 24px !important;
-  height: 24px !important;
-  font-size: 10px !important;
-  border-radius: 50% !important;
-  border-width: 1.5px !important;
-}
-
-.formProgressStep.active .formProgressStepDot {
-  background: var(--vis-primary) !important;
-  border-color: var(--vis-primary) !important;
-  box-shadow: 0 3px 10px rgba(20,121,255,0.3) !important;
-}
-
-.formProgressStep.done .formProgressStepDot {
-  background: #1a9d6a !important;
-  border-color: #1a9d6a !important;
-}
-
-.formProgressStepLabel {
-  font-size: 11.5px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.01em !important;
-  color: var(--muted) !important;
-}
-
-.formProgressStep.active .formProgressStepLabel {
-  color: var(--vis-dark) !important;
-  font-weight: 600 !important;
-}
-
-.formProgressStep.done .formProgressStepLabel {
-  color: #1a9d6a !important;
-}
-
-.formProgressConnector {
-  flex: 1 !important;
-  height: 1px !important;
-  background: rgba(20,121,255,0.12) !important;
-  min-width: 20px !important;
-  max-width: 56px !important;
-  margin: 0 6px !important;
-}
-
-/* ── 5. Sidebar Logo-Abstand ── */
-
-.appFrameWithSidebar .appSidebarBrandWrap {
-  padding: 4px 16px 16px !important;
-  margin-bottom: 4px !important;
-  border-bottom: 1px solid rgba(20, 121, 255, 0.1) !important;
-  width: 100% !important;
-  margin-inline: 0 !important;
-}
-
-.appFrameWithSidebar .appSidebarTop {
-  gap: 8px !important;
-  padding-top: 4px !important;
 }
