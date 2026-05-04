@@ -915,19 +915,22 @@ export default function OnboardingPageClient({
       <div className="container onboardingContainer">
         <section className="glassCard onboardingCard">
           <header className="onboardingHeader">
-            <p className="heroEyebrow">Ersteinrichtung</p>
-            <h1>Schritt {currentStep} von 5</h1>
-            <p className="heroText">
-              Bitte richte dein Konto einmalig ein. Danach kommst du direkt zur App.
-            </p>
-            <div className="onboardingProgressRow" aria-hidden>
-              <div className="onboardingProgressTrack">
-                <span
-                  className="onboardingProgressValue"
-                  style={{ width: `${progressPercent}%` }}
-                />
+            <div className="onboardingProgressTrackTop" aria-hidden>
+              <div
+                className="onboardingProgressValueTop"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="onboardingHeaderMain">
+              <div className="onboardingHeaderText">
+                <p className="heroEyebrow">Ersteinrichtung</p>
+                <span className="onboardingStepBadge">
+                  Schritt {currentStep} von {ONBOARDING_TOTAL_STEPS}
+                </span>
               </div>
-              <strong>{Math.round(progressPercent)}%</strong>
+              <p className="heroText">
+                Bitte richte dein Konto einmalig ein. Danach kommst du direkt zur App.
+              </p>
             </div>
           </header>
 

@@ -13590,3 +13590,132 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   background-image: none !important;
   transform: scale(0.9) !important;
 }
+
+/* ==========================================================================
+   Onboarding Modal Header — Redesign
+   Progress oben, Titel+Schritt als Einheit, Akzentblau für Step
+   ========================================================================== */
+
+/* Modal: kein Gap oben, Progress kann an den Rand */
+.settingsOverlaySheet.onboardingFlowOverlaySheet {
+  padding: 0 0 20px !important;
+  gap: 0 !important;
+}
+
+/* X-Button-Reihe mit etwas Platz */
+.onboardingFlowCloseRow {
+  display: flex !important;
+  justify-content: flex-end !important;
+  padding: 12px 16px 0 !important;
+  height: auto !important;
+  margin-bottom: 0 !important;
+}
+
+/* Full-width Progress Bar ganz oben im Content */
+.onboardingProgressTrackTop {
+  width: 100% !important;
+  height: 3px !important;
+  background: #e2e8f0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  margin-bottom: 20px !important;
+}
+
+.onboardingProgressValueTop {
+  height: 100% !important;
+  background: #1479ff !important;
+  border-radius: 0 !important;
+  transition: width 400ms ease !important;
+}
+
+/* Header-Inhalt mit Padding */
+.onboardingPageEmbedded .onboardingHeader {
+  padding: 0 24px 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 16px !important;
+  gap: 0 !important;
+}
+
+.onboardingHeaderMain {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+/* Titel + Step-Badge nebeneinander */
+.onboardingHeaderText {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+/* "Ersteinrichtung" — Haupttitel */
+.onboardingPageEmbedded .heroEyebrow {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+/* "Schritt X von 5" — blauer Akzent */
+.onboardingStepBadge {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #1479ff !important;
+  white-space: nowrap !important;
+  padding: 2px 8px !important;
+  background: rgba(20, 121, 255, 0.08) !important;
+  border-radius: 20px !important;
+}
+
+/* Beschreibungstext */
+.onboardingPageEmbedded .heroText {
+  font-size: 0.84rem !important;
+  color: #64748b !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* Innerer Bereich mit Padding */
+.onboardingPageEmbedded .onboardingCard {
+  padding: 0 24px 8px !important;
+  gap: 16px !important;
+}
+
+/* Step-Tag "FIRMENDATEN" ausgeblendet */
+.onboardingPageEmbedded .onboardingStepTag {
+  display: none !important;
+}
+
+/* Step h2 → kleine Section-Überschrift */
+.onboardingPageEmbedded .onboardingStepCard h2 {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: #94a3b8 !important;
+  margin: 0 0 4px !important;
+}
+
+/* Alte Progress-Row verstecken */
+.onboardingPageEmbedded .onboardingProgressRow {
+  display: none !important;
+}
+
+/* Footer mit Padding */
+.onboardingPageEmbedded .onboardingActions {
+  padding: 16px 24px 0 !important;
+  margin-top: 8px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+.onboardingPageEmbedded .onboardingSkipRow {
+  padding: 0 24px 4px !important;
+}
