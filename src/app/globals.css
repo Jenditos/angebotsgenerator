@@ -14144,7 +14144,9 @@ a.primaryButton:hover {
   text-align: center !important;
   border-radius: 0 !important;
   min-height: unset !important;
-  width: 100% !important;
+  width: 122px !important;
+  max-width: 100% !important;
+  margin-inline: auto !important;
   transition: none !important;
 }
 
@@ -14215,6 +14217,8 @@ a.primaryButton:hover {
   fill: #ffffff !important;
 }
 
+.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavButton,
+.appSidebar .sidebarQuickNavItem:focus-within .sidebarQuickNavButton,
 .appSidebar button.sidebarQuickNavButton:hover,
 .appSidebar button.sidebarQuickNavButton:focus-visible {
   background: #1479ff !important;
@@ -14226,6 +14230,8 @@ a.primaryButton:hover {
   transform: none !important;
 }
 
+.appSidebar .sidebarQuickNavItem:hover .sidebarQuickNavIcon,
+.appSidebar .sidebarQuickNavItem:focus-within .sidebarQuickNavIcon,
 .appSidebar button.sidebarQuickNavButton:hover .sidebarQuickNavIcon,
 .appSidebar button.sidebarQuickNavButton:focus-visible .sidebarQuickNavIcon {
   color: #ffffff !important;
