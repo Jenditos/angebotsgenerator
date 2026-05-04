@@ -7991,17 +7991,17 @@ export default function HomePage() {
                 <VisioroLogoImage className="appSidebarBrandPill" />
               </div>
               <div className="appSidebarNav">
-                <div className={`appSidebarNavItem ${isSettingsOverlayOpen ? "active" : ""}`}>
+                <div className="sidebarQuickNavItem">
                   <button
                     type="button"
-                    className="appSidebarNavIconWrap"
+                    className={`sidebarQuickNavButton ${isSettingsOverlayOpen ? "is-active" : ""}`}
                     onClick={openSettingsFromAccountMenu}
                     aria-label="Einstellungen öffnen"
                     title="Einstellungen"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
+                      className="sidebarQuickNavIcon"
                       aria-hidden="true"
                       focusable="false"
                     >
@@ -8023,19 +8023,19 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
-                  <span className="appSidebarNavLabel">Einstellungen</span>
+                  <span className="sidebarQuickNavLabel">Einstellungen</span>
                 </div>
-                <div className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}>
+                <div className="sidebarQuickNavItem">
                   <button
                     type="button"
-                    className="appSidebarNavIconWrap"
+                    className={`sidebarQuickNavButton ${isCustomerArchiveOpen ? "is-active" : ""}`}
                     onClick={openCustomerArchiveFromAccountMenu}
                     aria-label="Gespeicherte Kunden öffnen"
                     title="Gespeicherte Kunden"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
+                      className="sidebarQuickNavIcon"
                       aria-hidden="true"
                       focusable="false"
                     >
@@ -8049,19 +8049,19 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
-                  <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
+                  <span className="sidebarQuickNavLabel">Gespeicherte Kunden</span>
                 </div>
-                <div className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}>
+                <div className="sidebarQuickNavItem">
                   <button
                     type="button"
-                    className="appSidebarNavIconWrap"
+                    className={`sidebarQuickNavButton ${isSetupHintOpen ? "is-active" : ""}`}
                     onClick={toggleTipsFromAccountMenu}
                     aria-label="Tipps anzeigen"
                     title="Tipps"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
+                      className="sidebarQuickNavIcon"
                       aria-hidden="true"
                       focusable="false"
                     >
@@ -8082,19 +8082,19 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
-                  <span className="appSidebarNavLabel">Tipps</span>
+                  <span className="sidebarQuickNavLabel">Tipps</span>
                 </div>
-                <div className={`appSidebarNavItem ${isInfoLegalOpen ? "active" : ""}`}>
+                <div className="sidebarQuickNavItem">
                   <button
                     type="button"
-                    className="appSidebarNavIconWrap"
+                    className={`sidebarQuickNavButton ${isInfoLegalOpen ? "is-active" : ""}`}
                     onClick={openInfoLegalFromAccountMenu}
                     aria-label="Info und Rechtliches öffnen"
                     title="Info und Rechtliches"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
+                      className="sidebarQuickNavIcon"
                       aria-hidden="true"
                       focusable="false"
                     >
@@ -8116,24 +8116,24 @@ export default function HomePage() {
                       <circle cx="12" cy="7.2" r="1" fill="currentColor" />
                     </svg>
                   </button>
-                  <span className="appSidebarNavLabel">Info &amp; Rechtliches</span>
+                  <span className="sidebarQuickNavLabel">Info &amp; Rechtliches</span>
                 </div>
               </div>
             </div>
 
             <div className="appSidebarBottom">
               {isAuthenticatedUser ? (
-                <div className="appSidebarActionButton">
+                <div className="sidebarQuickNavItem">
                   <button
                     type="button"
-                    className="appSidebarNavIconWrap"
+                    className="sidebarQuickNavButton"
                     onClick={() => void handleLogoutFromAccountMenu()}
                     aria-label="Ausloggen"
                     title="Ausloggen"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
+                      className="sidebarQuickNavIcon"
                       aria-hidden="true"
                       focusable="false"
                     >
@@ -8155,20 +8155,20 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
-                  <span className="appSidebarNavLabel">Ausloggen</span>
+                  <span className="sidebarQuickNavLabel">Ausloggen</span>
                 </div>
               ) : (
-                <div className="appSidebarActionButton">
+                <div className="sidebarQuickNavItem">
                   <button
                     type="button"
-                    className="appSidebarNavIconWrap"
+                    className="sidebarQuickNavButton"
                     onClick={navigateToAuthFromAccountMenu}
                     aria-label="Login oder Registrierung"
                     title="Login / Registrieren"
                   >
                     <svg
                       viewBox="0 0 24 24"
-                      className="appSidebarNavIcon"
+                      className="sidebarQuickNavIcon"
                       aria-hidden="true"
                       focusable="false"
                     >
@@ -8190,7 +8190,7 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
-                  <span className="appSidebarNavLabel">Login / Registrieren</span>
+                  <span className="sidebarQuickNavLabel">Login / Registrieren</span>
                 </div>
               )}
             </div>
