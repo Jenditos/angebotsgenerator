@@ -7784,11 +7784,11 @@ textarea:focus,
   .appSidebarActionButton:hover .appSidebarNavIconWrap,
   .appSidebarNavIconWrap:hover {
     transform: none !important;
-    background-color: rgba(20, 121, 255, 0.3) !important;
+    background-color: #116FE5 !important;
     background-image: none !important;
-    border-color: rgba(20, 121, 255, 0.3) !important;
+    border-color: #116FE5 !important;
     color: #ffffff !important;
-    box-shadow: 0 10px 24px var(--vis-primary-30) !important;
+    box-shadow: 0 10px 24px rgba(17, 111, 229, 0.3) !important;
   }
 
   .appSidebarNavItem:hover .appSidebarNavIcon,
