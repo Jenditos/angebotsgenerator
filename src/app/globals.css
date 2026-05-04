@@ -11602,8 +11602,26 @@ html {
 }
 
 /* ==========================================================================
-   Kundenart Toggle — kompakter Segmented Control
+   Kundenart Toggle — Label + Toggle inline in einer Zeile
    ========================================================================== */
+
+/* Label und Buttons nebeneinander */
+.appFrameWithSidebar .recipientType {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+}
+
+.appFrameWithSidebar .recipientType > span:first-child {
+  flex-shrink: 0 !important;
+  font-weight: 700 !important;
+  color: var(--vis-dark) !important;
+  font-size: 0.9rem !important;
+}
 
 .appFrameWithSidebar .recipientTypeButtons {
   display: inline-flex !important;
