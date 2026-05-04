@@ -12551,3 +12551,214 @@ button.voiceActionButtonStart:hover:not(:disabled) {
 }
 
 /* Liquid-Glass-Hover wird durch !important-Regeln oben überschrieben */
+
+/* ==========================================================================
+   BUTTON SYSTEM v2 — Eine Quelle der Wahrheit
+   Überschreibt alles was davor stand.
+   Nur 4 Varianten: primary · ghost · danger · icon
+   ========================================================================== */
+
+:root {
+  --btn-t:            150ms ease;
+  --btn-r:            12px;
+  --btn-h:            44px;
+
+  /* Primary */
+  --c-p:              #1479ff;
+  --c-p-hover:        #1165e0;
+  --c-p-active:       #0f56c8;
+  --c-p-shadow:       0 4px 14px rgba(20,121,255,0.26);
+  --c-p-shadow-hover: 0 8px 22px rgba(20,121,255,0.36);
+
+  /* Ghost */
+  --c-g-hover:        #f1f5f9;
+  --c-g-active:       #e2e8f0;
+  --c-g-border:       rgba(72,116,195,0.26);
+  --c-g-border-hover: #cbd5e1;
+  --c-g-color:        #1e3a5f;
+
+  /* Danger */
+  --c-d-hover:        #fee2e2;
+  --c-d-border-hover: rgba(239,68,68,0.35);
+  --c-d-color:        #dc2626;
+}
+
+/* ── Shared base ── */
+:is(
+  button.primaryButton,
+  button.submitButton,
+  button.ghostButton,
+  .customerPickerToggle,
+  .documentModeSwitchButton,
+  .recipientTypeButton,
+  .submitMailButton,
+  .settingsDeleteButton,
+  .settingsLogoDeleteButton,
+  .positionsDeleteButton,
+  .settingsOverlayCloseButton,
+  .customerArchiveCloseButton,
+  .customerPickerModalCloseButton,
+  .infoLegalCloseButton,
+  .voiceLoginModalCloseButton,
+  .authPrimaryButton,
+  .authSecondaryButton
+):not(:disabled) {
+  transition:
+    background-color var(--btn-t),
+    background      var(--btn-t),
+    border-color    var(--btn-t),
+    box-shadow      var(--btn-t),
+    color           var(--btn-t),
+    transform       120ms ease,
+    opacity         var(--btn-t) !important;
+  cursor: pointer !important;
+}
+
+:is(
+  button.primaryButton,
+  button.submitButton,
+  button.ghostButton,
+  .customerPickerToggle,
+  .documentModeSwitchButton,
+  .recipientTypeButton,
+  .submitMailButton,
+  .settingsDeleteButton,
+  .settingsLogoDeleteButton,
+  .positionsDeleteButton,
+  .settingsOverlayCloseButton,
+  .customerArchiveCloseButton,
+  .customerPickerModalCloseButton,
+  .infoLegalCloseButton,
+  .voiceLoginModalCloseButton,
+  .authPrimaryButton,
+  .authSecondaryButton
+):disabled {
+  opacity: var(--btn-disabled-opacity, 0.42) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* ── PRIMARY ── */
+button.primaryButton:hover:not(:disabled),
+button.submitButton:hover:not(:disabled),
+a.primaryButton:hover,
+.authPrimaryButton:hover:not(:disabled) {
+  background: var(--c-p-hover) !important;
+  background-color: var(--c-p-hover) !important;
+  background-image: none !important;
+  border-color: var(--c-p-hover) !important;
+  color: #ffffff !important;
+  box-shadow: var(--c-p-shadow-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+button.primaryButton:active:not(:disabled),
+button.submitButton:active:not(:disabled) {
+  background: var(--c-p-active) !important;
+  background-color: var(--c-p-active) !important;
+  background-image: none !important;
+  box-shadow: var(--c-p-shadow) !important;
+  transform: translateY(0) scale(0.984) !important;
+}
+
+/* ── GHOST ── */
+button.ghostButton:hover:not(:disabled),
+a.ghostButton:hover,
+.customerPickerToggle:hover:not(:disabled),
+.submitMailButton:hover:not(:disabled),
+.authSecondaryButton:hover:not(:disabled) {
+  background: var(--c-g-hover) !important;
+  background-color: var(--c-g-hover) !important;
+  background-image: none !important;
+  border-color: var(--c-g-border-hover) !important;
+  color: var(--c-g-color) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.ghostButton:active:not(:disabled),
+.customerPickerToggle:active:not(:disabled),
+.submitMailButton:active:not(:disabled) {
+  background: var(--c-g-active) !important;
+  background-color: var(--c-g-active) !important;
+  background-image: none !important;
+  transform: none !important;
+}
+
+/* ── TOGGLE (Angebote/Rechnungen, Firma/Privat, Herr/Frau) ── */
+.documentModeSwitchButton:not(.active):hover,
+.recipientTypeButton:not(.active):hover {
+  background: rgba(20,121,255,0.08) !important;
+  background-image: none !important;
+  color: #1479ff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.documentModeSwitchButton:not(.active):active,
+.recipientTypeButton:not(.active):active {
+  background: rgba(20,121,255,0.14) !important;
+  transform: none !important;
+}
+
+/* ── DANGER ── */
+.settingsDeleteButton:hover:not(:disabled),
+.settingsLogoDeleteButton:hover:not(:disabled),
+.positionsDeleteButton:hover:not(:disabled) {
+  background: var(--c-d-hover) !important;
+  background-color: var(--c-d-hover) !important;
+  background-image: none !important;
+  border-color: var(--c-d-border-hover) !important;
+  color: var(--c-d-color) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── ICON / CLOSE ── */
+:is(
+  .settingsOverlayCloseButton,
+  .customerArchiveCloseButton,
+  .customerPickerModalCloseButton,
+  .infoLegalCloseButton,
+  .voiceLoginModalCloseButton
+):hover:not(:disabled) {
+  background: #e2e8f0 !important;
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── SUGGESTIONS (Leistungen, Adressen) ── */
+.serviceSuggestionButton:hover,
+.positionsTypeaheadList button:hover {
+  background: rgba(20,121,255,0.07) !important;
+  background-image: none !important;
+  color: #1479ff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.addressSuggestionButton:hover {
+  background: rgba(20,121,255,0.07) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── ARCHIVE / LIST ITEMS ── */
+.customerArchiveCustomerButton:hover,
+.customerArchiveDocumentButton:hover,
+.customerArchiveSectionToggle:hover,
+.customerPickerItem:hover {
+  background: rgba(20,121,255,0.05) !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── SIDEBAR NAV ── */
+.appSidebarNavItem:hover:not(.active),
+.appSidebarActionButton:hover:not(.active) {
+  transform: none !important;
+}
