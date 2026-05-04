@@ -11875,3 +11875,281 @@ html {
     0 8px 18px rgba(25, 58, 108, 0.28),
     0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
+
+/* ==========================================================================
+   Onboarding Flow Modal — Komplettes Redesign
+   ========================================================================== */
+
+/* Backdrop */
+.settingsOverlayBackdrop.onboardingFlowOverlayBackdrop {
+  background: rgba(8, 20, 45, 0.55) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Modal Container */
+.settingsOverlaySheet.onboardingFlowOverlaySheet {
+  width: min(520px, calc(100vw - 32px)) !important;
+  height: min(calc(100vh - 48px), 720px) !important;
+  max-height: min(calc(100vh - 48px), 720px) !important;
+  border-radius: 20px !important;
+  padding: 24px 24px 20px !important;
+  gap: 16px !important;
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 1px rgba(20, 121, 255, 0.08),
+    0 28px 64px rgba(8, 20, 45, 0.28) !important;
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+}
+
+/* Header: Titel + Close */
+.onboardingFlowOverlayHeader strong {
+  font-size: 1.12rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Meta-Zeile: "Gespeicherter Fortschritt" — dezent */
+.onboardingFlowOverlayMeta {
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+  padding: 0 !important;
+  margin: -8px 0 0 !important;
+}
+
+/* Inner Frame: kein eigener Rahmen, transparent */
+.onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+/* Onboarding-Card: Padding für scrollbaren Inhalt */
+.onboardingPageEmbedded .onboardingCard {
+  padding: 2px 2px 16px !important;
+  gap: 16px !important;
+}
+
+/* Header-Bereich im Step */
+.onboardingPageEmbedded .onboardingHeader {
+  gap: 10px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 4px !important;
+}
+
+/* Eyebrow "Schritt X von 5" */
+.onboardingPageEmbedded .heroEyebrow {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  color: #1479ff !important;
+  text-transform: uppercase !important;
+  margin: 0 !important;
+}
+
+/* Heading h1 */
+.onboardingPageEmbedded .onboardingHeader h1 {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+/* Subtext */
+.onboardingPageEmbedded .heroText {
+  font-size: 0.84rem !important;
+  color: #64748b !important;
+  line-height: 1.55 !important;
+  margin: 0 !important;
+}
+
+/* Gespeicherter Fortschritt (zweite Instanz) — ausblenden */
+.onboardingPageEmbedded .onboardingSavedStepText {
+  display: none !important;
+}
+
+/* Progress Bar */
+.onboardingPageEmbedded .onboardingProgressRow {
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+.onboardingPageEmbedded .onboardingProgressTrack {
+  height: 4px !important;
+  background: #e2e8f0 !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+}
+
+.onboardingPageEmbedded .onboardingProgressValue {
+  background: #1479ff !important;
+  border-radius: 999px !important;
+  transition: width 400ms ease !important;
+}
+
+/* Step-Karte: kein Box-Wrapper mehr */
+.onboardingPageEmbedded .onboardingStepCard {
+  gap: 12px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* "FIRMENDATEN" Tag */
+.onboardingPageEmbedded .onboardingStepTag {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase !important;
+  margin: 0 !important;
+}
+
+/* Step h2 */
+.onboardingPageEmbedded .onboardingStepCard h2 {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+/* Beschreibungstext */
+.onboardingPageEmbedded .onboardingStepDescription {
+  font-size: 0.82rem !important;
+  color: #64748b !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* Form-Grid: mehr Luft zwischen Feldern */
+.onboardingPageEmbedded .onboardingGrid {
+  gap: 14px !important;
+}
+
+/* Field Labels */
+.onboardingPageEmbedded .field span {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+/* Inputs */
+.onboardingPageEmbedded :is(input:not([type="checkbox"]), select, textarea) {
+  min-height: 42px !important;
+  padding: 10px 13px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font-size: 0.88rem !important;
+  box-shadow: none !important;
+  transition: border-color 160ms ease, background 160ms ease !important;
+}
+
+.onboardingPageEmbedded :is(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: #1479ff !important;
+  background: #ffffff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(20, 121, 255, 0.1) !important;
+}
+
+/* Action-Row */
+.onboardingPageEmbedded .onboardingActions {
+  gap: 8px !important;
+  margin-top: 6px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+/* Weiter-Button: solides Blau */
+.onboardingPageEmbedded .onboardingActions .primaryButton {
+  background: #1479ff !important;
+  background-image: none !important;
+  background-color: #1479ff !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(20, 121, 255, 0.3) !important;
+  min-height: 40px !important;
+  min-width: 110px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+}
+
+.onboardingPageEmbedded .onboardingActions .primaryButton:hover:not(:disabled) {
+  background: #1165e0 !important;
+  background-color: #1165e0 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(20, 121, 255, 0.38) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Zurück-Button */
+.onboardingPageEmbedded .onboardingActions .ghostButton {
+  background: transparent !important;
+  background-image: none !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  min-height: 40px !important;
+  min-width: 90px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+}
+
+.onboardingPageEmbedded .onboardingActions .ghostButton:hover:not(:disabled) {
+  background: #f8fafc !important;
+  background-image: none !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* "Später einrichten" Link */
+.onboardingPageEmbedded .onboardingSkipRow {
+  justify-content: center !important;
+  margin-top: 2px !important;
+}
+
+.onboardingPageEmbedded .onboardingSkipButton {
+  font-size: 0.78rem !important;
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  padding: 4px 0 !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: color 160ms ease !important;
+}
+
+.onboardingPageEmbedded .onboardingSkipButton:hover {
+  color: #64748b !important;
+}
+
+/* Close Button im Flow Modal */
+.settingsOverlaySheet.onboardingFlowOverlaySheet .settingsOverlayCloseButton {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+  transition: background 160ms ease, color 160ms ease !important;
+}
+
+.settingsOverlaySheet.onboardingFlowOverlaySheet .settingsOverlayCloseButton:hover {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+}
