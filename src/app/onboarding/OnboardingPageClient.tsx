@@ -735,16 +735,7 @@ export default function OnboardingPageClient({
     setError("");
     setInfo("");
 
-    const stepPatch = buildStepPayload(currentStep, settings);
-    const success = await queuePersist(stepPatch, {
-      onboardingStep: currentStep,
-      onboardingCompleted: false,
-      onboardingCompletedAt: null,
-    });
-    if (!success) {
-      return;
-    }
-
+    // Modal sofort schließen — Speichern läuft im Hintergrund
     setOnboardingSnoozeCookie();
     if (isEmbeddedMode) {
       emitEmbeddedOnboardingEvent(
@@ -755,9 +746,17 @@ export default function OnboardingPageClient({
         },
         onEmbeddedEvent,
       );
-      return;
+    } else {
+      router.replace("/");
     }
-    router.replace("/");
+
+    // Fortschritt im Hintergrund speichern (non-blocking)
+    const stepPatch = buildStepPayload(currentStep, settings);
+    void queuePersist(stepPatch, {
+      onboardingStep: currentStep,
+      onboardingCompleted: false,
+      onboardingCompletedAt: null,
+    });
   }
 
   async function onLogoUpload(event: ChangeEvent<HTMLInputElement>) {
