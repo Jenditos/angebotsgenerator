@@ -4238,8 +4238,8 @@ textarea:focus {
   }
 }
 
-button,
-button[class],
+button:not(.sidebarQuickNavButton),
+button[class]:not(.sidebarQuickNavButton),
 .positionsTypeaheadList button,
 a.primaryButton,
 a.ghostButton,
@@ -4258,8 +4258,8 @@ a.ghostButton,
     opacity 0.2s ease;
 }
 
-button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.onboardingSkipButton):not(.onboardingSkipLink),
-button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.onboardingSkipButton):not(.onboardingSkipLink),
+button:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.onboardingSkipButton):not(.onboardingSkipLink):not(.sidebarQuickNavButton),
+button[class]:hover:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.onboardingSkipButton):not(.onboardingSkipLink):not(.sidebarQuickNavButton),
 .positionsTypeaheadList button:hover,
 a.primaryButton:hover,
 a.ghostButton:hover,
@@ -4272,8 +4272,8 @@ a.ghostButton:hover,
     0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-button:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
-button[class]:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton),
+button:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.sidebarQuickNavButton),
+button[class]:active:not(:disabled):not(.documentModeSwitchButton):not(.recipientTypeButton):not(.sidebarQuickNavButton),
 .positionsTypeaheadList button:active,
 a.primaryButton:active,
 a.ghostButton:active,
