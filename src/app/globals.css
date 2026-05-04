@@ -13719,3 +13719,85 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
 .onboardingPageEmbedded .onboardingSkipRow {
   padding: 0 24px 4px !important;
 }
+
+/* ==========================================================================
+   Onboarding Modal Header — Fix: alles linksbündig, kein Zentrierung
+   ========================================================================== */
+
+/* Content-Frame: kein centering, volle Breite */
+.onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  text-align: left !important;
+}
+
+.onboardingPageEmbedded {
+  text-align: left !important;
+}
+
+.onboardingPageEmbedded .onboardingCard {
+  text-align: left !important;
+  align-items: flex-start !important;
+  justify-items: start !important;
+}
+
+/* Header-Blöcke: linksbündig */
+.onboardingPageEmbedded .onboardingHeader {
+  align-items: flex-start !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.onboardingHeaderMain {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.onboardingHeaderText {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  text-align: left !important;
+}
+
+/* Titel: linksbündig */
+.onboardingPageEmbedded .heroEyebrow {
+  text-align: left !important;
+  display: block !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+
+/* Step Badge: inline, kein Block */
+.onboardingStepBadge {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Beschreibung: linksbündig */
+.onboardingPageEmbedded .heroText {
+  text-align: left !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* StepCard: linksbündig */
+.onboardingPageEmbedded .onboardingStepCard {
+  text-align: left !important;
+  align-items: flex-start !important;
+}
+
+.onboardingPageEmbedded .onboardingStepDescription {
+  text-align: left !important;
+}
+
+/* Grid: linksbündig */
+.onboardingPageEmbedded .onboardingGrid {
+  text-align: left !important;
+  justify-items: start !important;
+}
