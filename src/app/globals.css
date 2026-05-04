@@ -12217,3 +12217,143 @@ html {
 .appFrameWithSidebar .recipientType .recipientTypeButtons {
   flex-shrink: 0 !important;
 }
+
+/* ==========================================================================
+   Onboarding Modal Inner Content — Visuelles Cleanup
+   ========================================================================== */
+
+/* Innerer Rahmen komplett transparent — kein Box-in-Box */
+.onboardingFlowOverlayFrameWrap {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Onboarding-Seite selbst: transparent */
+.onboardingPageEmbedded {
+  background: transparent !important;
+  padding: 0 4px !important;
+}
+
+.onboardingPageEmbedded .onboardingCard {
+  background: transparent !important;
+  padding: 0 0 8px !important;
+  gap: 20px !important;
+}
+
+/* Header-Bereich: mehr Luft */
+.onboardingPageEmbedded .onboardingHeader {
+  gap: 8px !important;
+  padding-bottom: 16px !important;
+}
+
+/* Eyebrow "ERSTEINRICHTUNG" — kleiner, dezenter */
+.onboardingPageEmbedded .heroEyebrow {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  color: #1479ff !important;
+  text-transform: uppercase !important;
+}
+
+/* h1 "Schritt 1 von 5" */
+.onboardingPageEmbedded .onboardingHeader h1 {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Sub-Text */
+.onboardingPageEmbedded .heroText {
+  font-size: 0.84rem !important;
+  color: #64748b !important;
+  line-height: 1.55 !important;
+}
+
+/* % Text neben Progress Bar ausblenden — Bar spricht für sich */
+.onboardingPageEmbedded .onboardingProgressRow strong {
+  display: none !important;
+}
+
+/* Progress Bar: dünn, sauber */
+.onboardingPageEmbedded .onboardingProgressTrack {
+  height: 3px !important;
+  border-radius: 999px !important;
+  background: #e2e8f0 !important;
+  overflow: hidden !important;
+}
+
+.onboardingPageEmbedded .onboardingProgressValue {
+  background: linear-gradient(90deg, #1479ff, #56b7f7) !important;
+  border-radius: 999px !important;
+}
+
+/* Step-Tag (FIRMENDATEN) ausblenden — h2 zeigt dasselbe */
+.onboardingPageEmbedded .onboardingStepTag {
+  display: none !important;
+}
+
+/* Step-Karte */
+.onboardingPageEmbedded .onboardingStepCard {
+  gap: 6px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Step h2 — klarer Sektionsheader */
+.onboardingPageEmbedded .onboardingStepCard h2 {
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: #94a3b8 !important;
+  margin: 0 0 2px !important;
+}
+
+/* Schritt-Beschreibung */
+.onboardingPageEmbedded .onboardingStepDescription {
+  font-size: 0.82rem !important;
+  color: #64748b !important;
+  line-height: 1.5 !important;
+  margin: 0 0 10px !important;
+}
+
+/* Form-Grid */
+.onboardingPageEmbedded .onboardingGrid {
+  gap: 16px !important;
+}
+
+/* Field Labels */
+.onboardingPageEmbedded .field span {
+  font-size: 0.76rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Inputs: weiß, klare Border, kein grauer Kasten */
+.onboardingPageEmbedded :is(input:not([type="checkbox"]), select, textarea) {
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 10px 13px !important;
+  font-size: 0.88rem !important;
+  color: #0f172a !important;
+  min-height: 44px !important;
+  box-shadow: none !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+.onboardingPageEmbedded :is(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: #1479ff !important;
+  box-shadow: 0 0 0 3px rgba(20, 121, 255, 0.1) !important;
+  outline: none !important;
+}
+
+.onboardingPageEmbedded :is(input:not([type="checkbox"]), select, textarea):hover:not(:focus) {
+  border-color: #cbd5e1 !important;
+}
