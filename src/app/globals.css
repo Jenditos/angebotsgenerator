@@ -14178,3 +14178,19 @@ a.primaryButton:hover {
   gap: 36px !important;
   padding: 0 !important;
 }
+
+/* Sidebar Hover: Icon-Box solid blau — exakt wie aktiver Zustand */
+@media (hover: hover) and (pointer: fine) {
+  .appSidebar .appSidebarNavItem:hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarActionButton:hover .appSidebarNavIconWrap,
+  .appSidebar .appSidebarNavItem .appSidebarNavIconWrap:hover,
+  .appSidebar .appSidebarActionButton .appSidebarNavIconWrap:hover {
+    background: #1479ff !important;
+    background-image: none !important;
+    background-color: #1479ff !important;
+    border-color: #1479ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 14px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+  }
+}
