@@ -13814,3 +13814,26 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
     opacity: 1 !important;
   }
 }
+
+/* Absolute final override for selected segmented buttons.
+   If a toggle is selected, hover/focus must keep the selected blue exactly. */
+@media (hover: hover) and (pointer: fine) {
+  button.documentModeSwitchButton.active:hover,
+  button.documentModeSwitchButton[aria-pressed="true"]:hover,
+  button.recipientTypeButton.active:hover,
+  button.recipientTypeButton[aria-pressed="true"]:hover,
+  button.documentModeSwitchButton.active:focus-visible,
+  button.documentModeSwitchButton[aria-pressed="true"]:focus-visible,
+  button.recipientTypeButton.active:focus-visible,
+  button.recipientTypeButton[aria-pressed="true"]:focus-visible {
+    background: #1479ff !important;
+    background-color: #1479ff !important;
+    background-image: none !important;
+    border-color: #1479ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+    filter: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
