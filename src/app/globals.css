@@ -13791,3 +13791,26 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
     fill: #ffffff !important;
   }
 }
+
+/* Keep active segmented controls visually stable on hover.
+   Angebote/Rechnungen, Firma/Privatperson, Herr/Frau should retain
+   the exact selected blue instead of switching to a lighter hover state. */
+@media (hover: hover) and (pointer: fine) {
+  .appFrameWithSidebar .documentModeSwitchButton.active:hover,
+  .appFrameWithSidebar .documentModeSwitchButton[aria-pressed="true"]:hover,
+  .appFrameWithSidebar .recipientTypeButton.active:hover,
+  .appFrameWithSidebar .recipientTypeButton[aria-pressed="true"]:hover,
+  .appFrameWithSidebar .documentModeSwitchButton.active:focus-visible,
+  .appFrameWithSidebar .documentModeSwitchButton[aria-pressed="true"]:focus-visible,
+  .appFrameWithSidebar .recipientTypeButton.active:focus-visible,
+  .appFrameWithSidebar .recipientTypeButton[aria-pressed="true"]:focus-visible {
+    background: #1479ff !important;
+    background-color: #1479ff !important;
+    background-image: none !important;
+    border-color: #1479ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
