@@ -6530,8 +6530,8 @@ button.customerArchiveSectionToggle {
 
 @media (hover: hover) and (pointer: fine) {
   :is(
-      button:not(:disabled),
-      button[class]:not(:disabled),
+      button:not(:disabled):not(.onboardingSkipButton),
+      button[class]:not(:disabled):not(.onboardingSkipButton),
       .positionsTypeaheadList button,
       a.primaryButton,
       a.ghostButton,
