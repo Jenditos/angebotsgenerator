@@ -1246,14 +1246,16 @@ export default function OnboardingPageClient({
             )}
           </footer>
           <div className="onboardingSkipRow">
-            <button
-              type="button"
+            <span
+              role="button"
+              tabIndex={0}
               className="onboardingSkipButton"
-              onClick={() => void postponeOnboarding()}
-              disabled={isSaving || isUploadingLogo}
+              onClick={() => !(isSaving || isUploadingLogo) && void postponeOnboarding()}
+              onKeyDown={(e) => e.key === "Enter" && !(isSaving || isUploadingLogo) && void postponeOnboarding()}
+              aria-disabled={isSaving || isUploadingLogo}
             >
               Später einrichten / App erstmal ansehen
-            </button>
+            </span>
           </div>
 
           {isSaving ? <p className="voiceInfo">Speichern ...</p> : null}
