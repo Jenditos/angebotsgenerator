@@ -12357,3 +12357,197 @@ html {
 .onboardingPageEmbedded :is(input:not([type="checkbox"]), select, textarea):hover:not(:focus) {
   border-color: #cbd5e1 !important;
 }
+
+/* ==========================================================================
+   UNIFIED BUTTON HOVER SYSTEM
+   Ein konsistentes System für alle Buttons — kein Flickenteppich mehr.
+
+   Regel:
+   - Solid/Primary  → lift (-1px) + dunklerer Hintergrund + Shadow
+   - Ghost/Secondary → zarter grauer Fill, kein Lift
+   - Toggle          → leichte Füllung, kein Transform
+   - Destructive     → roter Fill
+   - Nav/Icon        → nur bg, kein Transform
+   - Active/Press    → scale(0.985) snap zurück
+   - Transition      → 160ms ease überall
+   ========================================================================== */
+
+/* ── 1. Basis-Transition für alle Buttons ── */
+button,
+a.primaryButton,
+a.ghostButton {
+  transition:
+    background-color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease,
+    color 160ms ease,
+    opacity 160ms ease !important;
+}
+
+/* ── 2. Primary Button: Lift + dunkleres Blau ── */
+button.primaryButton:hover:not(:disabled),
+button.submitButton:hover:not(:disabled),
+a.primaryButton:hover {
+  background: #1165e0 !important;
+  background-color: #1165e0 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-color: #1165e0 !important;
+  box-shadow: 0 8px 22px rgba(20, 121, 255, 0.38) !important;
+  transform: translateY(-1px) !important;
+}
+
+button.primaryButton:active:not(:disabled),
+button.submitButton:active:not(:disabled) {
+  transform: translateY(0) scale(0.985) !important;
+  box-shadow: 0 4px 12px rgba(20, 121, 255, 0.28) !important;
+}
+
+/* ── 3. Ghost Button: zarter grauer Fill, kein Lift ── */
+button.ghostButton:hover:not(:disabled),
+a.ghostButton:hover,
+.customerPickerToggle:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e3a5f !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.ghostButton:active:not(:disabled),
+.customerPickerToggle:active:not(:disabled) {
+  background: #e2e8f0 !important;
+  transform: none !important;
+}
+
+/* ── 4. Toggle-Buttons (Angebote/Rechnungen, Firma/Privatperson, Herr/Frau) ── */
+.documentModeSwitchButton:not(.active):hover {
+  background: rgba(20, 121, 255, 0.07) !important;
+  color: #1f3f72 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.recipientTypeButton:not(.active):hover {
+  background: rgba(20, 121, 255, 0.08) !important;
+  color: #1f3f72 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── 5. Submit Mail Button ── */
+.submitActionRow .submitMailButton:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e3a5f !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── 6. Voice Action Buttons ── */
+button.voiceActionButtonStart:hover:not(:disabled) {
+  transform: none !important;
+  box-shadow:
+    0 0 0 1px rgba(194, 41, 67, 0.38),
+    0 0 20px rgba(188, 52, 79, 0.28) !important;
+}
+
+/* ── 7. Sidebar Nav: nur bg, kein Lift ── */
+.appSidebarNavItem:hover,
+.appSidebarActionButton:hover {
+  transform: none !important;
+}
+
+/* ── 8. Destructive (Löschen-Buttons) ── */
+.settingsDeleteButton:hover:not(:disabled),
+.settingsLogoDeleteButton:hover:not(:disabled),
+.positionsDeleteButton:hover:not(:disabled) {
+  background: #fee2e2 !important;
+  background-image: none !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── 9. Icon-Buttons (Close, Info etc.) ── */
+.settingsOverlayCloseButton:hover,
+.customerArchiveCloseButton:hover,
+.infoLegalCloseButton:hover,
+.voiceLoginModalCloseButton:hover,
+.customerPickerModalCloseButton:hover {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── 10. Service / Typeahead Suggestions ── */
+.serviceSuggestionButton:hover,
+.positionsTypeaheadList button:hover {
+  background: rgba(20, 121, 255, 0.07) !important;
+  color: #1479ff !important;
+  transform: none !important;
+}
+
+.addressSuggestionButton:hover {
+  background: rgba(20, 121, 255, 0.07) !important;
+  transform: none !important;
+}
+
+/* ── 11. Customer Archive ── */
+.customerArchiveCustomerButton:hover,
+.customerArchiveDocumentButton:hover,
+.customerArchiveSectionToggle:hover {
+  background: rgba(20, 121, 255, 0.05) !important;
+  transform: none !important;
+}
+
+/* ── 12. Auth Buttons ── */
+.authPrimaryButton:hover:not(:disabled),
+.authGithubCard .authGithubPrimaryButton:hover:not(:disabled) {
+  background: #1165e0 !important;
+  background-image: none !important;
+  background-color: #1165e0 !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 22px rgba(20, 121, 255, 0.35) !important;
+}
+
+.authSecondaryButton:hover,
+.authGithubCard .authGithubPasskeyButton:hover {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── 13. Onboarding Action Buttons (bereits oben gesetzt, hier verstärkt) ── */
+.onboardingResumeModalActions button.primaryButton:hover:not(:disabled),
+.onboardingPageEmbedded .onboardingActions button.primaryButton:hover:not(:disabled) {
+  background: #1165e0 !important;
+  background-image: none !important;
+  background-color: #1165e0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 22px rgba(20, 121, 255, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.onboardingResumeModalActions button.ghostButton:hover:not(:disabled),
+.onboardingPageEmbedded .onboardingActions button.ghostButton:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Liquid-Glass-Hover wird durch !important-Regeln oben überschrieben */
