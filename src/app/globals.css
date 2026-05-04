@@ -12153,3 +12153,67 @@ html {
   background: #e2e8f0 !important;
   color: #1e293b !important;
 }
+
+/* ==========================================================================
+   Custom Select Styling — schöner als native, konsistenter Look
+   ========================================================================== */
+
+/* Wrapper */
+.selectWithIndicator {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Das native <select> — sieht aus wie ein Input */
+.selectWithIndicatorInput {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  padding-right: 36px !important;
+  background-color: #ffffff !important;
+  color: var(--text, #10203a) !important;
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  border-radius: 12px !important;
+  border: 1.5px solid rgba(72, 116, 195, 0.22) !important;
+  padding-top: 11px !important;
+  padding-bottom: 11px !important;
+  padding-left: 13px !important;
+  min-height: 46px !important;
+  box-shadow: none !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+  outline: none !important;
+  line-height: 1.4 !important;
+}
+
+.selectWithIndicatorInput:focus {
+  border-color: #1479ff !important;
+  box-shadow: 0 0 0 3px rgba(20, 121, 255, 0.12) !important;
+  background-color: #ffffff !important;
+}
+
+.selectWithIndicatorInput:hover:not(:focus) {
+  border-color: rgba(72, 116, 195, 0.42) !important;
+}
+
+/* Custom Pfeil-Icon */
+.serviceSearchIndicator {
+  position: absolute !important;
+  right: 12px !important;
+  pointer-events: none !important;
+  color: #94a3b8 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.serviceSearchIndicatorIcon {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Anrede-Toggle: gleiche Breite wie andere Toggles */
+.appFrameWithSidebar .recipientType .recipientTypeButtons {
+  flex-shrink: 0 !important;
+}

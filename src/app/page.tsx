@@ -8811,45 +8811,27 @@ export default function HomePage() {
                 </label>
               ) : null}
 
-              <label className="field span2">
-                <span>
-                  {form.customerType === "company"
-                    ? "Anrede Ansprechpartner (optional)"
-                    : "Anrede"}
-                </span>
-                <div className="selectWithIndicator">
-                  <select
-                    className="selectWithIndicatorInput"
-                    required={form.customerType === "person"}
-                    value={form.salutation}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        salutation: e.target.value === "frau" ? "frau" : "herr",
-                      }))
-                    }
+              <div className="recipientType span2" role="group" aria-label={form.customerType === "company" ? "Anrede Ansprechpartner" : "Anrede"}>
+                <span>{form.customerType === "company" ? "Anrede (optional)" : "Anrede"}</span>
+                <div className="recipientTypeButtons">
+                  <button
+                    type="button"
+                    className={`recipientTypeButton ${form.salutation === "herr" ? "active" : ""}`}
+                    aria-pressed={form.salutation === "herr"}
+                    onClick={() => setForm((prev) => ({ ...prev, salutation: "herr" }))}
                   >
-                    <option value="herr">Herr</option>
-                    <option value="frau">Frau</option>
-                  </select>
-                  <span className="serviceSearchIndicator" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="serviceSearchIndicatorIcon"
-                      focusable="false"
-                    >
-                      <path
-                        d="m8 10 4-4 4 4m-8 4 4 4 4-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
+                    Herr
+                  </button>
+                  <button
+                    type="button"
+                    className={`recipientTypeButton ${form.salutation === "frau" ? "active" : ""}`}
+                    aria-pressed={form.salutation === "frau"}
+                    onClick={() => setForm((prev) => ({ ...prev, salutation: "frau" }))}
+                  >
+                    Frau
+                  </button>
                 </div>
-              </label>
+              </div>
 
               <label className="field">
                 <span>Vorname</span>
