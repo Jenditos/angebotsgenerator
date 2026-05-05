@@ -767,12 +767,12 @@ const ONBOARDING_PROMPT_SHOWN_SESSION_KEY = "visioro-onboarding-prompt-shown-v1"
 const ONBOARDING_AUTO_PROMPT_COMPLETED_THRESHOLD = 2;
 const ONBOARDING_REQUIRED_FIELD_LABELS: Record<string, string> = {
   companyName: "Firmenname",
-  ownerName: "Inhaber / Ansprechpartner",
-  companyEmail: "Firmen-E-Mail",
+  ownerName: "Ansprechpartner",
+  companyEmail: "E-Mail",
   companyStreet: "Straße und Hausnummer",
   companyPostalCode: "PLZ",
   companyCity: "Ort",
-  taxIdentifier: "Steuernummer oder USt-IdNr.",
+  taxIdentifier: "Steuerdaten",
   companyIban: "IBAN",
 };
 const ONBOARDING_REQUIRED_FIELD_COUNT = Object.keys(
@@ -862,6 +862,70 @@ function formatOnboardingFieldLabel(field: string): string {
 
 function formatOnboardingMissingCount(count: number): string {
   return `${count} ${count === 1 ? "Pflichtangabe" : "Pflichtangaben"}`;
+}
+
+function formatOnboardingCompletionTitle(count: number): string {
+  return count === 1
+    ? "1 Pflichtangabe fehlt noch"
+    : `${count} Pflichtangaben fehlen noch`;
+}
+
+function formatOnboardingCompletionText(
+  missingCount: number,
+  entryStep: number,
+): string {
+  if (missingCount === 1) {
+    if (entryStep === 3) {
+      return "Damit Angebote und Rechnungen korrekt erstellt werden, ergänze bitte noch deine Steuerdaten.";
+    }
+    if (entryStep === 4) {
+      return "Damit Angebote und Rechnungen vollständig erstellt werden, ergänze bitte noch deine IBAN.";
+    }
+  }
+
+  return "Damit Angebote und Rechnungen korrekt erstellt werden, ergänze bitte noch deine fehlenden Firmendaten.";
+}
+
+function formatOnboardingPrimaryActionLabel(
+  missingCount: number,
+  entryStep: number,
+): string {
+  if (missingCount === 1) {
+    if (entryStep === 2) {
+      return "Adresse ergänzen";
+    }
+    if (entryStep === 3) {
+      return "Steuerdaten ergänzen";
+    }
+    if (entryStep === 4) {
+      return "IBAN ergänzen";
+    }
+  }
+
+  return "Pflichtangaben ergänzen";
+}
+
+function formatOnboardingMissingFieldHint(
+  field: string | null,
+  missingCount: number,
+): string {
+  if (missingCount !== 1 || !field) {
+    return "";
+  }
+
+  if (field === "taxIdentifier") {
+    return "Steuernummer oder USt-IdNr., je nach Unternehmen.";
+  }
+
+  if (field === "ownerName") {
+    return "Name der verantwortlichen Person oder des Ansprechpartners.";
+  }
+
+  if (field === "companyIban") {
+    return "Wird auf Angeboten und Rechnungen als Zahlungskonto verwendet.";
+  }
+
+  return "";
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -2103,6 +2167,24 @@ export default function HomePage() {
     completedOnboardingFieldCount <= ONBOARDING_AUTO_PROMPT_COMPLETED_THRESHOLD;
   const shouldShowOnboardingCompletionCard =
     shouldRequireOnboarding && !shouldAutoPromptOnboarding;
+  const onboardingPrimaryMissingField = onboardingMissingFields[0] ?? null;
+  const onboardingCompletionTitle = formatOnboardingCompletionTitle(
+    onboardingMissingFields.length,
+  );
+  const onboardingCompletionText = formatOnboardingCompletionText(
+    onboardingMissingFields.length,
+    onboardingEntryStep,
+  );
+  const onboardingPrimaryActionLabel = formatOnboardingPrimaryActionLabel(
+    onboardingMissingFields.length,
+    onboardingEntryStep,
+  );
+  const onboardingMissingFieldHint = formatOnboardingMissingFieldHint(
+    onboardingPrimaryMissingField,
+    onboardingMissingFields.length,
+  );
+  const onboardingTagSectionLabel =
+    onboardingMissingFields.length === 1 ? "Nächster Schritt" : "Offene Pflichtangaben";
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -8361,32 +8443,31 @@ export default function HomePage() {
                       <div className="setupCompletionEyebrowGroup">
                         <span className="setupCompletionPulse" aria-hidden="true" />
                         <p className="setupCompletionEyebrow">
-                          Ersteinrichtung fast fertig
+                          Ersteinrichtung
                         </p>
                       </div>
                       <div className="setupCompletionProgressBadge">
                         <strong>
-                          {completedOnboardingFieldCount}/
+                          {completedOnboardingFieldCount} von{" "}
                           {ONBOARDING_REQUIRED_FIELD_COUNT}
                         </strong>
-                        <span>Angaben bereit</span>
+                        <span>Pflichtangaben erledigt</span>
                       </div>
                     </div>
                     <div className="setupCompletionCardHeader">
                       <h2 className="setupCompletionTitle">
-                        Fast geschafft. Es fehlt noch{" "}
-                        {formatOnboardingMissingCount(onboardingMissingFields.length)}.
+                        {onboardingCompletionTitle}
                       </h2>
                       <p className="setupCompletionText">
-                        Du kannst direkt weiterarbeiten. Fülle nur noch die
-                        verbleibenden Firmendaten aus, damit Angebote und Rechnungen
-                        ohne Nacharbeit erstellt werden.
+                        {onboardingCompletionText}
                       </p>
                     </div>
                   </div>
                   <div className="setupCompletionBottomRow">
                     <div className="setupCompletionTagSection">
-                      <p className="setupCompletionSectionLabel">Noch offen</p>
+                      <p className="setupCompletionSectionLabel">
+                        {onboardingTagSectionLabel}
+                      </p>
                       <div
                         className="setupCompletionTagList"
                         aria-label="Fehlende Angaben"
@@ -8402,6 +8483,11 @@ export default function HomePage() {
                           </span>
                         ) : null}
                       </div>
+                      {onboardingMissingFieldHint ? (
+                        <p className="setupCompletionSupportText">
+                          {onboardingMissingFieldHint}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="setupCompletionActions">
                       <button
@@ -8409,14 +8495,14 @@ export default function HomePage() {
                         className="primaryButton setupCompletionPrimaryButton"
                         onClick={openOnboardingFlow}
                       >
-                        Fehlende Angaben ergänzen
+                        {onboardingPrimaryActionLabel}
                       </button>
                       <button
                         type="button"
                         className="ghostButton setupCompletionSecondaryButton"
                         onClick={openSettingsOverlay}
                       >
-                        Einstellungen öffnen
+                        Firmendaten öffnen
                       </button>
                     </div>
                   </div>

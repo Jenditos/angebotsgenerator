@@ -14059,9 +14059,10 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
 
 .setupCompletionProgressBadge strong {
   color: #183d72;
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.1;
+  text-align: right;
 }
 
 .setupCompletionProgressBadge span {
@@ -14128,6 +14129,14 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.setupCompletionSupportText {
+  margin: -2px 0 0;
+  color: #5b7092;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  max-width: 440px;
 }
 
 .setupCompletionTag {
