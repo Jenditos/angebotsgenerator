@@ -3884,22 +3884,22 @@ export default function HomePage() {
       .filter(Boolean)
       .join(" ")
       .trim();
+    const company = currentForm.companyName.trim();
+    const salutationLabel = currentForm.salutation === "frau" ? "Frau" : "Herr";
+
+    if (!company) {
+      return personName;
+    }
+
+    if (!personName) {
+      return company;
+    }
 
     if (currentForm.customerType === "company") {
-      const company = currentForm.companyName.trim();
-      if (!company) {
-        return personName;
-      }
-
-      if (!personName) {
-        return company;
-      }
-
-      const salutationLabel = currentForm.salutation === "frau" ? "Frau" : "Herr";
       return `${company} (z. Hd. ${salutationLabel} ${personName})`;
     }
 
-    return personName;
+    return `${company} (${salutationLabel} ${personName})`;
   }
 
   function buildCustomerAddressForStorage(currentForm: OfferForm): string {
@@ -8757,55 +8757,24 @@ export default function HomePage() {
                 </section>
               ) : null}
 
-              <div
-                className="recipientType recipientTypeModeSelector span2"
-                role="group"
-                aria-label="Kundenart"
-              >
-                <div className="recipientTypeButtons">
-                  <button
-                    type="button"
-                    className={`dashboardSegmentToggleButton ${form.customerType === "company" ? "dashboardSegmentToggleButtonSelected" : ""}`}
-                    aria-pressed={form.customerType === "company"}
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, customerType: "company" }))
-                    }
-                  >
-                    Firma
-                  </button>
-                  <button
-                    type="button"
-                    className={`dashboardSegmentToggleButton ${form.customerType === "person" ? "dashboardSegmentToggleButtonSelected" : ""}`}
-                    aria-pressed={form.customerType === "person"}
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, customerType: "person" }))
-                    }
-                  >
-                    Privatperson
-                  </button>
-                </div>
-              </div>
+              <label className="field span2">
+                <span>Firma (optional)</span>
+                <input
+                  ref={customerNameInputRef}
+                  autoComplete="organization"
+                  autoCapitalize="words"
+                  value={form.companyName}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      companyName: capitalizeEntryStart(e.target.value),
+                    }))
+                  }
+                />
+              </label>
 
-              {form.customerType === "company" ? (
-                <label className="field span2">
-                  <span>Firma (optional)</span>
-                  <input
-                    ref={customerNameInputRef}
-                    autoComplete="organization"
-                    autoCapitalize="words"
-                    value={form.companyName}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        companyName: capitalizeEntryStart(e.target.value),
-                      }))
-                    }
-                  />
-                </label>
-              ) : null}
-
-              <div className="recipientType span2" role="group" aria-label={form.customerType === "company" ? "Anrede Ansprechpartner" : "Anrede"}>
-                <span>{form.customerType === "company" ? "Anrede (optional)" : "Anrede"}</span>
+              <div className="recipientType span2" role="group" aria-label="Anrede">
+                <span>Anrede (optional)</span>
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
@@ -8829,7 +8798,6 @@ export default function HomePage() {
               <label className="field">
                 <span>Vorname</span>
                 <input
-                  required={form.customerType === "person"}
                   autoComplete="given-name"
                   autoCapitalize="words"
                   value={form.firstName}
@@ -8845,7 +8813,6 @@ export default function HomePage() {
               <label className="field">
                 <span>Nachname</span>
                 <input
-                  required={form.customerType === "person"}
                   autoComplete="family-name"
                   autoCapitalize="words"
                   value={form.lastName}
