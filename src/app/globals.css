@@ -11605,6 +11605,12 @@ html {
   font-size: 0.9rem !important;
 }
 
+.appFrameWithSidebar .recipientType.recipientTypeModeSelector {
+  padding-top: 0 !important;
+  padding-bottom: 6px !important;
+  gap: 0 !important;
+}
+
 .appFrameWithSidebar .recipientTypeButtons {
   display: inline-flex !important;
   width: auto !important;

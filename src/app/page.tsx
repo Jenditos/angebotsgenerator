@@ -8758,11 +8758,10 @@ export default function HomePage() {
               ) : null}
 
               <div
-                className="recipientType span2"
+                className="recipientType recipientTypeModeSelector span2"
                 role="group"
                 aria-label="Kundenart"
               >
-                <span>Kundenart</span>
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
@@ -8789,9 +8788,8 @@ export default function HomePage() {
 
               {form.customerType === "company" ? (
                 <label className="field span2">
-                  <span>Firma</span>
+                  <span>Firma (optional)</span>
                   <input
-                    required
                     ref={customerNameInputRef}
                     autoComplete="organization"
                     autoCapitalize="words"
