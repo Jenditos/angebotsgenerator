@@ -1044,53 +1044,81 @@ export default function OnboardingPageClient({
             ) : null}
 
             {currentStep === 3 ? (
-              <div className="onboardingGrid">
-                <label className="field">
-                  <span>Steuernummer</span>
-                  <input
-                    value={settings.taxNumber}
-                    autoCapitalize="characters"
-                    onChange={(event) => updateSetting("taxNumber", event.target.value)}
-                    placeholder="z. B. 12/345/67890"
-                  />
-                </label>
+              <div className="onboardingStepBody onboardingStepBodyTax">
+                <section className="onboardingFormSection onboardingFormSectionRequired">
+                  <div className="onboardingFormSectionHeader">
+                    <p className="onboardingFormSectionEyebrow">Pflichtbereich</p>
+                    <h3 className="onboardingFormSectionTitle">
+                      Steuer-ID für Rechnungen
+                    </h3>
+                    <p className="onboardingFormSectionText">
+                      Trage entweder deine Steuernummer oder deine USt-IdNr. ein.
+                      Eine der beiden Angaben reicht aus.
+                    </p>
+                  </div>
 
-                <label className="field">
-                  <span>USt-IdNr.</span>
-                  <input
-                    value={settings.vatId}
-                    autoCapitalize="characters"
-                    onChange={(event) => updateSetting("vatId", event.target.value)}
-                    placeholder="z. B. DE123456789"
-                  />
-                </label>
+                  <div className="onboardingGrid onboardingGridCompact">
+                    <label className="field">
+                      <span>Steuernummer</span>
+                      <input
+                        value={settings.taxNumber}
+                        autoCapitalize="characters"
+                        onChange={(event) =>
+                          updateSetting("taxNumber", event.target.value)
+                        }
+                        placeholder="z. B. 12/345/67890"
+                      />
+                    </label>
 
-                <p className="onboardingHint span2">
-                  Pflicht: Mindestens eines der beiden Felder muss ausgefüllt sein.
-                </p>
+                    <label className="field">
+                      <span>USt-IdNr.</span>
+                      <input
+                        value={settings.vatId}
+                        autoCapitalize="characters"
+                        onChange={(event) =>
+                          updateSetting("vatId", event.target.value)
+                        }
+                        placeholder="z. B. DE123456789"
+                      />
+                    </label>
+                  </div>
+                </section>
 
-                <label className="onboardingToggle span2">
-                  <input
-                    type="checkbox"
-                    checked={smallBusinessRule}
-                    onChange={(event) =>
-                      toggleSmallBusinessRule(event.target.checked)
-                    }
-                  />
-                  <span>Kleinunternehmerregelung (§ 19 UStG) anwenden</span>
-                </label>
+                <section className="onboardingFormSection onboardingFormSectionOptional">
+                  <div className="onboardingFormSectionHeader">
+                    <p className="onboardingFormSectionEyebrow">Optional</p>
+                    <h3 className="onboardingFormSectionTitle">
+                      Kleinunternehmerregelung und Hinweistext
+                    </h3>
+                    <p className="onboardingFormSectionText">
+                      Aktiviere die Regelung nur, wenn sie auf dein Unternehmen
+                      zutrifft. Den Hinweistext brauchst du nur für Sonderfälle.
+                    </p>
+                  </div>
 
-                <label className="field span2">
-                  <span>Steuerhinweis (optional)</span>
-                  <textarea
-                    rows={3}
-                    value={settings.euVatNoticeText}
-                    onChange={(event) =>
-                      updateSetting("euVatNoticeText", event.target.value)
-                    }
-                    placeholder="z. B. Reverse-Charge-Hinweis oder Hinweis zur Steuerbefreiung"
-                  />
-                </label>
+                  <label className="onboardingToggle onboardingToggleCard">
+                    <input
+                      type="checkbox"
+                      checked={smallBusinessRule}
+                      onChange={(event) =>
+                        toggleSmallBusinessRule(event.target.checked)
+                      }
+                    />
+                    <span>Kleinunternehmerregelung (§ 19 UStG) anwenden</span>
+                  </label>
+
+                  <label className="field">
+                    <span>Steuerhinweis (optional)</span>
+                    <textarea
+                      rows={3}
+                      value={settings.euVatNoticeText}
+                      onChange={(event) =>
+                        updateSetting("euVatNoticeText", event.target.value)
+                      }
+                      placeholder="z. B. Reverse-Charge-Hinweis oder Hinweis zur Steuerbefreiung"
+                    />
+                  </label>
+                </section>
               </div>
             ) : null}
 

@@ -14268,3 +14268,209 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   Onboarding Flow Modal — Final Spacing And Grouping Cleanup
+   Clear content hierarchy, auto-sized modal height and distinct required vs.
+   optional sections so each block reads like a professional app form.
+   ========================================================================== */
+.settingsOverlaySheet.onboardingFlowOverlaySheet {
+  width: min(560px, calc(100vw - 32px)) !important;
+  max-width: 560px !important;
+  height: auto !important;
+  max-height: min(88vh, 780px) !important;
+  padding: 0 0 18px !important;
+  gap: 0 !important;
+}
+
+.onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  max-height: min(calc(88vh - 74px), 690px) !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  padding: 0 !important;
+}
+
+.onboardingPageEmbedded .onboardingCard {
+  padding: 0 28px 8px !important;
+  gap: 18px !important;
+}
+
+.onboardingPageEmbedded .onboardingHeader {
+  padding: 0 28px 18px !important;
+  margin-bottom: 18px !important;
+}
+
+.onboardingHeaderMain {
+  gap: 10px !important;
+}
+
+.onboardingHeaderText {
+  gap: 12px !important;
+}
+
+.onboardingPageEmbedded .heroText {
+  max-width: 44ch !important;
+}
+
+.onboardingPageEmbedded .onboardingStepCard {
+  gap: 18px !important;
+}
+
+.onboardingPageEmbedded .onboardingStepCard h2 {
+  font-size: 1.04rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.onboardingPageEmbedded .onboardingStepDescription {
+  margin: -10px 0 0 !important;
+  color: #5b6678 !important;
+  font-size: 0.9rem !important;
+  line-height: 1.55 !important;
+  max-width: 46ch !important;
+}
+
+.onboardingPageEmbedded .field {
+  gap: 8px !important;
+}
+
+.onboardingPageEmbedded .field span {
+  font-size: 0.79rem !important;
+  font-weight: 600 !important;
+  color: #45556d !important;
+  letter-spacing: 0 !important;
+}
+
+.onboardingPageEmbedded .onboardingStepBodyTax {
+  display: grid !important;
+  gap: 16px !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSection {
+  display: grid !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(20, 121, 255, 0.12) !important;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.94), #ffffff) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSectionRequired {
+  border-color: rgba(20, 121, 255, 0.18) !important;
+  background:
+    linear-gradient(180deg, rgba(20, 121, 255, 0.05), rgba(255, 255, 255, 0.98)),
+    #ffffff !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSectionOptional {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background: #ffffff !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSectionHeader {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSectionEyebrow {
+  margin: 0 !important;
+  color: #1479ff !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSectionTitle {
+  margin: 0 !important;
+  color: #16335f !important;
+  font-size: 0.98rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSectionText {
+  margin: 0 !important;
+  color: #64748b !important;
+  font-size: 0.84rem !important;
+  line-height: 1.55 !important;
+  max-width: 44ch !important;
+}
+
+.onboardingPageEmbedded .onboardingGridCompact {
+  gap: 14px !important;
+}
+
+.onboardingPageEmbedded .onboardingToggleCard {
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(20, 121, 255, 0.1) !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.onboardingPageEmbedded .onboardingToggleCard input {
+  margin-top: 3px !important;
+}
+
+.onboardingPageEmbedded .onboardingToggleCard span {
+  color: #1f3f72 !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  line-height: 1.45 !important;
+}
+
+.onboardingPageEmbedded .onboardingFormSection textarea {
+  min-height: 96px !important;
+}
+
+.onboardingPageEmbedded .onboardingActions {
+  padding: 18px 28px 0 !important;
+  margin-top: 14px !important;
+}
+
+.onboardingPageEmbedded .onboardingSkipRow {
+  padding: 4px 28px 0 !important;
+}
+
+@media (max-width: 760px) {
+  .settingsOverlaySheet.onboardingFlowOverlaySheet {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 24px) !important;
+  }
+
+  .onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+    max-height: calc(100vh - 98px) !important;
+  }
+
+  .onboardingPageEmbedded .onboardingCard,
+  .onboardingPageEmbedded .onboardingHeader,
+  .onboardingPageEmbedded .onboardingActions,
+  .onboardingPageEmbedded .onboardingSkipRow {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .onboardingPageEmbedded .onboardingHeaderText {
+    gap: 8px !important;
+  }
+
+  .onboardingPageEmbedded .onboardingStepBodyTax {
+    gap: 14px !important;
+  }
+
+  .onboardingPageEmbedded .onboardingFormSection {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
+  .onboardingPageEmbedded .onboardingGridCompact {
+    grid-template-columns: 1fr !important;
+  }
+}
