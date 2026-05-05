@@ -112,6 +112,7 @@ type EmbeddedOnboardingMessage = OnboardingFlowEvent & {
 type OnboardingPageClientProps = {
   embedded?: boolean;
   onEmbeddedEvent?: (event: OnboardingFlowEvent) => void;
+  preferredStartStep?: number;
 };
 
 function setOnboardingSnoozeCookie(): void {
@@ -330,6 +331,7 @@ function buildStepPayload(
 export default function OnboardingPageClient({
   embedded = false,
   onEmbeddedEvent,
+  preferredStartStep,
 }: OnboardingPageClientProps) {
   const router = useRouter();
   const isEmbeddedMode = embedded;
@@ -402,7 +404,9 @@ export default function OnboardingPageClient({
         if (!cancelled) {
           setSettings(nextSettings);
           setOnboardingState(nextOnboarding);
-          const resumedStep = clampOnboardingStep(nextOnboarding.onboardingStep);
+          const resumedStep = clampOnboardingStep(
+            preferredStartStep ?? nextOnboarding.onboardingStep,
+          );
           setCurrentStep(resumedStep);
           setSmallBusinessRule(
             /§\s*19\s*ustg/i.test(nextSettings.euVatNoticeText.trim()),
@@ -434,7 +438,7 @@ export default function OnboardingPageClient({
     return () => {
       cancelled = true;
     };
-  }, [isEmbeddedMode, onEmbeddedEvent, router]);
+  }, [isEmbeddedMode, onEmbeddedEvent, preferredStartStep, router]);
 
   useEffect(() => {
     const handlePageHide = () => {

@@ -46,7 +46,12 @@ import {
   MAX_VOICE_TRANSCRIPT_LENGTH,
   isValidEmailAddress,
 } from "@/lib/user-input";
-import { ONBOARDING_TOTAL_STEPS, clampOnboardingStep } from "@/lib/onboarding";
+import {
+  ONBOARDING_TOTAL_STEPS,
+  clampOnboardingStep,
+  getMissingOnboardingRequiredFields,
+  hasCompletedOnboardingRequiredFields,
+} from "@/lib/onboarding";
 import {
   CompanySettings,
   CustomerDraftGroup,
@@ -138,6 +143,7 @@ type SettingsApiResponse = {
     onboardingCompletedAt?: string | null;
     onboardingStep?: number;
   };
+  missingFields?: string[];
   error?: string;
 };
 
@@ -155,6 +161,7 @@ type AccessStatusApiResponse = {
     onboardingCompletedAt?: string | null;
     onboardingStep?: number;
   };
+  missingFields?: string[];
 };
 
 type OnboardingModalMode = "prompt" | "steps";
@@ -757,6 +764,20 @@ const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent-v1";
 const ONBOARDING_PROMPT_SHOWN_SESSION_KEY = "visioro-onboarding-prompt-shown-v1";
+const ONBOARDING_AUTO_PROMPT_COMPLETED_THRESHOLD = 2;
+const ONBOARDING_REQUIRED_FIELD_LABELS: Record<string, string> = {
+  companyName: "Firmenname",
+  ownerName: "Inhaber / Ansprechpartner",
+  companyEmail: "Firmen-E-Mail",
+  companyStreet: "Straße und Hausnummer",
+  companyPostalCode: "PLZ",
+  companyCity: "Ort",
+  taxIdentifier: "Steuernummer oder USt-IdNr.",
+  companyIban: "IBAN",
+};
+const ONBOARDING_REQUIRED_FIELD_COUNT = Object.keys(
+  ONBOARDING_REQUIRED_FIELD_LABELS,
+).length;
 
 const fallbackCompanySettings: CompanySettings = {
   companyName: "",
@@ -802,6 +823,45 @@ function resolveOnboardingStepValue(step: unknown): number {
     return 1;
   }
   return clampOnboardingStep(parsedStep);
+}
+
+function resolvePreferredOnboardingStep(
+  missingFields: string[],
+  fallbackStep: unknown,
+): number {
+  if (
+    missingFields.includes("companyName") ||
+    missingFields.includes("ownerName") ||
+    missingFields.includes("companyEmail")
+  ) {
+    return 1;
+  }
+
+  if (
+    missingFields.includes("companyStreet") ||
+    missingFields.includes("companyPostalCode") ||
+    missingFields.includes("companyCity")
+  ) {
+    return 2;
+  }
+
+  if (missingFields.includes("taxIdentifier")) {
+    return 3;
+  }
+
+  if (missingFields.includes("companyIban")) {
+    return 4;
+  }
+
+  return resolveOnboardingStepValue(fallbackStep);
+}
+
+function formatOnboardingFieldLabel(field: string): string {
+  return ONBOARDING_REQUIRED_FIELD_LABELS[field] ?? field;
+}
+
+function formatOnboardingMissingCount(count: number): string {
+  return `${count} ${count === 1 ? "Pflichtangabe" : "Pflichtangaben"}`;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -1225,30 +1285,6 @@ async function parseGenerateOfferResponse(
         : "Der Server hat keine lesbare Fehlermeldung zurückgegeben.",
     };
   }
-}
-
-function hasCompletedCompanySettings(settings: CompanySettings | undefined): boolean {
-  if (!settings) {
-    return false;
-  }
-
-  const hasTaxIdentifier = Boolean(
-    settings.taxNumber.trim() || settings.vatId.trim(),
-  );
-  const requiredValues = [
-    settings.companyName,
-    settings.ownerName,
-    settings.companyStreet,
-    settings.companyPostalCode,
-    settings.companyCity,
-    settings.companyEmail,
-    settings.companyIban,
-  ];
-
-  return (
-    requiredValues.every((value) => value.trim().length > 0) &&
-    hasTaxIdentifier
-  );
 }
 
 function capitalizeEntryStart(value: string): string {
@@ -2020,13 +2056,53 @@ export default function HomePage() {
     setTimeout(() => setAutosaveFeedback(null), 2500);
   }
 
+  const onboardingMissingFields = useMemo(
+    () =>
+      companySettings ? getMissingOnboardingRequiredFields(companySettings) : [],
+    [companySettings],
+  );
+  const completedOnboardingFieldCount = companySettings
+    ? Math.max(0, ONBOARDING_REQUIRED_FIELD_COUNT - onboardingMissingFields.length)
+    : 0;
+  const onboardingEntryStep = useMemo(
+    () => resolvePreferredOnboardingStep(onboardingMissingFields, onboardingStep),
+    [onboardingMissingFields, onboardingStep],
+  );
+  const onboardingMissingLabels = useMemo(
+    () => onboardingMissingFields.map((field) => formatOnboardingFieldLabel(field)),
+    [onboardingMissingFields],
+  );
+  const onboardingMissingLabelsPreview = onboardingMissingLabels.slice(0, 3);
+  const onboardingAdditionalMissingCount = Math.max(
+    0,
+    onboardingMissingLabels.length - onboardingMissingLabelsPreview.length,
+  );
+  const onboardingPromptTitle =
+    completedOnboardingFieldCount > 0
+      ? "Einrichtung fortsetzen"
+      : "Ersteinrichtung starten";
+  const onboardingPromptText =
+    completedOnboardingFieldCount > 0
+      ? `Es fehlen noch ${formatOnboardingMissingCount(
+          onboardingMissingFields.length,
+        )}, damit Angebote und Rechnungen ohne Nacharbeit erstellt werden können.`
+      : "Richte deine Firmendaten einmal sauber ein, damit Angebote und Rechnungen direkt korrekt erstellt werden können.";
+  const onboardingPromptButtonLabel =
+    completedOnboardingFieldCount > 0 ? "Fortsetzen" : "Jetzt starten";
   const isOnboardingModalOpen =
     showOnboardingPromptModal || onboardingMode === "steps";
   const isAnyIntakeProcessing =
     isParsingVoice || isParsingPhoto || isStartingPhotoCamera;
   const isKiIntakeLocked = isAuthStatusLoading || !isAuthenticatedUser;
   const shouldRequireOnboarding =
-    isAuthenticatedUser && !isAuthStatusLoading && !isOnboardingCompleted;
+    isAuthenticatedUser &&
+    !isAuthStatusLoading &&
+    onboardingMissingFields.length > 0;
+  const shouldAutoPromptOnboarding =
+    shouldRequireOnboarding &&
+    completedOnboardingFieldCount <= ONBOARDING_AUTO_PROMPT_COMPLETED_THRESHOLD;
+  const shouldShowOnboardingCompletionCard =
+    shouldRequireOnboarding && !shouldAutoPromptOnboarding;
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -2365,13 +2441,15 @@ export default function HomePage() {
       return;
     }
 
-    if (!shouldRequireOnboarding) {
+    if (!shouldAutoPromptOnboarding) {
       setShowOnboardingPromptModal(false);
-      setOnboardingMode("prompt");
-      try {
-        window.sessionStorage.removeItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY);
-      } catch {
-        // Ignore storage read/write restrictions.
+      if (!shouldRequireOnboarding) {
+        setOnboardingMode("prompt");
+        try {
+          window.sessionStorage.removeItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY);
+        } catch {
+          // Ignore storage read/write restrictions.
+        }
       }
       return;
     }
@@ -2394,7 +2472,7 @@ export default function HomePage() {
         // Ignore storage read/write restrictions.
       }
     }
-  }, [shouldRequireOnboarding]);
+  }, [shouldAutoPromptOnboarding, shouldRequireOnboarding]);
 
   useEffect(() => {
     if (isSettingsOverlayOpen || isClosingSettingsOverlay) {
@@ -2551,6 +2629,7 @@ export default function HomePage() {
       setIsSettingsOverlayOpen(false);
       setIsClosingSettingsOverlay(false);
       settingsOverlayCloseTimeoutRef.current = null;
+      void loadSettingsStatus();
     }, 170);
   }
 
@@ -2953,59 +3032,61 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [isServiceDateRangePickerOpen]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadSettingsStatus() {
-      const draftSettings = readSettingsDraftFromSessionStorageForOffer();
-      if (mounted && draftSettings) {
-        setCompanySettings(draftSettings);
-        writeSettingsDraftToSessionStorageForOffer(draftSettings);
-        const isCompleteFromDraft = hasCompletedCompanySettings(draftSettings);
-        setIsCompanySetupComplete(isCompleteFromDraft);
-        if (!isCompleteFromDraft) {
-          setIsSetupHintOpen(false);
-        }
-      }
-
-      try {
-        const response = await fetch("/api/settings", { cache: "no-store" });
-        const data = (await response.json()) as SettingsApiResponse;
-        if (!response.ok) {
-          return;
-        }
-        if (mounted) {
-          const resolvedSettings =
-            data.settings && draftSettings
-              ? mergeSettingsDraftWithServer(draftSettings, data.settings)
-              : (draftSettings ?? data.settings);
-
-          if (resolvedSettings) {
-            setCompanySettings(resolvedSettings);
-            writeSettingsDraftToSessionStorageForOffer(resolvedSettings);
-          }
-          const isComplete = hasCompletedCompanySettings(resolvedSettings);
-          setIsCompanySetupComplete(isComplete);
-          if (!isComplete) {
-            setIsSetupHintOpen(false);
-          }
-
-          if (typeof data.onboarding?.onboardingCompleted === "boolean") {
-            setIsOnboardingCompleted(data.onboarding.onboardingCompleted);
-          }
-          setOnboardingStep(resolveOnboardingStepValue(data.onboarding?.onboardingStep));
-        }
-      } catch {
-        // Nur UI-Hinweis; Fehler hier blockiert die Seite nicht.
+  const loadSettingsStatus = useCallback(async () => {
+    let draftSettings = readSettingsDraftFromSessionStorageForOffer();
+    if (draftSettings) {
+      setCompanySettings(draftSettings);
+      writeSettingsDraftToSessionStorageForOffer(draftSettings);
+      const isCompleteFromDraft =
+        hasCompletedOnboardingRequiredFields(draftSettings);
+      setIsCompanySetupComplete(isCompleteFromDraft);
+      if (!isCompleteFromDraft) {
+        setIsSetupHintOpen(false);
       }
     }
 
-    void loadSettingsStatus();
+    try {
+      const response = await fetch("/api/settings", { cache: "no-store" });
+      const data = (await response.json()) as SettingsApiResponse;
+      if (!response.ok) {
+        return;
+      }
 
-    return () => {
-      mounted = false;
-    };
+      const resolvedSettings =
+        data.settings && draftSettings
+          ? mergeSettingsDraftWithServer(draftSettings, data.settings)
+          : (draftSettings ?? data.settings);
+
+      if (resolvedSettings) {
+        setCompanySettings(resolvedSettings);
+        writeSettingsDraftToSessionStorageForOffer(resolvedSettings);
+        draftSettings = resolvedSettings;
+      }
+
+      const isComplete = resolvedSettings
+        ? hasCompletedOnboardingRequiredFields(resolvedSettings)
+        : false;
+      setIsCompanySetupComplete(isComplete);
+      if (!isComplete) {
+        setIsSetupHintOpen(false);
+      }
+
+      if (typeof data.onboarding?.onboardingCompleted === "boolean") {
+        setIsOnboardingCompleted(
+          data.onboarding.onboardingCompleted || isComplete,
+        );
+      } else if (isComplete) {
+        setIsOnboardingCompleted(true);
+      }
+      setOnboardingStep(resolveOnboardingStepValue(data.onboarding?.onboardingStep));
+    } catch {
+      // Nur UI-Hinweis; Fehler hier blockiert die Seite nicht.
+    }
   }, []);
+
+  useEffect(() => {
+    void loadSettingsStatus();
+  }, [loadSettingsStatus]);
 
   useEffect(() => {
     if (!activeProjectNumber || isProjectsLoading || storedProjects.length > 0) {
@@ -3039,7 +3120,10 @@ export default function HomePage() {
         setAccountIdentity(
           typeof data.user?.email === "string" ? data.user.email.trim() : "",
         );
-        setIsOnboardingCompleted(Boolean(data.onboarding?.onboardingCompleted));
+        setIsOnboardingCompleted(
+          Boolean(data.onboarding?.onboardingCompleted) ||
+            (Array.isArray(data.missingFields) && data.missingFields.length === 0),
+        );
         setOnboardingStep(resolveOnboardingStepValue(data.onboarding?.onboardingStep));
       } catch {
         if (!mounted) {
@@ -3684,8 +3768,8 @@ export default function HomePage() {
     closeOnboardingModal();
   }
 
-  function startOnboardingFromPrompt() {
-    if (!shouldRequireOnboarding) {
+  function openOnboardingFlow() {
+    if (!isAuthenticatedUser || isAuthStatusLoading || !shouldRequireOnboarding) {
       return;
     }
 
@@ -3693,6 +3777,7 @@ export default function HomePage() {
     if (isAccountMenuOpen) {
       closeAccountMenu();
     }
+    setOnboardingStep(onboardingEntryStep);
     setShowOnboardingPromptModal(false);
     setOnboardingMode("steps");
   }
@@ -3706,6 +3791,7 @@ export default function HomePage() {
         setOnboardingStep(ONBOARDING_TOTAL_STEPS);
         setShowOnboardingPromptModal(false);
         setOnboardingMode("prompt");
+        void loadSettingsStatus();
         return;
       }
 
@@ -3716,8 +3802,12 @@ export default function HomePage() {
         setShowOnboardingPromptModal(false);
         setOnboardingMode("prompt");
       }
+
+      void loadSettingsStatus();
     },
-    [],
+    [
+      loadSettingsStatus,
+    ],
   );
 
   async function handleLogoutFromAccountMenu() {
@@ -7488,7 +7578,7 @@ export default function HomePage() {
               {onboardingMode === "prompt" ? (
                 <>
                   <header className="settingsOverlayHeader onboardingResumeModalHeader">
-                    <strong id="onboarding-prompt-title">Einrichtung abschließen</strong>
+                    <strong id="onboarding-prompt-title">{onboardingPromptTitle}</strong>
                     <button
                       type="button"
                       className="settingsOverlayCloseButton"
@@ -7512,19 +7602,18 @@ export default function HomePage() {
                     </button>
                   </header>
                   <p className="onboardingResumeModalText">
-                    Richte deine Firmendaten ein, damit Angebote und Rechnungen
-                    korrekt erstellt werden können.
+                    {onboardingPromptText}
                   </p>
                   <p className="onboardingResumeModalStep">
-                    Aktueller Schritt: {onboardingStep} von {ONBOARDING_TOTAL_STEPS}
+                    Einstieg bei Schritt {onboardingEntryStep} von {ONBOARDING_TOTAL_STEPS}
                   </p>
                   <div className="onboardingResumeModalActions">
                     <button
                       type="button"
                       className="primaryButton"
-                      onClick={startOnboardingFromPrompt}
+                      onClick={openOnboardingFlow}
                     >
-                      Jetzt starten
+                      {onboardingPromptButtonLabel}
                     </button>
                     <button
                       type="button"
@@ -7563,6 +7652,7 @@ export default function HomePage() {
                   <div className="onboardingFlowOverlayFrameWrap onboardingFlowInlineContent">
                     <OnboardingPageClient
                       embedded
+                      preferredStartStep={onboardingEntryStep}
                       onEmbeddedEvent={handleEmbeddedOnboardingEvent}
                     />
                   </div>
@@ -8260,6 +8350,53 @@ export default function HomePage() {
                   </span>
                 ) : null}
               </div>
+
+              {shouldShowOnboardingCompletionCard ? (
+                <section
+                  className="setupCompletionCard span2"
+                  aria-label="Ersteinrichtung vervollständigen"
+                >
+                  <div className="setupCompletionCardHeader">
+                    <p className="setupCompletionEyebrow">Ersteinrichtung fast fertig</p>
+                    <h2 className="setupCompletionTitle">
+                      Es fehlen noch {formatOnboardingMissingCount(onboardingMissingFields.length)}.
+                    </h2>
+                    <p className="setupCompletionText">
+                      Du kannst direkt weiterarbeiten. Ergänze nur noch die fehlenden
+                      Firmendaten, damit Angebote und Rechnungen ohne Nacharbeit
+                      erstellt werden.
+                    </p>
+                  </div>
+                  <div className="setupCompletionTagList" aria-label="Fehlende Angaben">
+                    {onboardingMissingLabelsPreview.map((label) => (
+                      <span key={label} className="setupCompletionTag">
+                        {label}
+                      </span>
+                    ))}
+                    {onboardingAdditionalMissingCount > 0 ? (
+                      <span className="setupCompletionTag setupCompletionTagMuted">
+                        +{onboardingAdditionalMissingCount} weitere
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="setupCompletionActions">
+                    <button
+                      type="button"
+                      className="primaryButton"
+                      onClick={openOnboardingFlow}
+                    >
+                      Fehlende Angaben ergänzen
+                    </button>
+                    <button
+                      type="button"
+                      className="ghostButton"
+                      onClick={openSettingsOverlay}
+                    >
+                      Einstellungen öffnen
+                    </button>
+                  </div>
+                </section>
+              ) : null}
 
               <div className="voicePanel dashboardVoicePanel span2">
                 <div className="voicePanelHeader">

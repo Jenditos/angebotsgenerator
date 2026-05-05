@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import {
+  ONBOARDING_TOTAL_STEPS,
+  getMissingOnboardingRequiredFields,
+} from "@/lib/onboarding";
+import {
   buildBypassAccessRecord,
   buildBypassUser,
   isAuthBypassEnabled,
@@ -15,7 +19,11 @@ import {
   ensureUserAccessRecord,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
-import { readOnboardingStatus } from "@/lib/settings-store";
+import {
+  readOnboardingStatus,
+  readSettings,
+  writeOnboardingStatus,
+} from "@/lib/settings-store";
 
 export async function GET() {
   if (isAuthBypassEnabled()) {
@@ -34,6 +42,7 @@ export async function GET() {
         onboardingCompletedAt: null,
         onboardingStep: 5,
       },
+      missingFields: [],
     });
   }
 
@@ -43,7 +52,7 @@ export async function GET() {
   }
 
   try {
-    const [accessRecord, onboarding] = await Promise.all([
+    const [accessRecord, rawOnboarding] = await Promise.all([
       ensureUserAccessRecord(
         authResult.supabase,
         authResult.user,
@@ -53,6 +62,37 @@ export async function GET() {
         userId: authResult.user.id,
       }),
     ]);
+    let onboarding = rawOnboarding;
+    let missingFields: string[] = [];
+
+    try {
+      const settings = await readSettings({
+        supabase: authResult.supabase,
+        userId: authResult.user.id,
+      });
+      missingFields = getMissingOnboardingRequiredFields(settings);
+
+      if (
+        missingFields.length === 0 &&
+        rawOnboarding.onboardingCompleted !== true
+      ) {
+        onboarding = await writeOnboardingStatus(
+          {
+            onboardingCompleted: true,
+            onboardingCompletedAt:
+              rawOnboarding.onboardingCompletedAt ?? new Date().toISOString(),
+            onboardingStep: ONBOARDING_TOTAL_STEPS,
+          },
+          {
+            supabase: authResult.supabase,
+            userId: authResult.user.id,
+          },
+        );
+      }
+    } catch {
+      // If settings cannot be loaded here, keep auth status available and fall back
+      // to the persisted onboarding record.
+    }
 
     return NextResponse.json({
       authenticated: true,
@@ -63,6 +103,7 @@ export async function GET() {
       access: accessRecord,
       state: buildAccessState(accessRecord),
       onboarding,
+      missingFields,
     });
   } catch (error) {
     if (isUserAccessSetupError(error)) {
@@ -92,6 +133,7 @@ export async function GET() {
         access: fallbackAccessRecord,
         state: buildAccessState(fallbackAccessRecord),
         onboarding,
+        missingFields: [],
         setupWarning: true,
       });
     }

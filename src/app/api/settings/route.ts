@@ -6,12 +6,14 @@ import {
 } from "@/lib/iban";
 import {
   OnboardingStatusUpdate,
+  SettingsStoreContext,
   readOnboardingStatus,
   readSettings,
   writeOnboardingStatus,
   writeSettings,
 } from "@/lib/settings-store";
 import {
+  ONBOARDING_TOTAL_STEPS,
   getMissingOnboardingRequiredFields,
   hasCompletedOnboardingRequiredFields,
 } from "@/lib/onboarding";
@@ -49,6 +51,47 @@ function classifySettingsStoreError(error: unknown): {
   };
 }
 
+async function reconcileOnboardingWithSettings(
+  settings: CompanySettings,
+  onboarding: Awaited<ReturnType<typeof readOnboardingStatus>>,
+  options: {
+    supabase: SettingsStoreContext["supabase"];
+    userId: string;
+    allowAutoComplete: boolean;
+  },
+) {
+  const missingFields = getMissingOnboardingRequiredFields(settings);
+
+  if (
+    options.allowAutoComplete &&
+    missingFields.length === 0 &&
+    onboarding.onboardingCompleted !== true
+  ) {
+    const syncedOnboarding = await writeOnboardingStatus(
+      {
+        onboardingCompleted: true,
+        onboardingCompletedAt:
+          onboarding.onboardingCompletedAt ?? new Date().toISOString(),
+        onboardingStep: ONBOARDING_TOTAL_STEPS,
+      },
+      {
+        supabase: options.supabase,
+        userId: options.userId,
+      },
+    );
+
+    return {
+      onboarding: syncedOnboarding,
+      missingFields,
+    };
+  }
+
+  return {
+    onboarding,
+    missingFields,
+  };
+}
+
 export async function GET() {
   const accessResult = await requireAppAccess();
   if (!accessResult.ok) {
@@ -56,7 +99,7 @@ export async function GET() {
   }
 
   try {
-    const [settings, onboarding] = await Promise.all([
+    const [settings, rawOnboarding] = await Promise.all([
       readSettings({
         supabase: accessResult.supabase,
         userId: accessResult.user.id,
@@ -66,8 +109,17 @@ export async function GET() {
         userId: accessResult.user.id,
       }),
     ]);
+    const { onboarding, missingFields } = await reconcileOnboardingWithSettings(
+      settings,
+      rawOnboarding,
+      {
+        supabase: accessResult.supabase,
+        userId: accessResult.user.id,
+        allowAutoComplete: true,
+      },
+    );
     return NextResponse.json(
-      { settings, onboarding },
+      { settings, onboarding, missingFields },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -278,7 +330,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const onboarding = shouldUpdateOnboarding
+    const rawOnboarding = shouldUpdateOnboarding
       ? await writeOnboardingStatus(onboardingUpdate, {
           supabase: accessResult.supabase,
           userId: accessResult.user.id,
@@ -287,9 +339,18 @@ export async function POST(request: Request) {
           supabase: accessResult.supabase,
           userId: accessResult.user.id,
         });
+    const { onboarding, missingFields } = await reconcileOnboardingWithSettings(
+      settings,
+      rawOnboarding,
+      {
+        supabase: accessResult.supabase,
+        userId: accessResult.user.id,
+        allowAutoComplete: !shouldUpdateOnboarding,
+      },
+    );
 
     return NextResponse.json(
-      { settings, onboarding },
+      { settings, onboarding, missingFields },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

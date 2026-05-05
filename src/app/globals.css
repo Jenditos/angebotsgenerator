@@ -13991,3 +13991,109 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
     box-shadow: 0 1px 4px rgba(20, 121, 255, 0.15) !important;
   }
 }
+
+/* Progressive onboarding reminder: non-blocking card for partially completed
+   accounts so users can keep working and jump straight to the first missing
+   company detail. */
+.setupCompletionCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px !important;
+  border: 1px solid rgba(20, 121, 255, 0.16) !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(180deg, rgba(20, 121, 255, 0.08), rgba(20, 121, 255, 0.03)),
+    #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 12px 28px rgba(24, 62, 117, 0.08) !important;
+}
+
+.setupCompletionCardHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.setupCompletionEyebrow {
+  margin: 0;
+  color: #2c63b8;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.setupCompletionTitle {
+  margin: 0;
+  color: #16335f;
+  font-size: 1.15rem;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.setupCompletionText {
+  margin: 0;
+  color: #4a6389;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.setupCompletionTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setupCompletionTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(20, 121, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #214879;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.setupCompletionTagMuted {
+  color: #5b7092;
+  background: rgba(20, 121, 255, 0.08);
+}
+
+.setupCompletionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.setupCompletionActions .primaryButton,
+.setupCompletionActions .ghostButton {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .setupCompletionCard {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .setupCompletionTitle {
+    font-size: 1.02rem;
+  }
+
+  .setupCompletionText {
+    font-size: 0.88rem;
+  }
+
+  .setupCompletionActions {
+    flex-direction: column;
+  }
+
+  .setupCompletionActions .primaryButton,
+  .setupCompletionActions .ghostButton {
+    width: 100%;
+  }
+}
