@@ -8774,7 +8774,7 @@ export default function HomePage() {
               </label>
 
               <div className="recipientType span2" role="group" aria-label="Anrede">
-                <span>Anrede (optional)</span>
+                <span>Anrede</span>
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
