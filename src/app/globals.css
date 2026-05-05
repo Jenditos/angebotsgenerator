@@ -13997,38 +13997,102 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
    company detail. */
 .setupCompletionCard {
   display: grid;
-  gap: 14px;
-  padding: 18px 20px !important;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+  padding: 22px 24px !important;
   border: 1px solid rgba(20, 121, 255, 0.16) !important;
-  border-radius: 20px !important;
+  border-radius: 24px !important;
   background:
-    linear-gradient(180deg, rgba(20, 121, 255, 0.08), rgba(20, 121, 255, 0.03)),
+    linear-gradient(180deg, rgba(20, 121, 255, 0.07), rgba(20, 121, 255, 0.02)),
     #ffffff !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 12px 28px rgba(24, 62, 117, 0.08) !important;
+    0 18px 42px rgba(24, 62, 117, 0.1) !important;
+}
+
+.setupCompletionCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #1479ff 0%, #77b4ff 100%);
+}
+
+.setupCompletionIntro {
+  display: grid;
+  gap: 14px;
+}
+
+.setupCompletionStatusRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setupCompletionEyebrowGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setupCompletionPulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #1479ff;
+  box-shadow: 0 0 0 6px rgba(20, 121, 255, 0.14);
+  flex: 0 0 auto;
+}
+
+.setupCompletionProgressBadge {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(20, 121, 255, 0.14);
+  background: rgba(20, 121, 255, 0.07);
+  flex: 0 0 auto;
+}
+
+.setupCompletionProgressBadge strong {
+  color: #183d72;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.setupCompletionProgressBadge span {
+  color: #5f7699;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .setupCompletionCardHeader {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  max-width: 760px;
 }
 
 .setupCompletionEyebrow {
   margin: 0;
   color: #2c63b8;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .setupCompletionTitle {
   margin: 0;
   color: #16335f;
-  font-size: 1.15rem;
-  line-height: 1.15;
+  font-size: 1.28rem;
+  line-height: 1.12;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .setupCompletionText {
@@ -14036,6 +14100,28 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   color: #4a6389;
   font-size: 0.94rem;
   line-height: 1.5;
+  max-width: 720px;
+}
+
+.setupCompletionBottomRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.setupCompletionTagSection {
+  display: grid;
+  gap: 10px;
+}
+
+.setupCompletionSectionLabel {
+  margin: 0;
+  color: #5f7699;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .setupCompletionTagList {
@@ -14047,15 +14133,16 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
 .setupCompletionTag {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
+  min-height: 34px;
   padding: 0 12px;
-  border: 1px solid rgba(20, 121, 255, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(20, 121, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
   color: #214879;
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .setupCompletionTagMuted {
@@ -14067,6 +14154,7 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: flex-end;
 }
 
 .setupCompletionActions .primaryButton,
@@ -14074,14 +14162,97 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   min-width: 0;
 }
 
+.setupCompletionActions .setupCompletionPrimaryButton,
+.setupCompletionActions .setupCompletionSecondaryButton {
+  min-height: 44px !important;
+  padding: 0 18px !important;
+  border-radius: 12px !important;
+}
+
+.setupCompletionActions .setupCompletionPrimaryButton,
+.setupCompletionActions button.setupCompletionPrimaryButton {
+  background: #1479ff !important;
+  background-image: none !important;
+  background-color: #1479ff !important;
+  border-color: #1479ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(20, 121, 255, 0.24) !important;
+}
+
+.setupCompletionActions .setupCompletionPrimaryButton:hover:not(:disabled),
+.setupCompletionActions button.setupCompletionPrimaryButton:hover:not(:disabled) {
+  background: #1165e0 !important;
+  background-image: none !important;
+  background-color: #1165e0 !important;
+  border-color: #1165e0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(20, 121, 255, 0.28) !important;
+  transform: translateY(-1px) !important;
+}
+
+.setupCompletionActions .setupCompletionPrimaryButton:active:not(:disabled),
+.setupCompletionActions button.setupCompletionPrimaryButton:active:not(:disabled) {
+  background: #0f56c8 !important;
+  background-image: none !important;
+  background-color: #0f56c8 !important;
+  border-color: #0f56c8 !important;
+  box-shadow: 0 8px 18px rgba(20, 121, 255, 0.2) !important;
+  transform: translateY(0) scale(0.985) !important;
+}
+
+.setupCompletionActions .setupCompletionSecondaryButton,
+.setupCompletionActions button.setupCompletionSecondaryButton {
+  background: rgba(20, 121, 255, 0.08) !important;
+  background-image: none !important;
+  background-color: rgba(20, 121, 255, 0.08) !important;
+  border: 1px solid rgba(20, 121, 255, 0.16) !important;
+  border-color: rgba(20, 121, 255, 0.16) !important;
+  color: #1b4c94 !important;
+  box-shadow: none !important;
+}
+
+.setupCompletionActions .setupCompletionSecondaryButton:hover:not(:disabled),
+.setupCompletionActions button.setupCompletionSecondaryButton:hover:not(:disabled) {
+  background: rgba(20, 121, 255, 0.14) !important;
+  background-image: none !important;
+  background-color: rgba(20, 121, 255, 0.14) !important;
+  border-color: rgba(20, 121, 255, 0.24) !important;
+  color: #15407c !important;
+  box-shadow: none !important;
+  transform: translateY(-1px) !important;
+}
+
+.setupCompletionActions .setupCompletionSecondaryButton:active:not(:disabled),
+.setupCompletionActions button.setupCompletionSecondaryButton:active:not(:disabled) {
+  background: rgba(20, 121, 255, 0.18) !important;
+  background-image: none !important;
+  background-color: rgba(20, 121, 255, 0.18) !important;
+  border-color: rgba(20, 121, 255, 0.28) !important;
+  color: #15407c !important;
+  transform: translateY(0) !important;
+}
+
 @media (max-width: 760px) {
   .setupCompletionCard {
-    padding: 16px !important;
-    border-radius: 18px !important;
+    padding: 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .setupCompletionStatusRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .setupCompletionBottomRow {
+    grid-template-columns: 1fr;
+  }
+
+  .setupCompletionProgressBadge {
+    justify-items: start;
   }
 
   .setupCompletionTitle {
-    font-size: 1.02rem;
+    font-size: 1.08rem;
   }
 
   .setupCompletionText {

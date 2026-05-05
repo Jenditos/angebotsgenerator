@@ -8356,44 +8356,69 @@ export default function HomePage() {
                   className="setupCompletionCard span2"
                   aria-label="Ersteinrichtung vervollständigen"
                 >
-                  <div className="setupCompletionCardHeader">
-                    <p className="setupCompletionEyebrow">Ersteinrichtung fast fertig</p>
-                    <h2 className="setupCompletionTitle">
-                      Es fehlen noch {formatOnboardingMissingCount(onboardingMissingFields.length)}.
-                    </h2>
-                    <p className="setupCompletionText">
-                      Du kannst direkt weiterarbeiten. Ergänze nur noch die fehlenden
-                      Firmendaten, damit Angebote und Rechnungen ohne Nacharbeit
-                      erstellt werden.
-                    </p>
+                  <div className="setupCompletionIntro">
+                    <div className="setupCompletionStatusRow">
+                      <div className="setupCompletionEyebrowGroup">
+                        <span className="setupCompletionPulse" aria-hidden="true" />
+                        <p className="setupCompletionEyebrow">
+                          Ersteinrichtung fast fertig
+                        </p>
+                      </div>
+                      <div className="setupCompletionProgressBadge">
+                        <strong>
+                          {completedOnboardingFieldCount}/
+                          {ONBOARDING_REQUIRED_FIELD_COUNT}
+                        </strong>
+                        <span>Angaben bereit</span>
+                      </div>
+                    </div>
+                    <div className="setupCompletionCardHeader">
+                      <h2 className="setupCompletionTitle">
+                        Fast geschafft. Es fehlt noch{" "}
+                        {formatOnboardingMissingCount(onboardingMissingFields.length)}.
+                      </h2>
+                      <p className="setupCompletionText">
+                        Du kannst direkt weiterarbeiten. Fülle nur noch die
+                        verbleibenden Firmendaten aus, damit Angebote und Rechnungen
+                        ohne Nacharbeit erstellt werden.
+                      </p>
+                    </div>
                   </div>
-                  <div className="setupCompletionTagList" aria-label="Fehlende Angaben">
-                    {onboardingMissingLabelsPreview.map((label) => (
-                      <span key={label} className="setupCompletionTag">
-                        {label}
-                      </span>
-                    ))}
-                    {onboardingAdditionalMissingCount > 0 ? (
-                      <span className="setupCompletionTag setupCompletionTagMuted">
-                        +{onboardingAdditionalMissingCount} weitere
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="setupCompletionActions">
-                    <button
-                      type="button"
-                      className="primaryButton"
-                      onClick={openOnboardingFlow}
-                    >
-                      Fehlende Angaben ergänzen
-                    </button>
-                    <button
-                      type="button"
-                      className="ghostButton"
-                      onClick={openSettingsOverlay}
-                    >
-                      Einstellungen öffnen
-                    </button>
+                  <div className="setupCompletionBottomRow">
+                    <div className="setupCompletionTagSection">
+                      <p className="setupCompletionSectionLabel">Noch offen</p>
+                      <div
+                        className="setupCompletionTagList"
+                        aria-label="Fehlende Angaben"
+                      >
+                        {onboardingMissingLabelsPreview.map((label) => (
+                          <span key={label} className="setupCompletionTag">
+                            {label}
+                          </span>
+                        ))}
+                        {onboardingAdditionalMissingCount > 0 ? (
+                          <span className="setupCompletionTag setupCompletionTagMuted">
+                            +{onboardingAdditionalMissingCount} weitere
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="setupCompletionActions">
+                      <button
+                        type="button"
+                        className="primaryButton setupCompletionPrimaryButton"
+                        onClick={openOnboardingFlow}
+                      >
+                        Fehlende Angaben ergänzen
+                      </button>
+                      <button
+                        type="button"
+                        className="ghostButton setupCompletionSecondaryButton"
+                        onClick={openSettingsOverlay}
+                      >
+                        Einstellungen öffnen
+                      </button>
+                    </div>
                   </div>
                 </section>
               ) : null}
