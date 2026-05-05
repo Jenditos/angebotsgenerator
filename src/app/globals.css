@@ -13837,3 +13837,157 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
     transform: none !important;
   }
 }
+
+/* Isolated dashboard toggle buttons.
+   These classes bypass the legacy documentModeSwitchButton/recipientTypeButton
+   hover stack so selected states keep their exact active colors on hover. */
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton,
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton {
+  display: flex !important;
+  width: 100% !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 46px !important;
+  padding: 13px 18px !important;
+  border: 1px solid rgba(25, 59, 104, 0.2) !important;
+  border-radius: 14px !important;
+  background: rgba(25, 59, 104, 0.1) !important;
+  background-color: rgba(25, 59, 104, 0.1) !important;
+  background-image: none !important;
+  color: #1f3f72 !important;
+  box-shadow: none !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+}
+
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected,
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton[aria-pressed="true"] {
+  background: #116fe6 !important;
+  background-color: #116fe6 !important;
+  border-color: #116fe6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+}
+
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 32px !important;
+  padding: 6px 16px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: var(--muted, #60759a) !important;
+  box-shadow: none !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected,
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton[aria-pressed="true"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: none !important;
+  color: var(--vis-dark, #1f3f72) !important;
+  box-shadow: 0 1px 4px rgba(20, 121, 255, 0.15) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton:hover,
+  .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton:focus-visible,
+  .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton:active {
+    background: rgba(25, 59, 104, 0.1) !important;
+    background-color: rgba(25, 59, 104, 0.1) !important;
+    border-color: rgba(25, 59, 104, 0.2) !important;
+    color: #1f3f72 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .appFrameWithSidebar
+    .documentModeSwitch
+    > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected:hover,
+  .appFrameWithSidebar
+    .documentModeSwitch
+    > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected:focus-visible,
+  .appFrameWithSidebar
+    .documentModeSwitch
+    > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected:active,
+  .appFrameWithSidebar
+    .documentModeSwitch
+    > button.dashboardModeToggleButton[aria-pressed="true"]:hover,
+  .appFrameWithSidebar
+    .documentModeSwitch
+    > button.dashboardModeToggleButton[aria-pressed="true"]:focus-visible,
+  .appFrameWithSidebar
+    .documentModeSwitch
+    > button.dashboardModeToggleButton[aria-pressed="true"]:active {
+    background: #116fe6 !important;
+    background-color: #116fe6 !important;
+    border-color: #116fe6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(20, 121, 255, 0.3) !important;
+  }
+
+  .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton:hover,
+  .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton:focus-visible,
+  .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--muted, #60759a) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .appFrameWithSidebar
+    .recipientTypeButtons
+    > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected:hover,
+  .appFrameWithSidebar
+    .recipientTypeButtons
+    > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected:focus-visible,
+  .appFrameWithSidebar
+    .recipientTypeButtons
+    > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected:active,
+  .appFrameWithSidebar
+    .recipientTypeButtons
+    > button.dashboardSegmentToggleButton[aria-pressed="true"]:hover,
+  .appFrameWithSidebar
+    .recipientTypeButtons
+    > button.dashboardSegmentToggleButton[aria-pressed="true"]:focus-visible,
+  .appFrameWithSidebar
+    .recipientTypeButtons
+    > button.dashboardSegmentToggleButton[aria-pressed="true"]:active {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: none !important;
+    color: var(--vis-dark, #1f3f72) !important;
+    box-shadow: 0 1px 4px rgba(20, 121, 255, 0.15) !important;
+  }
+}

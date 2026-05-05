@@ -8205,7 +8205,7 @@ export default function HomePage() {
                 <div className="documentModeSwitch" role="group" aria-label="Modus auswählen">
                   <button
                     type="button"
-                    className={`documentModeSwitchButton ${documentMode === "offer" ? "active" : ""}`}
+                    className={`dashboardModeToggleButton ${documentMode === "offer" ? "dashboardModeToggleButtonSelected" : ""}`}
                     aria-pressed={documentMode === "offer"}
                     onClick={() => switchDocumentMode("offer")}
                   >
@@ -8213,7 +8213,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className={`documentModeSwitchButton ${documentMode === "invoice" ? "active" : ""}`}
+                    className={`dashboardModeToggleButton ${documentMode === "invoice" ? "dashboardModeToggleButtonSelected" : ""}`}
                     aria-pressed={documentMode === "invoice"}
                     onClick={() => switchDocumentMode("invoice")}
                   >
@@ -8766,7 +8766,7 @@ export default function HomePage() {
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
-                    className={`recipientTypeButton ${form.customerType === "company" ? "active" : ""}`}
+                    className={`dashboardSegmentToggleButton ${form.customerType === "company" ? "dashboardSegmentToggleButtonSelected" : ""}`}
                     aria-pressed={form.customerType === "company"}
                     onClick={() =>
                       setForm((prev) => ({ ...prev, customerType: "company" }))
@@ -8776,7 +8776,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className={`recipientTypeButton ${form.customerType === "person" ? "active" : ""}`}
+                    className={`dashboardSegmentToggleButton ${form.customerType === "person" ? "dashboardSegmentToggleButtonSelected" : ""}`}
                     aria-pressed={form.customerType === "person"}
                     onClick={() =>
                       setForm((prev) => ({ ...prev, customerType: "person" }))
@@ -8811,7 +8811,7 @@ export default function HomePage() {
                 <div className="recipientTypeButtons">
                   <button
                     type="button"
-                    className={`recipientTypeButton ${form.salutation === "herr" ? "active" : ""}`}
+                    className={`dashboardSegmentToggleButton ${form.salutation === "herr" ? "dashboardSegmentToggleButtonSelected" : ""}`}
                     aria-pressed={form.salutation === "herr"}
                     onClick={() => setForm((prev) => ({ ...prev, salutation: "herr" }))}
                   >
@@ -8819,7 +8819,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className={`recipientTypeButton ${form.salutation === "frau" ? "active" : ""}`}
+                    className={`dashboardSegmentToggleButton ${form.salutation === "frau" ? "dashboardSegmentToggleButtonSelected" : ""}`}
                     aria-pressed={form.salutation === "frau"}
                     onClick={() => setForm((prev) => ({ ...prev, salutation: "frau" }))}
                   >
