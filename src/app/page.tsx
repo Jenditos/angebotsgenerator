@@ -875,7 +875,6 @@ const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent-v1";
 const ONBOARDING_PROMPT_SHOWN_SESSION_KEY = "visioro-onboarding-prompt-shown-v1";
-const ONBOARDING_AUTO_PROMPT_COMPLETED_THRESHOLD = 2;
 const ONBOARDING_REQUIRED_FIELD_LABELS: Record<string, string> = {
   companyName: "Firmenname",
   ownerName: "Ansprechpartner",
@@ -2381,11 +2380,8 @@ export default function HomePage() {
     isAuthenticatedUser &&
     !isAuthStatusLoading &&
     onboardingMissingFields.length > 0;
-  const shouldAutoPromptOnboarding =
-    shouldRequireOnboarding &&
-    completedOnboardingFieldCount <= ONBOARDING_AUTO_PROMPT_COMPLETED_THRESHOLD;
-  const shouldShowOnboardingCompletionCard =
-    shouldRequireOnboarding && !shouldAutoPromptOnboarding;
+  const shouldAutoPromptOnboarding = shouldRequireOnboarding;
+  const shouldShowOnboardingCompletionCard = false;
   const onboardingPrimaryMissingField = onboardingMissingFields[0] ?? null;
   const onboardingCompletionTitle = formatOnboardingCompletionTitle(
     onboardingMissingFields.length,
@@ -9560,7 +9556,6 @@ export default function HomePage() {
                         type="button"
                         className="dateInputIconButton"
                         aria-label="Kalender öffnen"
-                        title="Kalender öffnen"
                         onClick={openInvoiceDatePicker}
                       >
                         <svg
@@ -9602,7 +9597,6 @@ export default function HomePage() {
                           type="button"
                           className="dateInputIconButton"
                           aria-label="Leistungszeitraum auswählen"
-                          title="Leistungszeitraum auswählen"
                           onClick={openServiceDateRangePicker}
                         >
                           <svg

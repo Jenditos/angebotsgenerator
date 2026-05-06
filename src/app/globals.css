@@ -4982,11 +4982,21 @@ button.dateInputIconButton {
 }
 
 button.dateInputIconButton:hover {
-  background: rgba(238, 246, 255, 0.58);
+  background: rgba(238, 246, 255, 0.44) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: translateY(-50%) !important;
 }
 
 button.dateInputIconButton:active {
-  transform: translateY(-50%) scale(0.97);
+  background: rgba(220, 235, 255, 0.56) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: translateY(-50%) scale(0.97) !important;
 }
 
 .dateInputIcon {
@@ -14379,7 +14389,7 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
 }
 
 .onboardingPageEmbedded .onboardingHeader {
-  padding: 0 28px 18px !important;
+  padding: 0 0 18px !important;
   margin-bottom: 18px !important;
 }
 
@@ -14533,11 +14543,15 @@ button.voiceLoginModalCloseButton:active:not(:disabled) {
   }
 
   .onboardingPageEmbedded .onboardingCard,
-  .onboardingPageEmbedded .onboardingHeader,
   .onboardingPageEmbedded .onboardingActions,
   .onboardingPageEmbedded .onboardingSkipRow {
     padding-left: 20px !important;
     padding-right: 20px !important;
+  }
+
+  .onboardingPageEmbedded .onboardingHeader {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
   .onboardingPageEmbedded .onboardingHeaderText {
