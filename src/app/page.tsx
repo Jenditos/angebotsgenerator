@@ -204,6 +204,20 @@ type ProjectDocumentsApiResponse = {
   error?: string;
 };
 
+type ArchiveActivityLogEntry = {
+  id: string;
+  entityType: "customer" | "project" | "document" | "email" | "system";
+  entityId: string;
+  action: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+};
+
+type ActivityLogApiResponse = {
+  activities?: ArchiveActivityLogEntry[];
+  error?: string;
+};
+
 type ParsedVoiceFields = {
   positions?: ParsedVoicePosition[];
   customerType?: "person" | "company";
@@ -1792,6 +1806,29 @@ function formatArchiveDate(value: string): string {
   }).format(new Date(timestamp));
 }
 
+function formatActivityLogTitle(action: string): string {
+  switch (action) {
+    case "document_recorded":
+      return "Dokument gespeichert";
+    case "pdf_ready":
+      return "PDF bereit";
+    case "email_prepared":
+      return "E-Mail vorbereitet";
+    case "email_sent":
+      return "E-Mail gesendet";
+    case "email_failed":
+      return "E-Mail fehlgeschlagen";
+    case "email_not_configured":
+      return "E-Mail nicht konfiguriert";
+    case "reminder_scheduled":
+      return "Erinnerung geplant";
+    case "pdf_storage_failed":
+      return "PDF-Speicherung fehlgeschlagen";
+    default:
+      return "Aktualisierung";
+  }
+}
+
 function CustomerArchiveDocumentBadges({
   document,
 }: {
@@ -2194,10 +2231,19 @@ export default function HomePage() {
   >([]);
   const [archiveError, setArchiveError] = useState("");
   const [projectArchiveError, setProjectArchiveError] = useState("");
+  const [projectArchiveActivities, setProjectArchiveActivities] = useState<
+    ArchiveActivityLogEntry[]
+  >([]);
+  const [projectArchiveActivityError, setProjectArchiveActivityError] =
+    useState("");
   const [isArchiveDocumentsLoading, setIsArchiveDocumentsLoading] =
     useState(false);
   const [isProjectArchiveDocumentsLoading, setIsProjectArchiveDocumentsLoading] =
     useState(false);
+  const [
+    isProjectArchiveActivityLoading,
+    setIsProjectArchiveActivityLoading,
+  ] = useState(false);
   const [selectedArchiveCustomerNumber, setSelectedArchiveCustomerNumber] =
     useState("");
   const [selectedArchiveProjectNumber, setSelectedArchiveProjectNumber] =
@@ -2258,6 +2304,9 @@ export default function HomePage() {
   const archiveCloseTimeoutRef = useRef<number | null>(null);
   const projectArchiveLoadRequestRef = useRef(0);
   const projectArchiveAbortControllerRef = useRef<AbortController | null>(null);
+  const projectArchiveActivityLoadRequestRef = useRef(0);
+  const projectArchiveActivityAbortControllerRef =
+    useRef<AbortController | null>(null);
   const projectArchiveCloseTimeoutRef = useRef<number | null>(null);
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -2618,6 +2667,12 @@ export default function HomePage() {
             : "Angebot erstellt",
         detail: document.documentNumber,
       })),
+      ...projectArchiveActivities.map((activity) => ({
+        id: `activity-${activity.id}`,
+        createdAt: activity.createdAt,
+        title: formatActivityLogTitle(activity.action),
+        detail: activity.entityId,
+      })),
     ];
 
     return entries.sort((left, right) => {
@@ -2633,7 +2688,7 @@ export default function HomePage() {
 
       return right.id.localeCompare(left.id);
     });
-  }, [projectArchiveDocuments, selectedArchiveProject]);
+  }, [projectArchiveActivities, projectArchiveDocuments, selectedArchiveProject]);
   const isInvoiceMode = documentMode === "invoice";
   const singularDocumentLabel = isInvoiceMode ? "Rechnung" : "Angebot";
   const createDocumentFirstInfo = isInvoiceMode
@@ -3709,6 +3764,79 @@ export default function HomePage() {
     }
   }
 
+  async function loadProjectActivities(documents: CustomerArchiveDocument[]) {
+    const documentNumbers = documents
+      .map((document) => document.documentNumber.trim())
+      .filter(Boolean);
+    if (documentNumbers.length === 0) {
+      if (projectArchiveActivityAbortControllerRef.current) {
+        projectArchiveActivityAbortControllerRef.current.abort();
+        projectArchiveActivityAbortControllerRef.current = null;
+      }
+      setProjectArchiveActivities([]);
+      setProjectArchiveActivityError("");
+      setIsProjectArchiveActivityLoading(false);
+      return;
+    }
+
+    const currentLoadRequest = projectArchiveActivityLoadRequestRef.current + 1;
+    projectArchiveActivityLoadRequestRef.current = currentLoadRequest;
+    if (projectArchiveActivityAbortControllerRef.current) {
+      projectArchiveActivityAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    projectArchiveActivityAbortControllerRef.current = controller;
+
+    setProjectArchiveActivityError("");
+    setIsProjectArchiveActivityLoading(true);
+    setProjectArchiveActivities([]);
+
+    try {
+      const searchParams = new URLSearchParams({
+        entityType: "document",
+        limit: "100",
+      });
+      for (const documentNumber of documentNumbers) {
+        searchParams.append("entityId", documentNumber);
+      }
+
+      const response = await fetch(
+        `/api/activity-log?${searchParams.toString()}`,
+        { signal: controller.signal },
+      );
+      const data = (await response.json()) as ActivityLogApiResponse;
+      if (projectArchiveActivityLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      if (!response.ok) {
+        setProjectArchiveActivityError(
+          data.error ?? "Verlauf konnte nicht geladen werden.",
+        );
+        return;
+      }
+
+      setProjectArchiveActivities(
+        Array.isArray(data.activities) ? data.activities : [],
+      );
+    } catch (error) {
+      if ((error as { name?: string }).name === "AbortError") {
+        return;
+      }
+      if (projectArchiveActivityLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      setProjectArchiveActivityError("Verlauf konnte nicht geladen werden.");
+    } finally {
+      if (projectArchiveActivityAbortControllerRef.current === controller) {
+        projectArchiveActivityAbortControllerRef.current = null;
+      }
+      if (projectArchiveActivityLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      setIsProjectArchiveActivityLoading(false);
+    }
+  }
+
   async function loadProjectDocuments(
     project: Pick<
       StoredProjectRecord,
@@ -3727,6 +3855,7 @@ export default function HomePage() {
         projectArchiveAbortControllerRef.current = null;
       }
       setProjectArchiveDocuments([]);
+      setProjectArchiveActivities([]);
       return;
     }
 
@@ -3741,6 +3870,7 @@ export default function HomePage() {
     setProjectArchiveError("");
     setIsProjectArchiveDocumentsLoading(true);
     setProjectArchiveDocuments([]);
+    setProjectArchiveActivities([]);
 
     try {
       const searchParams = new URLSearchParams({
@@ -3777,9 +3907,8 @@ export default function HomePage() {
       }
 
       const documents = Array.isArray(data.documents) ? data.documents : [];
-      setProjectArchiveDocuments(
-        documents
-          .map((document): CustomerArchiveDocument => ({
+      const normalizedDocuments = documents
+        .map((document): CustomerArchiveDocument => ({
             ...document,
             documentType: document.documentType === "invoice" ? "invoice" : "offer",
             status: normalizeDocumentProcessingStatus(document.status),
@@ -3790,21 +3919,22 @@ export default function HomePage() {
               typeof document.reminderDueAt === "string"
                 ? document.reminderDueAt
                 : null,
-          }))
-          .sort((left, right) => {
-            const rightTs = Date.parse(right.createdAt);
-            const leftTs = Date.parse(left.createdAt);
-            if (
-              Number.isFinite(rightTs) &&
-              Number.isFinite(leftTs) &&
-              rightTs !== leftTs
-            ) {
-              return rightTs - leftTs;
-            }
+        }))
+        .sort((left, right) => {
+          const rightTs = Date.parse(right.createdAt);
+          const leftTs = Date.parse(left.createdAt);
+          if (
+            Number.isFinite(rightTs) &&
+            Number.isFinite(leftTs) &&
+            rightTs !== leftTs
+          ) {
+            return rightTs - leftTs;
+          }
 
-            return right.documentNumber.localeCompare(left.documentNumber);
-          }),
-      );
+          return right.documentNumber.localeCompare(left.documentNumber);
+        });
+      setProjectArchiveDocuments(normalizedDocuments);
+      void loadProjectActivities(normalizedDocuments);
     } catch (error) {
       if ((error as { name?: string }).name === "AbortError") {
         return;
@@ -3832,6 +3962,10 @@ export default function HomePage() {
     if (projectArchiveAbortControllerRef.current) {
       projectArchiveAbortControllerRef.current.abort();
       projectArchiveAbortControllerRef.current = null;
+    }
+    if (projectArchiveActivityAbortControllerRef.current) {
+      projectArchiveActivityAbortControllerRef.current.abort();
+      projectArchiveActivityAbortControllerRef.current = null;
     }
     setIsProjectArchiveOpen(false);
     setIsClosingProjectArchive(false);
@@ -3946,6 +4080,10 @@ export default function HomePage() {
       projectArchiveAbortControllerRef.current.abort();
       projectArchiveAbortControllerRef.current = null;
     }
+    if (projectArchiveActivityAbortControllerRef.current) {
+      projectArchiveActivityAbortControllerRef.current.abort();
+      projectArchiveActivityAbortControllerRef.current = null;
+    }
     setIsClosingProjectArchive(true);
     if (projectArchiveCloseTimeoutRef.current !== null) {
       window.clearTimeout(projectArchiveCloseTimeoutRef.current);
@@ -3961,14 +4099,22 @@ export default function HomePage() {
 
   function clearArchiveProjectSelection() {
     projectArchiveLoadRequestRef.current += 1;
+    projectArchiveActivityLoadRequestRef.current += 1;
     if (projectArchiveAbortControllerRef.current) {
       projectArchiveAbortControllerRef.current.abort();
       projectArchiveAbortControllerRef.current = null;
     }
+    if (projectArchiveActivityAbortControllerRef.current) {
+      projectArchiveActivityAbortControllerRef.current.abort();
+      projectArchiveActivityAbortControllerRef.current = null;
+    }
     setSelectedArchiveProjectNumber("");
     setProjectArchiveDocuments([]);
+    setProjectArchiveActivities([]);
     setProjectArchiveError("");
+    setProjectArchiveActivityError("");
     setIsProjectArchiveDocumentsLoading(false);
+    setIsProjectArchiveActivityLoading(false);
     setIsProjectArchiveOffersOpen(false);
     setIsProjectArchiveInvoicesOpen(false);
   }
@@ -7698,6 +7844,11 @@ export default function HomePage() {
 
                     <div className="projectTimelineCard">
                       <strong>Verlauf</strong>
+                      {isProjectArchiveActivityLoading ? (
+                        <p className="customerArchiveHint customerArchiveHintCompact">
+                          Verlauf wird geladen ...
+                        </p>
+                      ) : null}
                       {projectTimelineEntries.length === 0 ? (
                         <p className="customerArchiveHint customerArchiveHintCompact">
                           Für dieses Projekt gibt es noch keine Einträge.
@@ -7713,6 +7864,12 @@ export default function HomePage() {
                           ))}
                         </div>
                       )}
+                      {!isProjectArchiveActivityLoading &&
+                      projectArchiveActivityError ? (
+                        <p className="voiceWarning" role="alert">
+                          {projectArchiveActivityError}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="customerArchiveDocumentGroups">

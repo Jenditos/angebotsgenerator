@@ -28,7 +28,10 @@ export const config = {
 async function requirePagesApiAppAccess(
   req: NextApiRequest,
   res: NextApiResponse,
-): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+): Promise<
+  | { ok: true; userId?: string }
+  | { ok: false; status: number; error: string }
+> {
   if (isAuthBypassEnabled()) {
     return { ok: true };
   }
@@ -64,13 +67,13 @@ async function requirePagesApiAppAccess(
       };
     }
 
-    return { ok: true };
+    return { ok: true, userId: data.user.id };
   } catch (accessError) {
     if (isUserAccessSetupError(accessError)) {
       logUserAccessError("pages/api/pdf/generate-offer transient setup fallback", accessError, {
         userId: data.user.id,
       });
-      return { ok: true };
+      return { ok: true, userId: data.user.id };
     }
 
     logUserAccessError("pages/api/pdf/generate-offer", accessError, {
@@ -102,6 +105,9 @@ export default async function handler(
   try {
     response = await handleGenerateOfferAuthorizedRequest(
       buildWebRequestFromApiRequest(req, "http://localhost:3003/api/generate-offer"),
+      {
+        userId: accessResult.userId,
+      },
     );
   } catch (error) {
     console.error("[pages/api/pdf/generate-offer] unexpected failure", error);
