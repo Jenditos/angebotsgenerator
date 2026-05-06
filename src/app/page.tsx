@@ -55,6 +55,7 @@ import {
 import {
   CompanySettings,
   CustomerDraftGroup,
+  DOCUMENT_PROCESSING_STATUS_VALUES,
   DocumentProcessingStatus,
   DocumentTaxInfo,
   DocumentType,
@@ -615,12 +616,42 @@ const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   paid: "Bezahlt",
 };
 
+const DOCUMENT_STATUS_LABELS: Record<DocumentProcessingStatus, string> = {
+  offer_created: "Dokument erstellt",
+  pdf_ready: "PDF bereit",
+  email_prepared: "E-Mail vorbereitet",
+  email_sent: "E-Mail gesendet",
+  email_failed: "E-Mail fehlgeschlagen",
+  failed: "Fehler",
+};
+
 function formatProjectStatusLabel(status: ProjectStatus | undefined): string {
   if (!status) {
     return PROJECT_STATUS_LABELS.new;
   }
 
   return PROJECT_STATUS_LABELS[status] ?? PROJECT_STATUS_LABELS.new;
+}
+
+function isDocumentProcessingStatus(
+  value: unknown,
+): value is DocumentProcessingStatus {
+  return DOCUMENT_PROCESSING_STATUS_VALUES.includes(
+    value as DocumentProcessingStatus,
+  );
+}
+
+function normalizeDocumentProcessingStatus(
+  status: DocumentProcessingStatus | null | undefined,
+): DocumentProcessingStatus | null {
+  return isDocumentProcessingStatus(status) ? status : null;
+}
+
+function formatDocumentProcessingStatusLabel(
+  status: DocumentProcessingStatus | null | undefined,
+): string {
+  const normalizedStatus = normalizeDocumentProcessingStatus(status);
+  return normalizedStatus ? DOCUMENT_STATUS_LABELS[normalizedStatus] : "";
 }
 
 function buildProjectAddressFallback(currentForm: OfferForm): string {
@@ -1700,6 +1731,33 @@ function formatArchiveDate(value: string): string {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(timestamp));
+}
+
+function CustomerArchiveDocumentBadges({
+  document,
+}: {
+  document: CustomerArchiveDocument;
+}) {
+  const statusLabel = formatDocumentProcessingStatusLabel(document.status);
+  if (!statusLabel && !document.hasPdf) {
+    return null;
+  }
+
+  return (
+    <div className="customerArchiveDocumentBadges">
+      {statusLabel ? (
+        <span
+          className="customerArchiveDocumentStatusBadge"
+          data-status={normalizeDocumentProcessingStatus(document.status) ?? "unknown"}
+        >
+          {statusLabel}
+        </span>
+      ) : null}
+      {document.hasPdf ? (
+        <span className="customerArchiveDocumentPdfBadge">PDF gespeichert</span>
+      ) : null}
+    </div>
+  );
 }
 
 function hasVoiceFieldValue(key: string, form: OfferForm): boolean {
@@ -3516,6 +3574,8 @@ export default function HomePage() {
           .map((document): CustomerArchiveDocument => ({
             ...document,
             documentType: document.documentType === "invoice" ? "invoice" : "offer",
+            status: normalizeDocumentProcessingStatus(document.status),
+            hasPdf: Boolean(document.hasPdf),
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -3623,6 +3683,8 @@ export default function HomePage() {
           .map((document): CustomerArchiveDocument => ({
             ...document,
             documentType: document.documentType === "invoice" ? "invoice" : "offer",
+            status: normalizeDocumentProcessingStatus(document.status),
+            hasPdf: Boolean(document.hasPdf),
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -6679,6 +6741,8 @@ export default function HomePage() {
             payload.documentType === "invoice" ? "invoice" : "offer",
           customerNumber: payload.customerNumber,
           customerName: buildCustomerNameForStorage(form),
+          status: normalizeDocumentProcessingStatus(payload.documentStatus),
+          hasPdf: Boolean(payload.pdfStored),
           createdAt: new Date().toISOString(),
         };
         setArchiveDocuments((prev) => {
@@ -6703,6 +6767,8 @@ export default function HomePage() {
           customerName: buildCustomerNameForStorage(form),
           projectNumber: payload.projectNumber,
           projectName: payload.projectName || form.projectName.trim(),
+          status: normalizeDocumentProcessingStatus(payload.documentStatus),
+          hasPdf: Boolean(payload.pdfStored),
           createdAt: new Date().toISOString(),
         };
         setProjectArchiveDocuments((prev) => {
@@ -7226,6 +7292,9 @@ export default function HomePage() {
                                     <span>
                                       Angebot • {formatArchiveDate(document.createdAt)}
                                     </span>
+                                    <CustomerArchiveDocumentBadges
+                                      document={document}
+                                    />
                                   </div>
                                   {document.title ? (
                                     <span className="customerArchiveDocumentMetaAux">
@@ -7271,6 +7340,9 @@ export default function HomePage() {
                                     <span>
                                       Rechnung • {formatArchiveDate(document.createdAt)}
                                     </span>
+                                    <CustomerArchiveDocumentBadges
+                                      document={document}
+                                    />
                                   </div>
                                   {document.title ? (
                                     <span className="customerArchiveDocumentMetaAux">
@@ -7573,6 +7645,9 @@ export default function HomePage() {
                                     <span>
                                       Angebot • {formatArchiveDate(document.createdAt)}
                                     </span>
+                                    <CustomerArchiveDocumentBadges
+                                      document={document}
+                                    />
                                   </div>
                                   {document.title ? (
                                     <span className="customerArchiveDocumentMetaAux">
@@ -7627,6 +7702,9 @@ export default function HomePage() {
                                       Rechnung •{" "}
                                       {formatArchiveDate(document.createdAt)}
                                     </span>
+                                    <CustomerArchiveDocumentBadges
+                                      document={document}
+                                    />
                                   </div>
                                   {document.title ? (
                                     <span className="customerArchiveDocumentMetaAux">

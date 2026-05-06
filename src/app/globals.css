@@ -6078,6 +6078,48 @@ button.customerArchiveSectionToggle {
   line-height: 1.25;
 }
 
+.customerArchiveDocumentBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.customerArchiveDocumentStatusBadge,
+.customerArchiveDocumentPdfBadge {
+  width: fit-content;
+  border-radius: 7px;
+  padding: 2px 7px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.customerArchiveDocumentStatusBadge {
+  border: 1px solid rgba(72, 118, 197, 0.2);
+  background: rgba(235, 245, 255, 0.92);
+  color: #315985;
+}
+
+.customerArchiveDocumentStatusBadge[data-status="email_sent"] {
+  border-color: rgba(29, 132, 84, 0.24);
+  background: rgba(232, 248, 240, 0.92);
+  color: #1d6e49;
+}
+
+.customerArchiveDocumentStatusBadge[data-status="email_failed"],
+.customerArchiveDocumentStatusBadge[data-status="failed"] {
+  border-color: rgba(188, 65, 65, 0.24);
+  background: rgba(255, 239, 239, 0.92);
+  color: #963737;
+}
+
+.customerArchiveDocumentPdfBadge {
+  border: 1px solid rgba(90, 118, 70, 0.22);
+  background: rgba(246, 250, 239, 0.92);
+  color: #4f6f35;
+}
+
 .customerArchiveDocumentMetaAux {
   color: #516b95;
   font-size: 0.76rem;
