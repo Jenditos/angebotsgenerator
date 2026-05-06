@@ -1737,6 +1737,7 @@ export async function handleGenerateOfferAuthorizedRequest(
       documentType,
       documentStatus,
       idempotencyKey: idempotencyKey || undefined,
+      paymentStatus: documentType === "invoice" ? "unpaid" : undefined,
       pdfStored: true,
       pdfDownloadUrl: `/api/pdf/customer-documents/${encodeURIComponent(
         generatedDocumentNumber,

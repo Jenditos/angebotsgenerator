@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import {
   createStoredOfferRecord,
   updateStoredOfferRecordEmailReference,
+  updateStoredOfferRecordPaymentReference,
   updateStoredOfferRecordPdfReference,
   updateStoredOfferRecordStatus,
 } from "./offer-store-service";
@@ -281,6 +282,61 @@ describe("offer-store-service", () => {
       expect(persisted.offers[0].email?.status).toBe("prepared");
       expect(persisted.offers[0].email?.idempotencyKey).toBe("mail-key-1");
       expect(persisted.offers[0].email?.draftId).toBe("draft-1");
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("stores an unpaid payment status for invoices and allows updates", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-payment-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const invoice = await createStoredOfferRecord(
+        {
+          ...createSampleInput("invoice-payment"),
+          documentType: "invoice",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(invoice.payment?.status).toBe("unpaid");
+
+      const updated = await updateStoredOfferRecordPaymentReference(
+        invoice.offerNumber,
+        {
+          status: "paid",
+          provider: "manual",
+          reference: "bank-transfer",
+          paidAt: "2026-01-04T09:00:00.000Z",
+          updatedAt: "2026-01-04T09:00:00.000Z",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(updated?.payment?.status).toBe("paid");
+      expect(updated?.payment?.paidAt).toBe("2026-01-04T09:00:00.000Z");
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{
+          offerNumber: string;
+          payment?: { status?: string; provider?: string; reference?: string };
+        }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].payment?.status).toBe("paid");
+      expect(persisted.offers[0].payment?.provider).toBe("manual");
+      expect(persisted.offers[0].payment?.reference).toBe("bank-transfer");
     } finally {
       await rm(dataDir, { recursive: true, force: true });
     }

@@ -13,6 +13,8 @@ import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   DocumentType,
   DocumentTaxInfo,
+  DocumentPaymentStatus,
+  DOCUMENT_PAYMENT_STATUS_VALUES,
   DocumentProcessingStatus,
   DOCUMENT_PROCESSING_STATUS_VALUES,
   OfferPdfLineItem,
@@ -20,6 +22,7 @@ import {
   StoredEmailProvider,
   StoredEmailReference,
   StoredEmailStatus,
+  StoredPaymentReference,
   StoredPdfReference,
   StoredOfferRecord,
 } from "@/types/offer";
@@ -260,6 +263,34 @@ function sanitizeStoredEmailReference(
   };
 }
 
+function sanitizeDocumentPaymentStatus(value: unknown): DocumentPaymentStatus {
+  return DOCUMENT_PAYMENT_STATUS_VALUES.includes(value as DocumentPaymentStatus)
+    ? (value as DocumentPaymentStatus)
+    : "unpaid";
+}
+
+function sanitizeStoredPaymentReference(
+  value: unknown,
+): StoredPaymentReference | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const reference = value as Partial<StoredPaymentReference>;
+  const updatedAt = asTrimmedString(reference.updatedAt);
+  if (!updatedAt) {
+    return undefined;
+  }
+
+  return {
+    status: sanitizeDocumentPaymentStatus(reference.status),
+    provider: asTrimmedString(reference.provider) || undefined,
+    reference: asTrimmedString(reference.reference) || undefined,
+    paidAt: asTrimmedString(reference.paidAt) || undefined,
+    updatedAt,
+  };
+}
+
 function getYearFromDateString(value: string): number {
   const parsed = new Date(value);
   const year = parsed.getFullYear();
@@ -424,6 +455,14 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     record.offer && typeof record.offer === "object"
       ? (record.offer as Partial<OfferText>)
       : {};
+  const payment =
+    sanitizeStoredPaymentReference(record.payment) ??
+    (inferredDocumentType === "invoice"
+      ? {
+          status: "unpaid" as const,
+          updatedAt,
+        }
+      : undefined);
 
   return {
     documentType: inferredDocumentType,
@@ -436,6 +475,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     status: sanitizeDocumentStatus(record.status),
     pdf: sanitizeStoredPdfReference(record.pdf),
     email: sanitizeStoredEmailReference(record.email),
+    payment,
     customerNumber:
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
@@ -803,6 +843,13 @@ export async function createStoredOfferRecord(
       offerNumber: assignedOfferNumber,
       idempotencyKey: normalizedIdempotencyKey || undefined,
       status: input.status ?? "offer_created",
+      payment:
+        documentType === "invoice"
+          ? {
+              status: "unpaid",
+              updatedAt: generatedAt.toISOString(),
+            }
+          : undefined,
       customerNumber: input.customerNumber?.trim() || undefined,
       projectNumber: input.projectNumber?.trim() || undefined,
       projectName: input.projectName?.trim() || undefined,
@@ -954,6 +1001,47 @@ export async function updateStoredOfferRecordEmailReference(
     const updatedRecord: StoredOfferRecord = {
       ...store.offers[recordIndex],
       email,
+      updatedAt: new Date().toISOString(),
+    };
+    const nextOffers = [...store.offers];
+    nextOffers[recordIndex] = updatedRecord;
+    await writeStoreUnsafe(paths.storePath, {
+      ...store,
+      offers: nextOffers,
+    });
+    return updatedRecord;
+  } finally {
+    await releaseLock();
+  }
+}
+
+export async function updateStoredOfferRecordPaymentReference(
+  offerNumber: string,
+  payment: StoredPaymentReference,
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord | null> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
+  const normalizedOfferNumber = offerNumber.trim().toUpperCase();
+  if (!normalizedOfferNumber) {
+    return null;
+  }
+
+  const releaseLock = await acquireStoreLock(paths.lockPath);
+  try {
+    const store = await readStoreWithDataLossProtection(paths.storePath);
+    const recordIndex = store.offers.findIndex(
+      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+    );
+    if (recordIndex < 0) {
+      return null;
+    }
+
+    const updatedRecord: StoredOfferRecord = {
+      ...store.offers[recordIndex],
+      payment,
       updatedAt: new Date().toISOString(),
     };
     const nextOffers = [...store.offers];

@@ -55,7 +55,9 @@ import {
 import {
   CompanySettings,
   CustomerDraftGroup,
+  DOCUMENT_PAYMENT_STATUS_VALUES,
   DOCUMENT_PROCESSING_STATUS_VALUES,
+  DocumentPaymentStatus,
   DocumentProcessingStatus,
   DocumentTaxInfo,
   DocumentType,
@@ -88,6 +90,7 @@ type ApiResponse = {
   documentType?: DocumentType;
   documentStatus?: DocumentProcessingStatus;
   idempotencyKey?: string;
+  paymentStatus?: DocumentPaymentStatus;
   pdfStored?: boolean;
   pdfDownloadUrl?: string;
   documentNumber?: string;
@@ -182,6 +185,7 @@ type CustomerArchiveDocument = {
   title?: string | null;
   status?: DocumentProcessingStatus | null;
   hasPdf?: boolean;
+  paymentStatus?: DocumentPaymentStatus | null;
   createdAt: string;
 };
 
@@ -625,6 +629,14 @@ const DOCUMENT_STATUS_LABELS: Record<DocumentProcessingStatus, string> = {
   failed: "Fehler",
 };
 
+const DOCUMENT_PAYMENT_STATUS_LABELS: Record<DocumentPaymentStatus, string> = {
+  unpaid: "Zahlung offen",
+  pending: "Zahlung ausstehend",
+  paid: "Bezahlt",
+  failed: "Zahlung fehlgeschlagen",
+  refunded: "Erstattet",
+};
+
 function formatProjectStatusLabel(status: ProjectStatus | undefined): string {
   if (!status) {
     return PROJECT_STATUS_LABELS.new;
@@ -652,6 +664,23 @@ function formatDocumentProcessingStatusLabel(
 ): string {
   const normalizedStatus = normalizeDocumentProcessingStatus(status);
   return normalizedStatus ? DOCUMENT_STATUS_LABELS[normalizedStatus] : "";
+}
+
+function isDocumentPaymentStatus(value: unknown): value is DocumentPaymentStatus {
+  return DOCUMENT_PAYMENT_STATUS_VALUES.includes(value as DocumentPaymentStatus);
+}
+
+function normalizeDocumentPaymentStatus(
+  status: DocumentPaymentStatus | null | undefined,
+): DocumentPaymentStatus | null {
+  return isDocumentPaymentStatus(status) ? status : null;
+}
+
+function formatDocumentPaymentStatusLabel(
+  status: DocumentPaymentStatus | null | undefined,
+): string {
+  const normalizedStatus = normalizeDocumentPaymentStatus(status);
+  return normalizedStatus ? DOCUMENT_PAYMENT_STATUS_LABELS[normalizedStatus] : "";
 }
 
 function buildProjectAddressFallback(currentForm: OfferForm): string {
@@ -1739,7 +1768,10 @@ function CustomerArchiveDocumentBadges({
   document: CustomerArchiveDocument;
 }) {
   const statusLabel = formatDocumentProcessingStatusLabel(document.status);
-  if (!statusLabel && !document.hasPdf) {
+  const paymentStatusLabel = formatDocumentPaymentStatusLabel(
+    document.paymentStatus,
+  );
+  if (!statusLabel && !document.hasPdf && !paymentStatusLabel) {
     return null;
   }
 
@@ -1755,6 +1787,16 @@ function CustomerArchiveDocumentBadges({
       ) : null}
       {document.hasPdf ? (
         <span className="customerArchiveDocumentPdfBadge">PDF gespeichert</span>
+      ) : null}
+      {paymentStatusLabel ? (
+        <span
+          className="customerArchiveDocumentPaymentBadge"
+          data-payment-status={
+            normalizeDocumentPaymentStatus(document.paymentStatus) ?? "unknown"
+          }
+        >
+          {paymentStatusLabel}
+        </span>
       ) : null}
     </div>
   );
@@ -3576,6 +3618,7 @@ export default function HomePage() {
             documentType: document.documentType === "invoice" ? "invoice" : "offer",
             status: normalizeDocumentProcessingStatus(document.status),
             hasPdf: Boolean(document.hasPdf),
+            paymentStatus: normalizeDocumentPaymentStatus(document.paymentStatus),
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -3685,6 +3728,7 @@ export default function HomePage() {
             documentType: document.documentType === "invoice" ? "invoice" : "offer",
             status: normalizeDocumentProcessingStatus(document.status),
             hasPdf: Boolean(document.hasPdf),
+            paymentStatus: normalizeDocumentPaymentStatus(document.paymentStatus),
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -6743,6 +6787,7 @@ export default function HomePage() {
           customerName: buildCustomerNameForStorage(form),
           status: normalizeDocumentProcessingStatus(payload.documentStatus),
           hasPdf: Boolean(payload.pdfStored),
+          paymentStatus: normalizeDocumentPaymentStatus(payload.paymentStatus),
           createdAt: new Date().toISOString(),
         };
         setArchiveDocuments((prev) => {
@@ -6769,6 +6814,7 @@ export default function HomePage() {
           projectName: payload.projectName || form.projectName.trim(),
           status: normalizeDocumentProcessingStatus(payload.documentStatus),
           hasPdf: Boolean(payload.pdfStored),
+          paymentStatus: normalizeDocumentPaymentStatus(payload.paymentStatus),
           createdAt: new Date().toISOString(),
         };
         setProjectArchiveDocuments((prev) => {

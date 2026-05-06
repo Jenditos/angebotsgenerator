@@ -47,6 +47,25 @@ export type StoredEmailReference = {
   updatedAt: string;
 };
 
+export const DOCUMENT_PAYMENT_STATUS_VALUES = [
+  "unpaid",
+  "pending",
+  "paid",
+  "failed",
+  "refunded",
+] as const;
+
+export type DocumentPaymentStatus =
+  (typeof DOCUMENT_PAYMENT_STATUS_VALUES)[number];
+
+export type StoredPaymentReference = {
+  status: DocumentPaymentStatus;
+  provider?: string;
+  reference?: string;
+  paidAt?: string;
+  updatedAt: string;
+};
+
 export type DocumentTaxInfo = {
   treatment: DocumentTaxTreatment;
   noticeText?: string;
@@ -285,6 +304,7 @@ export type StoredOfferRecord = {
   status?: DocumentProcessingStatus;
   pdf?: StoredPdfReference;
   email?: StoredEmailReference;
+  payment?: StoredPaymentReference;
   customerNumber?: string;
   projectNumber?: string;
   projectName?: string;

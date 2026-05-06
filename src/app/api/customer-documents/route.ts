@@ -101,6 +101,7 @@ export async function GET(request: Request) {
           null,
         status: record.status ?? null,
         hasPdf: Boolean(record.pdf?.storageKey),
+        paymentStatus: record.payment?.status ?? null,
         createdAt: record.createdAt,
       }));
 
