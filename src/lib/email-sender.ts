@@ -217,10 +217,20 @@ export async function sendViaConnectedMailbox(payload: EmailSendPayload): Promis
     const fresh = await ensureFreshEmailConnection(connection);
     if (fresh.provider === "google") {
       await sendWithGoogle(fresh, payload);
-      return { ok: true, info: `E-Mail über Gmail gesendet (${fresh.accountEmail}).` };
+      return {
+        ok: true,
+        info: `E-Mail über Gmail gesendet (${fresh.accountEmail}).`,
+        provider: "google",
+        accountEmail: fresh.accountEmail,
+      };
     }
     await sendWithMicrosoft(fresh, payload);
-    return { ok: true, info: `E-Mail über Outlook gesendet (${fresh.accountEmail}).` };
+    return {
+      ok: true,
+      info: `E-Mail über Outlook gesendet (${fresh.accountEmail}).`,
+      provider: "microsoft",
+      accountEmail: fresh.accountEmail,
+    };
   } catch (error) {
     return {
       ok: false,
@@ -250,7 +260,9 @@ export async function createDraftViaConnectedMailbox(
         ok: true,
         info: `Gmail Entwurf erstellt (${fresh.accountEmail}).`,
         composeUrl: draft.composeUrl,
-        draftId: draft.draftId
+        draftId: draft.draftId,
+        provider: "google",
+        accountEmail: fresh.accountEmail,
       };
     }
 
@@ -259,7 +271,9 @@ export async function createDraftViaConnectedMailbox(
       ok: true,
       info: `Outlook Entwurf erstellt (${fresh.accountEmail}).`,
       composeUrl: draft.composeUrl,
-      draftId: draft.draftId
+      draftId: draft.draftId,
+      provider: "microsoft",
+      accountEmail: fresh.accountEmail,
     };
   } catch (error) {
     return {

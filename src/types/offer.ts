@@ -8,6 +8,43 @@ export type OfferText = {
 export type DocumentType = "offer" | "invoice";
 export type DocumentTaxTreatment = "standard" | "reverse_charge" | "vat_exempt";
 
+export const DOCUMENT_PROCESSING_STATUS_VALUES = [
+  "offer_created",
+  "pdf_ready",
+  "email_prepared",
+  "email_sent",
+  "email_failed",
+  "failed",
+] as const;
+
+export type DocumentProcessingStatus =
+  (typeof DOCUMENT_PROCESSING_STATUS_VALUES)[number];
+
+export type StoredPdfReference = {
+  storageKey: string;
+  filename: string;
+  contentType: "application/pdf";
+  byteLength: number;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type StoredEmailStatus = "prepared" | "sent" | "failed";
+
+export type StoredEmailProvider = "google" | "microsoft" | "resend";
+
+export type StoredEmailReference = {
+  status: StoredEmailStatus;
+  provider?: StoredEmailProvider;
+  idempotencyKey?: string;
+  draftId?: string;
+  composeUrl?: string;
+  preparedAt?: string;
+  sentAt?: string;
+  failedAt?: string;
+  updatedAt: string;
+};
+
 export type DocumentTaxInfo = {
   treatment: DocumentTaxTreatment;
   noticeText?: string;
@@ -158,6 +195,7 @@ export type CustomerDraftState = {
 };
 
 export type GenerateOfferRequest = {
+  idempotencyKey?: string;
   documentType?: DocumentType;
   documentTax?: DocumentTaxInfo | null;
   customerNumber?: string;
@@ -241,12 +279,17 @@ export type StoredProjectRecord = {
 export type StoredOfferRecord = {
   documentType?: DocumentType;
   offerNumber: string;
+  idempotencyKey?: string;
+  status?: DocumentProcessingStatus;
+  pdf?: StoredPdfReference;
+  email?: StoredEmailReference;
   customerNumber?: string;
   projectNumber?: string;
   projectName?: string;
   projectAddress?: string;
   createdAt: string;
   created_at: string;
+  updatedAt?: string;
   customerName: string;
   customerAddress: string;
   customerEmail: string;

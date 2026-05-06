@@ -1,7 +1,12 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { createStoredOfferRecord } from "./offer-store-service";
+import {
+  createStoredOfferRecord,
+  updateStoredOfferRecordEmailReference,
+  updateStoredOfferRecordPdfReference,
+  updateStoredOfferRecordStatus,
+} from "./offer-store-service";
 
 function createSampleInput(seed: string) {
   return {
@@ -102,6 +107,180 @@ describe("offer-store-service", () => {
           formatOfferNumber(currentYear, index + 1),
         ),
       );
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("reuses the existing document for the same idempotency key", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-idempotent-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const first = await createStoredOfferRecord(
+        {
+          ...createSampleInput("1"),
+          idempotencyKey: "same-submit-key",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+      const second = await createStoredOfferRecord(
+        {
+          ...createSampleInput("2"),
+          idempotencyKey: "same-submit-key",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(second.offerNumber).toBe(first.offerNumber);
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{ offerNumber: string; idempotencyKey?: string }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].idempotencyKey).toBe("same-submit-key");
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("updates a document processing status without creating a new record", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-status-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const created = await createStoredOfferRecord(createSampleInput("1"), {
+        dataDir,
+        storePath,
+        lockPath,
+      });
+      const updated = await updateStoredOfferRecordStatus(
+        created.offerNumber,
+        "pdf_ready",
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(updated?.status).toBe("pdf_ready");
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{ offerNumber: string; status?: string; updatedAt?: string }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].status).toBe("pdf_ready");
+      expect(typeof persisted.offers[0].updatedAt).toBe("string");
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("stores a pdf reference on an existing document record", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-pdf-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const created = await createStoredOfferRecord(createSampleInput("1"), {
+        dataDir,
+        storePath,
+        lockPath,
+      });
+      const updated = await updateStoredOfferRecordPdfReference(
+        created.offerNumber,
+        {
+          storageKey: `document-pdfs/${created.offerNumber}.pdf`,
+          filename: `${created.offerNumber}.pdf`,
+          contentType: "application/pdf",
+          byteLength: 1234,
+          createdAt: "2026-01-01T10:00:00.000Z",
+          updatedAt: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(updated?.pdf?.storageKey).toBe(
+        `document-pdfs/${created.offerNumber}.pdf`,
+      );
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{
+          offerNumber: string;
+          pdf?: { storageKey?: string; byteLength?: number };
+        }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].pdf?.storageKey).toBe(
+        `document-pdfs/${created.offerNumber}.pdf`,
+      );
+      expect(persisted.offers[0].pdf?.byteLength).toBe(1234);
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("stores an email reference on an existing document record", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-email-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const created = await createStoredOfferRecord(createSampleInput("1"), {
+        dataDir,
+        storePath,
+        lockPath,
+      });
+      const updated = await updateStoredOfferRecordEmailReference(
+        created.offerNumber,
+        {
+          status: "prepared",
+          provider: "google",
+          idempotencyKey: "mail-key-1",
+          draftId: "draft-1",
+          composeUrl: "https://mail.google.com/mail/u/0/#drafts?compose=draft-1",
+          preparedAt: "2026-01-01T10:00:00.000Z",
+          updatedAt: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(updated?.email?.status).toBe("prepared");
+      expect(updated?.email?.draftId).toBe("draft-1");
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{
+          offerNumber: string;
+          email?: { status?: string; idempotencyKey?: string; draftId?: string };
+        }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].email?.status).toBe("prepared");
+      expect(persisted.offers[0].email?.idempotencyKey).toBe("mail-key-1");
+      expect(persisted.offers[0].email?.draftId).toBe("draft-1");
     } finally {
       await rm(dataDir, { recursive: true, force: true });
     }

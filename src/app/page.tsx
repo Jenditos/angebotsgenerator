@@ -55,6 +55,7 @@ import {
 import {
   CompanySettings,
   CustomerDraftGroup,
+  DocumentProcessingStatus,
   DocumentTaxInfo,
   DocumentType,
   OfferPositionInput,
@@ -84,6 +85,10 @@ type ApiResponse = {
   projectAddress?: string;
   projectStatus?: ProjectStatus;
   documentType?: DocumentType;
+  documentStatus?: DocumentProcessingStatus;
+  idempotencyKey?: string;
+  pdfStored?: boolean;
+  pdfDownloadUrl?: string;
   documentNumber?: string;
   offerNumber?: string;
   invoiceNumber?: string;
@@ -174,6 +179,8 @@ type CustomerArchiveDocument = {
   projectNumber?: string | null;
   projectName?: string | null;
   title?: string | null;
+  status?: DocumentProcessingStatus | null;
+  hasPdf?: boolean;
   createdAt: string;
 };
 
@@ -1351,6 +1358,17 @@ async function parseGenerateOfferResponse(
   }
 }
 
+function createDocumentIdempotencyKey(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return `document-${crypto.randomUUID()}`;
+  }
+
+  return `document-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function capitalizeEntryStart(value: string): string {
   if (!value) {
     return "";
@@ -2107,6 +2125,7 @@ export default function HomePage() {
   const photoCameraSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
+  const submitIdempotencyKeyRef = useRef<string | null>(null);
   function setErrorAndFocus(message: string, ref?: React.RefObject<HTMLInputElement | null>) {
     setError(message);
     if (ref?.current) {
@@ -6381,6 +6400,9 @@ export default function HomePage() {
           text,
           pdfBase64: payload.pdfBase64,
           filename: fileName,
+          documentNumber: resolvedDocumentNumber,
+          documentType: mode,
+          idempotencyKey: payload.idempotencyKey,
         }),
       });
 
@@ -6575,6 +6597,10 @@ export default function HomePage() {
         return;
       }
 
+      const requestIdempotencyKey =
+        submitIdempotencyKeyRef.current ?? createDocumentIdempotencyKey();
+      submitIdempotencyKeyRef.current = requestIdempotencyKey;
+
       let response: Response;
       try {
         response = await fetch("/api/pdf/generate-offer", {
@@ -6582,6 +6608,7 @@ export default function HomePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...form,
+            idempotencyKey: requestIdempotencyKey,
             documentType: documentMode,
             documentTax: documentTax ? { ...documentTax } : null,
             customerNumber: activeCustomerNumber || undefined,
@@ -6631,6 +6658,7 @@ export default function HomePage() {
         setError("Das Dokument wurde erstellt, aber das PDF konnte nicht geladen werden.");
         return;
       }
+      submitIdempotencyKeyRef.current = null;
       if (payload.customerNumber?.trim()) {
         setActiveCustomerNumber(payload.customerNumber.trim());
       }

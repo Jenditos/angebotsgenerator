@@ -5,6 +5,7 @@ import { MAX_LOGO_DATA_URL_LENGTH } from "@/lib/logo-config";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { readSettings } from "@/lib/settings-store";
 import { findStoredOfferRecordByNumber } from "@/server/services/offer-store-service";
+import { readStoredDocumentPdf } from "@/server/services/pdf-storage-service";
 
 function toSafeFilename(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]/g, "_");
@@ -39,6 +40,28 @@ export async function GET(
       );
     }
 
+    const documentNumber = record.offerNumber.trim() || rawDocumentNumber;
+    if (record.pdf?.storageKey) {
+      try {
+        const { pdfBuffer } = await readStoredDocumentPdf(record.pdf.storageKey);
+        const filename = `${toSafeFilename(documentNumber)}.pdf`;
+        return new NextResponse(pdfBuffer, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename="${filename}"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      } catch (error) {
+        console.warn("[customer-documents] stored pdf could not be read", {
+          documentNumber,
+          storageKey: record.pdf.storageKey,
+          error,
+        });
+      }
+    }
+
     const settings = await readSettings({
       supabase: accessResult.supabase,
       userId: accessResult.user.id,
@@ -53,7 +76,6 @@ export async function GET(
     };
     const resolvedDocumentType =
       record.documentType === "invoice" ? "invoice" : "offer";
-    const documentNumber = record.offerNumber.trim() || rawDocumentNumber;
     const projectDetails = [
       record.projectName?.trim() || "",
       record.projectAddress?.trim() &&

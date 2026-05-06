@@ -1,3 +1,5 @@
+import type { StoredEmailProvider } from "@/types/offer";
+
 export type EmailProvider = "google" | "microsoft";
 
 export type EmailConnection = {
@@ -14,14 +16,24 @@ export type EmailSendPayload = {
   text: string;
   pdfBase64: string;
   filename?: string;
+  documentNumber?: string;
+  documentType?: "offer" | "invoice";
+  idempotencyKey?: string;
 };
 
 export type EmailDraftPayload = EmailSendPayload;
 
 export type EmailSendResult =
-  | { ok: true; info: string }
+  | { ok: true; info: string; provider?: StoredEmailProvider; accountEmail?: string }
   | { ok: false; reason: "not_connected" | "failed"; info: string };
 
 export type EmailDraftResult =
-  | { ok: true; info: string; composeUrl: string; draftId?: string }
+  | {
+      ok: true;
+      info: string;
+      composeUrl: string;
+      draftId?: string;
+      provider?: StoredEmailProvider;
+      accountEmail?: string;
+    }
   | { ok: false; reason: "not_connected" | "failed"; info: string };

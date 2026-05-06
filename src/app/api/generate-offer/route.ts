@@ -24,7 +24,15 @@ import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
   createStoredOfferRecord,
+  updateStoredOfferRecordEmailReference,
+  updateStoredOfferRecordPdfReference,
+  updateStoredOfferRecordStatus,
 } from "@/server/services/offer-store-service";
+import {
+  createActivityLogEntry,
+  CreateActivityLogEntryInput,
+} from "@/server/services/activity-log-service";
+import { saveDocumentPdf } from "@/server/services/pdf-storage-service";
 import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 import { upsertStoredProject } from "@/server/services/project-store-service";
 import { resolveRuntimeDataDir } from "@/server/services/store-runtime-paths";
@@ -38,6 +46,7 @@ import {
   OfferPositionInput,
   PROJECT_STATUS_VALUES,
   ProjectStatus,
+  StoredEmailReference,
 } from "@/types/offer";
 
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
@@ -801,6 +810,70 @@ function findInvalidLineItem(
 
 type EmailStatus = "not_requested" | "sent" | "not_configured" | "failed";
 
+type GenerateOfferRequestContext = {
+  userId?: string;
+};
+
+function normalizeIdempotencyKey(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().slice(0, 160);
+}
+
+function buildActivityEventKey(
+  idempotencyKey: string,
+  suffix: string,
+): string | undefined {
+  return idempotencyKey ? `${idempotencyKey}:${suffix}` : undefined;
+}
+
+async function recordActivitySafely(
+  input: CreateActivityLogEntryInput,
+): Promise<void> {
+  try {
+    await createActivityLogEntry(input);
+  } catch (error) {
+    console.warn("[activity-log] event could not be written", {
+      entityType: input.entityType,
+      entityId: input.entityId,
+      action: input.action,
+      error,
+    });
+  }
+}
+
+async function updateDocumentStatusSafely(
+  documentNumber: string,
+  status: Parameters<typeof updateStoredOfferRecordStatus>[1],
+): Promise<void> {
+  try {
+    await updateStoredOfferRecordStatus(documentNumber, status);
+  } catch (error) {
+    console.warn("[document-status] status could not be updated", {
+      documentNumber,
+      status,
+      error,
+    });
+  }
+}
+
+async function updateDocumentEmailSafely(
+  documentNumber: string,
+  email: StoredEmailReference,
+): Promise<void> {
+  try {
+    await updateStoredOfferRecordEmailReference(documentNumber, email);
+  } catch (error) {
+    console.warn("[document-email] email reference could not be updated", {
+      documentNumber,
+      status: email.status,
+      error,
+    });
+  }
+}
+
 function buildEmailText(input: {
   documentType: DocumentType;
   customerType: "person" | "company";
@@ -886,7 +959,10 @@ function adaptTextForDocumentType(
   };
 }
 
-export async function handleGenerateOfferAuthorizedRequest(request: Request) {
+export async function handleGenerateOfferAuthorizedRequest(
+  request: Request,
+  context: GenerateOfferRequestContext = {},
+) {
   const requestId = randomUUID();
   let failureStage = "init";
 
@@ -912,8 +988,11 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       );
     }
 
+    const idempotencyKey = normalizeIdempotencyKey(body.idempotencyKey);
+
     debugOfferLog(requestId, "request_received", {
       documentType: body.documentType,
+      hasIdempotencyKey: Boolean(idempotencyKey),
       customerType: body.customerType,
       hasPositions: Array.isArray(body.positions),
       positionsCount: Array.isArray(body.positions) ? body.positions.length : 0,
@@ -1288,9 +1367,12 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       }
     }
     failureStage = "persist_document_record";
+    let storedDocumentEmail: StoredEmailReference | undefined;
     try {
       const storedDocument = await createStoredOfferRecord({
         documentType,
+        idempotencyKey,
+        status: "offer_created",
         customerNumber: customerNumberForDocument,
         projectNumber: projectNumberForDocument,
         projectName: projectNameForDocument,
@@ -1307,6 +1389,21 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
         referenceDate: now,
       });
       generatedDocumentNumber = storedDocument.offerNumber;
+      storedDocumentEmail = storedDocument.email;
+      await recordActivitySafely({
+        userId: context.userId,
+        entityType: "document",
+        entityId: generatedDocumentNumber,
+        action: "document_recorded",
+        eventKey: buildActivityEventKey(idempotencyKey, "document_recorded"),
+        metadata: {
+          documentType,
+          status: storedDocument.status ?? "offer_created",
+          customerNumber: customerNumberForDocument,
+          projectNumber: projectNumberForDocument || undefined,
+        },
+        createdAt: now,
+      });
     } catch (error) {
       console.error(
         `[generate-offer:${requestId}] offer_record_persist_failed`,
@@ -1443,7 +1540,74 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       byteLength: pdfBuffer.byteLength,
     });
 
+    failureStage = "store_pdf";
+    let storedPdf: Awaited<ReturnType<typeof saveDocumentPdf>>;
+    try {
+      storedPdf = await saveDocumentPdf({
+        documentNumber: generatedDocumentNumber,
+        pdfBuffer,
+      });
+      await updateStoredOfferRecordPdfReference(generatedDocumentNumber, {
+        storageKey: storedPdf.storageKey,
+        filename: storedPdf.filename,
+        contentType: storedPdf.contentType,
+        byteLength: storedPdf.byteLength,
+        createdAt: storedPdf.createdAt,
+        updatedAt: storedPdf.updatedAt,
+      });
+    } catch (error) {
+      console.error(
+        `[generate-offer:${requestId}] pdf_storage_failed`,
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              runtimeDataDir: resolveRuntimeDataDir(),
+              documentNumber: generatedDocumentNumber,
+            }
+          : {
+              error,
+              runtimeDataDir: resolveRuntimeDataDir(),
+              documentNumber: generatedDocumentNumber,
+            },
+      );
+      await updateDocumentStatusSafely(generatedDocumentNumber, "failed");
+      await recordActivitySafely({
+        userId: context.userId,
+        entityType: "document",
+        entityId: generatedDocumentNumber,
+        action: "pdf_storage_failed",
+        eventKey: buildActivityEventKey(idempotencyKey, "pdf_storage_failed"),
+        metadata: {
+          documentType,
+        },
+      });
+      return NextResponse.json(
+        {
+          error:
+            "Das PDF wurde erzeugt, konnte aber nicht sicher gespeichert werden. Bitte erneut versuchen.",
+          requestId,
+        },
+        { status: 500 },
+      );
+    }
+
     const pdfBase64 = pdfBuffer.toString("base64");
+    let documentStatus: "pdf_ready" | "email_sent" | "email_failed" = "pdf_ready";
+    await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+    await recordActivitySafely({
+      userId: context.userId,
+      entityType: "document",
+      entityId: generatedDocumentNumber,
+      action: "pdf_ready",
+      eventKey: buildActivityEventKey(idempotencyKey, "pdf_ready"),
+      metadata: {
+        documentType,
+        byteLength: pdfBuffer.byteLength,
+        storageKey: storedPdf.storageKey,
+        reusedStoredPdf: storedPdf.reused,
+      },
+    });
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL;
@@ -1451,7 +1615,29 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
     let emailInfo = "Es wurde nur ein PDF erstellt.";
 
     if (sendEmailRequested) {
-      if (resendApiKey && resendFromEmail) {
+      const alreadySentForRequest =
+        Boolean(idempotencyKey) &&
+        storedDocumentEmail?.status === "sent" &&
+        storedDocumentEmail.idempotencyKey === idempotencyKey;
+
+      if (alreadySentForRequest) {
+        emailStatus = "sent";
+        emailInfo = "E-Mail wurde bereits gesendet.";
+        documentStatus = "email_sent";
+        await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+        await recordActivitySafely({
+          userId: context.userId,
+          entityType: "email",
+          entityId: generatedDocumentNumber,
+          action: "email_sent",
+          eventKey: buildActivityEventKey(idempotencyKey, "email_sent"),
+          metadata: {
+            documentType,
+            provider: storedDocumentEmail?.provider,
+            deduped: true,
+          },
+        });
+      } else if (resendApiKey && resendFromEmail) {
         try {
           const resend = new Resend(resendApiKey);
           const recipients = [customerEmail];
@@ -1471,15 +1657,67 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
 
           emailStatus = "sent";
           emailInfo = `E-Mail über Resend an ${customerEmail} gesendet.`;
+          documentStatus = "email_sent";
+          const sentAt = new Date().toISOString();
+          await updateDocumentEmailSafely(generatedDocumentNumber, {
+            status: "sent",
+            provider: "resend",
+            idempotencyKey: idempotencyKey || undefined,
+            sentAt,
+            updatedAt: sentAt,
+          });
+          await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+          await recordActivitySafely({
+            userId: context.userId,
+            entityType: "email",
+            entityId: generatedDocumentNumber,
+            action: "email_sent",
+            eventKey: buildActivityEventKey(idempotencyKey, "email_sent"),
+            metadata: {
+              documentType,
+              provider: "resend",
+            },
+          });
         } catch {
           emailStatus = "failed";
           emailInfo =
             "Versand fehlgeschlagen. Bitte OAuth-Verbindung oder Resend-Konfiguration prüfen.";
+          documentStatus = "email_failed";
+          const failedAt = new Date().toISOString();
+          await updateDocumentEmailSafely(generatedDocumentNumber, {
+            status: "failed",
+            provider: "resend",
+            idempotencyKey: idempotencyKey || undefined,
+            failedAt,
+            updatedAt: failedAt,
+          });
+          await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+          await recordActivitySafely({
+            userId: context.userId,
+            entityType: "email",
+            entityId: generatedDocumentNumber,
+            action: "email_failed",
+            eventKey: buildActivityEventKey(idempotencyKey, "email_failed"),
+            metadata: {
+              documentType,
+              provider: "resend",
+            },
+          });
         }
       } else {
         emailStatus = "not_configured";
         emailInfo =
           "Kein verbundenes Postfach und keine Resend-Konfiguration gefunden.";
+        await recordActivitySafely({
+          userId: context.userId,
+          entityType: "email",
+          entityId: generatedDocumentNumber,
+          action: "email_not_configured",
+          eventKey: buildActivityEventKey(idempotencyKey, "email_not_configured"),
+          metadata: {
+            documentType,
+          },
+        });
       }
     }
 
@@ -1495,6 +1733,12 @@ export async function handleGenerateOfferAuthorizedRequest(request: Request) {
       projectAddress: projectAddressForDocument,
       projectStatus,
       documentType,
+      documentStatus,
+      idempotencyKey: idempotencyKey || undefined,
+      pdfStored: true,
+      pdfDownloadUrl: `/api/pdf/customer-documents/${encodeURIComponent(
+        generatedDocumentNumber,
+      )}`,
       documentNumber: generatedDocumentNumber,
       offerNumber: generatedDocumentNumber,
       invoiceNumber:
@@ -1530,5 +1774,7 @@ export async function POST(request: Request) {
     return accessResult.response;
   }
 
-  return handleGenerateOfferAuthorizedRequest(request);
+  return handleGenerateOfferAuthorizedRequest(request, {
+    userId: accessResult.user.id,
+  });
 }

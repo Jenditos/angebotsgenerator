@@ -13,8 +13,14 @@ import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   DocumentType,
   DocumentTaxInfo,
+  DocumentProcessingStatus,
+  DOCUMENT_PROCESSING_STATUS_VALUES,
   OfferPdfLineItem,
   OfferText,
+  StoredEmailProvider,
+  StoredEmailReference,
+  StoredEmailStatus,
+  StoredPdfReference,
   StoredOfferRecord,
 } from "@/types/offer";
 import {
@@ -51,6 +57,8 @@ export type CreateStoredOfferInput = {
   offer: OfferText;
   configuredLastOfferNumber?: string;
   configuredLastInvoiceNumber?: string;
+  idempotencyKey?: string;
+  status?: DocumentProcessingStatus;
   referenceDate?: Date;
 };
 
@@ -168,6 +176,85 @@ function asTrimmedString(value: unknown, fallback = ""): string {
   }
 
   return value.trim();
+}
+
+function sanitizeDocumentStatus(value: unknown): DocumentProcessingStatus {
+  return DOCUMENT_PROCESSING_STATUS_VALUES.includes(
+    value as DocumentProcessingStatus,
+  )
+    ? (value as DocumentProcessingStatus)
+    : "offer_created";
+}
+
+function sanitizeStoredPdfReference(value: unknown): StoredPdfReference | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const reference = value as Partial<StoredPdfReference>;
+  const storageKey = asTrimmedString(reference.storageKey);
+  const filename = asTrimmedString(reference.filename);
+  const createdAt = asTrimmedString(reference.createdAt);
+  const updatedAt = asTrimmedString(reference.updatedAt);
+  const byteLength = Number(reference.byteLength);
+
+  if (
+    !storageKey ||
+    !filename ||
+    reference.contentType !== "application/pdf" ||
+    !Number.isFinite(byteLength) ||
+    byteLength <= 0 ||
+    !createdAt
+  ) {
+    return undefined;
+  }
+
+  return {
+    storageKey,
+    filename,
+    contentType: "application/pdf",
+    byteLength: Math.floor(byteLength),
+    createdAt,
+    updatedAt: updatedAt || undefined,
+  };
+}
+
+function sanitizeStoredEmailStatus(value: unknown): StoredEmailStatus {
+  return value === "sent" || value === "failed" ? value : "prepared";
+}
+
+function sanitizeStoredEmailProvider(
+  value: unknown,
+): StoredEmailProvider | undefined {
+  return value === "google" || value === "microsoft" || value === "resend"
+    ? value
+    : undefined;
+}
+
+function sanitizeStoredEmailReference(
+  value: unknown,
+): StoredEmailReference | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const reference = value as Partial<StoredEmailReference>;
+  const updatedAt = asTrimmedString(reference.updatedAt);
+  if (!updatedAt) {
+    return undefined;
+  }
+
+  return {
+    status: sanitizeStoredEmailStatus(reference.status),
+    provider: sanitizeStoredEmailProvider(reference.provider),
+    idempotencyKey: asTrimmedString(reference.idempotencyKey) || undefined,
+    draftId: asTrimmedString(reference.draftId) || undefined,
+    composeUrl: asTrimmedString(reference.composeUrl) || undefined,
+    preparedAt: asTrimmedString(reference.preparedAt) || undefined,
+    sentAt: asTrimmedString(reference.sentAt) || undefined,
+    failedAt: asTrimmedString(reference.failedAt) || undefined,
+    updatedAt,
+  };
 }
 
 function getYearFromDateString(value: string): number {
@@ -293,6 +380,10 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     typeof record.created_at === "string" ? record.created_at : "";
   const normalizedCreatedAt =
     createdAt || createdAtLegacy || new Date().toISOString();
+  const updatedAt =
+    typeof record.updatedAt === "string" && record.updatedAt.trim()
+      ? record.updatedAt.trim()
+      : normalizedCreatedAt;
 
   const fallbackYear = normalizedCreatedAt
     ? getYearFromDateString(normalizedCreatedAt)
@@ -334,6 +425,14 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
   return {
     documentType: inferredDocumentType,
     offerNumber: resolvedOfferNumber,
+    idempotencyKey:
+      typeof record.idempotencyKey === "string" &&
+      record.idempotencyKey.trim().length > 0
+        ? record.idempotencyKey.trim()
+        : undefined,
+    status: sanitizeDocumentStatus(record.status),
+    pdf: sanitizeStoredPdfReference(record.pdf),
+    email: sanitizeStoredEmailReference(record.email),
     customerNumber:
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
@@ -355,6 +454,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
         : undefined,
     createdAt: normalizedCreatedAt,
     created_at: normalizedCreatedAt,
+    updatedAt,
     customerName,
     customerAddress,
     customerEmail,
@@ -368,6 +468,25 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
       closing: asTrimmedString(offerRecord.closing),
     },
   };
+}
+
+function findIdempotentRecord(
+  offers: StoredOfferRecord[],
+  documentType: DocumentType,
+  idempotencyKey: string | undefined,
+): StoredOfferRecord | null {
+  const normalizedKey = idempotencyKey?.trim();
+  if (!normalizedKey) {
+    return null;
+  }
+
+  return (
+    offers.find(
+      (offer) =>
+        resolveDocumentType(offer.documentType) === documentType &&
+        offer.idempotencyKey === normalizedKey,
+    ) ?? null
+  );
 }
 
 function highestSequenceForYear(
@@ -641,12 +760,22 @@ export async function createStoredOfferRecord(
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
     const documentType = resolveDocumentType(input.documentType);
+    const normalizedIdempotencyKey = asTrimmedString(input.idempotencyKey);
     const generatedAt = input.referenceDate ?? new Date();
     const currentYear = generatedAt.getFullYear();
     const configuredLastNumber =
       documentType === "invoice"
         ? input.configuredLastInvoiceNumber
         : input.configuredLastOfferNumber;
+
+    const existingIdempotentRecord = findIdempotentRecord(
+      store.offers,
+      documentType,
+      normalizedIdempotencyKey,
+    );
+    if (existingIdempotentRecord) {
+      return existingIdempotentRecord;
+    }
 
     const baseSequence = resolveBaseSequenceForCurrentYear({
       store,
@@ -669,12 +798,15 @@ export async function createStoredOfferRecord(
     const nextRecord: StoredOfferRecord = {
       documentType,
       offerNumber: assignedOfferNumber,
+      idempotencyKey: normalizedIdempotencyKey || undefined,
+      status: input.status ?? "offer_created",
       customerNumber: input.customerNumber?.trim() || undefined,
       projectNumber: input.projectNumber?.trim() || undefined,
       projectName: input.projectName?.trim() || undefined,
       projectAddress: input.projectAddress?.trim() || undefined,
       createdAt: generatedAt.toISOString(),
       created_at: "",
+      updatedAt: generatedAt.toISOString(),
       customerName: input.customerName,
       customerAddress: input.customerAddress,
       customerEmail: input.customerEmail,
@@ -705,6 +837,129 @@ export async function createStoredOfferRecord(
     });
 
     return nextRecord;
+  } finally {
+    await releaseLock();
+  }
+}
+
+export async function updateStoredOfferRecordStatus(
+  offerNumber: string,
+  status: DocumentProcessingStatus,
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord | null> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
+  const normalizedOfferNumber = offerNumber.trim().toUpperCase();
+  if (!normalizedOfferNumber) {
+    return null;
+  }
+
+  const releaseLock = await acquireStoreLock(paths.lockPath);
+  try {
+    const store = await readStoreWithDataLossProtection(paths.storePath);
+    const recordIndex = store.offers.findIndex(
+      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+    );
+    if (recordIndex < 0) {
+      return null;
+    }
+
+    const updatedRecord: StoredOfferRecord = {
+      ...store.offers[recordIndex],
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+    const nextOffers = [...store.offers];
+    nextOffers[recordIndex] = updatedRecord;
+    await writeStoreUnsafe(paths.storePath, {
+      ...store,
+      offers: nextOffers,
+    });
+    return updatedRecord;
+  } finally {
+    await releaseLock();
+  }
+}
+
+export async function updateStoredOfferRecordPdfReference(
+  offerNumber: string,
+  pdf: StoredPdfReference,
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord | null> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
+  const normalizedOfferNumber = offerNumber.trim().toUpperCase();
+  if (!normalizedOfferNumber) {
+    return null;
+  }
+
+  const releaseLock = await acquireStoreLock(paths.lockPath);
+  try {
+    const store = await readStoreWithDataLossProtection(paths.storePath);
+    const recordIndex = store.offers.findIndex(
+      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+    );
+    if (recordIndex < 0) {
+      return null;
+    }
+
+    const updatedRecord: StoredOfferRecord = {
+      ...store.offers[recordIndex],
+      pdf,
+      updatedAt: new Date().toISOString(),
+    };
+    const nextOffers = [...store.offers];
+    nextOffers[recordIndex] = updatedRecord;
+    await writeStoreUnsafe(paths.storePath, {
+      ...store,
+      offers: nextOffers,
+    });
+    return updatedRecord;
+  } finally {
+    await releaseLock();
+  }
+}
+
+export async function updateStoredOfferRecordEmailReference(
+  offerNumber: string,
+  email: StoredEmailReference,
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord | null> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
+  const normalizedOfferNumber = offerNumber.trim().toUpperCase();
+  if (!normalizedOfferNumber) {
+    return null;
+  }
+
+  const releaseLock = await acquireStoreLock(paths.lockPath);
+  try {
+    const store = await readStoreWithDataLossProtection(paths.storePath);
+    const recordIndex = store.offers.findIndex(
+      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+    );
+    if (recordIndex < 0) {
+      return null;
+    }
+
+    const updatedRecord: StoredOfferRecord = {
+      ...store.offers[recordIndex],
+      email,
+      updatedAt: new Date().toISOString(),
+    };
+    const nextOffers = [...store.offers];
+    nextOffers[recordIndex] = updatedRecord;
+    await writeStoreUnsafe(paths.storePath, {
+      ...store,
+      offers: nextOffers,
+    });
+    return updatedRecord;
   } finally {
     await releaseLock();
   }

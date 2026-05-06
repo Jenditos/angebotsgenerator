@@ -116,6 +116,8 @@ export async function GET(request: Request) {
           record.projectName?.trim() ||
           record.serviceDescription?.trim() ||
           null,
+        status: record.status ?? null,
+        hasPdf: Boolean(record.pdf?.storageKey),
         createdAt: record.createdAt,
       }));
 
