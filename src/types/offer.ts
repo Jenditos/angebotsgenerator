@@ -268,6 +268,7 @@ export type GenerateOfferRequest = {
 };
 
 export type StoredCustomerRecord = {
+  userId?: string;
   customerNumber: string;
   customerType: "person" | "company";
   companyName: string;
@@ -286,6 +287,7 @@ export type StoredCustomerRecord = {
 };
 
 export type StoredProjectRecord = {
+  userId?: string;
   projectNumber: string;
   customerNumber?: string;
   customerType: "person" | "company";
@@ -309,6 +311,7 @@ export type StoredProjectRecord = {
 };
 
 export type StoredOfferRecord = {
+  userId?: string;
   documentType?: DocumentType;
   offerNumber: string;
   idempotencyKey?: string;

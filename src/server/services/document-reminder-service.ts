@@ -5,7 +5,7 @@ import {
 } from "@/server/services/offer-store-service";
 import { DocumentType, StoredReminderReference } from "@/types/offer";
 
-type OfferStoreOverrides = Parameters<typeof findStoredOfferRecordByNumber>[1];
+type OfferStoreOverrides = Parameters<typeof findStoredOfferRecordByNumber>[2];
 type ActivityLogOverrides = Parameters<typeof createActivityLogEntry>[1];
 
 export type ScheduleOfferFollowUpReminderInput = {
@@ -33,6 +33,11 @@ function buildActivityEventKey(idempotencyKey: string | undefined): string | und
 export async function scheduleOfferFollowUpReminder(
   input: ScheduleOfferFollowUpReminderInput,
 ): Promise<StoredReminderReference | null> {
+  const normalizedUserId = input.userId?.trim() ?? "";
+  if (!normalizedUserId) {
+    return null;
+  }
+
   const documentNumber = input.documentNumber.trim();
   if (!documentNumber || input.documentType !== "offer") {
     return null;
@@ -41,6 +46,7 @@ export async function scheduleOfferFollowUpReminder(
   const idempotencyKey = input.idempotencyKey?.trim() || undefined;
   if (idempotencyKey) {
     const existingDocument = await findStoredOfferRecordByNumber(
+      normalizedUserId,
       documentNumber,
       input.storeOverrides,
     );
@@ -66,6 +72,7 @@ export async function scheduleOfferFollowUpReminder(
 
   const updatedDocument = await updateStoredOfferRecordReminderReference(
     documentNumber,
+    normalizedUserId,
     reminder,
     input.storeOverrides,
   );
@@ -76,7 +83,7 @@ export async function scheduleOfferFollowUpReminder(
   try {
     await createActivityLogEntry(
       {
-        userId: input.userId,
+        userId: normalizedUserId,
         entityType: "document",
         entityId: documentNumber,
         action: "reminder_scheduled",

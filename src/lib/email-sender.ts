@@ -207,14 +207,48 @@ async function createDraftWithMicrosoft(
   };
 }
 
-export async function sendViaConnectedMailbox(payload: EmailSendPayload): Promise<EmailSendResult> {
-  const connection = await readEmailConnection();
+function normalizeSenderUserId(userId: string): string {
+  return userId.trim();
+}
+
+export function sendViaConnectedMailbox(
+  userId: string,
+  payload: EmailSendPayload,
+): Promise<EmailSendResult>;
+export function sendViaConnectedMailbox(payload: EmailSendPayload): Promise<EmailSendResult>;
+export async function sendViaConnectedMailbox(
+  userIdOrPayload: string | EmailSendPayload,
+  maybePayload?: EmailSendPayload,
+): Promise<EmailSendResult> {
+  const userId =
+    typeof userIdOrPayload === "string" ? normalizeSenderUserId(userIdOrPayload) : "";
+  const payload = typeof userIdOrPayload === "string" ? maybePayload : userIdOrPayload;
+
+  if (!payload) {
+    return {
+      ok: false,
+      reason: "failed",
+      info: "Versanddaten fehlen.",
+    };
+  }
+
+  if (typeof userIdOrPayload === "string" && !userId) {
+    return {
+      ok: false,
+      reason: "not_connected",
+      info: "Nutzerkontext für das verbundene Postfach fehlt.",
+    };
+  }
+
+  const connection = await readEmailConnection(userId || undefined);
   if (!connection) {
     return { ok: false, reason: "not_connected", info: "Kein verbundenes Postfach gefunden." };
   }
 
   try {
-    const fresh = await ensureFreshEmailConnection(connection);
+    const fresh = userId
+      ? await ensureFreshEmailConnection(userId, connection)
+      : await ensureFreshEmailConnection(connection);
     if (fresh.provider === "google") {
       await sendWithGoogle(fresh, payload);
       return {
@@ -240,10 +274,39 @@ export async function sendViaConnectedMailbox(payload: EmailSendPayload): Promis
   }
 }
 
-export async function createDraftViaConnectedMailbox(
+export function createDraftViaConnectedMailbox(
+  userId: string,
   payload: EmailDraftPayload,
+): Promise<EmailDraftResult>;
+export function createDraftViaConnectedMailbox(
+  payload: EmailDraftPayload,
+): Promise<EmailDraftResult>;
+export async function createDraftViaConnectedMailbox(
+  userIdOrPayload: string | EmailDraftPayload,
+  maybePayload?: EmailDraftPayload,
 ): Promise<EmailDraftResult> {
-  const connection = await readEmailConnection();
+  const userId =
+    typeof userIdOrPayload === "string" ? normalizeSenderUserId(userIdOrPayload) : "";
+  const payload =
+    typeof userIdOrPayload === "string" ? maybePayload : userIdOrPayload;
+
+  if (!payload) {
+    return {
+      ok: false,
+      reason: "failed",
+      info: "Entwurfsdaten fehlen.",
+    };
+  }
+
+  if (typeof userIdOrPayload === "string" && !userId) {
+    return {
+      ok: false,
+      reason: "not_connected",
+      info: "Nutzerkontext für das verbundene Postfach fehlt.",
+    };
+  }
+
+  const connection = await readEmailConnection(userId || undefined);
   if (!connection) {
     return {
       ok: false,
@@ -253,7 +316,9 @@ export async function createDraftViaConnectedMailbox(
   }
 
   try {
-    const fresh = await ensureFreshEmailConnection(connection);
+    const fresh = userId
+      ? await ensureFreshEmailConnection(userId, connection)
+      : await ensureFreshEmailConnection(connection);
     if (fresh.provider === "google") {
       const draft = await createDraftWithGoogle(fresh, payload);
       return {

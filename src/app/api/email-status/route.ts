@@ -9,7 +9,7 @@ export async function GET() {
     return accessResult.response;
   }
 
-  const connection = await readEmailConnection();
+  const connection = await readEmailConnection(accessResult.user.id);
   const providers = getEmailProviderAvailability();
   const resendConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 

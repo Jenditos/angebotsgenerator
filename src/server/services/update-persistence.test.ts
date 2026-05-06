@@ -197,8 +197,8 @@ describe("update persistence", () => {
     await ensureRuntimeDataDirReady();
 
     const settings = await readSettings();
-    const customers = await listStoredCustomers();
-    const documents = await listStoredOfferRecords();
+    const customers = await listStoredCustomers("migration-user");
+    const documents = await listStoredOfferRecords("migration-user");
 
     expect(settings.companyName).toBe("COMPANY_TEST_A");
     expect(settings.logoDataUrl).toBe("data:image/png;base64,AAAA");

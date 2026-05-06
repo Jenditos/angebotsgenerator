@@ -5,8 +5,11 @@ import { createStoredOfferRecord } from "./offer-store-service";
 import { listActivityLogEntries } from "./activity-log-service";
 import { scheduleOfferFollowUpReminder } from "./document-reminder-service";
 
+const TEST_USER_ID = "user-1";
+
 function createSampleInput() {
   return {
+    userId: TEST_USER_ID,
     customerName: "Kunde",
     customerAddress: "TEST_STREET_1, 00000 TEST_CITY",
     customerEmail: "kunde@example.com",
@@ -46,7 +49,7 @@ describe("document-reminder-service", () => {
       });
 
       const first = await scheduleOfferFollowUpReminder({
-        userId: "user-1",
+        userId: TEST_USER_ID,
         documentNumber: offer.offerNumber,
         documentType: "offer",
         idempotencyKey: "mail-key-1",
@@ -63,7 +66,7 @@ describe("document-reminder-service", () => {
         },
       });
       const second = await scheduleOfferFollowUpReminder({
-        userId: "user-1",
+        userId: TEST_USER_ID,
         documentNumber: offer.offerNumber,
         documentType: "offer",
         idempotencyKey: "mail-key-1",

@@ -32,7 +32,10 @@ export async function GET(
       );
     }
 
-    const record = await findStoredOfferRecordByNumber(rawDocumentNumber);
+    const record = await findStoredOfferRecordByNumber(
+      accessResult.user.id,
+      rawDocumentNumber,
+    );
     if (!record) {
       return NextResponse.json(
         { error: "Dokument wurde nicht gefunden." },

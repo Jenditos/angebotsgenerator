@@ -18,6 +18,7 @@ type PdfStoragePaths = {
 };
 
 export type SaveDocumentPdfInput = {
+  userId: string;
   documentNumber: string;
   pdfBuffer: Buffer;
 };
@@ -102,22 +103,30 @@ function assertSafeSupabaseStorageKey(storageKey: string): void {
   }
 }
 
-function buildLocalStorageKey(documentNumber: string): string {
+function buildLocalStorageKey(userId: string, documentNumber: string): string {
   const safeDocumentNumber = toSafeFilename(documentNumber);
+  const safeUserId = toSafeFilename(userId);
   if (!safeDocumentNumber) {
     throw new Error("Dokumentnummer fuer PDF-Speicherung fehlt.");
   }
+  if (!safeUserId) {
+    throw new Error("User-ID fuer PDF-Speicherung fehlt.");
+  }
 
-  return `${PDF_STORAGE_DIR_NAME}/${safeDocumentNumber}.pdf`;
+  return `${PDF_STORAGE_DIR_NAME}/users/${safeUserId}/${safeDocumentNumber}.pdf`;
 }
 
-function buildSupabaseStorageKey(documentNumber: string): string {
+function buildSupabaseStorageKey(userId: string, documentNumber: string): string {
   const safeDocumentNumber = toSafeFilename(documentNumber);
+  const safeUserId = toSafeFilename(userId);
   if (!safeDocumentNumber) {
     throw new Error("Dokumentnummer fuer PDF-Speicherung fehlt.");
   }
+  if (!safeUserId) {
+    throw new Error("User-ID fuer PDF-Speicherung fehlt.");
+  }
 
-  return `${safeDocumentNumber}.pdf`;
+  return `users/${safeUserId}/${PDF_STORAGE_DIR_NAME}/${safeDocumentNumber}.pdf`;
 }
 
 function resolveStoragePath(
@@ -177,8 +186,9 @@ async function saveDocumentPdfLocally(
   await mkdir(paths.pdfDir, { recursive: true });
 
   const filename = `${toSafeFilename(input.documentNumber)}.pdf`;
-  const storageKey = buildLocalStorageKey(input.documentNumber);
+  const storageKey = buildLocalStorageKey(input.userId, input.documentNumber);
   const absolutePath = resolveStoragePath(storageKey, paths);
+  await mkdir(path.dirname(absolutePath), { recursive: true });
 
   try {
     const existingStats = await stat(absolutePath);
@@ -254,7 +264,7 @@ async function saveDocumentPdfToSupabase(
   }
 
   const filename = `${toSafeFilename(input.documentNumber)}.pdf`;
-  const storageKey = buildSupabaseStorageKey(input.documentNumber);
+  const storageKey = buildSupabaseStorageKey(input.userId, input.documentNumber);
   const existingPdf = await downloadSupabasePdf({
     bucket: paths.supabaseBucket,
     storageKey,
@@ -322,6 +332,10 @@ export async function saveDocumentPdf(
   input: SaveDocumentPdfInput,
   overrides?: Partial<PdfStoragePaths>,
 ): Promise<StoredDocumentPdf> {
+  if (!input.userId.trim()) {
+    throw new Error("PDF-Speicherung erfordert eine User-ID.");
+  }
+
   if (!Buffer.isBuffer(input.pdfBuffer) || input.pdfBuffer.byteLength === 0) {
     throw new Error("PDF-Inhalt fuer Speicherung fehlt.");
   }

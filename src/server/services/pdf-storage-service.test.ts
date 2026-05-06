@@ -3,6 +3,8 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { readStoredDocumentPdf, saveDocumentPdf } from "./pdf-storage-service";
 
+const TEST_USER_ID = "user-test-1";
+
 describe("pdf-storage-service", () => {
   it("stores a document pdf outside the public app tree", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "pdf-storage-"));
@@ -11,6 +13,7 @@ describe("pdf-storage-service", () => {
     try {
       const stored = await saveDocumentPdf(
         {
+          userId: TEST_USER_ID,
           documentNumber: "ANG-2026-001",
           pdfBuffer: Buffer.from("%PDF test"),
         },
@@ -20,7 +23,9 @@ describe("pdf-storage-service", () => {
         },
       );
 
-      expect(stored.storageKey).toBe("document-pdfs/ANG-2026-001.pdf");
+      expect(stored.storageKey).toBe(
+        "document-pdfs/users/user-test-1/ANG-2026-001.pdf",
+      );
       expect(stored.filename).toBe("ANG-2026-001.pdf");
       expect(stored.contentType).toBe("application/pdf");
       expect(stored.byteLength).toBe(9);
@@ -41,6 +46,7 @@ describe("pdf-storage-service", () => {
     try {
       const first = await saveDocumentPdf(
         {
+          userId: TEST_USER_ID,
           documentNumber: "ANG-2026-001",
           pdfBuffer: Buffer.from("first pdf"),
         },
@@ -51,6 +57,7 @@ describe("pdf-storage-service", () => {
       );
       const second = await saveDocumentPdf(
         {
+          userId: TEST_USER_ID,
           documentNumber: "ANG-2026-001",
           pdfBuffer: Buffer.from("second pdf"),
         },

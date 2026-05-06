@@ -6,8 +6,11 @@ import {
   upsertStoredProject,
 } from "./project-store-service";
 
+const TEST_USER_ID = "user-test-1";
+
 function createSampleInput(seed: string) {
   return {
+    userId: TEST_USER_ID,
     customerType: "company" as const,
     companyName: `Kunde ${seed} GmbH`,
     salutation: "herr" as const,
@@ -88,7 +91,7 @@ describe("project-store-service", () => {
       expect(updated.projectName).toBe("Projekt 1 aktualisiert");
       expect(updated.status).toBe("in_progress");
 
-      const allProjects = await listStoredProjects({
+      const allProjects = await listStoredProjects(TEST_USER_ID, {
         dataDir,
         storePath,
         lockPath,

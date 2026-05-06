@@ -11,13 +11,14 @@ export async function POST() {
     return accessResult.response;
   }
 
-  const connection = await readEmailConnection();
+  const userId = accessResult.user.id;
+  const connection = await readEmailConnection(userId);
   let providerRevoked = false;
   let revokeWarning = "";
 
   if (connection) {
     try {
-      await revokeEmailProviderTokens(connection);
+      await revokeEmailProviderTokens(userId, connection);
       providerRevoked = true;
     } catch (error) {
       revokeWarning =
@@ -27,7 +28,7 @@ export async function POST() {
     }
   }
 
-  await clearEmailConnection();
+  await clearEmailConnection(userId);
   return NextResponse.json({
     ok: true,
     providerRevoked,

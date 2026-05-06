@@ -33,6 +33,7 @@ type CustomerStorePaths = {
 };
 
 export type UpsertStoredCustomerInput = {
+  userId: string;
   customerType: "person" | "company";
   companyName?: string;
   salutation?: "herr" | "frau";
@@ -55,6 +56,23 @@ const CUSTOMER_NUMBER_PATTERN = /^KDN-(\d{6,})$/;
 
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeUserId(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isOwnedByUser(
+  recordUserId: unknown,
+  userId: string,
+  includeLegacyUnscoped: boolean,
+): boolean {
+  const normalizedUserId = normalizeUserId(recordUserId);
+  if (normalizedUserId) {
+    return normalizedUserId === userId;
+  }
+
+  return includeLegacyUnscoped;
 }
 
 function normalizeTextForComparison(value: string): string {
@@ -210,6 +228,7 @@ function sanitizeCustomerRecord(value: unknown): StoredCustomerRecord | null {
   }
 
   return {
+    userId: normalizeUserId(record.userId) || undefined,
     customerNumber: formatCustomerNumber(sequence),
     customerType,
     companyName: asTrimmedString(record.companyName),
@@ -368,7 +387,9 @@ async function acquireStoreLock(
 function findMatchingCustomerIndex(
   customers: StoredCustomerRecord[],
   input: UpsertStoredCustomerInput,
+  includeLegacyUnscoped: boolean,
 ): number {
+  const inputUserId = input.userId.trim();
   const inputEmail = normalizeEmailForComparison(input.customerEmail);
   const inputType = input.customerType;
   const inputCompany = normalizeTextForComparison(input.companyName ?? "");
@@ -379,6 +400,10 @@ function findMatchingCustomerIndex(
   const inputCity = normalizeTextForComparison(input.city);
 
   return customers.findIndex((customer) => {
+    if (!isOwnedByUser(customer.userId, inputUserId, includeLegacyUnscoped)) {
+      return false;
+    }
+
     const customerEmail = normalizeEmailForComparison(customer.customerEmail);
     if (inputEmail && customerEmail && inputEmail === customerEmail) {
       return true;
@@ -397,14 +422,25 @@ function findMatchingCustomerIndex(
 }
 
 export async function listStoredCustomers(
+  userId: string,
   overrides?: Partial<CustomerStorePaths>,
 ): Promise<StoredCustomerRecord[]> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return [];
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
   const store = await readStoreWithDataLossProtection(paths.storePath);
+  const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
 
-  return [...store.customers].sort((left, right) => {
+  return store.customers
+    .filter((customer) =>
+      isOwnedByUser(customer.userId, normalizedUserId, includeLegacyUnscoped),
+    )
+    .sort((left, right) => {
     const leftTime = new Date(left.updatedAt).getTime();
     const rightTime = new Date(right.updatedAt).getTime();
     if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
@@ -416,9 +452,15 @@ export async function listStoredCustomers(
 }
 
 export async function removeStoredCustomer(
+  userId: string,
   customerNumber: string,
   overrides?: Partial<CustomerStorePaths>,
 ): Promise<boolean> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return false;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -433,8 +475,20 @@ export async function removeStoredCustomer(
 
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
+    const hasOwnedRecord = store.customers.some(
+      (customer) =>
+        customer.customerNumber === normalizedCustomerNumber &&
+        isOwnedByUser(customer.userId, normalizedUserId, includeLegacyUnscoped),
+    );
+    if (!hasOwnedRecord) {
+      return false;
+    }
+
     const nextCustomers = store.customers.filter(
-      (customer) => customer.customerNumber !== normalizedCustomerNumber,
+      (customer) =>
+        customer.customerNumber !== normalizedCustomerNumber ||
+        !isOwnedByUser(customer.userId, normalizedUserId, includeLegacyUnscoped),
     );
     if (nextCustomers.length === store.customers.length) {
       return false;
@@ -454,6 +508,11 @@ export async function upsertStoredCustomer(
   input: UpsertStoredCustomerInput,
   overrides?: Partial<CustomerStorePaths>,
 ): Promise<StoredCustomerRecord> {
+  const normalizedUserId = input.userId.trim();
+  if (!normalizedUserId) {
+    throw new Error("User-ID fuer Kunden-Speicherung fehlt.");
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -464,13 +523,19 @@ export async function upsertStoredCustomer(
     const now = input.referenceDate ?? new Date();
     const nowIso = now.toISOString();
     const store = await readStoreWithDataLossProtection(paths.storePath);
-    const existingIndex = findMatchingCustomerIndex(store.customers, input);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
+    const existingIndex = findMatchingCustomerIndex(
+      store.customers,
+      input,
+      includeLegacyUnscoped,
+    );
     const normalizedDraftState = sanitizeCustomerDraftState(input.draftState);
 
     if (existingIndex >= 0) {
       const existing = store.customers[existingIndex];
       const updated: StoredCustomerRecord = {
         ...existing,
+        userId: normalizedUserId,
         customerType: input.customerType,
         companyName: asTrimmedString(input.companyName),
         salutation: input.salutation === "frau" ? "frau" : "herr",
@@ -497,6 +562,7 @@ export async function upsertStoredCustomer(
 
     const nextSequence = store.lastCustomerSequence + 1;
     const created: StoredCustomerRecord = {
+      userId: normalizedUserId,
       customerNumber: formatCustomerNumber(nextSequence),
       customerType: input.customerType,
       companyName: asTrimmedString(input.companyName),

@@ -48,6 +48,7 @@ type OfferStorePaths = {
 };
 
 export type CreateStoredOfferInput = {
+  userId: string;
   documentType?: DocumentType;
   customerNumber?: string;
   projectNumber?: string;
@@ -181,6 +182,23 @@ function asTrimmedString(value: unknown, fallback = ""): string {
   }
 
   return value.trim();
+}
+
+function normalizeUserId(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isOwnedByUser(
+  recordUserId: unknown,
+  userId: string,
+  includeLegacyUnscoped: boolean,
+): boolean {
+  const normalizedUserId = normalizeUserId(recordUserId);
+  if (normalizedUserId) {
+    return normalizedUserId === userId;
+  }
+
+  return includeLegacyUnscoped;
 }
 
 function sanitizeDocumentStatus(value: unknown): DocumentProcessingStatus {
@@ -498,6 +516,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
       : undefined);
 
   return {
+    userId: normalizeUserId(record.userId) || undefined,
     documentType: inferredDocumentType,
     offerNumber: resolvedOfferNumber,
     idempotencyKey:
@@ -551,6 +570,8 @@ function findIdempotentRecord(
   offers: StoredOfferRecord[],
   documentType: DocumentType,
   idempotencyKey: string | undefined,
+  userId: string,
+  includeLegacyUnscoped: boolean,
 ): StoredOfferRecord | null {
   const normalizedKey = idempotencyKey?.trim();
   if (!normalizedKey) {
@@ -560,6 +581,7 @@ function findIdempotentRecord(
   return (
     offers.find(
       (offer) =>
+        isOwnedByUser(offer.userId, userId, includeLegacyUnscoped) &&
         resolveDocumentType(offer.documentType) === documentType &&
         offer.idempotencyKey === normalizedKey,
     ) ?? null
@@ -828,6 +850,11 @@ export async function createStoredOfferRecord(
   input: CreateStoredOfferInput,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord> {
+  const normalizedUserId = input.userId.trim();
+  if (!normalizedUserId) {
+    throw new Error("User-ID fuer Dokument-Speicherung fehlt.");
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -840,6 +867,7 @@ export async function createStoredOfferRecord(
     const normalizedIdempotencyKey = asTrimmedString(input.idempotencyKey);
     const generatedAt = input.referenceDate ?? new Date();
     const currentYear = generatedAt.getFullYear();
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const configuredLastNumber =
       documentType === "invoice"
         ? input.configuredLastInvoiceNumber
@@ -849,6 +877,8 @@ export async function createStoredOfferRecord(
       store.offers,
       documentType,
       normalizedIdempotencyKey,
+      normalizedUserId,
+      includeLegacyUnscoped,
     );
     if (existingIdempotentRecord) {
       return existingIdempotentRecord;
@@ -873,6 +903,7 @@ export async function createStoredOfferRecord(
     });
 
     const nextRecord: StoredOfferRecord = {
+      userId: normalizedUserId,
       documentType,
       offerNumber: assignedOfferNumber,
       idempotencyKey: normalizedIdempotencyKey || undefined,
@@ -928,9 +959,15 @@ export async function createStoredOfferRecord(
 
 export async function updateStoredOfferRecordStatus(
   offerNumber: string,
+  userId: string,
   status: DocumentProcessingStatus,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -943,8 +980,11 @@ export async function updateStoredOfferRecordStatus(
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const recordIndex = store.offers.findIndex(
-      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+      (record) =>
+        isOwnedByUser(record.userId, normalizedUserId, includeLegacyUnscoped) &&
+        record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
     );
     if (recordIndex < 0) {
       return null;
@@ -969,9 +1009,15 @@ export async function updateStoredOfferRecordStatus(
 
 export async function updateStoredOfferRecordPdfReference(
   offerNumber: string,
+  userId: string,
   pdf: StoredPdfReference,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -984,8 +1030,11 @@ export async function updateStoredOfferRecordPdfReference(
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const recordIndex = store.offers.findIndex(
-      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+      (record) =>
+        isOwnedByUser(record.userId, normalizedUserId, includeLegacyUnscoped) &&
+        record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
     );
     if (recordIndex < 0) {
       return null;
@@ -1010,9 +1059,15 @@ export async function updateStoredOfferRecordPdfReference(
 
 export async function updateStoredOfferRecordEmailReference(
   offerNumber: string,
+  userId: string,
   email: StoredEmailReference,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -1025,8 +1080,11 @@ export async function updateStoredOfferRecordEmailReference(
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const recordIndex = store.offers.findIndex(
-      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+      (record) =>
+        isOwnedByUser(record.userId, normalizedUserId, includeLegacyUnscoped) &&
+        record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
     );
     if (recordIndex < 0) {
       return null;
@@ -1051,9 +1109,15 @@ export async function updateStoredOfferRecordEmailReference(
 
 export async function updateStoredOfferRecordPaymentReference(
   offerNumber: string,
+  userId: string,
   payment: StoredPaymentReference,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -1066,8 +1130,11 @@ export async function updateStoredOfferRecordPaymentReference(
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const recordIndex = store.offers.findIndex(
-      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+      (record) =>
+        isOwnedByUser(record.userId, normalizedUserId, includeLegacyUnscoped) &&
+        record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
     );
     if (recordIndex < 0) {
       return null;
@@ -1092,9 +1159,15 @@ export async function updateStoredOfferRecordPaymentReference(
 
 export async function updateStoredOfferRecordReminderReference(
   offerNumber: string,
+  userId: string,
   reminder: StoredReminderReference,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -1107,8 +1180,11 @@ export async function updateStoredOfferRecordReminderReference(
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const recordIndex = store.offers.findIndex(
-      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+      (record) =>
+        isOwnedByUser(record.userId, normalizedUserId, includeLegacyUnscoped) &&
+        record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
     );
     if (recordIndex < 0) {
       return null;
@@ -1132,13 +1208,24 @@ export async function updateStoredOfferRecordReminderReference(
 }
 
 export async function listStoredOfferRecords(
+  userId: string,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord[]> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return [];
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   const store = await readStoreWithDataLossProtection(paths.storePath);
+  const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
 
-  return [...store.offers].sort((left, right) => {
+  return store.offers
+    .filter((record) =>
+      isOwnedByUser(record.userId, normalizedUserId, includeLegacyUnscoped),
+    )
+    .sort((left, right) => {
     const rightTs = Date.parse(right.createdAt);
     const leftTs = Date.parse(left.createdAt);
     if (Number.isFinite(rightTs) && Number.isFinite(leftTs) && rightTs !== leftTs) {
@@ -1150,15 +1237,21 @@ export async function listStoredOfferRecords(
 }
 
 export async function findStoredOfferRecordByNumber(
+  userId: string,
   offerNumber: string,
   overrides?: Partial<OfferStorePaths>,
 ): Promise<StoredOfferRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
   }
 
-  const records = await listStoredOfferRecords(overrides);
+  const records = await listStoredOfferRecords(normalizedUserId, overrides);
   return (
     records.find(
       (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,

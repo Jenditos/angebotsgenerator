@@ -35,6 +35,7 @@ type ProjectStorePaths = {
 };
 
 export type UpsertStoredProjectInput = {
+  userId: string;
   projectNumber?: string;
   customerNumber?: string;
   customerType: "person" | "company";
@@ -63,6 +64,23 @@ const PROJECT_NUMBER_PATTERN = /^PRJ-(\d{6,})$/;
 
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeUserId(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isOwnedByUser(
+  recordUserId: unknown,
+  userId: string,
+  includeLegacyUnscoped: boolean,
+): boolean {
+  const normalizedUserId = normalizeUserId(recordUserId);
+  if (normalizedUserId) {
+    return normalizedUserId === userId;
+  }
+
+  return includeLegacyUnscoped;
 }
 
 function normalizeTextForComparison(value: string): string {
@@ -206,6 +224,7 @@ function sanitizeProjectRecord(value: unknown): StoredProjectRecord | null {
   }
 
   return {
+    userId: normalizeUserId(record.userId) || undefined,
     projectNumber: formatProjectNumber(sequence),
     customerNumber:
       typeof record.customerNumber === "string" &&
@@ -373,29 +392,37 @@ async function acquireStoreLock(
 function findMatchingProjectIndex(
   projects: StoredProjectRecord[],
   input: UpsertStoredProjectInput,
+  includeLegacyUnscoped: boolean,
 ): number {
+  const inputUserId = input.userId.trim();
   const requestedProjectSequence = parseProjectNumber(input.projectNumber);
   if (requestedProjectSequence > 0) {
     const normalizedProjectNumber = formatProjectNumber(requestedProjectSequence);
     const directIndex = projects.findIndex(
-      (project) => project.projectNumber === normalizedProjectNumber,
+      (project) =>
+        project.projectNumber === normalizedProjectNumber &&
+        isOwnedByUser(project.userId, inputUserId, includeLegacyUnscoped),
     );
     if (directIndex >= 0) {
       return directIndex;
     }
   }
 
-    const inputCustomerNumber = asTrimmedString(input.customerNumber);
-    const inputCustomerName = normalizeTextForComparison(input.customerName);
-    const inputStreet = normalizeTextForComparison(input.street);
-    const inputPostalCode = normalizeTextForComparison(input.postalCode);
-    const inputCity = normalizeTextForComparison(input.city);
-    const inputProjectName = normalizeTextForComparison(input.projectName);
+  const inputCustomerNumber = asTrimmedString(input.customerNumber);
+  const inputCustomerName = normalizeTextForComparison(input.customerName);
+  const inputStreet = normalizeTextForComparison(input.street);
+  const inputPostalCode = normalizeTextForComparison(input.postalCode);
+  const inputCity = normalizeTextForComparison(input.city);
+  const inputProjectName = normalizeTextForComparison(input.projectName);
   const inputProjectAddress = normalizeTextForComparison(
     input.projectAddress || input.customerAddress,
   );
 
   return projects.findIndex((project) => {
+    if (!isOwnedByUser(project.userId, inputUserId, includeLegacyUnscoped)) {
+      return false;
+    }
+
     const matchesProjectName =
       normalizeTextForComparison(project.projectName) === inputProjectName;
     const matchesProjectAddress =
@@ -420,14 +447,25 @@ function findMatchingProjectIndex(
 }
 
 export async function listStoredProjects(
+  userId: string,
   overrides?: Partial<ProjectStorePaths>,
 ): Promise<StoredProjectRecord[]> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return [];
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
   const store = await readStoreWithDataLossProtection(paths.storePath);
+  const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
 
-  return [...store.projects].sort((left, right) => {
+  return store.projects
+    .filter((project) =>
+      isOwnedByUser(project.userId, normalizedUserId, includeLegacyUnscoped),
+    )
+    .sort((left, right) => {
     const leftTime = new Date(left.updatedAt).getTime();
     const rightTime = new Date(right.updatedAt).getTime();
     if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
@@ -439,16 +477,22 @@ export async function listStoredProjects(
 }
 
 export async function findStoredProjectByNumber(
+  userId: string,
   projectNumber: string,
   overrides?: Partial<ProjectStorePaths>,
 ): Promise<StoredProjectRecord | null> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return null;
+  }
+
   const normalizedSequence = parseProjectNumber(projectNumber);
   if (!normalizedSequence) {
     return null;
   }
 
   const normalizedProjectNumber = formatProjectNumber(normalizedSequence);
-  const projects = await listStoredProjects(overrides);
+  const projects = await listStoredProjects(normalizedUserId, overrides);
   return (
     projects.find((project) => project.projectNumber === normalizedProjectNumber) ??
     null
@@ -456,9 +500,15 @@ export async function findStoredProjectByNumber(
 }
 
 export async function removeStoredProject(
+  userId: string,
   projectNumber: string,
   overrides?: Partial<ProjectStorePaths>,
 ): Promise<boolean> {
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) {
+    return false;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -473,8 +523,20 @@ export async function removeStoredProject(
 
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
+    const hasOwnedRecord = store.projects.some(
+      (project) =>
+        project.projectNumber === normalizedProjectNumber &&
+        isOwnedByUser(project.userId, normalizedUserId, includeLegacyUnscoped),
+    );
+    if (!hasOwnedRecord) {
+      return false;
+    }
+
     const nextProjects = store.projects.filter(
-      (project) => project.projectNumber !== normalizedProjectNumber,
+      (project) =>
+        project.projectNumber !== normalizedProjectNumber ||
+        !isOwnedByUser(project.userId, normalizedUserId, includeLegacyUnscoped),
     );
     if (nextProjects.length === store.projects.length) {
       return false;
@@ -494,6 +556,11 @@ export async function upsertStoredProject(
   input: UpsertStoredProjectInput,
   overrides?: Partial<ProjectStorePaths>,
 ): Promise<StoredProjectRecord> {
+  const normalizedUserId = input.userId.trim();
+  if (!normalizedUserId) {
+    throw new Error("User-ID fuer Projekt-Speicherung fehlt.");
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -504,7 +571,12 @@ export async function upsertStoredProject(
     const now = input.referenceDate ?? new Date();
     const nowIso = now.toISOString();
     const store = await readStoreWithDataLossProtection(paths.storePath);
-    const existingIndex = findMatchingProjectIndex(store.projects, input);
+    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
+    const existingIndex = findMatchingProjectIndex(
+      store.projects,
+      input,
+      includeLegacyUnscoped,
+    );
     const normalizedDraftState = sanitizeCustomerDraftState(input.draftState);
     const resolvedProjectAddress =
       asTrimmedString(input.projectAddress) ||
@@ -514,6 +586,7 @@ export async function upsertStoredProject(
       const existing = store.projects[existingIndex];
       const updated: StoredProjectRecord = {
         ...existing,
+        userId: normalizedUserId,
         customerNumber: asTrimmedString(input.customerNumber) || existing.customerNumber,
         customerType: input.customerType,
         companyName: asTrimmedString(input.companyName),
@@ -546,6 +619,7 @@ export async function upsertStoredProject(
 
     const nextSequence = store.lastProjectSequence + 1;
     const created: StoredProjectRecord = {
+      userId: normalizedUserId,
       projectNumber: formatProjectNumber(nextSequence),
       customerNumber: asTrimmedString(input.customerNumber) || undefined,
       customerType: input.customerType,

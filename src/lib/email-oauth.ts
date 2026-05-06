@@ -13,6 +13,7 @@ const OAUTH_PKCE_COOKIE_PREFIX = "visioro-oauth-pkce-";
 
 type StatePayload = {
   provider: EmailProvider;
+  userId: string;
   returnTo: string;
   ts: number;
   nonce: string;
@@ -93,6 +94,14 @@ function safeReturnPath(returnTo?: string | null): string {
   return returnTo.startsWith("/") ? returnTo : "/";
 }
 
+function normalizeOAuthUserId(userId: string): string {
+  const normalized = userId.trim();
+  if (!normalized) {
+    throw new Error("Ungültige userId für OAuth.");
+  }
+  return normalized;
+}
+
 function signState(payloadBase64: string): string {
   return createHmac("sha256", getStateSecret()).update(payloadBase64).digest("base64url");
 }
@@ -117,7 +126,13 @@ function verifySignedState(rawState: string): StatePayload {
     throw new Error("State-Signatur ungültig.");
   }
   const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf-8")) as StatePayload;
-  if (!parsed.provider || !parsed.returnTo || !parsed.ts) {
+  if (
+    !parsed.provider ||
+    typeof parsed.userId !== "string" ||
+    !parsed.userId.trim() ||
+    !parsed.returnTo ||
+    !parsed.ts
+  ) {
     throw new Error("State-Payload unvollständig.");
   }
   if (Date.now() - parsed.ts > OAUTH_STATE_TTL_MS) {
@@ -182,14 +197,17 @@ function getCallbackUrl(request?: Request): string {
 export function startEmailConnect(
   provider: EmailProvider,
   request: Request,
+  userId: string,
   returnTo?: string | null,
 ): EmailConnectStart {
+  const normalizedUserId = normalizeOAuthUserId(userId);
   const redirectUri = getCallbackUrl(request);
   const nonce = randomUUID();
   const codeVerifier = createPkceVerifier();
   const codeChallenge = createPkceChallenge(codeVerifier);
   const state = createSignedState({
     provider,
+    userId: normalizedUserId,
     returnTo: safeReturnPath(returnTo),
     ts: Date.now(),
     nonce,
@@ -330,7 +348,9 @@ async function fetchMicrosoftAccountEmail(accessToken: string): Promise<string> 
 
 export async function handleEmailCallback(
   request: Request,
+  userId: string,
 ): Promise<EmailCallbackResult> {
+  const normalizedUserId = normalizeOAuthUserId(userId);
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const rawState = url.searchParams.get("state");
@@ -358,6 +378,15 @@ export async function handleEmailCallback(
     };
   }
   const pkceCookieName = getPkceCookieName(state.nonce);
+  if (state.userId !== normalizedUserId) {
+    return {
+      redirectPath: withReturnQuery(state.returnTo, {
+        mail_connected: "0",
+        reason: "OAuth-Session gehört zu einem anderen Benutzer.",
+      }),
+      clearCookieName: pkceCookieName,
+    };
+  }
   const codeVerifier = readCookieValue(request, pkceCookieName);
 
   if (error) {
@@ -397,7 +426,7 @@ export async function handleEmailCallback(
         ? await exchangeGoogleCode(code, redirectUri, codeVerifier)
         : await exchangeMicrosoftCode(code, redirectUri, codeVerifier);
 
-    const existing = await readEmailConnection();
+    const existing = await readEmailConnection(normalizedUserId);
     const refreshToken =
       token.refresh_token || (existing?.provider === state.provider ? existing.refreshToken : "");
     if (!refreshToken) {
@@ -416,7 +445,7 @@ export async function handleEmailCallback(
       refreshToken,
       expiresAt: Date.now() + token.expires_in * 1000
     };
-    await writeEmailConnection(connection);
+    await writeEmailConnection(normalizedUserId, connection);
 
     return {
       redirectPath: withReturnQuery(state.returnTo, {
@@ -468,9 +497,24 @@ async function revokeMicrosoftSessions(accessToken: string): Promise<void> {
   }
 }
 
+export function revokeEmailProviderTokens(connection: EmailConnection): Promise<void>;
+export function revokeEmailProviderTokens(
+  userId: string,
+  connection?: EmailConnection | null,
+): Promise<void>;
 export async function revokeEmailProviderTokens(
-  connection: EmailConnection,
+  userIdOrConnection: string | EmailConnection,
+  maybeConnection?: EmailConnection | null,
 ): Promise<void> {
+  const connection =
+    typeof userIdOrConnection === "string"
+      ? maybeConnection ?? (await readEmailConnection(normalizeOAuthUserId(userIdOrConnection)))
+      : userIdOrConnection;
+
+  if (!connection) {
+    return;
+  }
+
   if (connection.provider === "google") {
     await revokeGoogleToken(connection.refreshToken);
     return;
@@ -530,11 +574,35 @@ async function refreshMicrosoft(connection: EmailConnection): Promise<EmailConne
   };
 }
 
-export async function ensureFreshEmailConnection(connection: EmailConnection): Promise<EmailConnection> {
+export function ensureFreshEmailConnection(connection: EmailConnection): Promise<EmailConnection>;
+export function ensureFreshEmailConnection(
+  userId: string,
+  connection: EmailConnection,
+): Promise<EmailConnection>;
+export async function ensureFreshEmailConnection(
+  userIdOrConnection: string | EmailConnection,
+  maybeConnection?: EmailConnection,
+): Promise<EmailConnection> {
+  const userId =
+    typeof userIdOrConnection === "string" ? normalizeOAuthUserId(userIdOrConnection) : undefined;
+  const connection =
+    typeof userIdOrConnection === "string" ? maybeConnection : userIdOrConnection;
+
+  if (!connection) {
+    throw new Error("E-Mail-Verbindung fehlt.");
+  }
+
   if (Date.now() < connection.expiresAt - 60_000) {
     return connection;
   }
-  const refreshed = connection.provider === "google" ? await refreshGoogle(connection) : await refreshMicrosoft(connection);
-  await writeEmailConnection(refreshed);
+  const refreshed =
+    connection.provider === "google"
+      ? await refreshGoogle(connection)
+      : await refreshMicrosoft(connection);
+  if (userId) {
+    await writeEmailConnection(userId, refreshed);
+  } else {
+    await writeEmailConnection(refreshed);
+  }
   return refreshed;
 }

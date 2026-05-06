@@ -10,8 +10,11 @@ import {
   updateStoredOfferRecordStatus,
 } from "./offer-store-service";
 
+const TEST_USER_ID = "user-test-1";
+
 function createSampleInput(seed: string) {
   return {
+    userId: TEST_USER_ID,
     customerName: `Kunde ${seed}`,
     customerAddress: "TEST_STREET_1, 00000 TEST_CITY",
     customerEmail: "kunde@example.com",
@@ -169,6 +172,7 @@ describe("offer-store-service", () => {
       });
       const updated = await updateStoredOfferRecordStatus(
         created.offerNumber,
+        TEST_USER_ID,
         "pdf_ready",
         {
           dataDir,
@@ -204,6 +208,7 @@ describe("offer-store-service", () => {
       });
       const updated = await updateStoredOfferRecordPdfReference(
         created.offerNumber,
+        TEST_USER_ID,
         {
           storageKey: `document-pdfs/${created.offerNumber}.pdf`,
           filename: `${created.offerNumber}.pdf`,
@@ -253,6 +258,7 @@ describe("offer-store-service", () => {
       });
       const updated = await updateStoredOfferRecordEmailReference(
         created.offerNumber,
+        TEST_USER_ID,
         {
           status: "prepared",
           provider: "google",
@@ -310,6 +316,7 @@ describe("offer-store-service", () => {
 
       const updated = await updateStoredOfferRecordPaymentReference(
         invoice.offerNumber,
+        TEST_USER_ID,
         {
           status: "paid",
           provider: "manual",
@@ -356,6 +363,7 @@ describe("offer-store-service", () => {
       });
       const updated = await updateStoredOfferRecordReminderReference(
         created.offerNumber,
+        TEST_USER_ID,
         {
           status: "scheduled",
           reason: "offer_follow_up",

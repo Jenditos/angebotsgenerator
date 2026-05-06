@@ -21,7 +21,7 @@ export async function GET() {
   }
 
   try {
-    const projects = await listStoredProjects();
+    const projects = await listStoredProjects(accessResult.user.id);
     return NextResponse.json({ projects });
   } catch {
     return NextResponse.json(
@@ -88,6 +88,7 @@ export async function POST(request: Request) {
     }
 
     const project = await upsertStoredProject({
+      userId: accessResult.user.id,
       projectNumber:
         typeof body.projectNumber === "string" ? body.projectNumber.trim() : undefined,
       customerNumber:
@@ -140,7 +141,10 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const removed = await removeStoredProject(projectNumber);
+    const removed = await removeStoredProject(
+      accessResult.user.id,
+      projectNumber,
+    );
     if (!removed) {
       return NextResponse.json(
         { error: "Projekt konnte nicht gelöscht werden." },

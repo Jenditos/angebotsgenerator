@@ -14,7 +14,7 @@ export async function GET() {
   }
 
   try {
-    const customers = await listStoredCustomers();
+    const customers = await listStoredCustomers(accessResult.user.id);
     return NextResponse.json({ customers });
   } catch {
     return NextResponse.json(
@@ -74,6 +74,7 @@ export async function POST(request: Request) {
     }
 
     const customer = await upsertStoredCustomer({
+      userId: accessResult.user.id,
       customerType: body.customerType === "company" ? "company" : "person",
       companyName:
         typeof body.companyName === "string" ? body.companyName.trim() : "",
@@ -116,7 +117,10 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const removed = await removeStoredCustomer(customerNumber);
+    const removed = await removeStoredCustomer(
+      accessResult.user.id,
+      customerNumber,
+    );
     if (!removed) {
       return NextResponse.json(
         { error: "Kunde konnte nicht gelöscht werden." },

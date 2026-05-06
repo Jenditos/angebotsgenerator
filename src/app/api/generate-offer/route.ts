@@ -846,11 +846,16 @@ async function recordActivitySafely(
 }
 
 async function updateDocumentStatusSafely(
+  userId: string | undefined,
   documentNumber: string,
-  status: Parameters<typeof updateStoredOfferRecordStatus>[1],
+  status: Parameters<typeof updateStoredOfferRecordStatus>[2],
 ): Promise<void> {
+  if (!userId) {
+    return;
+  }
+
   try {
-    await updateStoredOfferRecordStatus(documentNumber, status);
+    await updateStoredOfferRecordStatus(documentNumber, userId, status);
   } catch (error) {
     console.warn("[document-status] status could not be updated", {
       documentNumber,
@@ -861,11 +866,16 @@ async function updateDocumentStatusSafely(
 }
 
 async function updateDocumentEmailSafely(
+  userId: string | undefined,
   documentNumber: string,
   email: StoredEmailReference,
 ): Promise<void> {
+  if (!userId) {
+    return;
+  }
+
   try {
-    await updateStoredOfferRecordEmailReference(documentNumber, email);
+    await updateStoredOfferRecordEmailReference(documentNumber, userId, email);
   } catch (error) {
     console.warn("[document-email] email reference could not be updated", {
       documentNumber,
@@ -1012,6 +1022,13 @@ export async function handleGenerateOfferAuthorizedRequest(
     }
 
     const idempotencyKey = normalizeIdempotencyKey(body.idempotencyKey);
+    const actingUserId = context.userId?.trim();
+    if (!actingUserId) {
+      return NextResponse.json(
+        { error: "Nicht autorisiert.", requestId },
+        { status: 401 },
+      );
+    }
 
     debugOfferLog(requestId, "request_received", {
       documentType: body.documentType,
@@ -1285,6 +1302,7 @@ export async function handleGenerateOfferAuthorizedRequest(
     failureStage = "persist_customer";
     try {
       const storedCustomer = await upsertStoredCustomer({
+        userId: actingUserId,
         customerType,
         companyName,
         salutation,
@@ -1335,6 +1353,7 @@ export async function handleGenerateOfferAuthorizedRequest(
       failureStage = "persist_project";
       try {
         const storedProject = await upsertStoredProject({
+          userId: actingUserId,
           projectNumber: requestedProjectNumber || undefined,
           customerNumber: customerNumberForDocument,
           customerType,
@@ -1393,6 +1412,7 @@ export async function handleGenerateOfferAuthorizedRequest(
     let storedDocumentEmail: StoredEmailReference | undefined;
     try {
       const storedDocument = await createStoredOfferRecord({
+        userId: actingUserId,
         documentType,
         idempotencyKey,
         status: "offer_created",
@@ -1414,7 +1434,7 @@ export async function handleGenerateOfferAuthorizedRequest(
       generatedDocumentNumber = storedDocument.offerNumber;
       storedDocumentEmail = storedDocument.email;
       await recordActivitySafely({
-        userId: context.userId,
+        userId: actingUserId,
         entityType: "document",
         entityId: generatedDocumentNumber,
         action: "document_recorded",
@@ -1567,19 +1587,24 @@ export async function handleGenerateOfferAuthorizedRequest(
     let storedPdf: Awaited<ReturnType<typeof saveDocumentPdf>>;
     try {
       storedPdf = await saveDocumentPdf({
+        userId: actingUserId,
         documentNumber: generatedDocumentNumber,
         pdfBuffer,
       });
-      await updateStoredOfferRecordPdfReference(generatedDocumentNumber, {
-        storageProvider: storedPdf.storageProvider,
-        bucket: storedPdf.bucket,
-        storageKey: storedPdf.storageKey,
-        filename: storedPdf.filename,
-        contentType: storedPdf.contentType,
-        byteLength: storedPdf.byteLength,
-        createdAt: storedPdf.createdAt,
-        updatedAt: storedPdf.updatedAt,
-      });
+      await updateStoredOfferRecordPdfReference(
+        generatedDocumentNumber,
+        actingUserId,
+        {
+          storageProvider: storedPdf.storageProvider,
+          bucket: storedPdf.bucket,
+          storageKey: storedPdf.storageKey,
+          filename: storedPdf.filename,
+          contentType: storedPdf.contentType,
+          byteLength: storedPdf.byteLength,
+          createdAt: storedPdf.createdAt,
+          updatedAt: storedPdf.updatedAt,
+        },
+      );
     } catch (error) {
       console.error(
         `[generate-offer:${requestId}] pdf_storage_failed`,
@@ -1596,9 +1621,13 @@ export async function handleGenerateOfferAuthorizedRequest(
               documentNumber: generatedDocumentNumber,
             },
       );
-      await updateDocumentStatusSafely(generatedDocumentNumber, "failed");
+      await updateDocumentStatusSafely(
+        actingUserId,
+        generatedDocumentNumber,
+        "failed",
+      );
       await recordActivitySafely({
-        userId: context.userId,
+        userId: actingUserId,
         entityType: "document",
         entityId: generatedDocumentNumber,
         action: "pdf_storage_failed",
@@ -1619,9 +1648,13 @@ export async function handleGenerateOfferAuthorizedRequest(
 
     const pdfBase64 = pdfBuffer.toString("base64");
     let documentStatus: "pdf_ready" | "email_sent" | "email_failed" = "pdf_ready";
-    await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+    await updateDocumentStatusSafely(
+      actingUserId,
+      generatedDocumentNumber,
+      documentStatus,
+    );
     await recordActivitySafely({
-      userId: context.userId,
+      userId: actingUserId,
       entityType: "document",
       entityId: generatedDocumentNumber,
       action: "pdf_ready",
@@ -1651,9 +1684,13 @@ export async function handleGenerateOfferAuthorizedRequest(
         emailStatus = "sent";
         emailInfo = "E-Mail wurde bereits gesendet.";
         documentStatus = "email_sent";
-        await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+        await updateDocumentStatusSafely(
+          actingUserId,
+          generatedDocumentNumber,
+          documentStatus,
+        );
         const reminder = await scheduleOfferReminderSafely({
-          userId: context.userId,
+          userId: actingUserId,
           documentNumber: generatedDocumentNumber,
           documentType,
           idempotencyKey,
@@ -1661,7 +1698,7 @@ export async function handleGenerateOfferAuthorizedRequest(
         reminderStatus = reminder?.status === "scheduled" ? "scheduled" : undefined;
         reminderDueAt = reminder?.dueAt;
         await recordActivitySafely({
-          userId: context.userId,
+          userId: actingUserId,
           entityType: "email",
           entityId: generatedDocumentNumber,
           action: "email_sent",
@@ -1694,16 +1731,20 @@ export async function handleGenerateOfferAuthorizedRequest(
           emailInfo = `E-Mail über Resend an ${customerEmail} gesendet.`;
           documentStatus = "email_sent";
           const sentAt = new Date().toISOString();
-          await updateDocumentEmailSafely(generatedDocumentNumber, {
+          await updateDocumentEmailSafely(actingUserId, generatedDocumentNumber, {
             status: "sent",
             provider: "resend",
             idempotencyKey: idempotencyKey || undefined,
             sentAt,
             updatedAt: sentAt,
           });
-          await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+          await updateDocumentStatusSafely(
+            actingUserId,
+            generatedDocumentNumber,
+            documentStatus,
+          );
           const reminder = await scheduleOfferReminderSafely({
-            userId: context.userId,
+            userId: actingUserId,
             documentNumber: generatedDocumentNumber,
             documentType,
             idempotencyKey,
@@ -1711,7 +1752,7 @@ export async function handleGenerateOfferAuthorizedRequest(
           reminderStatus = reminder?.status === "scheduled" ? "scheduled" : undefined;
           reminderDueAt = reminder?.dueAt;
           await recordActivitySafely({
-            userId: context.userId,
+            userId: actingUserId,
             entityType: "email",
             entityId: generatedDocumentNumber,
             action: "email_sent",
@@ -1727,16 +1768,20 @@ export async function handleGenerateOfferAuthorizedRequest(
             "Versand fehlgeschlagen. Bitte OAuth-Verbindung oder Resend-Konfiguration prüfen.";
           documentStatus = "email_failed";
           const failedAt = new Date().toISOString();
-          await updateDocumentEmailSafely(generatedDocumentNumber, {
+          await updateDocumentEmailSafely(actingUserId, generatedDocumentNumber, {
             status: "failed",
             provider: "resend",
             idempotencyKey: idempotencyKey || undefined,
             failedAt,
             updatedAt: failedAt,
           });
-          await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+          await updateDocumentStatusSafely(
+            actingUserId,
+            generatedDocumentNumber,
+            documentStatus,
+          );
           await recordActivitySafely({
-            userId: context.userId,
+            userId: actingUserId,
             entityType: "email",
             entityId: generatedDocumentNumber,
             action: "email_failed",
@@ -1752,7 +1797,7 @@ export async function handleGenerateOfferAuthorizedRequest(
         emailInfo =
           "Kein verbundenes Postfach und keine Resend-Konfiguration gefunden.";
         await recordActivitySafely({
-          userId: context.userId,
+          userId: actingUserId,
           entityType: "email",
           entityId: generatedDocumentNumber,
           action: "email_not_configured",

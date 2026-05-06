@@ -61,7 +61,7 @@ export async function GET(request: Request) {
       (url.searchParams.get("customerEmail") ?? "").trim(),
     );
 
-    const records = await listStoredOfferRecords();
+    const records = await listStoredOfferRecords(accessResult.user.id);
     const documents = records
       .filter((record) => {
         const recordCustomerNumber = (record.customerNumber ?? "").trim();

@@ -22,7 +22,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { authUrl, pkceCookie } = startEmailConnect(providerRaw, request, returnTo);
+    const { authUrl, pkceCookie } = startEmailConnect(
+      providerRaw,
+      request,
+      accessResult.user.id,
+      returnTo,
+    );
     const response = NextResponse.redirect(authUrl);
     response.cookies.set(pkceCookie);
     return response;

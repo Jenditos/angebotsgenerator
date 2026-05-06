@@ -42,7 +42,7 @@ async function markEmailPreparedSafely(input: {
 
   const now = new Date().toISOString();
   try {
-    await updateStoredOfferRecordEmailReference(input.documentNumber, {
+    await updateStoredOfferRecordEmailReference(input.documentNumber, input.userId, {
       status: "prepared",
       provider: input.result.provider,
       idempotencyKey: input.idempotencyKey || undefined,
@@ -59,7 +59,11 @@ async function markEmailPreparedSafely(input: {
   }
 
   try {
-    await updateStoredOfferRecordStatus(input.documentNumber, "email_prepared");
+    await updateStoredOfferRecordStatus(
+      input.documentNumber,
+      input.userId,
+      "email_prepared",
+    );
   } catch (error) {
     console.warn("[email/create-draft] document status could not be updated", {
       documentNumber: input.documentNumber,
@@ -104,6 +108,7 @@ async function markEmailPreparedSafely(input: {
 }
 
 function buildReusableDraftResult(input: {
+  userId: string;
   documentNumber: string;
   idempotencyKey: string;
 }): Promise<EmailDraftResult | null> {
@@ -111,7 +116,10 @@ function buildReusableDraftResult(input: {
     return Promise.resolve(null);
   }
 
-  return findStoredOfferRecordByNumber(input.documentNumber).then((record) => {
+  return findStoredOfferRecordByNumber(
+    input.userId,
+    input.documentNumber,
+  ).then((record) => {
     const email = record?.email;
     if (
       email?.status !== "prepared" ||
@@ -154,6 +162,7 @@ export async function POST(request: Request) {
     const documentType = body.documentType === "invoice" ? "invoice" : "offer";
     const idempotencyKey = normalizeIdempotencyKey(body.idempotencyKey);
     const reusableDraft = await buildReusableDraftResult({
+      userId: accessResult.user.id,
       documentNumber,
       idempotencyKey,
     });
@@ -161,7 +170,7 @@ export async function POST(request: Request) {
       return NextResponse.json(reusableDraft);
     }
 
-    const result = await createDraftViaConnectedMailbox({
+    const result = await createDraftViaConnectedMailbox(accessResult.user.id, {
       to: body.to.trim(),
       subject: body.subject.trim(),
       text: body.text,
