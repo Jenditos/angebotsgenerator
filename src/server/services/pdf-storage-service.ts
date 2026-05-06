@@ -4,11 +4,17 @@ import {
   ensureRuntimeDataDirReady,
   resolveRuntimeDataDir,
 } from "@/server/services/store-runtime-paths";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/config";
 import { StoredPdfReference } from "@/types/offer";
+
+type PdfStorageProvider = "local" | "supabase";
 
 type PdfStoragePaths = {
   dataDir: string;
   pdfDir: string;
+  provider: PdfStorageProvider;
+  supabaseBucket: string;
 };
 
 export type SaveDocumentPdfInput = {
@@ -17,12 +23,37 @@ export type SaveDocumentPdfInput = {
 };
 
 export type StoredDocumentPdf = StoredPdfReference & {
-  absolutePath: string;
+  absolutePath?: string;
   reused: boolean;
 };
 
 const PDF_STORAGE_DIR_NAME = "document-pdfs";
 const PDF_CONTENT_TYPE = "application/pdf";
+const DEFAULT_SUPABASE_BUCKET = "document-pdfs";
+
+function resolveConfiguredProvider(
+  overrides?: Partial<PdfStoragePaths>,
+): PdfStorageProvider {
+  if (overrides?.provider) {
+    return overrides.provider;
+  }
+
+  if (overrides?.dataDir || overrides?.pdfDir) {
+    return "local";
+  }
+
+  return process.env.DOCUMENT_PDF_STORAGE_PROVIDER === "supabase"
+    ? "supabase"
+    : "local";
+}
+
+function resolveSupabaseBucket(overrides?: Partial<PdfStoragePaths>): string {
+  return (
+    overrides?.supabaseBucket?.trim() ||
+    process.env.DOCUMENT_PDF_SUPABASE_BUCKET?.trim() ||
+    DEFAULT_SUPABASE_BUCKET
+  );
+}
 
 function toSafeFilename(value: string): string {
   return value.trim().replace(/[^A-Za-z0-9._-]/g, "_");
@@ -35,6 +66,8 @@ function resolvePaths(overrides?: Partial<PdfStoragePaths>): PdfStoragePaths {
     pdfDir:
       overrides?.pdfDir ??
       path.join(/*turbopackIgnore: true*/ dataDir, PDF_STORAGE_DIR_NAME),
+    provider: resolveConfiguredProvider(overrides),
+    supabaseBucket: resolveSupabaseBucket(overrides),
   };
 }
 
@@ -56,13 +89,35 @@ function assertSafeStorageKey(storageKey: string): void {
   }
 }
 
-function buildStorageKey(documentNumber: string): string {
+function assertSafeSupabaseStorageKey(storageKey: string): void {
+  const normalized = normalizeStorageKey(storageKey);
+  if (
+    !normalized ||
+    normalized !== storageKey ||
+    normalized.includes("..") ||
+    path.isAbsolute(normalized) ||
+    !normalized.toLowerCase().endsWith(".pdf")
+  ) {
+    throw new Error("Ungueltiger Supabase-PDF-Speicherschluessel.");
+  }
+}
+
+function buildLocalStorageKey(documentNumber: string): string {
   const safeDocumentNumber = toSafeFilename(documentNumber);
   if (!safeDocumentNumber) {
     throw new Error("Dokumentnummer fuer PDF-Speicherung fehlt.");
   }
 
   return `${PDF_STORAGE_DIR_NAME}/${safeDocumentNumber}.pdf`;
+}
+
+function buildSupabaseStorageKey(documentNumber: string): string {
+  const safeDocumentNumber = toSafeFilename(documentNumber);
+  if (!safeDocumentNumber) {
+    throw new Error("Dokumentnummer fuer PDF-Speicherung fehlt.");
+  }
+
+  return `${safeDocumentNumber}.pdf`;
 }
 
 function resolveStoragePath(
@@ -80,6 +135,10 @@ function resolveStoragePath(
 async function ensureRuntimeDataDirIfNeeded(
   overrides?: Partial<PdfStoragePaths>,
 ): Promise<void> {
+  if (resolveConfiguredProvider(overrides) === "supabase") {
+    return;
+  }
+
   if (!overrides?.dataDir) {
     await ensureRuntimeDataDirReady();
   }
@@ -97,6 +156,7 @@ async function buildPdfReference(input: {
 }): Promise<StoredDocumentPdf> {
   const stats = await stat(input.absolutePath);
   return {
+    storageProvider: "local",
     storageKey: input.storageKey,
     filename: input.filename,
     contentType: PDF_CONTENT_TYPE,
@@ -108,20 +168,16 @@ async function buildPdfReference(input: {
   };
 }
 
-export async function saveDocumentPdf(
+async function saveDocumentPdfLocally(
   input: SaveDocumentPdfInput,
   overrides?: Partial<PdfStoragePaths>,
 ): Promise<StoredDocumentPdf> {
-  if (!Buffer.isBuffer(input.pdfBuffer) || input.pdfBuffer.byteLength === 0) {
-    throw new Error("PDF-Inhalt fuer Speicherung fehlt.");
-  }
-
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.pdfDir, { recursive: true });
 
   const filename = `${toSafeFilename(input.documentNumber)}.pdf`;
-  const storageKey = buildStorageKey(input.documentNumber);
+  const storageKey = buildLocalStorageKey(input.documentNumber);
   const absolutePath = resolveStoragePath(storageKey, paths);
 
   try {
@@ -169,10 +225,149 @@ export async function saveDocumentPdf(
   });
 }
 
-export async function readStoredDocumentPdf(
-  storageKey: string,
+async function downloadSupabasePdf(input: {
+  bucket: string;
+  storageKey: string;
+}): Promise<Buffer | null> {
+  assertSafeSupabaseStorageKey(input.storageKey);
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.storage
+    .from(input.bucket)
+    .download(input.storageKey);
+
+  if (error || !data) {
+    return null;
+  }
+
+  return Buffer.from(await data.arrayBuffer());
+}
+
+async function saveDocumentPdfToSupabase(
+  input: SaveDocumentPdfInput,
   overrides?: Partial<PdfStoragePaths>,
-): Promise<{ pdfBuffer: Buffer; absolutePath: string }> {
+): Promise<StoredDocumentPdf> {
+  const paths = resolvePaths(overrides);
+  if (!isSupabaseAdminConfigured()) {
+    throw new Error(
+      "Supabase PDF-Speicher ist aktiviert, aber SUPABASE_SERVICE_ROLE_KEY fehlt.",
+    );
+  }
+
+  const filename = `${toSafeFilename(input.documentNumber)}.pdf`;
+  const storageKey = buildSupabaseStorageKey(input.documentNumber);
+  const existingPdf = await downloadSupabasePdf({
+    bucket: paths.supabaseBucket,
+    storageKey,
+  });
+  const now = new Date().toISOString();
+
+  if (existingPdf) {
+    return {
+      storageProvider: "supabase",
+      bucket: paths.supabaseBucket,
+      storageKey,
+      filename,
+      contentType: PDF_CONTENT_TYPE,
+      byteLength: existingPdf.byteLength,
+      createdAt: now,
+      updatedAt: now,
+      reused: true,
+    };
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.storage
+    .from(paths.supabaseBucket)
+    .upload(storageKey, input.pdfBuffer, {
+      contentType: PDF_CONTENT_TYPE,
+      upsert: false,
+    });
+
+  if (error) {
+    const raceExistingPdf = await downloadSupabasePdf({
+      bucket: paths.supabaseBucket,
+      storageKey,
+    });
+    if (raceExistingPdf) {
+      return {
+        storageProvider: "supabase",
+        bucket: paths.supabaseBucket,
+        storageKey,
+        filename,
+        contentType: PDF_CONTENT_TYPE,
+        byteLength: raceExistingPdf.byteLength,
+        createdAt: now,
+        updatedAt: now,
+        reused: true,
+      };
+    }
+
+    throw error;
+  }
+
+  return {
+    storageProvider: "supabase",
+    bucket: paths.supabaseBucket,
+    storageKey,
+    filename,
+    contentType: PDF_CONTENT_TYPE,
+    byteLength: input.pdfBuffer.byteLength,
+    createdAt: now,
+    updatedAt: now,
+    reused: false,
+  };
+}
+
+export async function saveDocumentPdf(
+  input: SaveDocumentPdfInput,
+  overrides?: Partial<PdfStoragePaths>,
+): Promise<StoredDocumentPdf> {
+  if (!Buffer.isBuffer(input.pdfBuffer) || input.pdfBuffer.byteLength === 0) {
+    throw new Error("PDF-Inhalt fuer Speicherung fehlt.");
+  }
+
+  const provider = resolveConfiguredProvider(overrides);
+  if (provider === "supabase") {
+    return saveDocumentPdfToSupabase(input, overrides);
+  }
+
+  return saveDocumentPdfLocally(input, overrides);
+}
+
+export async function readStoredDocumentPdf(
+  reference: StoredPdfReference | string,
+  overrides?: Partial<PdfStoragePaths>,
+): Promise<{ pdfBuffer: Buffer; absolutePath?: string }> {
+  const storageKey =
+    typeof reference === "string" ? reference : reference.storageKey;
+  const provider =
+    typeof reference === "string"
+      ? resolveConfiguredProvider(overrides)
+      : reference.storageProvider ?? "local";
+
+  if (provider === "supabase") {
+    if (!isSupabaseAdminConfigured()) {
+      throw new Error(
+        "Supabase PDF-Speicher ist aktiviert, aber SUPABASE_SERVICE_ROLE_KEY fehlt.",
+      );
+    }
+
+    const paths = resolvePaths(overrides);
+    const bucket =
+      typeof reference === "string"
+        ? paths.supabaseBucket
+        : reference.bucket || paths.supabaseBucket;
+    const pdfBuffer = await downloadSupabasePdf({
+      bucket,
+      storageKey: normalizeStorageKey(storageKey),
+    });
+    if (!pdfBuffer) {
+      throw new Error("PDF konnte nicht aus Supabase Storage geladen werden.");
+    }
+
+    return { pdfBuffer };
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   const normalizedStorageKey = normalizeStorageKey(storageKey);

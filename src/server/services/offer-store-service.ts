@@ -210,6 +210,9 @@ function sanitizeStoredPdfReference(value: unknown): StoredPdfReference | undefi
   }
 
   return {
+    storageProvider:
+      reference.storageProvider === "supabase" ? "supabase" : "local",
+    bucket: asTrimmedString(reference.bucket) || undefined,
     storageKey,
     filename,
     contentType: "application/pdf",

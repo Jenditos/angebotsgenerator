@@ -43,7 +43,7 @@ export async function GET(
     const documentNumber = record.offerNumber.trim() || rawDocumentNumber;
     if (record.pdf?.storageKey) {
       try {
-        const { pdfBuffer } = await readStoredDocumentPdf(record.pdf.storageKey);
+        const { pdfBuffer } = await readStoredDocumentPdf(record.pdf);
         const filename = `${toSafeFilename(documentNumber)}.pdf`;
         return new NextResponse(pdfBuffer, {
           status: 200,

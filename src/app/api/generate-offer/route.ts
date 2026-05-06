@@ -1548,6 +1548,8 @@ export async function handleGenerateOfferAuthorizedRequest(
         pdfBuffer,
       });
       await updateStoredOfferRecordPdfReference(generatedDocumentNumber, {
+        storageProvider: storedPdf.storageProvider,
+        bucket: storedPdf.bucket,
         storageKey: storedPdf.storageKey,
         filename: storedPdf.filename,
         contentType: storedPdf.contentType,

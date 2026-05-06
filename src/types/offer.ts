@@ -21,6 +21,8 @@ export type DocumentProcessingStatus =
   (typeof DOCUMENT_PROCESSING_STATUS_VALUES)[number];
 
 export type StoredPdfReference = {
+  storageProvider?: "local" | "supabase";
+  bucket?: string;
   storageKey: string;
   filename: string;
   contentType: "application/pdf";

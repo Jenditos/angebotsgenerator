@@ -25,8 +25,9 @@ describe("pdf-storage-service", () => {
       expect(stored.contentType).toBe("application/pdf");
       expect(stored.byteLength).toBe(9);
       expect(stored.reused).toBe(false);
+      expect(stored.absolutePath).toBeTruthy();
 
-      const persisted = await readFile(stored.absolutePath);
+      const persisted = await readFile(stored.absolutePath as string);
       expect(persisted.toString("utf-8")).toBe("%PDF test");
     } finally {
       await rm(dataDir, { recursive: true, force: true });
