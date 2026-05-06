@@ -4922,6 +4922,31 @@ button.recipientTypeButton.active {
   justify-self: stretch;
 }
 
+.customerTypeChoice {
+  margin-bottom: 2px;
+}
+
+.invoiceMetaSectionHeader {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 8px 0 2px;
+}
+
+.invoiceMetaSectionHeader strong {
+  color: #1f3f72;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.invoiceMetaSectionHeader p {
+  margin: 0;
+  color: #5d7192;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .invoiceMetaInput[type="date"] {
   min-width: 0;
 }
@@ -10712,6 +10737,30 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   border-color: rgba(255, 184, 200, 0.72);
   background: rgba(255, 129, 157, 0.3);
   color: #fff5f8 !important;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .intakeReviewNudge {
+  margin: 0 !important;
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(167, 220, 255, 0.34);
+  background: rgba(244, 250, 255, 0.13);
+  color: #f3f9ff;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .intakeReviewNudge strong {
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .intakeReviewNudge span {
+  color: rgba(239, 247, 255, 0.84);
+  font-size: 0.78rem;
+  line-height: 1.38;
 }
 
 @media (max-width: 760px) {
