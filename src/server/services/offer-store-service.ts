@@ -1139,9 +1139,13 @@ export async function updateStoredOfferRecordPaymentReference(
     if (recordIndex < 0) {
       return null;
     }
+    const currentRecord = store.offers[recordIndex];
+    if ((currentRecord.documentType ?? "offer") !== "invoice") {
+      return null;
+    }
 
     const updatedRecord: StoredOfferRecord = {
-      ...store.offers[recordIndex],
+      ...currentRecord,
       payment,
       updatedAt: new Date().toISOString(),
     };

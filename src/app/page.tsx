@@ -204,6 +204,15 @@ type ProjectDocumentsApiResponse = {
   error?: string;
 };
 
+type UpdateDocumentPaymentApiResponse = {
+  ok?: boolean;
+  documentNumber?: string;
+  paymentStatus?: DocumentPaymentStatus | null;
+  paidAt?: string | null;
+  updatedAt?: string;
+  error?: string;
+};
+
 type ArchiveActivityLogEntry = {
   id: string;
   entityType: "customer" | "project" | "document" | "email" | "system";
@@ -1819,6 +1828,8 @@ function formatActivityLogTitle(action: string): string {
       return "E-Mail fehlgeschlagen";
     case "email_not_configured":
       return "E-Mail nicht konfiguriert";
+    case "payment_recorded":
+      return "Zahlungsstatus aktualisiert";
     case "reminder_scheduled":
       return "Erinnerung geplant";
     case "pdf_storage_failed":
@@ -2230,6 +2241,8 @@ export default function HomePage() {
   >([]);
   const [archiveError, setArchiveError] = useState("");
   const [projectArchiveError, setProjectArchiveError] = useState("");
+  const [updatingPaymentDocumentNumber, setUpdatingPaymentDocumentNumber] =
+    useState<string | null>(null);
   const [projectArchiveActivities, setProjectArchiveActivities] = useState<
     ArchiveActivityLogEntry[]
   >([]);
@@ -3947,6 +3960,101 @@ export default function HomePage() {
         return;
       }
       setIsProjectArchiveDocumentsLoading(false);
+    }
+  }
+
+  function applyPaymentStatusToDocumentLists(
+    documentNumber: string,
+    nextStatus: DocumentPaymentStatus,
+  ) {
+    const normalizedDocumentNumber = documentNumber.trim();
+    if (!normalizedDocumentNumber) {
+      return;
+    }
+
+    setArchiveDocuments((prev) =>
+      prev.map((document) =>
+        document.documentNumber === normalizedDocumentNumber
+          ? {
+              ...document,
+              paymentStatus: nextStatus,
+            }
+          : document,
+      ),
+    );
+    setProjectArchiveDocuments((prev) =>
+      prev.map((document) =>
+        document.documentNumber === normalizedDocumentNumber
+          ? {
+              ...document,
+              paymentStatus: nextStatus,
+            }
+          : document,
+      ),
+    );
+  }
+
+  async function updateInvoicePaymentStatus(
+    document: CustomerArchiveDocument,
+    nextStatus: DocumentPaymentStatus,
+  ) {
+    const documentNumber = document.documentNumber.trim();
+    if (!documentNumber || document.documentType !== "invoice") {
+      return;
+    }
+    if (updatingPaymentDocumentNumber === documentNumber) {
+      return;
+    }
+
+    setArchiveError("");
+    setProjectArchiveError("");
+    setUpdatingPaymentDocumentNumber(documentNumber);
+
+    try {
+      const response = await fetch(
+        `/api/customer-documents/${encodeURIComponent(documentNumber)}/payment`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentStatus: nextStatus,
+          }),
+        },
+      );
+      const payload = (await response.json()) as UpdateDocumentPaymentApiResponse;
+      if (!response.ok || payload.ok === false) {
+        const message =
+          payload.error ??
+          "Zahlungsstatus konnte nicht aktualisiert werden.";
+        setArchiveError(message);
+        setProjectArchiveError(message);
+        return;
+      }
+
+      const resolvedStatus =
+        normalizeDocumentPaymentStatus(payload.paymentStatus) ?? nextStatus;
+      applyPaymentStatusToDocumentLists(documentNumber, resolvedStatus);
+      setProjectArchiveActivities((prev) => [
+        {
+          id: `local-payment-${documentNumber}-${Date.now()}`,
+          entityType: "document",
+          entityId: documentNumber,
+          action: "payment_recorded",
+          metadata: {
+            paymentStatus: resolvedStatus,
+          },
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    } catch {
+      const message = "Zahlungsstatus konnte nicht aktualisiert werden.";
+      setArchiveError(message);
+      setProjectArchiveError(message);
+    } finally {
+      setUpdatingPaymentDocumentNumber((current) =>
+        current === documentNumber ? null : current,
+      );
     }
   }
 
@@ -7145,6 +7253,50 @@ export default function HomePage() {
     }
   }
 
+  function renderInvoiceArchiveDocument(document: CustomerArchiveDocument) {
+    const normalizedPaymentStatus = normalizeDocumentPaymentStatus(
+      document.paymentStatus,
+    );
+    const isPaid = normalizedPaymentStatus === "paid";
+    const isUpdatingPayment =
+      updatingPaymentDocumentNumber === document.documentNumber;
+    const nextStatus: DocumentPaymentStatus = isPaid ? "unpaid" : "paid";
+    const actionLabel = isPaid ? "Als offen markieren" : "Als bezahlt markieren";
+
+    return (
+      <div
+        key={document.documentNumber}
+        className="customerArchiveDocumentItem customerArchiveDocumentEntry"
+      >
+        <a
+          className="customerArchiveDocumentLink customerArchiveDocumentLinkCompact"
+          href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <div className="customerArchiveDocumentMeta">
+            <strong>{document.documentNumber}</strong>
+            <span>Rechnung • {formatArchiveDate(document.createdAt)}</span>
+            <CustomerArchiveDocumentBadges document={document} />
+          </div>
+          {document.title ? (
+            <span className="customerArchiveDocumentMetaAux">{document.title}</span>
+          ) : null}
+        </a>
+        <div className="customerArchiveInvoiceActions">
+          <button
+            type="button"
+            className="ghostButton customerArchivePaymentActionButton"
+            onClick={() => void updateInvoicePaymentStatus(document, nextStatus)}
+            disabled={isUpdatingPayment}
+          >
+            {isUpdatingPayment ? "Speichern ..." : actionLabel}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const shouldRenderSettingsOverlay =
     hasOpenedSettingsOverlay || isSettingsOverlayOpen || isClosingSettingsOverlay;
   const isSettingsOverlayVisible =
@@ -7580,30 +7732,9 @@ export default function HomePage() {
                             </p>
                           ) : (
                             <div className="customerArchiveDocumentList">
-                              {archiveInvoiceDocuments.map((document) => (
-                                <a
-                                  key={document.documentNumber}
-                                  className="customerArchiveDocumentItem customerArchiveDocumentLink"
-                                  href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <div className="customerArchiveDocumentMeta">
-                                    <strong>{document.documentNumber}</strong>
-                                    <span>
-                                      Rechnung • {formatArchiveDate(document.createdAt)}
-                                    </span>
-                                    <CustomerArchiveDocumentBadges
-                                      document={document}
-                                    />
-                                  </div>
-                                  {document.title ? (
-                                    <span className="customerArchiveDocumentMetaAux">
-                                      {document.title}
-                                    </span>
-                                  ) : null}
-                                </a>
-                              ))}
+                              {archiveInvoiceDocuments.map(
+                                renderInvoiceArchiveDocument,
+                              )}
                             </div>
                           )
                         ) : null}
@@ -7952,31 +8083,9 @@ export default function HomePage() {
                             </p>
                           ) : (
                             <div className="customerArchiveDocumentList">
-                              {projectArchiveInvoiceDocuments.map((document) => (
-                                <a
-                                  key={document.documentNumber}
-                                  className="customerArchiveDocumentItem customerArchiveDocumentLink"
-                                  href={`/api/pdf/customer-documents/${encodeURIComponent(document.documentNumber)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <div className="customerArchiveDocumentMeta">
-                                    <strong>{document.documentNumber}</strong>
-                                    <span>
-                                      Rechnung •{" "}
-                                      {formatArchiveDate(document.createdAt)}
-                                    </span>
-                                    <CustomerArchiveDocumentBadges
-                                      document={document}
-                                    />
-                                  </div>
-                                  {document.title ? (
-                                    <span className="customerArchiveDocumentMetaAux">
-                                      {document.title}
-                                    </span>
-                                  ) : null}
-                                </a>
-                              ))}
+                              {projectArchiveInvoiceDocuments.map(
+                                renderInvoiceArchiveDocument,
+                              )}
                             </div>
                           )
                         ) : null}

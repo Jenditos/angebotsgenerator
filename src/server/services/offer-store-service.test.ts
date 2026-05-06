@@ -350,6 +350,58 @@ describe("offer-store-service", () => {
     }
   });
 
+  it("does not attach payment references to offers", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-payment-offer-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const offer = await createStoredOfferRecord(
+        {
+          ...createSampleInput("offer-payment"),
+          documentType: "offer",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      const updated = await updateStoredOfferRecordPaymentReference(
+        offer.offerNumber,
+        TEST_USER_ID,
+        {
+          status: "paid",
+          provider: "manual",
+          reference: "bank-transfer",
+          paidAt: "2026-01-04T09:00:00.000Z",
+          updatedAt: "2026-01-04T09:00:00.000Z",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(updated).toBeNull();
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{
+          offerNumber: string;
+          payment?: { status?: string };
+        }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].offerNumber).toBe(offer.offerNumber);
+      expect(persisted.offers[0].payment).toBeUndefined();
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
   it("stores a reminder reference on an existing offer record", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-reminder-"));
     const storePath = path.join(dataDir, "offers-store.json");

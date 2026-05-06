@@ -6194,6 +6194,33 @@ button.customerArchiveSectionToggle {
   transform: translateY(0) scale(0.985);
 }
 
+.customerArchiveDocumentEntry {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.customerArchiveDocumentLinkCompact {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.customerArchiveInvoiceActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+button.customerArchivePaymentActionButton {
+  min-height: 36px;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+button.customerArchivePaymentActionButton:disabled {
+  opacity: 0.68;
+  cursor: default;
+}
+
 @keyframes infoLegalBackdropIn {
   from {
     opacity: 0;

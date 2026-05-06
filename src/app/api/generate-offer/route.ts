@@ -41,6 +41,7 @@ import {
   CompanySettings,
   CustomerDraftGroup,
   CustomerDraftSubitem,
+  DocumentPaymentStatus,
   DocumentType,
   GenerateOfferRequest,
   OfferPdfLineItem,
@@ -1410,6 +1411,7 @@ export async function handleGenerateOfferAuthorizedRequest(
     }
     failureStage = "persist_document_record";
     let storedDocumentEmail: StoredEmailReference | undefined;
+    let storedDocumentPaymentStatus: DocumentPaymentStatus | undefined;
     try {
       const storedDocument = await createStoredOfferRecord({
         userId: actingUserId,
@@ -1433,6 +1435,7 @@ export async function handleGenerateOfferAuthorizedRequest(
       });
       generatedDocumentNumber = storedDocument.offerNumber;
       storedDocumentEmail = storedDocument.email;
+      storedDocumentPaymentStatus = storedDocument.payment?.status;
       await recordActivitySafely({
         userId: actingUserId,
         entityType: "document",
@@ -1823,7 +1826,10 @@ export async function handleGenerateOfferAuthorizedRequest(
       documentType,
       documentStatus,
       idempotencyKey: idempotencyKey || undefined,
-      paymentStatus: documentType === "invoice" ? "unpaid" : undefined,
+      paymentStatus:
+        documentType === "invoice"
+          ? storedDocumentPaymentStatus ?? "unpaid"
+          : undefined,
       reminderStatus,
       reminderDueAt,
       pdfStored: true,
