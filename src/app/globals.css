@@ -9509,9 +9509,10 @@ body,
 /* Mobile start-page header logo fix (scope: dashboard only) */
 .topHeaderMobileBrandLogo {
   display: block;
-  width: min(188px, 62vw);
+  width: min(150px, 52vw);
   max-width: 100%;
   height: auto;
+  max-height: 34px;
   object-fit: contain;
 }
 
@@ -9520,8 +9521,9 @@ body,
     position: relative;
     z-index: 6;
     overflow: visible;
-    padding-top: calc(12px + env(safe-area-inset-top));
-    padding-bottom: 8px;
+    min-height: 42px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-bottom: 4px;
   }
 
   .dashboardCanvas > .topHeaderMinimal .topHeaderMobileBrandLogo {
@@ -9529,6 +9531,13 @@ body,
     z-index: 7;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topHeaderMobileBrandLogo {
+    width: min(138px, 50vw);
+    max-height: 31px;
   }
 }
 
