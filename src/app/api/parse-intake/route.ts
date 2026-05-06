@@ -54,6 +54,9 @@ const PHOTO_DATA_URL_PATTERN =
   /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_PHOTO_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_COUNT = 10;
+const MAX_PARSED_POSITION_COUNT = 60;
+const MAX_PARSED_POSITION_QUANTITY = 1_000_000;
+const MAX_PARSED_POSITION_UNIT_PRICE = 1_000_000;
 const FILLER_TOKEN_PATTERN =
   /\b(?:ähm|aehm|also|ja|bitte|mal|quasi|genau|halt|eben)\b/gi;
 const LEADING_FILLER_PATTERN =
@@ -1132,6 +1135,18 @@ function filterMeaningfulPositions(
         undefined,
       unitPrice: parseQuantityValue(position.unitPrice) ?? embedded.unitPrice,
     };
+    if (
+      typeof normalizedPosition.quantity === "number" &&
+      normalizedPosition.quantity > MAX_PARSED_POSITION_QUANTITY
+    ) {
+      continue;
+    }
+    if (
+      typeof normalizedPosition.unitPrice === "number" &&
+      normalizedPosition.unitPrice > MAX_PARSED_POSITION_UNIT_PRICE
+    ) {
+      continue;
+    }
 
     const key = [
       normalizePositionKey(normalizedPosition.group),
@@ -1146,6 +1161,9 @@ function filterMeaningfulPositions(
 
     seen.add(key);
     filtered.push(normalizedPosition);
+    if (filtered.length >= MAX_PARSED_POSITION_COUNT) {
+      break;
+    }
   }
 
   return filtered.length > 0 ? filtered : undefined;

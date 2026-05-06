@@ -566,4 +566,83 @@ describe("POST /api/parse-intake", () => {
     expect(payload.fields?.hours).toBe(3);
     expect(payload.timeCalculation?.laborHours).toBe(3);
   });
+
+  it("limits parsed positions and drops extreme quantity or unit-price outliers", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeMock.mockResolvedValue({
+      fields: {
+        customerType: "company",
+        companyName: "Malerbetrieb Blau",
+        street: "Hauptstraße 1",
+        postalCode: "80331",
+        city: "München",
+        customerEmail: "team@malerblau.de",
+        hours: 8,
+        hourlyRate: 72,
+        positions: [
+          {
+            description: "Ausreißer Menge",
+            quantity: 1_500_000,
+            unit: "Stück",
+            unitPrice: 22,
+          },
+          {
+            description: "Ausreißer Preis",
+            quantity: 1,
+            unit: "Stück",
+            unitPrice: 1_500_000,
+          },
+          ...Array.from({ length: 70 }, (_, index) => ({
+            description: `Wand spachteln Abschnitt ${index + 1}`,
+            quantity: 1,
+            unit: "Stück",
+            unitPrice: 10,
+          })),
+        ],
+      },
+      usedFallback: false,
+      document: { type: "offer" },
+      ignoredText: [],
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "voice",
+          transcript: "Bitte erzeuge ein Angebot für Malerarbeiten mit Positionen.",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: {
+        positions?: Array<{
+          description?: string;
+          quantity?: number;
+          unitPrice?: number;
+        }>;
+      };
+      noRelevantData?: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.noRelevantData).toBe(false);
+    expect(payload.fields?.positions).toHaveLength(60);
+    expect(
+      payload.fields?.positions?.some(
+        (position) => position.description === "Ausreißer Menge",
+      ),
+    ).toBe(false);
+    expect(
+      payload.fields?.positions?.some(
+        (position) => position.description === "Ausreißer Preis",
+      ),
+    ).toBe(false);
+  });
 });

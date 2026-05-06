@@ -52,6 +52,9 @@ import {
 } from "@/types/offer";
 
 const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
+const MAX_EXPLICIT_POSITION_COUNT = 120;
+const MAX_LINE_ITEM_QUANTITY = 1_000_000;
+const MAX_LINE_ITEM_UNIT_PRICE = 1_000_000;
 const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   companyName: "",
   ownerName: "",
@@ -806,7 +809,9 @@ function findInvalidLineItem(
       !Number.isFinite(lineItem.totalPrice) ||
       lineItem.quantity < 0 ||
       lineItem.unitPrice < 0 ||
-      lineItem.totalPrice < 0,
+      lineItem.totalPrice < 0 ||
+      lineItem.quantity > MAX_LINE_ITEM_QUANTITY ||
+      lineItem.unitPrice > MAX_LINE_ITEM_UNIT_PRICE,
   );
 }
 
@@ -1116,6 +1121,15 @@ export async function handleGenerateOfferAuthorizedRequest(
     }
 
     if (Array.isArray(body.positions)) {
+      if (body.positions.length > MAX_EXPLICIT_POSITION_COUNT) {
+        return NextResponse.json(
+          {
+            error: `Bitte maximal ${MAX_EXPLICIT_POSITION_COUNT} Positionen in einem Dokument verwenden.`,
+          },
+          { status: 400 },
+        );
+      }
+
       const normalizedPositionsPreview = body.positions.map((position, index) => {
         const quantityRaw = normalizeNumberishInputValue(position?.quantity);
         const unitPriceRaw = normalizeNumberishInputValue(position?.unitPrice);
@@ -1148,11 +1162,27 @@ export async function handleGenerateOfferAuthorizedRequest(
             { status: 400 },
           );
         }
+        if (quantityRaw && toNumber(quantityRaw) > MAX_LINE_ITEM_QUANTITY) {
+          return NextResponse.json(
+            {
+              error: `Die Menge für "${description}" ist zu hoch.`,
+            },
+            { status: 400 },
+          );
+        }
 
         if (unitPriceRaw && !Number.isFinite(toNumber(unitPriceRaw))) {
           return NextResponse.json(
             {
               error: `Bitte einen gültigen Einzelpreis / Preis EUR für "${description}" eingeben.`,
+            },
+            { status: 400 },
+          );
+        }
+        if (unitPriceRaw && toNumber(unitPriceRaw) > MAX_LINE_ITEM_UNIT_PRICE) {
+          return NextResponse.json(
+            {
+              error: `Der Einzelpreis für "${description}" ist zu hoch.`,
             },
             { status: 400 },
           );
