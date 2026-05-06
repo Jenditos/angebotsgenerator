@@ -9237,15 +9237,6 @@ export default function HomePage() {
                         </div>
                       </div>
                     ) : null}
-                    {voiceInfo && !voiceError && !isParsingVoice ? (
-                      <div className="intakeReviewNudge" role="status" aria-live="polite">
-                        <strong>Bitte kurz prüfen</strong>
-                        <span>
-                          Die KI hat Felder übernommen. Kontrolliere die Angaben,
-                          bevor du das Dokument erstellst.
-                        </span>
-                      </div>
-                    ) : null}
                     {voiceMissingFields.length > 0 ? (
                       <div className="voiceMissingPanel">
                         <span className="voiceMissingLabel">
@@ -9304,15 +9295,6 @@ export default function HomePage() {
                             </p>
                           ) : null}
                         </div>
-                      </div>
-                    ) : null}
-                    {photoInfo && !photoError && !isParsingPhoto ? (
-                      <div className="intakeReviewNudge" role="status" aria-live="polite">
-                        <strong>Bitte kurz prüfen</strong>
-                        <span>
-                          Die KI hat Felder übernommen. Kontrolliere die Angaben,
-                          bevor du das Dokument erstellst.
-                        </span>
                       </div>
                     ) : null}
                   </>
@@ -9502,39 +9484,8 @@ export default function HomePage() {
                 </section>
               ) : null}
 
-              <div className="recipientType customerTypeChoice span2" role="group" aria-label="Kundentyp">
-                <span>Kundentyp</span>
-                <div className="recipientTypeButtons">
-                  <button
-                    type="button"
-                    className={`dashboardSegmentToggleButton ${form.customerType === "company" ? "dashboardSegmentToggleButtonSelected" : ""}`}
-                    aria-pressed={form.customerType === "company"}
-                    onClick={() =>
-                      setForm((prev) => ({ ...prev, customerType: "company" }))
-                    }
-                  >
-                    Firma
-                  </button>
-                  <button
-                    type="button"
-                    className={`dashboardSegmentToggleButton ${form.customerType === "person" ? "dashboardSegmentToggleButtonSelected" : ""}`}
-                    aria-pressed={form.customerType === "person"}
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        customerType: "person",
-                        companyName: "",
-                      }))
-                    }
-                  >
-                    Privatperson
-                  </button>
-                </div>
-              </div>
-
-              {form.customerType === "company" ? (
               <label className="field span2">
-                <span>Firma</span>
+                <span>Firma (optional)</span>
                 <input
                   ref={customerNameInputRef}
                   autoComplete="organization"
@@ -9548,7 +9499,6 @@ export default function HomePage() {
                   }
                 />
               </label>
-              ) : null}
 
               <div className="recipientType span2" role="group" aria-label="Anrede">
                 <span>Anrede</span>
@@ -9573,13 +9523,8 @@ export default function HomePage() {
               </div>
 
               <label className="field">
-                <span>{form.customerType === "company" ? "Vorname Ansprechpartner" : "Vorname"}</span>
+                <span>Vorname</span>
                 <input
-                  ref={
-                    form.customerType === "person"
-                      ? customerNameInputRef
-                      : undefined
-                  }
                   autoComplete="given-name"
                   autoCapitalize="words"
                   value={form.firstName}
@@ -9593,7 +9538,7 @@ export default function HomePage() {
               </label>
 
               <label className="field">
-                <span>{form.customerType === "company" ? "Nachname Ansprechpartner" : "Nachname"}</span>
+                <span>Nachname</span>
                 <input
                   autoComplete="family-name"
                   autoCapitalize="words"
@@ -9700,10 +9645,6 @@ export default function HomePage() {
 
               {isInvoiceMode ? (
                 <>
-                  <div className="invoiceMetaSectionHeader span2">
-                    <strong>Rechnungsdaten</strong>
-                    <p>Datum, Leistungszeitraum und Zahlungsziel für diese Rechnung.</p>
-                  </div>
                   <label className="field invoiceMetaField">
                     <span>Rechnungsdatum</span>
                     <div className="dateInputWithIcon">
