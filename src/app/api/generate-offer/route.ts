@@ -32,6 +32,7 @@ import {
   createActivityLogEntry,
   CreateActivityLogEntryInput,
 } from "@/server/services/activity-log-service";
+import { scheduleOfferFollowUpReminder } from "@/server/services/document-reminder-service";
 import { saveDocumentPdf } from "@/server/services/pdf-storage-service";
 import { upsertStoredCustomer } from "@/server/services/customer-store-service";
 import { upsertStoredProject } from "@/server/services/project-store-service";
@@ -874,6 +875,28 @@ async function updateDocumentEmailSafely(
   }
 }
 
+async function scheduleOfferReminderSafely(input: {
+  userId?: string;
+  documentNumber: string;
+  documentType: DocumentType;
+  idempotencyKey: string;
+}): Promise<Awaited<ReturnType<typeof scheduleOfferFollowUpReminder>> | null> {
+  try {
+    return await scheduleOfferFollowUpReminder({
+      userId: input.userId,
+      documentNumber: input.documentNumber,
+      documentType: input.documentType,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (error) {
+    console.warn("[document-reminder] reminder could not be scheduled", {
+      documentNumber: input.documentNumber,
+      error,
+    });
+    return null;
+  }
+}
+
 function buildEmailText(input: {
   documentType: DocumentType;
   customerType: "person" | "company";
@@ -1615,6 +1638,8 @@ export async function handleGenerateOfferAuthorizedRequest(
     const resendFromEmail = process.env.RESEND_FROM_EMAIL;
     let emailStatus: EmailStatus = "not_requested";
     let emailInfo = "Es wurde nur ein PDF erstellt.";
+    let reminderStatus: "scheduled" | undefined;
+    let reminderDueAt: string | undefined;
 
     if (sendEmailRequested) {
       const alreadySentForRequest =
@@ -1627,6 +1652,14 @@ export async function handleGenerateOfferAuthorizedRequest(
         emailInfo = "E-Mail wurde bereits gesendet.";
         documentStatus = "email_sent";
         await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+        const reminder = await scheduleOfferReminderSafely({
+          userId: context.userId,
+          documentNumber: generatedDocumentNumber,
+          documentType,
+          idempotencyKey,
+        });
+        reminderStatus = reminder?.status === "scheduled" ? "scheduled" : undefined;
+        reminderDueAt = reminder?.dueAt;
         await recordActivitySafely({
           userId: context.userId,
           entityType: "email",
@@ -1669,6 +1702,14 @@ export async function handleGenerateOfferAuthorizedRequest(
             updatedAt: sentAt,
           });
           await updateDocumentStatusSafely(generatedDocumentNumber, documentStatus);
+          const reminder = await scheduleOfferReminderSafely({
+            userId: context.userId,
+            documentNumber: generatedDocumentNumber,
+            documentType,
+            idempotencyKey,
+          });
+          reminderStatus = reminder?.status === "scheduled" ? "scheduled" : undefined;
+          reminderDueAt = reminder?.dueAt;
           await recordActivitySafely({
             userId: context.userId,
             entityType: "email",
@@ -1738,6 +1779,8 @@ export async function handleGenerateOfferAuthorizedRequest(
       documentStatus,
       idempotencyKey: idempotencyKey || undefined,
       paymentStatus: documentType === "invoice" ? "unpaid" : undefined,
+      reminderStatus,
+      reminderDueAt,
       pdfStored: true,
       pdfDownloadUrl: `/api/pdf/customer-documents/${encodeURIComponent(
         generatedDocumentNumber,

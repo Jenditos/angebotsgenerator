@@ -66,6 +66,17 @@ export type StoredPaymentReference = {
   updatedAt: string;
 };
 
+export type StoredReminderStatus = "scheduled" | "sent" | "dismissed" | "failed";
+
+export type StoredReminderReference = {
+  status: StoredReminderStatus;
+  reason: "offer_follow_up";
+  idempotencyKey?: string;
+  dueAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DocumentTaxInfo = {
   treatment: DocumentTaxTreatment;
   noticeText?: string;
@@ -305,6 +316,7 @@ export type StoredOfferRecord = {
   pdf?: StoredPdfReference;
   email?: StoredEmailReference;
   payment?: StoredPaymentReference;
+  reminder?: StoredReminderReference;
   customerNumber?: string;
   projectNumber?: string;
   projectName?: string;

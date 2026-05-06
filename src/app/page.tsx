@@ -67,6 +67,7 @@ import {
   ServiceCatalogItem,
   StoredCustomerRecord,
   StoredProjectRecord,
+  StoredReminderStatus,
 } from "@/types/offer";
 
 type OfferText = {
@@ -91,6 +92,8 @@ type ApiResponse = {
   documentStatus?: DocumentProcessingStatus;
   idempotencyKey?: string;
   paymentStatus?: DocumentPaymentStatus;
+  reminderStatus?: StoredReminderStatus;
+  reminderDueAt?: string;
   pdfStored?: boolean;
   pdfDownloadUrl?: string;
   documentNumber?: string;
@@ -186,6 +189,8 @@ type CustomerArchiveDocument = {
   status?: DocumentProcessingStatus | null;
   hasPdf?: boolean;
   paymentStatus?: DocumentPaymentStatus | null;
+  reminderStatus?: StoredReminderStatus | null;
+  reminderDueAt?: string | null;
   createdAt: string;
 };
 
@@ -637,6 +642,13 @@ const DOCUMENT_PAYMENT_STATUS_LABELS: Record<DocumentPaymentStatus, string> = {
   refunded: "Erstattet",
 };
 
+const DOCUMENT_REMINDER_STATUS_LABELS: Record<StoredReminderStatus, string> = {
+  scheduled: "Erinnerung geplant",
+  sent: "Erinnerung gesendet",
+  dismissed: "Erinnerung erledigt",
+  failed: "Erinnerung fehlgeschlagen",
+};
+
 function formatProjectStatusLabel(status: ProjectStatus | undefined): string {
   if (!status) {
     return PROJECT_STATUS_LABELS.new;
@@ -681,6 +693,24 @@ function formatDocumentPaymentStatusLabel(
 ): string {
   const normalizedStatus = normalizeDocumentPaymentStatus(status);
   return normalizedStatus ? DOCUMENT_PAYMENT_STATUS_LABELS[normalizedStatus] : "";
+}
+
+function normalizeReminderStatus(
+  status: StoredReminderStatus | null | undefined,
+): StoredReminderStatus | null {
+  return status === "scheduled" ||
+    status === "sent" ||
+    status === "dismissed" ||
+    status === "failed"
+    ? status
+    : null;
+}
+
+function formatReminderStatusLabel(
+  status: StoredReminderStatus | null | undefined,
+): string {
+  const normalizedStatus = normalizeReminderStatus(status);
+  return normalizedStatus ? DOCUMENT_REMINDER_STATUS_LABELS[normalizedStatus] : "";
 }
 
 function buildProjectAddressFallback(currentForm: OfferForm): string {
@@ -1771,7 +1801,16 @@ function CustomerArchiveDocumentBadges({
   const paymentStatusLabel = formatDocumentPaymentStatusLabel(
     document.paymentStatus,
   );
-  if (!statusLabel && !document.hasPdf && !paymentStatusLabel) {
+  const reminderStatusLabel = formatReminderStatusLabel(document.reminderStatus);
+  const reminderDateLabel = document.reminderDueAt
+    ? formatArchiveDate(document.reminderDueAt)
+    : "";
+  if (
+    !statusLabel &&
+    !document.hasPdf &&
+    !paymentStatusLabel &&
+    !reminderStatusLabel
+  ) {
     return null;
   }
 
@@ -1796,6 +1835,18 @@ function CustomerArchiveDocumentBadges({
           }
         >
           {paymentStatusLabel}
+        </span>
+      ) : null}
+      {reminderStatusLabel ? (
+        <span
+          className="customerArchiveDocumentReminderBadge"
+          data-reminder-status={
+            normalizeReminderStatus(document.reminderStatus) ?? "unknown"
+          }
+        >
+          {reminderDateLabel
+            ? `${reminderStatusLabel} ${reminderDateLabel}`
+            : reminderStatusLabel}
         </span>
       ) : null}
     </div>
@@ -3619,6 +3670,11 @@ export default function HomePage() {
             status: normalizeDocumentProcessingStatus(document.status),
             hasPdf: Boolean(document.hasPdf),
             paymentStatus: normalizeDocumentPaymentStatus(document.paymentStatus),
+            reminderStatus: normalizeReminderStatus(document.reminderStatus),
+            reminderDueAt:
+              typeof document.reminderDueAt === "string"
+                ? document.reminderDueAt
+                : null,
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -3729,6 +3785,11 @@ export default function HomePage() {
             status: normalizeDocumentProcessingStatus(document.status),
             hasPdf: Boolean(document.hasPdf),
             paymentStatus: normalizeDocumentPaymentStatus(document.paymentStatus),
+            reminderStatus: normalizeReminderStatus(document.reminderStatus),
+            reminderDueAt:
+              typeof document.reminderDueAt === "string"
+                ? document.reminderDueAt
+                : null,
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -6788,6 +6849,8 @@ export default function HomePage() {
           status: normalizeDocumentProcessingStatus(payload.documentStatus),
           hasPdf: Boolean(payload.pdfStored),
           paymentStatus: normalizeDocumentPaymentStatus(payload.paymentStatus),
+          reminderStatus: normalizeReminderStatus(payload.reminderStatus),
+          reminderDueAt: payload.reminderDueAt ?? null,
           createdAt: new Date().toISOString(),
         };
         setArchiveDocuments((prev) => {
@@ -6815,6 +6878,8 @@ export default function HomePage() {
           status: normalizeDocumentProcessingStatus(payload.documentStatus),
           hasPdf: Boolean(payload.pdfStored),
           paymentStatus: normalizeDocumentPaymentStatus(payload.paymentStatus),
+          reminderStatus: normalizeReminderStatus(payload.reminderStatus),
+          reminderDueAt: payload.reminderDueAt ?? null,
           createdAt: new Date().toISOString(),
         };
         setProjectArchiveDocuments((prev) => {

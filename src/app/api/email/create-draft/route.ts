@@ -8,6 +8,7 @@ import {
   updateStoredOfferRecordEmailReference,
   updateStoredOfferRecordStatus,
 } from "@/server/services/offer-store-service";
+import { scheduleOfferFollowUpReminder } from "@/server/services/document-reminder-service";
 import { EmailDraftPayload, EmailDraftResult } from "@/types/email";
 
 function isValidPayload(payload: Partial<EmailDraftPayload>): payload is EmailDraftPayload {
@@ -82,6 +83,20 @@ async function markEmailPreparedSafely(input: {
     });
   } catch (error) {
     console.warn("[email/create-draft] activity could not be written", {
+      documentNumber: input.documentNumber,
+      error,
+    });
+  }
+
+  try {
+    await scheduleOfferFollowUpReminder({
+      userId: input.userId,
+      documentNumber: input.documentNumber,
+      documentType: input.documentType,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (error) {
+    console.warn("[email/create-draft] reminder could not be scheduled", {
       documentNumber: input.documentNumber,
       error,
     });

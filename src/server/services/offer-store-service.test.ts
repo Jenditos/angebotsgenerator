@@ -6,6 +6,7 @@ import {
   updateStoredOfferRecordEmailReference,
   updateStoredOfferRecordPaymentReference,
   updateStoredOfferRecordPdfReference,
+  updateStoredOfferRecordReminderReference,
   updateStoredOfferRecordStatus,
 } from "./offer-store-service";
 
@@ -337,6 +338,54 @@ describe("offer-store-service", () => {
       expect(persisted.offers[0].payment?.status).toBe("paid");
       expect(persisted.offers[0].payment?.provider).toBe("manual");
       expect(persisted.offers[0].payment?.reference).toBe("bank-transfer");
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("stores a reminder reference on an existing offer record", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-reminder-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const created = await createStoredOfferRecord(createSampleInput("1"), {
+        dataDir,
+        storePath,
+        lockPath,
+      });
+      const updated = await updateStoredOfferRecordReminderReference(
+        created.offerNumber,
+        {
+          status: "scheduled",
+          reason: "offer_follow_up",
+          idempotencyKey: "mail-key-1",
+          dueAt: "2026-01-04T10:00:00.000Z",
+          createdAt: "2026-01-01T10:00:00.000Z",
+          updatedAt: "2026-01-01T10:00:00.000Z",
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(updated?.reminder?.status).toBe("scheduled");
+      expect(updated?.reminder?.dueAt).toBe("2026-01-04T10:00:00.000Z");
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{
+          reminder?: { status?: string; idempotencyKey?: string; dueAt?: string };
+        }>;
+      };
+      expect(persisted.offers).toHaveLength(1);
+      expect(persisted.offers[0].reminder?.status).toBe("scheduled");
+      expect(persisted.offers[0].reminder?.idempotencyKey).toBe("mail-key-1");
+      expect(persisted.offers[0].reminder?.dueAt).toBe(
+        "2026-01-04T10:00:00.000Z",
+      );
     } finally {
       await rm(dataDir, { recursive: true, force: true });
     }

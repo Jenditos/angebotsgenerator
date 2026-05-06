@@ -6087,7 +6087,8 @@ button.customerArchiveSectionToggle {
 
 .customerArchiveDocumentStatusBadge,
 .customerArchiveDocumentPdfBadge,
-.customerArchiveDocumentPaymentBadge {
+.customerArchiveDocumentPaymentBadge,
+.customerArchiveDocumentReminderBadge {
   width: fit-content;
   border-radius: 7px;
   padding: 2px 7px;
@@ -6134,6 +6135,18 @@ button.customerArchiveSectionToggle {
 }
 
 .customerArchiveDocumentPaymentBadge[data-payment-status="failed"] {
+  border-color: rgba(188, 65, 65, 0.24);
+  background: rgba(255, 239, 239, 0.92);
+  color: #963737;
+}
+
+.customerArchiveDocumentReminderBadge {
+  border: 1px solid rgba(95, 87, 170, 0.24);
+  background: rgba(242, 241, 255, 0.92);
+  color: #4f4a91;
+}
+
+.customerArchiveDocumentReminderBadge[data-reminder-status="failed"] {
   border-color: rgba(188, 65, 65, 0.24);
   background: rgba(255, 239, 239, 0.92);
   color: #963737;

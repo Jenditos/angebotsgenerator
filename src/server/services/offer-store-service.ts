@@ -24,6 +24,8 @@ import {
   StoredEmailStatus,
   StoredPaymentReference,
   StoredPdfReference,
+  StoredReminderReference,
+  StoredReminderStatus,
   StoredOfferRecord,
 } from "@/types/offer";
 import {
@@ -291,6 +293,37 @@ function sanitizeStoredPaymentReference(
   };
 }
 
+function sanitizeStoredReminderStatus(value: unknown): StoredReminderStatus {
+  return value === "sent" || value === "dismissed" || value === "failed"
+    ? value
+    : "scheduled";
+}
+
+function sanitizeStoredReminderReference(
+  value: unknown,
+): StoredReminderReference | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const reference = value as Partial<StoredReminderReference>;
+  const dueAt = asTrimmedString(reference.dueAt);
+  const createdAt = asTrimmedString(reference.createdAt);
+  const updatedAt = asTrimmedString(reference.updatedAt);
+  if (!dueAt || !createdAt || !updatedAt) {
+    return undefined;
+  }
+
+  return {
+    status: sanitizeStoredReminderStatus(reference.status),
+    reason: "offer_follow_up",
+    idempotencyKey: asTrimmedString(reference.idempotencyKey) || undefined,
+    dueAt,
+    createdAt,
+    updatedAt,
+  };
+}
+
 function getYearFromDateString(value: string): number {
   const parsed = new Date(value);
   const year = parsed.getFullYear();
@@ -476,6 +509,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     pdf: sanitizeStoredPdfReference(record.pdf),
     email: sanitizeStoredEmailReference(record.email),
     payment,
+    reminder: sanitizeStoredReminderReference(record.reminder),
     customerNumber:
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
@@ -1042,6 +1076,47 @@ export async function updateStoredOfferRecordPaymentReference(
     const updatedRecord: StoredOfferRecord = {
       ...store.offers[recordIndex],
       payment,
+      updatedAt: new Date().toISOString(),
+    };
+    const nextOffers = [...store.offers];
+    nextOffers[recordIndex] = updatedRecord;
+    await writeStoreUnsafe(paths.storePath, {
+      ...store,
+      offers: nextOffers,
+    });
+    return updatedRecord;
+  } finally {
+    await releaseLock();
+  }
+}
+
+export async function updateStoredOfferRecordReminderReference(
+  offerNumber: string,
+  reminder: StoredReminderReference,
+  overrides?: Partial<OfferStorePaths>,
+): Promise<StoredOfferRecord | null> {
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
+  const normalizedOfferNumber = offerNumber.trim().toUpperCase();
+  if (!normalizedOfferNumber) {
+    return null;
+  }
+
+  const releaseLock = await acquireStoreLock(paths.lockPath);
+  try {
+    const store = await readStoreWithDataLossProtection(paths.storePath);
+    const recordIndex = store.offers.findIndex(
+      (record) => record.offerNumber.trim().toUpperCase() === normalizedOfferNumber,
+    );
+    if (recordIndex < 0) {
+      return null;
+    }
+
+    const updatedRecord: StoredOfferRecord = {
+      ...store.offers[recordIndex],
+      reminder,
       updatedAt: new Date().toISOString(),
     };
     const nextOffers = [...store.offers];
