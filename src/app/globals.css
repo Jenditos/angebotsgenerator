@@ -5387,6 +5387,90 @@ button.voiceActionButtonStart:hover:not(:disabled) {
   color: #274a7c;
 }
 
+.subscriptionModalSheet {
+  width: min(540px, 100%);
+  height: auto;
+  min-height: 0;
+  max-height: min(calc(100vh - 36px), 680px);
+  grid-template-rows: auto auto;
+  align-self: flex-start;
+}
+
+.subscriptionModalBody {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 4px;
+}
+
+.subscriptionModalEyebrow {
+  margin: 0;
+  color: #4f6f9d;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.subscriptionPricingPanel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(72, 118, 197, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 14px;
+}
+
+.subscriptionPricingTopline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.subscriptionPricingTopline strong {
+  color: #163462;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.subscriptionPricingTopline span {
+  color: #42618e;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.subscriptionPricingPanel p {
+  margin: 0;
+  color: #4f6488;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.subscriptionFeatureList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subscriptionFeatureList span {
+  border: 1px solid rgba(72, 118, 197, 0.18);
+  border-radius: 999px;
+  background: rgba(239, 247, 255, 0.72);
+  color: #244a81;
+  padding: 6px 9px;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.subscriptionModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .settingsOverlayFrameWrap {
   min-height: 0;
   border: 1px solid rgba(72, 118, 197, 0.2);

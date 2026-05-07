@@ -52,6 +52,7 @@ import {
   getMissingOnboardingRequiredFields,
   hasCompletedOnboardingRequiredFields,
 } from "@/lib/onboarding";
+import { MONTHLY_PRICE_LABEL } from "@/lib/stripe/config";
 import {
   CompanySettings,
   CustomerDraftGroup,
@@ -224,6 +225,11 @@ type ArchiveActivityLogEntry = {
 
 type ActivityLogApiResponse = {
   activities?: ArchiveActivityLogEntry[];
+  error?: string;
+};
+
+type BillingCheckoutApiResponse = {
+  url?: string;
   error?: string;
 };
 
@@ -2271,6 +2277,12 @@ export default function HomePage() {
     useState(false);
   const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
   const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isClosingSubscriptionModal, setIsClosingSubscriptionModal] =
+    useState(false);
+  const [isStartingSubscriptionCheckout, setIsStartingSubscriptionCheckout] =
+    useState(false);
+  const [subscriptionCheckoutError, setSubscriptionCheckoutError] = useState("");
   const [isSettingsOverlayOpen, setIsSettingsOverlayOpen] = useState(false);
   const [isClosingSettingsOverlay, setIsClosingSettingsOverlay] = useState(false);
   const [hasOpenedSettingsOverlay, setHasOpenedSettingsOverlay] = useState(false);
@@ -2321,6 +2333,7 @@ export default function HomePage() {
     useRef<AbortController | null>(null);
   const projectArchiveCloseTimeoutRef = useRef<number | null>(null);
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
+  const subscriptionModalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountMenuCloseTimeoutRef = useRef<number | null>(null);
   const setupHintRef = useRef<HTMLElement | null>(null);
@@ -2336,6 +2349,7 @@ export default function HomePage() {
   const photoScanTriggerButtonRef = useRef<HTMLButtonElement | null>(null);
   const photoCameraSheetRef = useRef<HTMLElement | null>(null);
   const infoLegalSheetRef = useRef<HTMLElement | null>(null);
+  const subscriptionModalSheetRef = useRef<HTMLElement | null>(null);
   const voiceLoginModalSheetRef = useRef<HTMLElement | null>(null);
   const submitIdempotencyKeyRef = useRef<string | null>(null);
   function setErrorAndFocus(message: string, ref?: React.RefObject<HTMLInputElement | null>) {
@@ -2738,6 +2752,10 @@ export default function HomePage() {
   useDialogFocusTrap({
     isOpen: isInfoLegalOpen,
     containerRef: infoLegalSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isSubscriptionModalOpen,
+    containerRef: subscriptionModalSheetRef,
   });
   useDialogFocusTrap({
     isOpen: isVoiceLoginModalOpen,
@@ -3162,6 +3180,7 @@ export default function HomePage() {
       isCustomerArchiveOpen ||
       isProjectArchiveOpen ||
       isInfoLegalOpen ||
+      isSubscriptionModalOpen ||
       isSettingsOverlayOpen ||
       isCustomerPickerOpen ||
       isPhotoCameraOpen ||
@@ -3193,6 +3212,7 @@ export default function HomePage() {
     isCustomerArchiveOpen,
     isProjectArchiveOpen,
     isInfoLegalOpen,
+    isSubscriptionModalOpen,
     isSettingsOverlayOpen,
     isCustomerPickerOpen,
     isPhotoCameraOpen,
@@ -3210,6 +3230,7 @@ export default function HomePage() {
       !isCustomerArchiveOpen &&
       !isProjectArchiveOpen &&
       !isInfoLegalOpen &&
+      !isSubscriptionModalOpen &&
       !isSettingsOverlayOpen &&
       !isCustomerPickerOpen &&
       !isPhotoCameraOpen &&
@@ -3229,6 +3250,11 @@ export default function HomePage() {
 
       if (isInfoLegalOpen) {
         closeInfoLegalModal();
+        return;
+      }
+
+      if (isSubscriptionModalOpen) {
+        closeSubscriptionModal();
         return;
       }
 
@@ -3290,6 +3316,8 @@ export default function HomePage() {
     isClosingProjectArchive,
     isInfoLegalOpen,
     isClosingInfoLegal,
+    isSubscriptionModalOpen,
+    isClosingSubscriptionModal,
     isSettingsOverlayOpen,
     isClosingSettingsOverlay,
     isCustomerPickerOpen,
@@ -4248,9 +4276,73 @@ export default function HomePage() {
     }, 170);
   }
 
+  function openSubscriptionModal() {
+    if (subscriptionModalCloseTimeoutRef.current !== null) {
+      window.clearTimeout(subscriptionModalCloseTimeoutRef.current);
+      subscriptionModalCloseTimeoutRef.current = null;
+    }
+    setSubscriptionCheckoutError("");
+    setIsClosingSubscriptionModal(false);
+    setIsSubscriptionModalOpen(true);
+  }
+
+  function closeSubscriptionModal() {
+    if (!isSubscriptionModalOpen || isClosingSubscriptionModal) {
+      return;
+    }
+
+    setIsClosingSubscriptionModal(true);
+    if (subscriptionModalCloseTimeoutRef.current !== null) {
+      window.clearTimeout(subscriptionModalCloseTimeoutRef.current);
+    }
+    subscriptionModalCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsSubscriptionModalOpen(false);
+      setIsClosingSubscriptionModal(false);
+      setSubscriptionCheckoutError("");
+      subscriptionModalCloseTimeoutRef.current = null;
+    }, 170);
+  }
+
+  async function startSubscriptionCheckout() {
+    if (!isAuthenticatedUser) {
+      closeSubscriptionModal();
+      window.location.href = "/auth";
+      return;
+    }
+
+    setIsStartingSubscriptionCheckout(true);
+    setSubscriptionCheckoutError("");
+
+    try {
+      const response = await fetch("/api/billing/create-checkout-session", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as BillingCheckoutApiResponse;
+
+      if (!response.ok || !payload.url) {
+        setSubscriptionCheckoutError(
+          payload.error || "Checkout konnte nicht gestartet werden.",
+        );
+        return;
+      }
+
+      window.location.href = payload.url;
+    } catch {
+      setSubscriptionCheckoutError("Checkout konnte nicht gestartet werden.");
+    } finally {
+      setIsStartingSubscriptionCheckout(false);
+    }
+  }
+
   function toggleTipsFromAccountMenu() {
     setIsSetupHintOpen((prev) => !prev);
     closeAccountMenu();
+  }
+
+  function openSubscriptionFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    openSubscriptionModal();
   }
 
   function openInfoLegalFromAccountMenu() {
@@ -7378,6 +7470,14 @@ export default function HomePage() {
                   type="button"
                   className="accountMenuItem"
                   role="menuitem"
+                  onClick={openSubscriptionFromAccountMenu}
+                >
+                  Abo &amp; Preis
+                </button>
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
                   onClick={openCustomerArchiveFromAccountMenu}
                 >
                   Kundenarchiv
@@ -8104,6 +8204,96 @@ export default function HomePage() {
           </div>
         ) : null}
 
+        {isSubscriptionModalOpen ? (
+          <div
+            className={`settingsOverlayBackdrop subscriptionModalBackdrop ${isClosingSubscriptionModal ? "closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-modal-title"
+            onClick={closeSubscriptionModal}
+          >
+            <section
+              className={`settingsOverlaySheet subscriptionModalSheet ${isClosingSubscriptionModal ? "closing" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+              ref={subscriptionModalSheetRef}
+            >
+              <header className="settingsOverlayHeader subscriptionModalHeader">
+                <strong id="subscription-modal-title">VISIORO Monatsabo</strong>
+                <button
+                  type="button"
+                  className="settingsOverlayCloseButton"
+                  aria-label="Abo-Dialog schließen"
+                  onClick={closeSubscriptionModal}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="topHeaderIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </header>
+
+              <div className="subscriptionModalBody">
+                <p className="subscriptionModalEyebrow">Abo &amp; Preis</p>
+                <div className="subscriptionPricingPanel">
+                  <div className="subscriptionPricingTopline">
+                    <strong>{MONTHLY_PRICE_LABEL}</strong>
+                    <span>Monatlich kündbar</span>
+                  </div>
+                  <p>
+                    Angebote und Rechnungen weiter ohne Unterbrechung erstellen.
+                    Ein Abo startet erst nach Bestätigung im Stripe-Checkout.
+                  </p>
+                </div>
+
+                <div className="subscriptionFeatureList" aria-label="Enthalten">
+                  <span>PDF-Erstellung</span>
+                  <span>Kunden- und Projektarchiv</span>
+                  <span>KI-Erfassung</span>
+                  <span>E-Mail-Vorbereitung</span>
+                </div>
+
+                {subscriptionCheckoutError ? (
+                  <p className="voiceWarning" role="alert">
+                    {subscriptionCheckoutError}
+                  </p>
+                ) : null}
+
+                <div className="subscriptionModalActions">
+                  <button
+                    type="button"
+                    className="primaryButton"
+                    onClick={() => void startSubscriptionCheckout()}
+                    disabled={isStartingSubscriptionCheckout}
+                  >
+                    {isStartingSubscriptionCheckout
+                      ? "Weiter zu Stripe ..."
+                      : isAuthenticatedUser
+                        ? "Abo abschließen"
+                        : "Einloggen zum Abo"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostButton"
+                    onClick={closeSubscriptionModal}
+                  >
+                    Später
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
         <VoiceLoginRequiredModal
           isOpen={isVoiceLoginModalOpen}
           onClose={closeVoiceLoginModal}
@@ -8675,6 +8865,40 @@ export default function HomePage() {
                     </svg>
                   </button>
                   <span className="appSidebarNavLabel">Einstellungen</span>
+                </div>
+                <div className={`appSidebarNavItem ${isSubscriptionModalOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="sidebarQuickNavButton"
+                    onClick={openSubscriptionFromAccountMenu}
+                    aria-label="Abo und Preis anzeigen"
+                    title="Abo und Preis"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="sidebarQuickNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M4.6 7.2h14.8a1.9 1.9 0 0 1 1.9 1.9v8a1.9 1.9 0 0 1-1.9 1.9H4.6a1.9 1.9 0 0 1-1.9-1.9v-8a1.9 1.9 0 0 1 1.9-1.9Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M3 10.2h18M6.2 15.7h4.8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <span className="appSidebarNavLabel">Abo</span>
                 </div>
                 <div className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}>
                   <button
