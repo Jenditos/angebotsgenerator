@@ -57,8 +57,9 @@ const NON_POSITION_FIELD_PATTERN =
 const POSITION_FORM_META_TOKEN_PATTERN =
   /\b(?:bezeichnung|menge|einheit|einzelpreis|gesamtpreis|gesamtbetrag|preis|ep)\b/gi;
 const PHOTO_DATA_URL_PATTERN =
-  /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+  /^data:image\/(png|jpe?g|webp|gif);base64,([A-Za-z0-9+/=]+)$/i;
 const MAX_PHOTO_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_PHOTO_TOTAL_IMAGE_BYTES = 18 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_COUNT = 10;
 const MAX_PARSED_POSITION_COUNT = 60;
 const MAX_PARSED_POSITION_QUANTITY = 1_000_000;
@@ -1277,6 +1278,7 @@ function validatePhotoDataUrl(photoDataUrl: string): {
   ok: boolean;
   status?: number;
   error?: string;
+  estimatedBytes?: number;
 } {
   const normalized = photoDataUrl.trim();
   if (!normalized) {
@@ -1287,7 +1289,8 @@ function validatePhotoDataUrl(photoDataUrl: string): {
     };
   }
 
-  if (!PHOTO_DATA_URL_PATTERN.test(normalized)) {
+  const dataUrlMatch = normalized.match(PHOTO_DATA_URL_PATTERN);
+  if (!dataUrlMatch) {
     return {
       ok: false,
       status: 400,
@@ -1296,11 +1299,29 @@ function validatePhotoDataUrl(photoDataUrl: string): {
     };
   }
 
-  const payloadStart = normalized.indexOf(",");
-  const base64Payload =
-    payloadStart >= 0 ? normalized.slice(payloadStart + 1) : normalized;
+  const mimeSubtype = dataUrlMatch[1].toLowerCase();
+  const base64Payload = dataUrlMatch[2];
   const estimatedBytes = estimateBase64PayloadBytes(base64Payload);
   if (estimatedBytes <= 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Das Foto konnte nicht gelesen werden. Bitte erneut versuchen.",
+    };
+  }
+
+  let imageBytes: Buffer;
+  try {
+    imageBytes = Buffer.from(base64Payload, "base64");
+  } catch {
+    return {
+      ok: false,
+      status: 400,
+      error: "Das Foto konnte nicht gelesen werden. Bitte erneut versuchen.",
+    };
+  }
+
+  if (imageBytes.length !== estimatedBytes || imageBytes.length === 0) {
     return {
       ok: false,
       status: 400,
@@ -1318,7 +1339,37 @@ function validatePhotoDataUrl(photoDataUrl: string): {
     };
   }
 
-  return { ok: true };
+  const hasValidSignature =
+    (mimeSubtype === "png" &&
+      imageBytes.length >= 8 &&
+      imageBytes[0] === 0x89 &&
+      imageBytes[1] === 0x50 &&
+      imageBytes[2] === 0x4e &&
+      imageBytes[3] === 0x47) ||
+    ((mimeSubtype === "jpg" || mimeSubtype === "jpeg") &&
+      imageBytes.length >= 3 &&
+      imageBytes[0] === 0xff &&
+      imageBytes[1] === 0xd8 &&
+      imageBytes[2] === 0xff) ||
+    (mimeSubtype === "webp" &&
+      imageBytes.length >= 12 &&
+      imageBytes.slice(0, 4).toString("ascii") === "RIFF" &&
+      imageBytes.slice(8, 12).toString("ascii") === "WEBP") ||
+    (mimeSubtype === "gif" &&
+      imageBytes.length >= 6 &&
+      (imageBytes.slice(0, 6).toString("ascii") === "GIF87a" ||
+        imageBytes.slice(0, 6).toString("ascii") === "GIF89a"));
+
+  if (!hasValidSignature) {
+    return {
+      ok: false,
+      status: 400,
+      error:
+        "Das Fotoformat passt nicht zu den Bilddaten. Bitte das Bild erneut als JPG, PNG oder WEBP hochladen.",
+    };
+  }
+
+  return { ok: true, estimatedBytes };
 }
 
 function validatePhotoDataUrls(input: {
@@ -1357,6 +1408,7 @@ function validatePhotoDataUrls(input: {
     };
   }
 
+  let totalEstimatedBytes = 0;
   for (const [index, photoDataUrl] of photoDataUrls.entries()) {
     const validation = validatePhotoDataUrl(photoDataUrl);
     if (!validation.ok) {
@@ -1369,6 +1421,17 @@ function validatePhotoDataUrls(input: {
             : validation.error,
       };
     }
+    totalEstimatedBytes += validation.estimatedBytes ?? 0;
+  }
+
+  if (totalEstimatedBytes > MAX_PHOTO_TOTAL_IMAGE_BYTES) {
+    return {
+      ok: false,
+      status: 413,
+      error: `Die Fotos sind zusammen zu groß. Bitte insgesamt maximal ${Math.round(
+        MAX_PHOTO_TOTAL_IMAGE_BYTES / (1024 * 1024),
+      ).toLocaleString("de-DE")} MB hochladen.`,
+    };
   }
 
   return {
@@ -1477,6 +1540,23 @@ export async function POST(request: Request) {
       requestMode === "photo"
         ? await parseOfferIntakeFromImage(photoDataUrls)
         : await parseOfferIntake(transcript);
+    if (
+      requestMode === "photo" &&
+      parsed.usedFallback &&
+      (parsed.fallbackReason === "no_api_key" ||
+        parsed.fallbackReason === "model_error")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            parsed.fallbackReason === "no_api_key"
+              ? "KI-Fotofunktion ist noch nicht konfiguriert."
+              : "KI-Fotoanalyse ist gerade nicht verfügbar. Bitte später erneut versuchen oder die Angaben manuell eintragen.",
+          fallbackReason: parsed.fallbackReason,
+        },
+        { status: 503 },
+      );
+    }
     const sourceText =
       requestMode === "voice" ? transcript : parsed.sourceText?.trim() ?? "";
     const ignoredCollector = new Set<string>(

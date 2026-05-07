@@ -15,6 +15,8 @@ jest.mock("@/lib/openai", () => ({
 const requireAppAccessMock = jest.mocked(requireAppAccess);
 const parseOfferIntakeMock = jest.mocked(parseOfferIntake);
 const parseOfferIntakeFromImageMock = jest.mocked(parseOfferIntakeFromImage);
+const VALID_PNG_DATA_URL = "data:image/png;base64,iVBORw0KGgo=";
+const VALID_WEBP_DATA_URL = "data:image/webp;base64,UklGRgAAAABXRUJQ";
 
 describe("POST /api/parse-intake", () => {
   beforeEach(() => {
@@ -83,6 +85,30 @@ describe("POST /api/parse-intake", () => {
     expect(parseOfferIntakeFromImageMock).not.toHaveBeenCalled();
   });
 
+  it("rejects photo payloads whose declared mime type does not match the bytes", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as { error?: string };
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toContain("passt nicht zu den Bilddaten");
+    expect(parseOfferIntakeFromImageMock).not.toHaveBeenCalled();
+  });
+
   it("routes photo payload to image parser", async () => {
     requireAppAccessMock.mockResolvedValue({
       ok: true,
@@ -101,7 +127,7 @@ describe("POST /api/parse-intake", () => {
         method: "POST",
         body: JSON.stringify({
           inputMode: "photo",
-          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+          photoDataUrl: VALID_PNG_DATA_URL,
         }),
       }),
     );
@@ -115,6 +141,39 @@ describe("POST /api/parse-intake", () => {
     expect(payload.fields?.companyName).toBe("Malerbetrieb Blau");
     expect(parseOfferIntakeFromImageMock).toHaveBeenCalledTimes(1);
     expect(parseOfferIntakeMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a clear photo KI error when the image parser is unavailable", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeFromImageMock.mockResolvedValue({
+      fields: {},
+      usedFallback: true,
+      fallbackReason: "model_error",
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrl: VALID_PNG_DATA_URL,
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      error?: string;
+      fallbackReason?: string;
+    };
+
+    expect(response.status).toBe(503);
+    expect(payload.error).toContain("KI-Fotoanalyse");
+    expect(payload.fallbackReason).toBe("model_error");
   });
 
   it("routes multiple photos to the image parser as a combined request", async () => {
@@ -140,8 +199,8 @@ describe("POST /api/parse-intake", () => {
         body: JSON.stringify({
           inputMode: "photo",
           photoDataUrls: [
-            "data:image/jpeg;base64,QUJDRA==",
-            "data:image/jpeg;base64,RUZHSA==",
+            VALID_PNG_DATA_URL,
+            VALID_WEBP_DATA_URL,
           ],
         }),
       }),
@@ -156,8 +215,8 @@ describe("POST /api/parse-intake", () => {
     expect(payload.fields?.companyName).toBe("Malerbetrieb Blau");
     expect(payload.fields?.street).toBe("Hauptstraße 5");
     expect(parseOfferIntakeFromImageMock).toHaveBeenCalledWith([
-      "data:image/jpeg;base64,QUJDRA==",
-      "data:image/jpeg;base64,RUZHSA==",
+      VALID_PNG_DATA_URL,
+      VALID_WEBP_DATA_URL,
     ]);
   });
 
@@ -194,7 +253,7 @@ describe("POST /api/parse-intake", () => {
         method: "POST",
         body: JSON.stringify({
           inputMode: "photo",
-          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+          photoDataUrl: VALID_PNG_DATA_URL,
         }),
       }),
     );
@@ -254,7 +313,7 @@ describe("POST /api/parse-intake", () => {
         method: "POST",
         body: JSON.stringify({
           inputMode: "photo",
-          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+          photoDataUrl: VALID_PNG_DATA_URL,
         }),
       }),
     );
@@ -296,7 +355,7 @@ describe("POST /api/parse-intake", () => {
         method: "POST",
         body: JSON.stringify({
           inputMode: "photo",
-          photoDataUrls: Array.from({ length: 11 }, () => "data:image/jpeg;base64,QUJDRA=="),
+          photoDataUrls: Array.from({ length: 11 }, () => VALID_PNG_DATA_URL),
         }),
       }),
     );
@@ -342,7 +401,7 @@ describe("POST /api/parse-intake", () => {
         method: "POST",
         body: JSON.stringify({
           inputMode: "photo",
-          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+          photoDataUrl: VALID_PNG_DATA_URL,
         }),
       }),
     );
