@@ -258,6 +258,39 @@ export async function POST(request: Request) {
       }
     }
 
+    if (typeof body.latePaymentInterestEnabled === "boolean") {
+      sanitized.latePaymentInterestEnabled = body.latePaymentInterestEnabled;
+      hasSettingsChanges = true;
+    }
+
+    if (typeof body.latePaymentConsumerAnnualInterestPercent !== "undefined") {
+      const annualInterestPercent = Number(
+        body.latePaymentConsumerAnnualInterestPercent,
+      );
+      if (Number.isFinite(annualInterestPercent)) {
+        sanitized.latePaymentConsumerAnnualInterestPercent = annualInterestPercent;
+        hasSettingsChanges = true;
+      }
+    }
+
+    if (typeof body.latePaymentBusinessAnnualInterestPercent !== "undefined") {
+      const annualInterestPercent = Number(
+        body.latePaymentBusinessAnnualInterestPercent,
+      );
+      if (Number.isFinite(annualInterestPercent)) {
+        sanitized.latePaymentBusinessAnnualInterestPercent = annualInterestPercent;
+        hasSettingsChanges = true;
+      }
+    }
+
+    if (typeof body.latePaymentGraceDays !== "undefined") {
+      const latePaymentGraceDays = Number(body.latePaymentGraceDays);
+      if (Number.isFinite(latePaymentGraceDays)) {
+        sanitized.latePaymentGraceDays = latePaymentGraceDays;
+        hasSettingsChanges = true;
+      }
+    }
+
     if (Array.isArray(body.customServiceTypes)) {
       sanitized.customServiceTypes = body.customServiceTypes
         .map((item) => String(item).trim())

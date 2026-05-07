@@ -3254,6 +3254,77 @@ textarea:focus {
   color: #4d6792;
 }
 
+.settingsLatePaymentField > span {
+  margin-bottom: 6px;
+}
+
+.settingsLatePaymentPanel {
+  border: 1px solid rgba(74, 118, 196, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.settingsLatePaymentToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #243f6d;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.settingsLatePaymentToggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2477f2;
+}
+
+.settingsLatePaymentHint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #4d6792;
+}
+
+.settingsLatePaymentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settingsLatePaymentInput {
+  display: grid;
+  gap: 4px;
+  color: #2b4a78;
+  font-size: 0.78rem;
+}
+
+.settingsLatePaymentInputWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settingsLatePaymentInputWrap input {
+  width: 86px;
+}
+
+.settingsLatePaymentInputWrap em {
+  font-style: normal;
+  font-size: 0.76rem;
+  color: #4d6792;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .settingsLatePaymentGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .settingsTaxOptionsField > span {
   margin-bottom: 4px;
 }
@@ -6413,7 +6484,8 @@ button.customerArchiveSectionToggle {
 .customerArchiveDocumentStatusBadge,
 .customerArchiveDocumentPdfBadge,
 .customerArchiveDocumentPaymentBadge,
-.customerArchiveDocumentReminderBadge {
+.customerArchiveDocumentReminderBadge,
+.customerArchiveDocumentOverdueBadge {
   width: fit-content;
   border-radius: 7px;
   padding: 2px 7px;
@@ -6477,6 +6549,12 @@ button.customerArchiveSectionToggle {
   color: #963737;
 }
 
+.customerArchiveDocumentOverdueBadge {
+  border: 1px solid rgba(194, 92, 55, 0.28);
+  background: rgba(255, 244, 236, 0.94);
+  color: #934421;
+}
+
 .customerArchiveDocumentMetaAux {
   color: #516b95;
   font-size: 0.76rem;
@@ -6484,6 +6562,18 @@ button.customerArchiveSectionToggle {
   text-align: right;
   max-width: 42%;
   overflow-wrap: anywhere;
+}
+
+.customerArchiveInvoiceDueMeta {
+  color: #496790;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.customerArchiveInvoiceDueMeta strong {
+  color: #8a3f1d;
+  font-size: inherit;
 }
 
 .customerArchiveDocumentLink {
@@ -6534,6 +6624,294 @@ button.customerArchivePaymentActionButton {
 button.customerArchivePaymentActionButton:disabled {
   opacity: 0.68;
   cursor: default;
+}
+
+.appointmentsSheet {
+  max-width: min(980px, calc(100vw - 28px));
+}
+
+.appointmentsHeader {
+  align-items: flex-start;
+}
+
+.appointmentsTitleGroup {
+  display: grid;
+  gap: 4px;
+}
+
+.appointmentsTitleGroup span {
+  color: #60769b;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.appointmentsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.appointmentsFilterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(79, 122, 195, 0.18);
+  border-radius: 10px;
+  background: rgba(240, 246, 255, 0.72);
+  padding: 4px;
+}
+
+button.appointmentsFilterButton {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #496790;
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 0.83rem;
+  font-weight: 800;
+}
+
+button.appointmentsFilterButton:hover:not(:disabled),
+button.appointmentsFilterButton:focus-visible:not(:disabled) {
+  background: rgba(226, 238, 255, 0.96);
+  color: #173c75;
+}
+
+button.appointmentsFilterButton.active {
+  background: #ffffff;
+  color: #17427c;
+  box-shadow: 0 8px 20px rgba(54, 102, 184, 0.12);
+}
+
+button.appointmentsCreateButton {
+  min-height: 40px;
+  padding-inline: 16px;
+  white-space: nowrap;
+}
+
+.appointmentsWarning {
+  margin-bottom: 12px;
+}
+
+.appointmentsForm {
+  border: 1px solid rgba(79, 122, 195, 0.2);
+  border-radius: 14px;
+  background: rgba(247, 251, 255, 0.92);
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.appointmentsFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.appointmentsFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+button.appointmentPrimaryButton,
+button.appointmentGhostButton,
+button.appointmentInlineButton {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.appointmentsList {
+  display: grid;
+  gap: 14px;
+}
+
+.appointmentsDayGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.appointmentsDayHeader {
+  color: #496790;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.appointmentCard {
+  border: 1px solid rgba(76, 119, 194, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 12px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 14px 30px rgba(32, 63, 112, 0.08);
+}
+
+.appointmentCard[data-status="done"] {
+  background: rgba(247, 251, 248, 0.94);
+}
+
+.appointmentCardMain {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.appointmentCardTime {
+  min-width: 58px;
+  display: grid;
+  align-content: flex-start;
+  gap: 2px;
+  color: #183764;
+}
+
+.appointmentCardTime strong {
+  font-size: 0.96rem;
+}
+
+.appointmentCardTime span {
+  color: #6a7d9f;
+  font-size: 0.78rem;
+}
+
+.appointmentCardBody {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.appointmentCardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.appointmentCardHead strong {
+  color: #172b4d;
+  font-size: 0.94rem;
+}
+
+.appointmentCardHead span,
+.appointmentCardBody p {
+  color: #587097;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.appointmentCardBody p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.appointmentCardActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.appointmentStatusBadge {
+  border: 1px solid rgba(74, 118, 196, 0.18);
+  border-radius: 999px;
+  background: rgba(235, 245, 255, 0.95);
+  color: #315985;
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.appointmentStatusBadge[data-status="done"] {
+  border-color: rgba(29, 132, 84, 0.22);
+  background: rgba(232, 248, 240, 0.95);
+  color: #1d6e49;
+}
+
+.appointmentStatusBadge[data-status="cancelled"] {
+  border-color: rgba(188, 65, 65, 0.22);
+  background: rgba(255, 239, 239, 0.95);
+  color: #963737;
+}
+
+button.appointmentDeleteButton {
+  border: 1px solid rgba(188, 65, 65, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 239, 239, 0.86);
+  color: #963737;
+  min-height: 36px;
+  padding: 7px 11px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+button.appointmentDeleteButton:hover:not(:disabled),
+button.appointmentDeleteButton:focus-visible:not(:disabled) {
+  background: rgba(255, 228, 230, 0.94);
+  color: #7f1d1d;
+  box-shadow: inset 0 0 0 1px rgba(188, 65, 65, 0.18);
+}
+
+.appointmentsEmptyState {
+  border: 1px dashed rgba(79, 122, 195, 0.28);
+  border-radius: 14px;
+  background: rgba(247, 251, 255, 0.78);
+  padding: 18px;
+  text-align: center;
+  color: #587097;
+}
+
+.appointmentsEmptyState strong {
+  display: block;
+  color: #1d365f;
+  margin-bottom: 4px;
+}
+
+.appointmentsEmptyState p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .appointmentsToolbar,
+  .appointmentCard,
+  .appointmentCardActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .appointmentsFilterGroup,
+  button.appointmentsCreateButton {
+    width: 100%;
+  }
+
+  button.appointmentsFilterButton {
+    flex: 1 1 0;
+  }
+
+  .appointmentsFormGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .appointmentCardActions {
+    justify-content: stretch;
+  }
+
+  .appointmentCardActions > * {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @keyframes infoLegalBackdropIn {
@@ -15017,7 +15395,7 @@ button.ghostButton:disabled {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button[class]:not(:disabled):not(.primaryButton):not(.submitButton):not(.submitMailButton):not(.intakePrimaryActionButtonPrimary):not(.intakePrimaryActionButtonSecondary):not(.sidebarQuickNavButton):not(.appSidebarNavIconWrap):not(.settingsOverlayCloseButton):not(.customerArchiveCloseButton):not(.customerPickerModalCloseButton):not(.infoLegalCloseButton):not(.voiceLoginModalCloseButton):not(.dashboardTipsCloseButton):not(.customerArchiveBackButton):not(.dateInputIconButton):not(.serviceSuggestionButton):not(.serviceAddCustomButton):not(.addressSuggestionButton):not(.authGithubInlineLink):not(.authGithubInlineLinkStrong):not(.photoCameraLinkButton):not(.settingsDeleteButton):not(.settingsLogoDeleteButton):not(.positionsDeleteButton):not(.positionDeleteButton):not(.customerPickerDeleteButton):not(.dashboardModeToggleButton):not(.dashboardSegmentToggleButton):not(.active):hover {
+  button[class]:not(:disabled):not(.primaryButton):not(.submitButton):not(.submitMailButton):not(.intakePrimaryActionButtonPrimary):not(.intakePrimaryActionButtonSecondary):not(.sidebarQuickNavButton):not(.appSidebarNavIconWrap):not(.settingsOverlayCloseButton):not(.customerArchiveCloseButton):not(.customerPickerModalCloseButton):not(.infoLegalCloseButton):not(.voiceLoginModalCloseButton):not(.dashboardTipsCloseButton):not(.customerArchiveBackButton):not(.dateInputIconButton):not(.serviceSuggestionButton):not(.serviceAddCustomButton):not(.addressSuggestionButton):not(.authGithubInlineLink):not(.authGithubInlineLinkStrong):not(.photoCameraLinkButton):not(.settingsDeleteButton):not(.settingsLogoDeleteButton):not(.positionsDeleteButton):not(.positionDeleteButton):not(.customerPickerDeleteButton):not(.appointmentDeleteButton):not(.dashboardModeToggleButton):not(.dashboardSegmentToggleButton):not(.active):hover {
     background: var(--vis-control-secondary-hover) !important;
     background-color: var(--vis-control-secondary-hover) !important;
     background-image: none !important;
@@ -15342,7 +15720,9 @@ button.recipientTypeButton:focus-visible {
 .positionDeleteButton:hover:not(:disabled),
 .positionDeleteButton:focus-visible:not(:disabled),
 .customerPickerDeleteButton:hover:not(:disabled),
-.customerPickerDeleteButton:focus-visible:not(:disabled) {
+.customerPickerDeleteButton:focus-visible:not(:disabled),
+.appointmentDeleteButton:hover:not(:disabled),
+.appointmentDeleteButton:focus-visible:not(:disabled) {
   background: var(--vis-control-danger-hover) !important;
   background-color: var(--vis-control-danger-hover) !important;
   background-image: none !important;
@@ -15505,7 +15885,8 @@ html body button.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton.
 html body button.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton:hover:not(:disabled),
 html body button.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton:hover:not(:disabled),
 html body button.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton:hover:not(:disabled),
-html body button.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton:hover:not(:disabled) {
+html body button.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton:hover:not(:disabled),
+html body button.appointmentDeleteButton.appointmentDeleteButton.appointmentDeleteButton.appointmentDeleteButton.appointmentDeleteButton.appointmentDeleteButton.appointmentDeleteButton.appointmentDeleteButton:hover:not(:disabled) {
   background: var(--vis-control-danger-hover, #ffe4e6) !important;
   background-color: var(--vis-control-danger-hover, #ffe4e6) !important;
   background-image: none !important;

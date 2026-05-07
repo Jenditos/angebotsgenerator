@@ -74,6 +74,10 @@ const emptySettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
+  latePaymentInterestEnabled: false,
+  latePaymentConsumerAnnualInterestPercent: 6.27,
+  latePaymentBusinessAnnualInterestPercent: 10.27,
+  latePaymentGraceDays: 0,
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
@@ -344,6 +348,22 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
     invoicePaymentDueDays: asNumber(
       input.invoicePaymentDueDays,
       emptySettings.invoicePaymentDueDays,
+    ),
+    latePaymentInterestEnabled: asBoolean(
+      input.latePaymentInterestEnabled,
+      emptySettings.latePaymentInterestEnabled,
+    ),
+    latePaymentConsumerAnnualInterestPercent: asNumber(
+      input.latePaymentConsumerAnnualInterestPercent,
+      emptySettings.latePaymentConsumerAnnualInterestPercent,
+    ),
+    latePaymentBusinessAnnualInterestPercent: asNumber(
+      input.latePaymentBusinessAnnualInterestPercent,
+      emptySettings.latePaymentBusinessAnnualInterestPercent,
+    ),
+    latePaymentGraceDays: asNumber(
+      input.latePaymentGraceDays,
+      emptySettings.latePaymentGraceDays,
     ),
     offerTermsText: asString(input.offerTermsText, emptySettings.offerTermsText),
     lastOfferNumber: asString(input.lastOfferNumber),
@@ -1141,6 +1161,37 @@ export default function SettingsPage() {
       ? Math.min(365, Math.max(0, Math.floor(parsed)))
       : 14;
     setSettings((prev) => ({ ...prev, invoicePaymentDueDays: normalized }));
+  }
+
+  function normalizePercentInput(rawValue: string, fallback: number): number {
+    const normalizedValue = rawValue.replace(",", ".").replace(/[^\d.]/g, "");
+    const parsed = Number(normalizedValue);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.min(100, Math.max(0, parsed));
+  }
+
+  function handleLatePaymentPercentInput(
+    key:
+      | "latePaymentConsumerAnnualInterestPercent"
+      | "latePaymentBusinessAnnualInterestPercent",
+    rawValue: string,
+  ) {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: normalizePercentInput(rawValue, prev[key]),
+    }));
+  }
+
+  function handleLatePaymentGraceDaysInput(rawValue: string) {
+    const sanitized = rawValue.replace(/[^\d]/g, "");
+    const parsed = Number(sanitized);
+    const normalized = Number.isFinite(parsed)
+      ? Math.min(365, Math.max(0, Math.floor(parsed)))
+      : 0;
+    setSettings((prev) => ({ ...prev, latePaymentGraceDays: normalized }));
   }
 
   function handleIbanInputChange(rawValue: string) {
@@ -2042,6 +2093,80 @@ export default function SettingsPage() {
                         <em>Tage</em>
                       </div>
                     </label>
+                  </div>
+                </div>
+
+                <div className="field span2 settingsLatePaymentField">
+                  <span>Zahlungssäumnis</span>
+                  <div className="settingsLatePaymentPanel">
+                    <label className="settingsLatePaymentToggle">
+                      <input
+                        type="checkbox"
+                        checked={settings.latePaymentInterestEnabled}
+                        onChange={(event) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            latePaymentInterestEnabled: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Verzugszinsen im Archiv anzeigen</span>
+                    </label>
+                    <p className="settingsLatePaymentHint">
+                      VISIORO rechnet nur mit deinen Einstellungen. Bitte prüfe die
+                      rechtlich passenden Werte selbst.
+                    </p>
+                    <div className="settingsLatePaymentGrid">
+                      <label className="settingsLatePaymentInput">
+                        <span>Privatkunden</span>
+                        <div className="settingsLatePaymentInputWrap">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={settings.latePaymentConsumerAnnualInterestPercent}
+                            onChange={(event) =>
+                              handleLatePaymentPercentInput(
+                                "latePaymentConsumerAnnualInterestPercent",
+                                event.target.value,
+                              )
+                            }
+                          />
+                          <em>% p.a.</em>
+                        </div>
+                      </label>
+                      <label className="settingsLatePaymentInput">
+                        <span>Firmenkunden</span>
+                        <div className="settingsLatePaymentInputWrap">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={settings.latePaymentBusinessAnnualInterestPercent}
+                            onChange={(event) =>
+                              handleLatePaymentPercentInput(
+                                "latePaymentBusinessAnnualInterestPercent",
+                                event.target.value,
+                              )
+                            }
+                          />
+                          <em>% p.a.</em>
+                        </div>
+                      </label>
+                      <label className="settingsLatePaymentInput">
+                        <span>Kulanz</span>
+                        <div className="settingsLatePaymentInputWrap">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={settings.latePaymentGraceDays}
+                            onChange={(event) =>
+                              handleLatePaymentGraceDaysInput(event.target.value)
+                            }
+                          />
+                          <em>Tage</em>
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>

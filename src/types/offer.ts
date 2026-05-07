@@ -66,6 +66,17 @@ export type StoredPaymentReference = {
   updatedAt: string;
 };
 
+export type StoredInvoiceMetadata = {
+  invoiceDate: string;
+  paymentDueDays: number;
+  dueDate: string;
+  subtotalAmount: number;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  currency: "EUR";
+};
+
 export type StoredReminderStatus = "scheduled" | "sent" | "dismissed" | "failed";
 
 export type StoredReminderReference = {
@@ -93,6 +104,42 @@ export const PROJECT_STATUS_VALUES = [
 ] as const;
 
 export type ProjectStatus = (typeof PROJECT_STATUS_VALUES)[number];
+
+export const APPOINTMENT_TYPE_VALUES = [
+  "site_visit",
+  "work",
+  "callback",
+  "follow_up",
+  "other",
+] as const;
+
+export type AppointmentType = (typeof APPOINTMENT_TYPE_VALUES)[number];
+
+export const APPOINTMENT_STATUS_VALUES = [
+  "planned",
+  "done",
+  "cancelled",
+] as const;
+
+export type AppointmentStatus = (typeof APPOINTMENT_STATUS_VALUES)[number];
+
+export type StoredAppointmentRecord = {
+  userId?: string;
+  appointmentNumber: string;
+  title: string;
+  type: AppointmentType;
+  status: AppointmentStatus;
+  startAt: string;
+  endAt: string;
+  customerNumber?: string;
+  projectNumber?: string;
+  customerName: string;
+  projectName?: string;
+  address?: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type PdfTableColumnId =
   | "position"
@@ -188,6 +235,10 @@ export type CompanySettings = {
   vatRate: number;
   offerValidityDays: number;
   invoicePaymentDueDays: number;
+  latePaymentInterestEnabled: boolean;
+  latePaymentConsumerAnnualInterestPercent: number;
+  latePaymentBusinessAnnualInterestPercent: number;
+  latePaymentGraceDays: number;
   offerTermsText: string;
   lastOfferNumber: string;
   lastInvoiceNumber: string;
@@ -314,12 +365,14 @@ export type StoredOfferRecord = {
   userId?: string;
   documentType?: DocumentType;
   offerNumber: string;
+  customerType?: "person" | "company";
   idempotencyKey?: string;
   status?: DocumentProcessingStatus;
   pdf?: StoredPdfReference;
   email?: StoredEmailReference;
   payment?: StoredPaymentReference;
   reminder?: StoredReminderReference;
+  invoice?: StoredInvoiceMetadata;
   customerNumber?: string;
   projectNumber?: string;
   projectName?: string;

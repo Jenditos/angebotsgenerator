@@ -18,6 +18,7 @@ import {
 export type ActivityEntityType =
   | "customer"
   | "project"
+  | "appointment"
   | "document"
   | "email"
   | "system";
@@ -94,9 +95,14 @@ function sanitizeActivityRecord(value: unknown): ActivityLogRecord | null {
     !entityId ||
     !action ||
     !createdAt ||
-    !["customer", "project", "document", "email", "system"].includes(
-      String(entityType),
-    )
+    ![
+      "customer",
+      "project",
+      "appointment",
+      "document",
+      "email",
+      "system",
+    ].includes(String(entityType))
   ) {
     return null;
   }

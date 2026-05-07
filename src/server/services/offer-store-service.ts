@@ -24,6 +24,7 @@ import {
   StoredEmailStatus,
   StoredPaymentReference,
   StoredPdfReference,
+  StoredInvoiceMetadata,
   StoredReminderReference,
   StoredReminderStatus,
   StoredOfferRecord,
@@ -65,6 +66,8 @@ export type CreateStoredOfferInput = {
   configuredLastInvoiceNumber?: string;
   idempotencyKey?: string;
   status?: DocumentProcessingStatus;
+  customerType?: "person" | "company";
+  invoice?: StoredInvoiceMetadata | null;
   referenceDate?: Date;
 };
 
@@ -311,6 +314,45 @@ function sanitizeStoredPaymentReference(
   };
 }
 
+function sanitizeStoredInvoiceMetadata(
+  value: unknown,
+): StoredInvoiceMetadata | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const reference = value as Partial<StoredInvoiceMetadata>;
+  const invoiceDate = asTrimmedString(reference.invoiceDate);
+  const dueDate = asTrimmedString(reference.dueDate);
+  const paymentDueDays = Number(reference.paymentDueDays);
+  const subtotalAmount = Number(reference.subtotalAmount);
+  const vatRate = Number(reference.vatRate);
+  const vatAmount = Number(reference.vatAmount);
+  const totalAmount = Number(reference.totalAmount);
+  if (
+    !invoiceDate ||
+    !dueDate ||
+    !Number.isFinite(paymentDueDays) ||
+    !Number.isFinite(subtotalAmount) ||
+    !Number.isFinite(vatRate) ||
+    !Number.isFinite(vatAmount) ||
+    !Number.isFinite(totalAmount)
+  ) {
+    return undefined;
+  }
+
+  return {
+    invoiceDate,
+    paymentDueDays: Math.min(365, Math.max(0, Math.floor(paymentDueDays))),
+    dueDate,
+    subtotalAmount: Math.max(0, Number(subtotalAmount.toFixed(2))),
+    vatRate: Math.min(100, Math.max(0, vatRate)),
+    vatAmount: Math.max(0, Number(vatAmount.toFixed(2))),
+    totalAmount: Math.max(0, Number(totalAmount.toFixed(2))),
+    currency: "EUR",
+  };
+}
+
 function sanitizeStoredReminderStatus(value: unknown): StoredReminderStatus {
   return value === "sent" || value === "dismissed" || value === "failed"
     ? value
@@ -519,6 +561,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     userId: normalizeUserId(record.userId) || undefined,
     documentType: inferredDocumentType,
     offerNumber: resolvedOfferNumber,
+    customerType: record.customerType === "person" ? "person" : "company",
     idempotencyKey:
       typeof record.idempotencyKey === "string" &&
       record.idempotencyKey.trim().length > 0
@@ -529,6 +572,10 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
     email: sanitizeStoredEmailReference(record.email),
     payment,
     reminder: sanitizeStoredReminderReference(record.reminder),
+    invoice:
+      inferredDocumentType === "invoice"
+        ? sanitizeStoredInvoiceMetadata(record.invoice)
+        : undefined,
     customerNumber:
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
@@ -906,6 +953,7 @@ export async function createStoredOfferRecord(
       userId: normalizedUserId,
       documentType,
       offerNumber: assignedOfferNumber,
+      customerType: input.customerType === "person" ? "person" : "company",
       idempotencyKey: normalizedIdempotencyKey || undefined,
       status: input.status ?? "offer_created",
       payment:
@@ -914,6 +962,10 @@ export async function createStoredOfferRecord(
               status: "unpaid",
               updatedAt: generatedAt.toISOString(),
             }
+          : undefined,
+      invoice:
+        documentType === "invoice"
+          ? sanitizeStoredInvoiceMetadata(input.invoice)
           : undefined,
       customerNumber: input.customerNumber?.trim() || undefined,
       projectNumber: input.projectNumber?.trim() || undefined,

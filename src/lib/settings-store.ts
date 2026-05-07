@@ -21,6 +21,12 @@ import {
   normalizeDefaultBankAccountId,
   sanitizeAdditionalBankAccounts,
 } from "@/lib/bank-accounts";
+import {
+  getDefaultLatePaymentBusinessAnnualInterestPercent,
+  getDefaultLatePaymentConsumerAnnualInterestPercent,
+  normalizeLatePaymentGraceDays,
+  normalizeLatePaymentInterestPercent,
+} from "@/lib/late-payment";
 import { ONBOARDING_MAX_STEP, ONBOARDING_MIN_STEP } from "@/lib/onboarding";
 import { ensureRuntimeDataDirReady } from "@/server/services/store-runtime-paths";
 import { CompanySettings } from "@/types/offer";
@@ -34,6 +40,10 @@ const MIN_INVOICE_PAYMENT_DUE_DAYS = 0;
 const MAX_INVOICE_PAYMENT_DUE_DAYS = 365;
 const MIN_VAT_RATE = 0;
 const MAX_VAT_RATE = 100;
+const MIN_LATE_PAYMENT_INTEREST_PERCENT = 0;
+const MAX_LATE_PAYMENT_INTEREST_PERCENT = 100;
+const MIN_LATE_PAYMENT_GRACE_DAYS = 0;
+const MAX_LATE_PAYMENT_GRACE_DAYS = 365;
 const MAX_TERMS_TEXT_LENGTH = 3000;
 const MAX_EU_VAT_NOTICE_TEXT_LENGTH = 2000;
 const MAX_BANK_NAME_LENGTH = 120;
@@ -72,6 +82,12 @@ const defaultSettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
+  latePaymentInterestEnabled: false,
+  latePaymentConsumerAnnualInterestPercent:
+    getDefaultLatePaymentConsumerAnnualInterestPercent(),
+  latePaymentBusinessAnnualInterestPercent:
+    getDefaultLatePaymentBusinessAnnualInterestPercent(),
+  latePaymentGraceDays: 0,
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
@@ -489,6 +505,28 @@ function buildNextSettings(
       MIN_INVOICE_PAYMENT_DUE_DAYS,
       MAX_INVOICE_PAYMENT_DUE_DAYS,
     ),
+    latePaymentInterestEnabled: resolveBooleanUpdate(
+      current.latePaymentInterestEnabled,
+      payload.latePaymentInterestEnabled,
+    ),
+    latePaymentConsumerAnnualInterestPercent: resolveNumberUpdate(
+      current.latePaymentConsumerAnnualInterestPercent,
+      payload.latePaymentConsumerAnnualInterestPercent,
+      MIN_LATE_PAYMENT_INTEREST_PERCENT,
+      MAX_LATE_PAYMENT_INTEREST_PERCENT,
+    ),
+    latePaymentBusinessAnnualInterestPercent: resolveNumberUpdate(
+      current.latePaymentBusinessAnnualInterestPercent,
+      payload.latePaymentBusinessAnnualInterestPercent,
+      MIN_LATE_PAYMENT_INTEREST_PERCENT,
+      MAX_LATE_PAYMENT_INTEREST_PERCENT,
+    ),
+    latePaymentGraceDays: resolveNumberUpdate(
+      current.latePaymentGraceDays,
+      payload.latePaymentGraceDays,
+      MIN_LATE_PAYMENT_GRACE_DAYS,
+      MAX_LATE_PAYMENT_GRACE_DAYS,
+    ),
     offerTermsText:
       typeof payload.offerTermsText === "undefined"
         ? current.offerTermsText
@@ -753,6 +791,24 @@ function resolveSettingsPayload(
       defaultSettings.invoicePaymentDueDays,
       MIN_INVOICE_PAYMENT_DUE_DAYS,
       MAX_INVOICE_PAYMENT_DUE_DAYS,
+    ),
+    latePaymentInterestEnabled: asBoolean(
+      parsed.latePaymentInterestEnabled,
+      defaultSettings.latePaymentInterestEnabled,
+    ),
+    latePaymentConsumerAnnualInterestPercent:
+      normalizeLatePaymentInterestPercent(
+        parsed.latePaymentConsumerAnnualInterestPercent,
+        defaultSettings.latePaymentConsumerAnnualInterestPercent,
+      ),
+    latePaymentBusinessAnnualInterestPercent:
+      normalizeLatePaymentInterestPercent(
+        parsed.latePaymentBusinessAnnualInterestPercent,
+        defaultSettings.latePaymentBusinessAnnualInterestPercent,
+      ),
+    latePaymentGraceDays: normalizeLatePaymentGraceDays(
+      parsed.latePaymentGraceDays,
+      defaultSettings.latePaymentGraceDays,
     ),
     offerTermsText: asTrimmedString(
       parsed.offerTermsText,

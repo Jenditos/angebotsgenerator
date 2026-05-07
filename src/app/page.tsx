@@ -55,6 +55,10 @@ import {
 import {
   CompanySettings,
   CustomerDraftGroup,
+  APPOINTMENT_STATUS_VALUES,
+  APPOINTMENT_TYPE_VALUES,
+  AppointmentStatus,
+  AppointmentType,
   DOCUMENT_PAYMENT_STATUS_VALUES,
   DOCUMENT_PROCESSING_STATUS_VALUES,
   DocumentPaymentStatus,
@@ -66,6 +70,7 @@ import {
   ProjectStatus,
   ServiceCatalogItem,
   StoredCustomerRecord,
+  StoredAppointmentRecord,
   StoredProjectRecord,
   StoredReminderStatus,
 } from "@/types/offer";
@@ -189,6 +194,18 @@ type CustomerArchiveDocument = {
   status?: DocumentProcessingStatus | null;
   hasPdf?: boolean;
   paymentStatus?: DocumentPaymentStatus | null;
+  invoiceDate?: string | null;
+  paymentDueDays?: number | null;
+  dueDate?: string | null;
+  totalAmount?: number | null;
+  latePayment?: {
+    enabled: boolean;
+    isOverdue: boolean;
+    daysOverdue: number;
+    annualInterestPercent: number;
+    interestAmount: number;
+    debtorType: "consumer" | "business";
+  } | null;
   reminderStatus?: StoredReminderStatus | null;
   reminderDueAt?: string | null;
   createdAt: string;
@@ -215,7 +232,13 @@ type UpdateDocumentPaymentApiResponse = {
 
 type ArchiveActivityLogEntry = {
   id: string;
-  entityType: "customer" | "project" | "document" | "email" | "system";
+  entityType:
+    | "customer"
+    | "project"
+    | "appointment"
+    | "document"
+    | "email"
+    | "system";
   entityId: string;
   action: string;
   metadata?: Record<string, unknown>;
@@ -225,6 +248,39 @@ type ArchiveActivityLogEntry = {
 type ActivityLogApiResponse = {
   activities?: ArchiveActivityLogEntry[];
   error?: string;
+};
+
+type AppointmentsApiResponse = {
+  appointments?: StoredAppointmentRecord[];
+  error?: string;
+};
+
+type SaveAppointmentApiResponse = {
+  appointment?: StoredAppointmentRecord;
+  error?: string;
+};
+
+type DeleteAppointmentApiResponse = {
+  ok?: boolean;
+  error?: string;
+};
+
+type AppointmentFilter = "today" | "week" | "all";
+
+type AppointmentFormState = {
+  appointmentNumber: string;
+  title: string;
+  type: AppointmentType;
+  status: AppointmentStatus;
+  date: string;
+  startTime: string;
+  durationMinutes: string;
+  customerNumber: string;
+  projectNumber: string;
+  customerName: string;
+  projectName: string;
+  address: string;
+  note: string;
 };
 
 type BillingCheckoutApiResponse = {
@@ -580,6 +636,17 @@ function toDateInputValue(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function addDaysToDateValue(dateValue: string, days: number): string {
+  if (!isDateInputValue(dateValue)) {
+    return "";
+  }
+
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return toDateInputValue(date);
+}
+
 function isDateInputValue(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -835,6 +902,20 @@ const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   paid: "Bezahlt",
 };
 
+const APPOINTMENT_TYPE_LABELS: Record<AppointmentType, string> = {
+  site_visit: "Besichtigung",
+  work: "Arbeitstermin",
+  callback: "Rückruf",
+  follow_up: "Nachfassen",
+  other: "Sonstiges",
+};
+
+const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
+  planned: "Geplant",
+  done: "Erledigt",
+  cancelled: "Abgesagt",
+};
+
 const DOCUMENT_STATUS_LABELS: Record<DocumentProcessingStatus, string> = {
   offer_created: "Dokument erstellt",
   pdf_ready: "PDF bereit",
@@ -865,6 +946,26 @@ function formatProjectStatusLabel(status: ProjectStatus | undefined): string {
   }
 
   return PROJECT_STATUS_LABELS[status] ?? PROJECT_STATUS_LABELS.new;
+}
+
+function isAppointmentType(value: unknown): value is AppointmentType {
+  return APPOINTMENT_TYPE_VALUES.includes(value as AppointmentType);
+}
+
+function isAppointmentStatus(value: unknown): value is AppointmentStatus {
+  return APPOINTMENT_STATUS_VALUES.includes(value as AppointmentStatus);
+}
+
+function formatAppointmentTypeLabel(type: AppointmentType | undefined): string {
+  return type ? APPOINTMENT_TYPE_LABELS[type] : APPOINTMENT_TYPE_LABELS.site_visit;
+}
+
+function formatAppointmentStatusLabel(
+  status: AppointmentStatus | undefined,
+): string {
+  return status
+    ? APPOINTMENT_STATUS_LABELS[status]
+    : APPOINTMENT_STATUS_LABELS.planned;
 }
 
 function isDocumentProcessingStatus(
@@ -1112,6 +1213,10 @@ const fallbackCompanySettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
+  latePaymentInterestEnabled: false,
+  latePaymentConsumerAnnualInterestPercent: 6.27,
+  latePaymentBusinessAnnualInterestPercent: 10.27,
+  latePaymentGraceDays: 0,
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
@@ -1489,6 +1594,28 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
     invoicePaymentDueDays: toNumberInRange(
       value.invoicePaymentDueDays,
       fallbackCompanySettings.invoicePaymentDueDays,
+      0,
+      365,
+    ),
+    latePaymentInterestEnabled:
+      typeof value.latePaymentInterestEnabled === "boolean"
+        ? value.latePaymentInterestEnabled
+        : fallbackCompanySettings.latePaymentInterestEnabled,
+    latePaymentConsumerAnnualInterestPercent: toNumberInRange(
+      value.latePaymentConsumerAnnualInterestPercent,
+      fallbackCompanySettings.latePaymentConsumerAnnualInterestPercent,
+      0,
+      100,
+    ),
+    latePaymentBusinessAnnualInterestPercent: toNumberInRange(
+      value.latePaymentBusinessAnnualInterestPercent,
+      fallbackCompanySettings.latePaymentBusinessAnnualInterestPercent,
+      0,
+      100,
+    ),
+    latePaymentGraceDays: toNumberInRange(
+      value.latePaymentGraceDays,
+      fallbackCompanySettings.latePaymentGraceDays,
       0,
       365,
     ),
@@ -2001,6 +2128,66 @@ function formatArchiveDate(value: string): string {
   }).format(new Date(timestamp));
 }
 
+function formatAppointmentDateTime(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function formatAppointmentTime(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function getAppointmentDateValue(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return "";
+  }
+
+  return toDateInputValue(new Date(timestamp));
+}
+
+function formatArchiveMoney(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "";
+  }
+
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatPercentValue(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "";
+  }
+
+  return new Intl.NumberFormat("de-DE", {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function formatActivityLogTitle(action: string): string {
   switch (action) {
     case "document_recorded":
@@ -2039,11 +2226,18 @@ function CustomerArchiveDocumentBadges({
   const reminderDateLabel = document.reminderDueAt
     ? formatArchiveDate(document.reminderDueAt)
     : "";
+  const overdueLabel =
+    document.latePayment?.enabled &&
+    document.latePayment.isOverdue &&
+    document.latePayment.daysOverdue > 0
+      ? `${document.latePayment.daysOverdue} Tage überfällig`
+      : "";
   if (
     !statusLabel &&
     !document.hasPdf &&
     !paymentStatusLabel &&
-    !reminderStatusLabel
+    !reminderStatusLabel &&
+    !overdueLabel
   ) {
     return null;
   }
@@ -2069,6 +2263,11 @@ function CustomerArchiveDocumentBadges({
           }
         >
           {paymentStatusLabel}
+        </span>
+      ) : null}
+      {overdueLabel ? (
+        <span className="customerArchiveDocumentOverdueBadge">
+          {overdueLabel}
         </span>
       ) : null}
       {reminderStatusLabel ? (
@@ -2288,6 +2487,62 @@ function buildDocumentTaxInfoMessage(
   return " Steuerbefreiung erkannt. Für dieses Dokument wird keine MwSt. berechnet.";
 }
 
+function createAppointmentFormState(
+  overrides: Partial<AppointmentFormState> = {},
+): AppointmentFormState {
+  return {
+    appointmentNumber: "",
+    title: "",
+    type: "site_visit",
+    status: "planned",
+    date: todayDateInputValue(),
+    startTime: "08:00",
+    durationMinutes: "60",
+    customerNumber: "",
+    projectNumber: "",
+    customerName: "",
+    projectName: "",
+    address: "",
+    note: "",
+    ...overrides,
+  };
+}
+
+function normalizeAppointmentRecord(
+  value: StoredAppointmentRecord,
+): StoredAppointmentRecord | null {
+  const appointmentNumber = value.appointmentNumber?.trim() ?? "";
+  const title = value.title?.trim() ?? "";
+  const startAt = typeof value.startAt === "string" ? value.startAt : "";
+  const endAt = typeof value.endAt === "string" ? value.endAt : "";
+  if (
+    !appointmentNumber ||
+    !title ||
+    !Number.isFinite(Date.parse(startAt)) ||
+    !Number.isFinite(Date.parse(endAt))
+  ) {
+    return null;
+  }
+
+  return {
+    ...value,
+    appointmentNumber,
+    title,
+    type: isAppointmentType(value.type) ? value.type : "site_visit",
+    status: isAppointmentStatus(value.status) ? value.status : "planned",
+    startAt,
+    endAt,
+    customerName: value.customerName?.trim() ?? "",
+    customerNumber: value.customerNumber?.trim() || undefined,
+    projectNumber: value.projectNumber?.trim() || undefined,
+    projectName: value.projectName?.trim() || undefined,
+    address: value.address?.trim() || undefined,
+    note: value.note?.trim() || undefined,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+  };
+}
+
 function calculateSubitemTotal(subitem: ServiceSubitemEntry): number {
   const quantity = parseLocaleNumber(subitem.quantity);
   const price = parseLocaleNumber(subitem.price);
@@ -2456,6 +2711,20 @@ export default function HomePage() {
     useState(false);
   const [isProjectArchiveInvoicesOpen, setIsProjectArchiveInvoicesOpen] =
     useState(false);
+  const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
+  const [isClosingAppointments, setIsClosingAppointments] = useState(false);
+  const [appointments, setAppointments] = useState<StoredAppointmentRecord[]>([]);
+  const [appointmentFilter, setAppointmentFilter] =
+    useState<AppointmentFilter>("week");
+  const [appointmentForm, setAppointmentForm] = useState<AppointmentFormState>(
+    () => createAppointmentFormState(),
+  );
+  const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
+  const [appointmentsError, setAppointmentsError] = useState("");
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false);
+  const [isSavingAppointment, setIsSavingAppointment] = useState(false);
+  const [deletingAppointmentNumber, setDeletingAppointmentNumber] =
+    useState<string | null>(null);
   const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
   const [isClosingInfoLegal, setIsClosingInfoLegal] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -2515,6 +2784,9 @@ export default function HomePage() {
   const projectArchiveActivityAbortControllerRef =
     useRef<AbortController | null>(null);
   const projectArchiveCloseTimeoutRef = useRef<number | null>(null);
+  const appointmentsLoadRequestRef = useRef(0);
+  const appointmentsAbortControllerRef = useRef<AbortController | null>(null);
+  const appointmentsCloseTimeoutRef = useRef<number | null>(null);
   const infoLegalCloseTimeoutRef = useRef<number | null>(null);
   const subscriptionModalCloseTimeoutRef = useRef<number | null>(null);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -2523,6 +2795,7 @@ export default function HomePage() {
   const onboardingModalRef = useRef<HTMLElement | null>(null);
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const projectArchiveSheetRef = useRef<HTMLElement | null>(null);
+  const appointmentsSheetRef = useRef<HTMLElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const customerNameInputRef = useRef<HTMLInputElement | null>(null);
   const streetInputRef = useRef<HTMLInputElement | null>(null);
@@ -2842,6 +3115,42 @@ export default function HomePage() {
       null,
     [activeProjectNumber, storedProjects],
   );
+  const filteredAppointments = useMemo(() => {
+    const today = todayDateValue || todayDateInputValue();
+    const weekEnd = addDaysToDateValue(today, 7);
+
+    return appointments.filter((appointment) => {
+      if (appointmentFilter === "all") {
+        return true;
+      }
+
+      const appointmentDate = getAppointmentDateValue(appointment.startAt);
+      if (!appointmentDate) {
+        return false;
+      }
+
+      if (appointmentFilter === "today") {
+        return appointmentDate === today;
+      }
+
+      return appointmentDate >= today && appointmentDate <= weekEnd;
+    });
+  }, [appointmentFilter, appointments, todayDateValue]);
+  const groupedAppointments = useMemo(() => {
+    const groups = new Map<string, StoredAppointmentRecord[]>();
+
+    for (const appointment of filteredAppointments) {
+      const dateValue = getAppointmentDateValue(appointment.startAt) || "ohne-datum";
+      const group = groups.get(dateValue) ?? [];
+      group.push(appointment);
+      groups.set(dateValue, group);
+    }
+
+    return Array.from(groups.entries()).map(([dateValue, group]) => ({
+      dateValue,
+      appointments: group,
+    }));
+  }, [filteredAppointments]);
   const projectTimelineEntries = useMemo(() => {
     if (!selectedArchiveProject) {
       return [];
@@ -2915,6 +3224,10 @@ export default function HomePage() {
   useDialogFocusTrap({
     isOpen: isProjectArchiveOpen,
     containerRef: projectArchiveSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: isAppointmentsOpen,
+    containerRef: appointmentsSheetRef,
   });
   useDialogFocusTrap({
     isOpen: isSettingsOverlayOpen,
@@ -3254,6 +3567,13 @@ export default function HomePage() {
         projectArchiveAbortControllerRef.current.abort();
         projectArchiveAbortControllerRef.current = null;
       }
+      if (appointmentsCloseTimeoutRef.current !== null) {
+        window.clearTimeout(appointmentsCloseTimeoutRef.current);
+      }
+      if (appointmentsAbortControllerRef.current) {
+        appointmentsAbortControllerRef.current.abort();
+        appointmentsAbortControllerRef.current = null;
+      }
       if (infoLegalCloseTimeoutRef.current !== null) {
         window.clearTimeout(infoLegalCloseTimeoutRef.current);
       }
@@ -3412,6 +3732,7 @@ export default function HomePage() {
     if (
       !isCustomerArchiveOpen &&
       !isProjectArchiveOpen &&
+      !isAppointmentsOpen &&
       !isInfoLegalOpen &&
       !isSubscriptionModalOpen &&
       !isSettingsOverlayOpen &&
@@ -3438,6 +3759,11 @@ export default function HomePage() {
 
       if (isSubscriptionModalOpen) {
         closeSubscriptionModal();
+        return;
+      }
+
+      if (isAppointmentsOpen) {
+        closeAppointments();
         return;
       }
 
@@ -3497,6 +3823,8 @@ export default function HomePage() {
     isClosingCustomerArchive,
     isProjectArchiveOpen,
     isClosingProjectArchive,
+    isAppointmentsOpen,
+    isClosingAppointments,
     isInfoLegalOpen,
     isClosingInfoLegal,
     isSubscriptionModalOpen,
@@ -4174,6 +4502,283 @@ export default function HomePage() {
     }
   }
 
+  async function loadAppointments() {
+    const currentLoadRequest = appointmentsLoadRequestRef.current + 1;
+    appointmentsLoadRequestRef.current = currentLoadRequest;
+    if (appointmentsAbortControllerRef.current) {
+      appointmentsAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    appointmentsAbortControllerRef.current = controller;
+
+    setAppointmentsError("");
+    setIsAppointmentsLoading(true);
+
+    try {
+      const response = await fetch("/api/appointments", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const data = (await response.json()) as AppointmentsApiResponse;
+      if (appointmentsLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      if (!response.ok) {
+        setAppointmentsError(data.error ?? "Termine konnten nicht geladen werden.");
+        return;
+      }
+
+      const normalizedAppointments = Array.isArray(data.appointments)
+        ? data.appointments
+            .map((appointment) => normalizeAppointmentRecord(appointment))
+            .filter(
+              (appointment): appointment is StoredAppointmentRecord =>
+                Boolean(appointment),
+            )
+        : [];
+      setAppointments(normalizedAppointments);
+    } catch (error) {
+      if ((error as { name?: string }).name === "AbortError") {
+        return;
+      }
+      if (appointmentsLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      setAppointmentsError("Termine konnten nicht geladen werden.");
+    } finally {
+      if (appointmentsAbortControllerRef.current === controller) {
+        appointmentsAbortControllerRef.current = null;
+      }
+      if (appointmentsLoadRequestRef.current !== currentLoadRequest) {
+        return;
+      }
+      setIsAppointmentsLoading(false);
+    }
+  }
+
+  function buildAppointmentFormFromCurrentContext(
+    overrides: Partial<AppointmentFormState> = {},
+  ): AppointmentFormState {
+    const customerName = buildCustomerNameForStorage(form);
+    const customerAddress = buildCustomerAddressForStorage(form);
+    return createAppointmentFormState({
+      title: activeProject?.projectName
+        ? `Besichtigung ${activeProject.projectName}`
+        : form.projectName.trim()
+          ? `Besichtigung ${form.projectName.trim()}`
+          : "Besichtigung",
+      customerNumber: activeCustomerNumber,
+      projectNumber: activeProjectNumber,
+      customerName,
+      projectName: activeProject?.projectName || form.projectName.trim(),
+      address:
+        activeProject?.projectAddress ||
+        form.projectAddress.trim() ||
+        customerAddress,
+      ...overrides,
+    });
+  }
+
+  function openAppointments() {
+    if (appointmentsCloseTimeoutRef.current !== null) {
+      window.clearTimeout(appointmentsCloseTimeoutRef.current);
+      appointmentsCloseTimeoutRef.current = null;
+    }
+    setIsClosingAppointments(false);
+    setIsAppointmentsOpen(true);
+    setIsAccountMenuOpen(false);
+    setAppointmentsError("");
+    if (!isCustomersLoading && storedCustomers.length === 0) {
+      void loadStoredCustomers();
+    }
+    if (!isProjectsLoading && storedProjects.length === 0) {
+      void loadStoredProjects();
+    }
+    void loadAppointments();
+  }
+
+  function closeAppointments() {
+    if (!isAppointmentsOpen || isClosingAppointments) {
+      return;
+    }
+
+    setIsClosingAppointments(true);
+    if (appointmentsCloseTimeoutRef.current !== null) {
+      window.clearTimeout(appointmentsCloseTimeoutRef.current);
+    }
+    appointmentsCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsAppointmentsOpen(false);
+      setIsClosingAppointments(false);
+      setIsAppointmentFormOpen(false);
+      appointmentsCloseTimeoutRef.current = null;
+    }, 160);
+  }
+
+  function openNewAppointmentForm() {
+    setAppointmentForm(buildAppointmentFormFromCurrentContext());
+    setIsAppointmentFormOpen(true);
+    setAppointmentsError("");
+  }
+
+  function editAppointment(appointment: StoredAppointmentRecord) {
+    const start = new Date(appointment.startAt);
+    const end = new Date(appointment.endAt);
+    const durationMinutes = Number.isFinite(start.getTime()) && Number.isFinite(end.getTime())
+      ? Math.max(15, Math.round((end.getTime() - start.getTime()) / 60_000))
+      : 60;
+    setAppointmentForm(
+      createAppointmentFormState({
+        appointmentNumber: appointment.appointmentNumber,
+        title: appointment.title,
+        type: appointment.type,
+        status: appointment.status,
+        date: getAppointmentDateValue(appointment.startAt) || todayDateInputValue(),
+        startTime: formatAppointmentTime(appointment.startAt),
+        durationMinutes: String(durationMinutes),
+        customerNumber: appointment.customerNumber ?? "",
+        projectNumber: appointment.projectNumber ?? "",
+        customerName: appointment.customerName,
+        projectName: appointment.projectName ?? "",
+        address: appointment.address ?? "",
+        note: appointment.note ?? "",
+      }),
+    );
+    setIsAppointmentFormOpen(true);
+    setAppointmentsError("");
+  }
+
+  async function saveAppointment(
+    nextStatus?: AppointmentStatus,
+    formOverride?: AppointmentFormState,
+  ) {
+    if (isSavingAppointment) {
+      return;
+    }
+
+    const sourceForm = formOverride ?? appointmentForm;
+    const title = sourceForm.title.trim();
+    if (!title) {
+      setAppointmentsError("Bitte gib einen Termintitel ein.");
+      return;
+    }
+    if (!sourceForm.date || !sourceForm.startTime) {
+      setAppointmentsError("Bitte Datum und Startzeit angeben.");
+      return;
+    }
+
+    setIsSavingAppointment(true);
+    setAppointmentsError("");
+
+    try {
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...sourceForm,
+          status: nextStatus ?? sourceForm.status,
+        }),
+      });
+      const data = (await response.json()) as SaveAppointmentApiResponse;
+      if (!response.ok || !data.appointment) {
+        setAppointmentsError(data.error ?? "Termin konnte nicht gespeichert werden.");
+        return;
+      }
+
+      const normalizedAppointment = normalizeAppointmentRecord(data.appointment);
+      if (normalizedAppointment) {
+        setAppointments((prev) => {
+          const existingIndex = prev.findIndex(
+            (appointment) =>
+              appointment.appointmentNumber ===
+              normalizedAppointment.appointmentNumber,
+          );
+          if (existingIndex < 0) {
+            return [...prev, normalizedAppointment].sort(
+              (left, right) =>
+                Date.parse(left.startAt) - Date.parse(right.startAt),
+            );
+          }
+          const nextAppointments = [...prev];
+          nextAppointments[existingIndex] = normalizedAppointment;
+          return nextAppointments.sort(
+            (left, right) => Date.parse(left.startAt) - Date.parse(right.startAt),
+          );
+        });
+      }
+      setIsAppointmentFormOpen(false);
+      setAppointmentForm(createAppointmentFormState());
+    } catch {
+      setAppointmentsError("Termin konnte nicht gespeichert werden.");
+    } finally {
+      setIsSavingAppointment(false);
+    }
+  }
+
+  async function markAppointmentStatus(
+    appointment: StoredAppointmentRecord,
+    status: AppointmentStatus,
+  ) {
+    const start = new Date(appointment.startAt);
+    const end = new Date(appointment.endAt);
+    const durationMinutes = Number.isFinite(start.getTime()) && Number.isFinite(end.getTime())
+      ? Math.max(15, Math.round((end.getTime() - start.getTime()) / 60_000))
+      : 60;
+    const nextForm = createAppointmentFormState({
+        appointmentNumber: appointment.appointmentNumber,
+        title: appointment.title,
+        type: appointment.type,
+        status,
+        date: getAppointmentDateValue(appointment.startAt) || todayDateInputValue(),
+        startTime: formatAppointmentTime(appointment.startAt),
+        durationMinutes: String(durationMinutes),
+        customerNumber: appointment.customerNumber ?? "",
+        projectNumber: appointment.projectNumber ?? "",
+        customerName: appointment.customerName,
+        projectName: appointment.projectName ?? "",
+        address: appointment.address ?? "",
+        note: appointment.note ?? "",
+      });
+    setAppointmentForm(nextForm);
+    await saveAppointment(status, nextForm);
+  }
+
+  async function deleteAppointment(appointmentNumber: string) {
+    const normalizedAppointmentNumber = appointmentNumber.trim();
+    if (!normalizedAppointmentNumber || deletingAppointmentNumber) {
+      return;
+    }
+
+    setDeletingAppointmentNumber(normalizedAppointmentNumber);
+    setAppointmentsError("");
+
+    try {
+      const response = await fetch(
+        `/api/appointments?appointmentNumber=${encodeURIComponent(
+          normalizedAppointmentNumber,
+        )}`,
+        { method: "DELETE" },
+      );
+      const data = (await response.json()) as DeleteAppointmentApiResponse;
+      if (!response.ok || data.ok === false) {
+        setAppointmentsError(data.error ?? "Termin konnte nicht gelöscht werden.");
+        return;
+      }
+
+      setAppointments((prev) =>
+        prev.filter(
+          (appointment) =>
+            appointment.appointmentNumber !== normalizedAppointmentNumber,
+        ),
+      );
+    } catch {
+      setAppointmentsError("Termin konnte nicht gelöscht werden.");
+    } finally {
+      setDeletingAppointmentNumber((current) =>
+        current === normalizedAppointmentNumber ? null : current,
+      );
+    }
+  }
+
   function applyPaymentStatusToDocumentLists(
     documentNumber: string,
     nextStatus: DocumentPaymentStatus,
@@ -4189,6 +4794,17 @@ export default function HomePage() {
           ? {
               ...document,
               paymentStatus: nextStatus,
+              latePayment:
+                nextStatus === "paid" || nextStatus === "refunded"
+                  ? document.latePayment
+                    ? {
+                        ...document.latePayment,
+                        isOverdue: false,
+                        daysOverdue: 0,
+                        interestAmount: 0,
+                      }
+                    : document.latePayment
+                  : document.latePayment,
             }
           : document,
       ),
@@ -4199,6 +4815,17 @@ export default function HomePage() {
           ? {
               ...document,
               paymentStatus: nextStatus,
+              latePayment:
+                nextStatus === "paid" || nextStatus === "refunded"
+                  ? document.latePayment
+                    ? {
+                        ...document.latePayment,
+                        isOverdue: false,
+                        daysOverdue: 0,
+                        interestAmount: 0,
+                      }
+                    : document.latePayment
+                  : document.latePayment,
             }
           : document,
       ),
@@ -4544,6 +5171,12 @@ export default function HomePage() {
     setIsSetupHintOpen(false);
     closeAccountMenu();
     openCustomerArchive();
+  }
+
+  function openAppointmentsFromAccountMenu() {
+    setIsSetupHintOpen(false);
+    closeAccountMenu();
+    openAppointments();
   }
 
   function navigateToAuthFromAccountMenu() {
@@ -7631,6 +8264,14 @@ export default function HomePage() {
       updatingPaymentDocumentNumber === document.documentNumber;
     const nextStatus: DocumentPaymentStatus = isPaid ? "unpaid" : "paid";
     const actionLabel = isPaid ? "Als offen markieren" : "Als bezahlt markieren";
+    const dueDateLabel = document.dueDate ? formatArchiveDate(document.dueDate) : "";
+    const totalAmountLabel = formatArchiveMoney(document.totalAmount);
+    const latePaymentAmountLabel = formatArchiveMoney(
+      document.latePayment?.interestAmount,
+    );
+    const latePaymentPercentLabel = formatPercentValue(
+      document.latePayment?.annualInterestPercent,
+    );
 
     return (
       <div
@@ -7650,6 +8291,27 @@ export default function HomePage() {
           </div>
           {document.title ? (
             <span className="customerArchiveDocumentMetaAux">{document.title}</span>
+          ) : null}
+          {document.documentType === "invoice" &&
+          (dueDateLabel || totalAmountLabel || latePaymentAmountLabel) ? (
+            <span className="customerArchiveInvoiceDueMeta">
+              {dueDateLabel ? `Fällig: ${dueDateLabel}` : ""}
+              {dueDateLabel && totalAmountLabel ? " · " : ""}
+              {totalAmountLabel ? `Betrag: ${totalAmountLabel}` : ""}
+              {latePaymentAmountLabel &&
+              document.latePayment?.enabled &&
+              document.latePayment.isOverdue ? (
+                <>
+                  {" · "}
+                  <strong>
+                    Verzugszins: {latePaymentAmountLabel}
+                    {latePaymentPercentLabel
+                      ? ` (${latePaymentPercentLabel}% p.a.)`
+                      : ""}
+                  </strong>
+                </>
+              ) : null}
+            </span>
           ) : null}
         </a>
         <div className="customerArchiveInvoiceActions">
@@ -7750,6 +8412,14 @@ export default function HomePage() {
                   onClick={openSubscriptionFromAccountMenu}
                 >
                   Abo &amp; Preis
+                </button>
+                <button
+                  type="button"
+                  className="accountMenuItem"
+                  role="menuitem"
+                  onClick={openAppointmentsFromAccountMenu}
+                >
+                  Termine
                 </button>
                 <button
                   type="button"
@@ -8476,6 +9146,390 @@ export default function HomePage() {
                     ) : null}
                   </div>
                 )}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {isAppointmentsOpen ? (
+          <div
+            className={`customerArchiveBackdrop appointmentsBackdrop ${isClosingAppointments ? "closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="appointments-title"
+            onClick={closeAppointments}
+          >
+            <section
+              className={`customerArchiveSheet appointmentsSheet ${isClosingAppointments ? "closing" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+              ref={appointmentsSheetRef}
+            >
+              <div className="customerArchiveHeader appointmentsHeader">
+                <div className="appointmentsTitleGroup">
+                  <strong id="appointments-title">Termine</strong>
+                  <span>Besichtigungen, Arbeitstermine und Rückrufe im Blick.</span>
+                </div>
+                <button
+                  type="button"
+                  className="customerArchiveCloseButton"
+                  aria-label="Termine schließen"
+                  onClick={closeAppointments}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="customerArchiveCloseIcon"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6.8 6.8 17.2 17.2M17.2 6.8 6.8 17.2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="appointmentsToolbar">
+                <div className="appointmentsFilterGroup" role="group" aria-label="Termine filtern">
+                  {(["today", "week", "all"] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      className={`appointmentsFilterButton ${
+                        appointmentFilter === filter ? "active" : ""
+                      }`}
+                      onClick={() => setAppointmentFilter(filter)}
+                    >
+                      {filter === "today"
+                        ? "Heute"
+                        : filter === "week"
+                          ? "7 Tage"
+                          : "Alle"}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="primaryButton appointmentsCreateButton"
+                  onClick={openNewAppointmentForm}
+                >
+                  Termin erstellen
+                </button>
+              </div>
+
+              {appointmentsError ? (
+                <p className="voiceWarning appointmentsWarning" role="alert">
+                  {appointmentsError}
+                </p>
+              ) : null}
+
+              {isAppointmentFormOpen ? (
+                <form
+                  className="appointmentsForm"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveAppointment();
+                  }}
+                >
+                  <div className="appointmentsFormGrid">
+                    <label className="field span2">
+                      <span>Titel</span>
+                      <input
+                        value={appointmentForm.title}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            title: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Art</span>
+                      <select
+                        value={appointmentForm.type}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            type: isAppointmentType(event.target.value)
+                              ? event.target.value
+                              : "site_visit",
+                          }))
+                        }
+                      >
+                        {APPOINTMENT_TYPE_VALUES.map((type) => (
+                          <option key={type} value={type}>
+                            {formatAppointmentTypeLabel(type)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Status</span>
+                      <select
+                        value={appointmentForm.status}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            status: isAppointmentStatus(event.target.value)
+                              ? event.target.value
+                              : "planned",
+                          }))
+                        }
+                      >
+                        {APPOINTMENT_STATUS_VALUES.map((status) => (
+                          <option key={status} value={status}>
+                            {formatAppointmentStatusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Datum</span>
+                      <input
+                        type="date"
+                        value={appointmentForm.date}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            date: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Startzeit</span>
+                      <input
+                        type="time"
+                        value={appointmentForm.startTime}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            startTime: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Dauer</span>
+                      <select
+                        value={appointmentForm.durationMinutes}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            durationMinutes: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="30">30 Minuten</option>
+                        <option value="60">1 Stunde</option>
+                        <option value="90">1,5 Stunden</option>
+                        <option value="120">2 Stunden</option>
+                        <option value="240">Halber Tag</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Kunde</span>
+                      <select
+                        value={appointmentForm.customerNumber}
+                        onChange={(event) => {
+                          const customer =
+                            storedCustomers.find(
+                              (entry) =>
+                                entry.customerNumber === event.target.value,
+                            ) ?? null;
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            customerNumber: customer?.customerNumber ?? "",
+                            customerName: customer?.customerName ?? "",
+                            address: customer?.customerAddress ?? prev.address,
+                          }));
+                        }}
+                      >
+                        <option value="">Kein Kunde</option>
+                        {storedCustomers.map((customer) => (
+                          <option
+                            key={customer.customerNumber}
+                            value={customer.customerNumber}
+                          >
+                            {customer.customerName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Projekt</span>
+                      <select
+                        value={appointmentForm.projectNumber}
+                        onChange={(event) => {
+                          const project =
+                            storedProjects.find(
+                              (entry) =>
+                                entry.projectNumber === event.target.value,
+                            ) ?? null;
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            projectNumber: project?.projectNumber ?? "",
+                            projectName: project?.projectName ?? "",
+                            customerNumber:
+                              project?.customerNumber ?? prev.customerNumber,
+                            customerName: project?.customerName ?? prev.customerName,
+                            address: project?.projectAddress ?? prev.address,
+                          }));
+                        }}
+                      >
+                        <option value="">Kein Projekt</option>
+                        {storedProjects.map((project) => (
+                          <option
+                            key={project.projectNumber}
+                            value={project.projectNumber}
+                          >
+                            {project.projectName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field span2">
+                      <span>Adresse</span>
+                      <input
+                        value={appointmentForm.address}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            address: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="field span2">
+                      <span>Notiz</span>
+                      <textarea
+                        rows={3}
+                        value={appointmentForm.note}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            note: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="appointmentsFormActions">
+                    <button
+                      type="button"
+                      className="ghostButton appointmentGhostButton"
+                      onClick={() => setIsAppointmentFormOpen(false)}
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="submit"
+                      className="primaryButton appointmentPrimaryButton"
+                      disabled={isSavingAppointment}
+                    >
+                      {isSavingAppointment ? "Speichern ..." : "Termin speichern"}
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              <div className="appointmentsList" role="list">
+                {isAppointmentsLoading ? (
+                  <p className="customerArchiveHint">Termine werden geladen ...</p>
+                ) : null}
+                {!isAppointmentsLoading && groupedAppointments.length === 0 ? (
+                  <div className="appointmentsEmptyState">
+                    <strong>Keine Termine in dieser Ansicht</strong>
+                    <p>Lege eine Besichtigung, einen Arbeitstermin oder einen Rückruf an.</p>
+                  </div>
+                ) : null}
+                {!isAppointmentsLoading
+                  ? groupedAppointments.map((group) => (
+                      <div key={group.dateValue} className="appointmentsDayGroup">
+                        <div className="appointmentsDayHeader">
+                          {group.dateValue === "ohne-datum"
+                            ? "Ohne Datum"
+                            : formatGermanDate(group.dateValue)}
+                        </div>
+                        {group.appointments.map((appointment) => (
+                          <article
+                            key={appointment.appointmentNumber}
+                            className="appointmentCard"
+                            data-status={appointment.status}
+                            role="listitem"
+                          >
+                            <div className="appointmentCardMain">
+                              <div className="appointmentCardTime">
+                                <strong>{formatAppointmentTime(appointment.startAt)}</strong>
+                                <span>{formatAppointmentTime(appointment.endAt)}</span>
+                              </div>
+                              <div className="appointmentCardBody">
+                                <div className="appointmentCardHead">
+                                  <strong>{appointment.title}</strong>
+                                  <span>{formatAppointmentTypeLabel(appointment.type)}</span>
+                                </div>
+                                <p>
+                                  {[
+                                    appointment.customerName,
+                                    appointment.projectName,
+                                    appointment.address,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </p>
+                                {appointment.note ? <p>{appointment.note}</p> : null}
+                              </div>
+                            </div>
+                            <div className="appointmentCardActions">
+                              <span
+                                className="appointmentStatusBadge"
+                                data-status={appointment.status}
+                              >
+                                {formatAppointmentStatusLabel(appointment.status)}
+                              </span>
+                              {appointment.status !== "done" ? (
+                                <button
+                                  type="button"
+                                  className="ghostButton appointmentInlineButton"
+                                  onClick={() =>
+                                    void markAppointmentStatus(appointment, "done")
+                                  }
+                                >
+                                  Erledigt
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="ghostButton appointmentInlineButton"
+                                onClick={() => editAppointment(appointment)}
+                              >
+                                Bearbeiten
+                              </button>
+                              <button
+                                type="button"
+                                className="appointmentDeleteButton"
+                                onClick={() =>
+                                  void deleteAppointment(
+                                    appointment.appointmentNumber,
+                                  )
+                                }
+                                disabled={
+                                  deletingAppointmentNumber ===
+                                  appointment.appointmentNumber
+                                }
+                              >
+                                Löschen
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ))
+                  : null}
               </div>
             </section>
           </div>
@@ -9290,6 +10344,41 @@ export default function HomePage() {
                     </svg>
                   </button>
                   <span className="appSidebarNavLabel">Abo</span>
+                </div>
+                <div className={`appSidebarNavItem ${isAppointmentsOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="sidebarQuickNavButton"
+                    onClick={openAppointments}
+                    aria-label="Termine öffnen"
+                    title="Termine"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="sidebarQuickNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <rect
+                        x="4"
+                        y="5.4"
+                        width="16"
+                        height="14.2"
+                        rx="2.2"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+                      <path
+                        d="M8 3.8v3.3M16 3.8v3.3M4.6 9.4h14.8M8 13h2.2M13.8 13H16M8 16.2h2.2"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <span className="appSidebarNavLabel">Termine</span>
                 </div>
                 <div className={`appSidebarNavItem ${isCustomerArchiveOpen ? "active" : ""}`}>
                   <button

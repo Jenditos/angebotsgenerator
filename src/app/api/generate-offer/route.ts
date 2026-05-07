@@ -3,7 +3,8 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
 import { requireAppAccess } from "@/lib/access/guards";
-import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
+import { normalizeDocumentTaxInfo, resolveDocumentTax } from "@/lib/document-tax";
+import { buildInvoiceMetadata } from "@/lib/late-payment";
 import {
   MAX_LOGO_DATA_URL_LENGTH,
   sanitizeCompanyLogoDataUrl,
@@ -82,6 +83,10 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
+  latePaymentInterestEnabled: false,
+  latePaymentConsumerAnnualInterestPercent: 6.27,
+  latePaymentBusinessAnnualInterestPercent: 10.27,
+  latePaymentGraceDays: 0,
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
@@ -258,6 +263,28 @@ function resolveCompanySettings(
     invoicePaymentDueDays: toNumberInRange(
       payload.invoicePaymentDueDays,
       FALLBACK_COMPANY_SETTINGS.invoicePaymentDueDays,
+      0,
+      365,
+    ),
+    latePaymentInterestEnabled:
+      typeof payload.latePaymentInterestEnabled === "boolean"
+        ? payload.latePaymentInterestEnabled
+        : FALLBACK_COMPANY_SETTINGS.latePaymentInterestEnabled,
+    latePaymentConsumerAnnualInterestPercent: toNumberInRange(
+      payload.latePaymentConsumerAnnualInterestPercent,
+      FALLBACK_COMPANY_SETTINGS.latePaymentConsumerAnnualInterestPercent,
+      0,
+      100,
+    ),
+    latePaymentBusinessAnnualInterestPercent: toNumberInRange(
+      payload.latePaymentBusinessAnnualInterestPercent,
+      FALLBACK_COMPANY_SETTINGS.latePaymentBusinessAnnualInterestPercent,
+      0,
+      100,
+    ),
+    latePaymentGraceDays: toNumberInRange(
+      payload.latePaymentGraceDays,
+      FALLBACK_COMPANY_SETTINGS.latePaymentGraceDays,
       0,
       365,
     ),
@@ -1275,6 +1302,24 @@ export async function handleGenerateOfferAuthorizedRequest(
         { status: 400 },
       );
     }
+    const invoiceSubtotalAmount = lineItems.reduce(
+      (sum, lineItem) => sum + lineItem.totalPrice,
+      0,
+    );
+    const resolvedInvoiceTax = resolveDocumentTax({
+      vatRate: settingsForDocument.vatRate,
+      settingsNoticeText: settingsForDocument.euVatNoticeText,
+      documentTax,
+    });
+    const invoiceMetadata =
+      documentType === "invoice"
+        ? buildInvoiceMetadata({
+            invoiceDate: toDateInputValue(resolvedInvoiceDate),
+            paymentDueDays,
+            lineItemsSubtotal: invoiceSubtotalAmount,
+            vatRate: resolvedInvoiceTax.vatRate,
+          })
+        : null;
     const safeSettings = {
       ...settingsForDocument,
       logoDataUrl:
@@ -1449,6 +1494,7 @@ export async function handleGenerateOfferAuthorizedRequest(
         idempotencyKey,
         status: "offer_created",
         customerNumber: customerNumberForDocument,
+        customerType,
         projectNumber: projectNumberForDocument,
         projectName: projectNameForDocument,
         projectAddress: projectAddressForDocument,
@@ -1458,6 +1504,7 @@ export async function handleGenerateOfferAuthorizedRequest(
         serviceDescription: composedServiceDescription,
         lineItems,
         documentTax,
+        invoice: invoiceMetadata,
         offer,
         configuredLastOfferNumber: validatedSettings.lastOfferNumber,
         configuredLastInvoiceNumber: validatedSettings.lastInvoiceNumber,

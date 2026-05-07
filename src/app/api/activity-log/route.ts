@@ -8,6 +8,7 @@ import {
 const ACTIVITY_ENTITY_TYPES = new Set<ActivityEntityType>([
   "customer",
   "project",
+  "appointment",
   "document",
   "email",
   "system",

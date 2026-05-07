@@ -62,6 +62,10 @@ const emptySettings: CompanySettings = {
   vatRate: 19,
   offerValidityDays: 30,
   invoicePaymentDueDays: 14,
+  latePaymentInterestEnabled: false,
+  latePaymentConsumerAnnualInterestPercent: 6.27,
+  latePaymentBusinessAnnualInterestPercent: 10.27,
+  latePaymentGraceDays: 0,
   offerTermsText:
     "Dieses Angebot basiert auf den aktuell gültigen Materialpreisen. Änderungen durch unvorhergesehene Baustellenbedingungen bleiben vorbehalten.",
   lastOfferNumber: "",
