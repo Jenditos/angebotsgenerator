@@ -52,7 +52,6 @@ import {
   getMissingOnboardingRequiredFields,
   hasCompletedOnboardingRequiredFields,
 } from "@/lib/onboarding";
-import { MONTHLY_PRICE_LABEL } from "@/lib/stripe/config";
 import {
   CompanySettings,
   CustomerDraftGroup,
@@ -232,6 +231,135 @@ type BillingCheckoutApiResponse = {
   url?: string;
   error?: string;
 };
+
+type SubscriptionBillingCycle = "monthly" | "yearly";
+
+type SubscriptionPlanId = "free" | "standard" | "premium";
+
+type SubscriptionPricingPlan = {
+  id: SubscriptionPlanId;
+  name: string;
+  label: string;
+  description: string;
+  prices: Record<SubscriptionBillingCycle, string>;
+  priceNote: Record<SubscriptionBillingCycle, string>;
+  features: string[];
+  badge?: string;
+};
+
+const SUBSCRIPTION_PRICING_PLANS: SubscriptionPricingPlan[] = [
+  {
+    id: "free",
+    name: "Kostenlos",
+    label: "Start",
+    description: "Zum Ausprobieren mit stark eingeschränkten Funktionen.",
+    prices: {
+      monthly: "0 EUR",
+      yearly: "0 EUR",
+    },
+    priceNote: {
+      monthly: "dauerhaft gratis",
+      yearly: "dauerhaft gratis",
+    },
+    features: [
+      "Basiszugang zur App",
+      "Wenige Dokumente zum Testen",
+      "Manuelle Eingabe",
+    ],
+  },
+  {
+    id: "standard",
+    name: "Standard",
+    label: "Empfohlen",
+    description: "Für regelmäßige Angebote und Rechnungen im Alltag.",
+    prices: {
+      monthly: "49 EUR",
+      yearly: "39 EUR",
+    },
+    priceNote: {
+      monthly: "pro Monat",
+      yearly: "pro Monat bei jährlicher Zahlung",
+    },
+    features: [
+      "Angebote und Rechnungen",
+      "PDF-Erstellung",
+      "KI-Erfassung",
+      "Kunden- und Projektarchiv",
+    ],
+    badge: "Empfohlen",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    label: "Vollausstattung",
+    description: "Für Nutzer, die alle VISIORO-Funktionen freischalten wollen.",
+    prices: {
+      monthly: "59 EUR",
+      yearly: "49 EUR",
+    },
+    priceNote: {
+      monthly: "pro Monat",
+      yearly: "pro Monat bei jährlicher Zahlung",
+    },
+    features: [
+      "Alles aus Standard",
+      "Vollversion der KI-Funktionen",
+      "Erweiterte Automatisierung",
+      "Priorisierte Funktionen",
+    ],
+  },
+];
+
+function isSubscriptionPlanCheckoutEnabled(
+  planId: SubscriptionPlanId,
+  billingCycle: SubscriptionBillingCycle,
+): boolean {
+  return planId === "standard" && billingCycle === "monthly";
+}
+
+function getSubscriptionPlanCtaLabel(
+  planId: SubscriptionPlanId,
+  billingCycle: SubscriptionBillingCycle,
+  isAuthenticatedUser: boolean,
+  isStartingCheckout: boolean,
+): string {
+  if (planId === "free") {
+    return "Aktueller Plan";
+  }
+
+  if (planId === "premium") {
+    return "Demnächst";
+  }
+
+  if (billingCycle === "yearly") {
+    return "Jahresabo demnächst";
+  }
+
+  if (isStartingCheckout) {
+    return "Weiter zu Stripe ...";
+  }
+
+  return isAuthenticatedUser ? "Standard wählen" : "Einloggen zum Abo";
+}
+
+function getSubscriptionPlanHint(
+  planId: SubscriptionPlanId,
+  billingCycle: SubscriptionBillingCycle,
+): string {
+  if (planId === "free") {
+    return "Kostenlos startet keinen Checkout.";
+  }
+
+  if (planId === "premium") {
+    return "Premium braucht eine eigene Stripe-Preis-ID.";
+  }
+
+  if (billingCycle === "yearly") {
+    return "Jahrespreise brauchen eigene Stripe-Preis-IDs.";
+  }
+
+  return "Aktiv: nutzt den vorhandenen Standard-Monatscheckout.";
+}
 
 type ParsedVoiceFields = {
   positions?: ParsedVoicePosition[];
@@ -2283,6 +2411,8 @@ export default function HomePage() {
   const [isStartingSubscriptionCheckout, setIsStartingSubscriptionCheckout] =
     useState(false);
   const [subscriptionCheckoutError, setSubscriptionCheckoutError] = useState("");
+  const [subscriptionBillingCycle, setSubscriptionBillingCycle] =
+    useState<SubscriptionBillingCycle>("monthly");
   const [isSettingsOverlayOpen, setIsSettingsOverlayOpen] = useState(false);
   const [isClosingSettingsOverlay, setIsClosingSettingsOverlay] = useState(false);
   const [hasOpenedSettingsOverlay, setHasOpenedSettingsOverlay] = useState(false);
@@ -8218,7 +8348,10 @@ export default function HomePage() {
               ref={subscriptionModalSheetRef}
             >
               <header className="settingsOverlayHeader subscriptionModalHeader">
-                <strong id="subscription-modal-title">VISIORO Monatsabo</strong>
+                <div className="subscriptionModalTitleGroup">
+                  <strong id="subscription-modal-title">Abo &amp; Preis</strong>
+                  <span>Wähle den passenden Plan für deine Arbeit mit VISIORO.</span>
+                </div>
                 <button
                   type="button"
                   className="settingsOverlayCloseButton"
@@ -8243,23 +8376,141 @@ export default function HomePage() {
               </header>
 
               <div className="subscriptionModalBody">
-                <p className="subscriptionModalEyebrow">Abo &amp; Preis</p>
-                <div className="subscriptionPricingPanel">
-                  <div className="subscriptionPricingTopline">
-                    <strong>{MONTHLY_PRICE_LABEL}</strong>
-                    <span>Monatlich kündbar</span>
+                <div className="subscriptionTrialBanner">
+                  <div className="subscriptionTrialIcon" aria-hidden="true">
+                    1
                   </div>
-                  <p>
-                    Angebote und Rechnungen weiter ohne Unterbrechung erstellen.
-                    Ein Abo startet erst nach Bestätigung im Stripe-Checkout.
-                  </p>
+                  <div className="subscriptionTrialCopy">
+                    <span>1 Monat Vollversion kostenlos testen</span>
+                    <p>
+                      Teste alle Funktionen kostenlos. Danach entscheidest du,
+                      ob du ein Abo abschließt.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghostButton subscriptionTrialButton"
+                    disabled
+                    title="Trial braucht noch eine sichere Stripe-Trial-Konfiguration."
+                  >
+                    Demnächst
+                  </button>
                 </div>
 
-                <div className="subscriptionFeatureList" aria-label="Enthalten">
-                  <span>PDF-Erstellung</span>
-                  <span>Kunden- und Projektarchiv</span>
-                  <span>KI-Erfassung</span>
-                  <span>E-Mail-Vorbereitung</span>
+                <div className="subscriptionBillingRow">
+                  <div
+                    className="subscriptionBillingToggle"
+                    role="group"
+                    aria-label="Abrechnungszeitraum"
+                  >
+                    <button
+                      type="button"
+                      className={
+                        subscriptionBillingCycle === "monthly" ? "active" : ""
+                      }
+                      aria-pressed={subscriptionBillingCycle === "monthly"}
+                      onClick={() => setSubscriptionBillingCycle("monthly")}
+                    >
+                      Monatlich
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        subscriptionBillingCycle === "yearly" ? "active" : ""
+                      }
+                      aria-pressed={subscriptionBillingCycle === "yearly"}
+                      onClick={() => setSubscriptionBillingCycle("yearly")}
+                    >
+                      Jährlich
+                    </button>
+                  </div>
+                  <span className="subscriptionBillingSaving">
+                    Jährlich bis zu 10 EUR pro Monat sparen
+                  </span>
+                </div>
+
+                <div className="subscriptionPricingGrid">
+                  {SUBSCRIPTION_PRICING_PLANS.map((plan) => {
+                    const checkoutEnabled = isSubscriptionPlanCheckoutEnabled(
+                      plan.id,
+                      subscriptionBillingCycle,
+                    );
+                    const isPlanActionDisabled =
+                      !checkoutEnabled || isStartingSubscriptionCheckout;
+                    const ctaLabel = getSubscriptionPlanCtaLabel(
+                      plan.id,
+                      subscriptionBillingCycle,
+                      isAuthenticatedUser,
+                      checkoutEnabled && isStartingSubscriptionCheckout,
+                    );
+
+                    return (
+                      <article
+                        className={`subscriptionPlanCard ${
+                          plan.id === "standard"
+                            ? "subscriptionPlanCardRecommended"
+                            : ""
+                        }`}
+                        key={plan.id}
+                      >
+                        <div className="subscriptionPlanHeader">
+                          <div>
+                            <span className="subscriptionPlanLabel">
+                              {plan.label}
+                            </span>
+                            <h3>{plan.name}</h3>
+                          </div>
+                          {plan.badge ? (
+                            <span className="subscriptionPlanBadge">
+                              {plan.badge}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <p className="subscriptionPlanDescription">
+                          {plan.description}
+                        </p>
+
+                        <div className="subscriptionPlanPrice">
+                          <strong>{plan.prices[subscriptionBillingCycle]}</strong>
+                          <span>{plan.priceNote[subscriptionBillingCycle]}</span>
+                        </div>
+
+                        <ul className="subscriptionPlanFeatures">
+                          {plan.features.map((feature) => (
+                            <li key={feature}>
+                              <span
+                                className="subscriptionFeatureMarker"
+                                aria-hidden="true"
+                              />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+
+                        <button
+                          type="button"
+                          className={
+                            checkoutEnabled
+                              ? "primaryButton subscriptionPlanButton"
+                              : "ghostButton subscriptionPlanButton"
+                          }
+                          onClick={() => {
+                            if (checkoutEnabled) {
+                              void startSubscriptionCheckout();
+                            }
+                          }}
+                          disabled={isPlanActionDisabled}
+                          title={getSubscriptionPlanHint(
+                            plan.id,
+                            subscriptionBillingCycle,
+                          )}
+                        >
+                          {ctaLabel}
+                        </button>
+                      </article>
+                    );
+                  })}
                 </div>
 
                 {subscriptionCheckoutError ? (
@@ -8269,18 +8520,11 @@ export default function HomePage() {
                 ) : null}
 
                 <div className="subscriptionModalActions">
-                  <button
-                    type="button"
-                    className="primaryButton"
-                    onClick={() => void startSubscriptionCheckout()}
-                    disabled={isStartingSubscriptionCheckout}
-                  >
-                    {isStartingSubscriptionCheckout
-                      ? "Weiter zu Stripe ..."
-                      : isAuthenticatedUser
-                        ? "Abo abschließen"
-                        : "Einloggen zum Abo"}
-                  </button>
+                  <p>
+                    Aktiv angebunden ist aktuell nur Standard monatlich.
+                    Premium, Jahreszahlung und Trial werden vorbereitet, sobald
+                    die passenden Stripe-Preise vorhanden sind.
+                  </p>
                   <button
                     type="button"
                     className="ghostButton"
