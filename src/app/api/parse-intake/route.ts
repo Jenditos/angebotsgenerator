@@ -13,10 +13,16 @@ const fieldLabels: Record<string, string> = {
   postalCode: "PLZ",
   city: "Ort",
   customerEmail: "Kunden-E-Mail",
+  projectName: "Projektname",
+  projectAddress: "Projektadresse",
   serviceDescription: "Leistung",
   hours: "Stunden",
   hourlyRate: "Stundensatz",
-  materialCost: "Materialkosten"
+  materialCost: "Materialkosten",
+  documentDate: "Dokumentdatum",
+  servicePeriodStart: "Leistungszeitraum Start",
+  servicePeriodEnd: "Leistungszeitraum Ende",
+  paymentTermDays: "Zahlungsziel",
 };
 
 const EXPLICIT_SERVICE_DESCRIPTION_PATTERN =
@@ -494,6 +500,41 @@ function parseQuantityValue(value: unknown): number | undefined {
   return parsed;
 }
 
+function normalizeDateField(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return trimmed;
+  }
+
+  const germanMatch = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (germanMatch) {
+    return `${germanMatch[3]}-${germanMatch[2].padStart(2, "0")}-${germanMatch[1].padStart(2, "0")}`;
+  }
+
+  return undefined;
+}
+
+function normalizePaymentTermDays(value: unknown): number | undefined {
+  const parsed = parseQuantityValue(value);
+  if (
+    typeof parsed !== "number" ||
+    !Number.isFinite(parsed) ||
+    parsed <= 0 ||
+    parsed > 365
+  ) {
+    return undefined;
+  }
+  return Math.round(parsed);
+}
+
 function normalizeUnitLabel(rawUnit: string | undefined): string | undefined {
   if (!rawUnit) {
     return undefined;
@@ -889,11 +930,11 @@ function extractTranscriptUnitHints(transcript: string): IntakeVoicePosition[] {
   const seen = new Set<string>();
   const patterns = [
     new RegExp(
-      `([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\\- ]{1,90}?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})`,
+      `([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\\- ]{1,90}?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})(?![A-Za-zÄÖÜäöüß])`,
       "gi",
     ),
     new RegExp(
-      `(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})\\s+([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\\- ]{1,90})`,
+      `(\\d+(?:[.,]\\d+)?)\\s*(${POSITION_UNIT_PATTERN})(?![A-Za-zÄÖÜäöüß])\\s+([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß0-9\\- ]{1,90})`,
       "gi",
     ),
   ];
@@ -908,8 +949,17 @@ function extractTranscriptUnitHints(transcript: string): IntakeVoicePosition[] {
       const description = sanitizePositionDescription(rawDescription);
       const quantity = parseQuantityValue(rawQuantity);
       const unit = normalizeUnitLabel(rawUnit);
+      const contextStart = Math.max(0, (match.index ?? 0) - 32);
+      const context = transcript.slice(contextStart, (match.index ?? 0) + match[0].length);
 
-      if (description && quantity && unit) {
+      if (
+        description &&
+        quantity &&
+        unit &&
+        !hasNonPositionFieldHints(context) &&
+        !hasNonPositionFieldHints(description) &&
+        !hasInvalidPositionDescription(description)
+      ) {
         const dedupeKey = `${normalizePositionKey(description)}|${quantity}|${unit}`;
         if (!seen.has(dedupeKey)) {
           seen.add(dedupeKey);
@@ -1038,6 +1088,8 @@ function hasRelevantBusinessData(input: {
     "postalCode",
     "city",
     "customerEmail",
+    "projectName",
+    "projectAddress",
     "serviceDescription",
     "hours",
     "hourlyRate",
@@ -1543,7 +1595,19 @@ export async function POST(request: Request) {
           normalizedEmail ?? parsed.fields.customerEmail,
           ignoredCollector,
         ) ?? undefined,
+      projectName: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.projectName,
+        ignoredCollector,
+      ),
+      projectAddress: sanitizeTextFieldAndCollectIgnored(
+        parsed.fields.projectAddress,
+        ignoredCollector,
+      ),
       serviceDescription: normalizedServiceDescription,
+      documentDate: normalizeDateField(parsed.fields.documentDate),
+      servicePeriodStart: normalizeDateField(parsed.fields.servicePeriodStart),
+      servicePeriodEnd: normalizeDateField(parsed.fields.servicePeriodEnd),
+      paymentTermDays: normalizePaymentTermDays(parsed.fields.paymentTermDays),
     };
     const customerType =
       parsed.fields.customerType ??

@@ -211,6 +211,78 @@ describe("POST /api/parse-intake", () => {
     expect(payload.tax?.noticeText).toContain("§ 13b UStG");
   });
 
+  it("keeps OCR project, date and payment fields mapped to safe form values", async () => {
+    requireAppAccessMock.mockResolvedValue({
+      ok: true,
+      supabase: {} as never,
+      user: { id: "user-1", email: "user@example.com" } as never,
+      access: {} as never,
+    });
+    parseOfferIntakeFromImageMock.mockResolvedValue({
+      fields: {
+        customerType: "company",
+        companyName: "Müller GmbH",
+        projectName: "Badrenovierung OG",
+        projectAddress: "Nebenweg 4, 80331 München",
+        documentDate: "07.05.2026",
+        servicePeriodStart: "2026-05-08",
+        servicePeriodEnd: "2026-05-10",
+        paymentTermDays: 14,
+        positions: [
+          {
+            description: "Fliesen legen",
+            quantity: 12,
+            unit: "qm",
+            unitPrice: 80,
+          },
+          {
+            description: "Silikonfugen",
+            quantity: 1,
+            unit: "Psch.",
+            unitPrice: 150,
+          },
+        ],
+      },
+      usedFallback: false,
+      sourceText:
+        "Müller GmbH Badrenovierung OG Nebenweg 4 München Rechnungsdatum 07.05.2026 Leistungszeitraum 08.05.2026-10.05.2026 Zahlungsziel 14 Tage Fliesen legen 12 qm à 80 Euro Silikonfugen pauschal 150 Euro",
+      needsReview: true,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/parse-intake", {
+        method: "POST",
+        body: JSON.stringify({
+          inputMode: "photo",
+          photoDataUrl: "data:image/jpeg;base64,QUJDRA==",
+        }),
+      }),
+    );
+    const payload = (await response.json()) as {
+      fields?: {
+        projectName?: string;
+        projectAddress?: string;
+        documentDate?: string;
+        servicePeriodStart?: string;
+        servicePeriodEnd?: string;
+        paymentTermDays?: number;
+        positions?: Array<{ unit?: string; description?: string }>;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.fields?.projectName).toBe("Badrenovierung OG");
+    expect(payload.fields?.projectAddress).toBe("Nebenweg 4, 80331 München");
+    expect(payload.fields?.documentDate).toBe("2026-05-07");
+    expect(payload.fields?.servicePeriodStart).toBe("2026-05-08");
+    expect(payload.fields?.servicePeriodEnd).toBe("2026-05-10");
+    expect(payload.fields?.paymentTermDays).toBe(14);
+    expect(payload.fields?.positions).toEqual([
+      expect.objectContaining({ description: "Fliesen legen", unit: "m²" }),
+      expect.objectContaining({ description: "Silikonfugen", unit: "Pauschal" }),
+    ]);
+  });
+
   it("rejects more than 10 uploaded photos before model call", async () => {
     requireAppAccessMock.mockResolvedValue({
       ok: true,

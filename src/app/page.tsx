@@ -372,10 +372,16 @@ type ParsedVoiceFields = {
   postalCode?: string;
   city?: string;
   customerEmail?: string;
+  projectName?: string;
+  projectAddress?: string;
   serviceDescription?: string;
   hours?: number;
   hourlyRate?: number;
   materialCost?: number;
+  documentDate?: string;
+  servicePeriodStart?: string;
+  servicePeriodEnd?: string;
+  paymentTermDays?: number;
 };
 
 type ParsedVoicePosition = {
@@ -458,10 +464,15 @@ type PhotoReviewDraft = {
   postalCode: string;
   city: string;
   customerEmail: string;
+  projectName: string;
+  projectAddress: string;
   serviceDescription: string;
   hours: string;
   hourlyRate: string;
   materialCost: string;
+  documentDate: string;
+  serviceDate: string;
+  paymentDueDays: string;
   positions: PhotoReviewPositionDraft[];
   missingFieldKeys: string[];
   missingFieldLabels: string[];
@@ -637,6 +648,48 @@ function parseServiceDateRangeValue(
     startDate,
     endDate,
   };
+}
+
+function normalizeParsedDateInputValue(value: string | undefined): string {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) {
+    return "";
+  }
+  if (isDateInputValue(normalized)) {
+    return normalized;
+  }
+
+  const germanMatch = normalized.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!germanMatch) {
+    return "";
+  }
+
+  const dateValue = `${germanMatch[3]}-${germanMatch[2].padStart(2, "0")}-${germanMatch[1].padStart(2, "0")}`;
+  return isDateInputValue(dateValue) ? dateValue : "";
+}
+
+function formatParsedServicePeriod(
+  startValue: string | undefined,
+  endValue: string | undefined,
+): string {
+  const startDate = normalizeParsedDateInputValue(startValue);
+  const endDate = normalizeParsedDateInputValue(endValue);
+  if (!startDate || !endDate) {
+    return "";
+  }
+  return formatServiceDateRangeValue(startDate, endDate);
+}
+
+function numberToPositiveIntegerInput(value: number | undefined): string {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value <= 0 ||
+    value > 365
+  ) {
+    return "";
+  }
+  return String(Math.round(value));
 }
 
 function buildServiceDateCalendarDays(
@@ -6252,6 +6305,29 @@ export default function HomePage() {
       return incomingValue || currentValue;
     };
 
+    const mergeDefaultBackedField = (
+      field: "invoiceDate" | "paymentDueDays",
+      label: string,
+      incomingRaw: string,
+      defaultValue: string,
+    ) => {
+      const currentValue = form[field].trim();
+      const incomingValue = incomingRaw.trim();
+      if (!incomingValue) {
+        return currentValue;
+      }
+      if (
+        currentValue &&
+        currentValue !== defaultValue &&
+        normalizeReviewCompareValue(currentValue) !==
+          normalizeReviewCompareValue(incomingValue)
+      ) {
+        addConflict(field, label, currentValue, incomingValue);
+        return currentValue;
+      }
+      return incomingValue;
+    };
+
     const incomingCustomerType =
       fields.customerType === "company"
         ? "company"
@@ -6331,6 +6407,16 @@ export default function HomePage() {
       VOICE_FIELD_LABELS.customerEmail,
       fields.customerEmail?.toLowerCase(),
     );
+    const projectName = mergeTextField(
+      "projectName",
+      "Projektname",
+      fields.projectName ? capitalizeEntryStart(fields.projectName) : undefined,
+    );
+    const projectAddress = mergeTextField(
+      "projectAddress",
+      "Projektadresse",
+      fields.projectAddress ? capitalizeEntryStart(fields.projectAddress) : undefined,
+    );
     const serviceDescription = mergeTextField(
       "serviceDescription",
       VOICE_FIELD_LABELS.serviceDescription,
@@ -6353,6 +6439,36 @@ export default function HomePage() {
       "materialCost",
       VOICE_FIELD_LABELS.materialCost,
       numberToInput(fields.materialCost) ?? "",
+    );
+    const documentDate = mergeDefaultBackedField(
+      "invoiceDate",
+      "Rechnungsdatum",
+      normalizeParsedDateInputValue(fields.documentDate),
+      todayDateInputValue(),
+    );
+    const serviceDate = (() => {
+      const incomingValue = formatParsedServicePeriod(
+        fields.servicePeriodStart,
+        fields.servicePeriodEnd,
+      );
+      if (!incomingValue) {
+        return form.serviceDate;
+      }
+      if (
+        form.serviceDate.trim() &&
+        normalizeReviewCompareValue(form.serviceDate) !==
+          normalizeReviewCompareValue(incomingValue)
+      ) {
+        addConflict("serviceDate", "Leistungszeitraum", form.serviceDate, incomingValue);
+        return form.serviceDate;
+      }
+      return incomingValue;
+    })();
+    const paymentDueDays = mergeDefaultBackedField(
+      "paymentDueDays",
+      "Zahlungsziel",
+      numberToPositiveIntegerInput(fields.paymentTermDays),
+      "14",
     );
 
     const incomingPositionsRaw = Array.isArray(fields.positions)
@@ -6415,10 +6531,15 @@ export default function HomePage() {
       postalCode,
       city,
       customerEmail,
+      projectName,
+      projectAddress,
       serviceDescription,
       hours,
       hourlyRate,
       materialCost,
+      invoiceDate: documentDate,
+      serviceDate,
+      paymentDueDays,
     };
     const missingFieldLabels = resolveRemainingMissingVoiceLabels(
       input.response.missingFieldKeys,
@@ -6435,10 +6556,15 @@ export default function HomePage() {
       postalCode,
       city,
       customerEmail,
+      projectName,
+      projectAddress,
       serviceDescription,
       hours,
       hourlyRate,
       materialCost,
+      documentDate,
+      serviceDate,
+      paymentDueDays,
       positions:
         reviewPositions.length > 0
           ? reviewPositions.flatMap((service) =>
@@ -6528,12 +6654,25 @@ export default function HomePage() {
         ? capitalizeEntryStart(draft.city)
         : previousForm.city,
       customerEmail: draft.customerEmail.trim() || previousForm.customerEmail,
+      projectName: draft.projectName.trim()
+        ? capitalizeEntryStart(draft.projectName)
+        : previousForm.projectName,
+      projectAddress: draft.projectAddress.trim()
+        ? capitalizeEntryStart(draft.projectAddress)
+        : previousForm.projectAddress,
       serviceDescription: draft.serviceDescription.trim()
         ? capitalizeEntryStart(draft.serviceDescription)
         : previousForm.serviceDescription,
       hours: sanitizeQuantityInput(draft.hours) || previousForm.hours,
       hourlyRate: sanitizePriceInput(draft.hourlyRate) || previousForm.hourlyRate,
       materialCost: sanitizePriceInput(draft.materialCost) || previousForm.materialCost,
+      invoiceDate:
+        normalizeParsedDateInputValue(draft.documentDate) ||
+        previousForm.invoiceDate,
+      serviceDate: draft.serviceDate.trim() || previousForm.serviceDate,
+      paymentDueDays:
+        numberToPositiveIntegerInput(parseLocaleNumber(draft.paymentDueDays)) ||
+        previousForm.paymentDueDays,
     };
   }
 
@@ -6586,7 +6725,15 @@ export default function HomePage() {
       Boolean(fields.postalCode?.trim()) ||
       Boolean(fields.city?.trim()) ||
       Boolean(fields.customerEmail?.trim()) ||
+      Boolean(fields.projectName?.trim()) ||
+      Boolean(fields.projectAddress?.trim()) ||
       Boolean(input.safeServiceDescription?.trim()) ||
+      Boolean(fields.documentDate?.trim()) ||
+      Boolean(fields.servicePeriodStart?.trim()) ||
+      Boolean(fields.servicePeriodEnd?.trim()) ||
+      (typeof fields.paymentTermDays === "number" &&
+        Number.isFinite(fields.paymentTermDays) &&
+        fields.paymentTermDays > 0) ||
       (typeof fields.hours === "number" &&
         Number.isFinite(fields.hours) &&
         fields.hours > 0) ||
