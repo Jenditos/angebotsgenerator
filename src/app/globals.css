@@ -14979,3 +14979,602 @@ button.ghostButton:disabled {
   color: #ffffff !important;
   box-shadow: 0 9px 20px rgba(20, 121, 255, 0.22) !important;
 }
+
+/* ==========================================================================
+   VISIORO INTERACTION CONTRACT v4
+   Single final layer for hover/focus/pressed states.
+   - Primary never turns light on hover.
+   - Secondary uses a soft blue fill, not white.
+   - Icon/toggle/list controls use subtle in-place feedback.
+   - Hover shadows are removed or inset so nearby containers cannot clip them.
+   ========================================================================== */
+:root {
+  --vis-control-primary: #1479ff;
+  --vis-control-primary-hover: #1165e0;
+  --vis-control-primary-active: #0f56c8;
+  --vis-control-secondary-hover: #eaf2ff;
+  --vis-control-secondary-active: #dbeafe;
+  --vis-control-secondary-border: #bcd3f8;
+  --vis-control-text: #163462;
+  --vis-control-danger-hover: #ffe4e6;
+  --vis-control-focus: rgba(20, 121, 255, 0.34);
+}
+
+:is(button, a.primaryButton, a.ghostButton, [role="button"]) {
+  transition:
+    background-color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease,
+    transform 120ms ease,
+    opacity 150ms ease !important;
+}
+
+:is(button, a.primaryButton, a.ghostButton, [role="button"]):focus-visible {
+  outline: 3px solid var(--vis-control-focus) !important;
+  outline-offset: 2px !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button[class]:not(:disabled):not(.primaryButton):not(.submitButton):not(.submitMailButton):not(.intakePrimaryActionButtonPrimary):not(.intakePrimaryActionButtonSecondary):not(.sidebarQuickNavButton):not(.appSidebarNavIconWrap):not(.settingsOverlayCloseButton):not(.customerArchiveCloseButton):not(.customerPickerModalCloseButton):not(.infoLegalCloseButton):not(.voiceLoginModalCloseButton):not(.dashboardTipsCloseButton):not(.customerArchiveBackButton):not(.dateInputIconButton):not(.serviceSuggestionButton):not(.serviceAddCustomButton):not(.addressSuggestionButton):not(.authGithubInlineLink):not(.authGithubInlineLinkStrong):not(.photoCameraLinkButton):not(.settingsDeleteButton):not(.settingsLogoDeleteButton):not(.positionsDeleteButton):not(.positionDeleteButton):not(.customerPickerDeleteButton):not(.dashboardModeToggleButton):not(.dashboardSegmentToggleButton):not(.active):hover {
+    background: var(--vis-control-secondary-hover) !important;
+    background-color: var(--vis-control-secondary-hover) !important;
+    background-image: none !important;
+    border-color: var(--vis-control-secondary-border) !important;
+    color: var(--vis-control-text) !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
+button.primaryButton,
+button.submitButton,
+a.primaryButton,
+.authPrimaryButton,
+.authGithubCard .authGithubPrimaryButton {
+  background: var(--vis-control-primary) !important;
+  background-color: var(--vis-control-primary) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+button.primaryButton:hover:not(:disabled),
+button.primaryButton:focus-visible:not(:disabled),
+button.submitButton:hover:not(:disabled),
+button.submitButton:focus-visible:not(:disabled),
+a.primaryButton:hover,
+a.primaryButton:focus-visible,
+.authPrimaryButton:hover:not(:disabled),
+.authPrimaryButton:focus-visible:not(:disabled),
+.authGithubCard .authGithubPrimaryButton:hover:not(:disabled),
+.authGithubCard .authGithubPrimaryButton:focus-visible:not(:disabled) {
+  background: var(--vis-control-primary-hover) !important;
+  background-color: var(--vis-control-primary-hover) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary-hover) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: translateY(-1px) !important;
+}
+
+button.primaryButton:active:not(:disabled),
+button.submitButton:active:not(:disabled),
+a.primaryButton:active {
+  background: var(--vis-control-primary-active) !important;
+  background-color: var(--vis-control-primary-active) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary-active) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: translateY(0) scale(0.985) !important;
+}
+
+button.ghostButton,
+a.ghostButton,
+button.submitMailButton,
+button.customerPickerToggle,
+.authSecondaryButton,
+.authGithubCard .authGithubPasskeyButton {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(72, 116, 195, 0.3) !important;
+  color: var(--vis-control-text) !important;
+  box-shadow: none !important;
+}
+
+button.ghostButton:hover:not(:disabled),
+button.ghostButton:focus-visible:not(:disabled),
+a.ghostButton:hover,
+a.ghostButton:focus-visible,
+button.submitMailButton:hover:not(:disabled),
+button.submitMailButton:focus-visible:not(:disabled),
+button.customerPickerToggle:hover:not(:disabled),
+button.customerPickerToggle:focus-visible:not(:disabled),
+.authSecondaryButton:hover:not(:disabled),
+.authSecondaryButton:focus-visible:not(:disabled),
+.authGithubCard .authGithubPasskeyButton:hover:not(:disabled),
+.authGithubCard .authGithubPasskeyButton:focus-visible:not(:disabled) {
+  background: var(--vis-control-secondary-hover) !important;
+  background-color: var(--vis-control-secondary-hover) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-secondary-border) !important;
+  color: var(--vis-control-text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.ghostButton:active:not(:disabled),
+a.ghostButton:active,
+button.submitMailButton:active:not(:disabled),
+button.customerPickerToggle:active:not(:disabled) {
+  background: var(--vis-control-secondary-active) !important;
+  background-color: var(--vis-control-secondary-active) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.primaryButton:disabled,
+button.submitButton:disabled,
+button.ghostButton:disabled,
+button.submitMailButton:disabled {
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.primaryButton:disabled,
+button.submitButton:disabled {
+  background: #dbeafe !important;
+  background-color: #dbeafe !important;
+  background-image: none !important;
+  border-color: #bfd6fb !important;
+  color: #35537a !important;
+}
+
+button.ghostButton:disabled,
+button.submitMailButton:disabled {
+  background: #f6f9fd !important;
+  background-color: #f6f9fd !important;
+  background-image: none !important;
+  border-color: #d8e3f2 !important;
+  color: #61718a !important;
+}
+
+button.intakePrimaryActionButtonPrimary:hover:not(:disabled),
+button.intakePrimaryActionButtonPrimary:focus-visible:not(:disabled) {
+  background: #0fd4e8 !important;
+  background-color: #0fd4e8 !important;
+  background-image: none !important;
+  color: var(--vis-dark, #193b68) !important;
+  box-shadow: none !important;
+  transform: translateY(-1px) !important;
+}
+
+button.intakePrimaryActionButtonSecondary:hover:not(:disabled),
+button.intakePrimaryActionButtonSecondary:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22) !important;
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.dateInputIconButton:hover:not(:disabled),
+button.dateInputIconButton:focus-visible:not(:disabled),
+.photoScanQuickMenuItem:hover:not(:disabled),
+.photoScanQuickMenuItem:focus-visible:not(:disabled) {
+  background: var(--vis-control-secondary-hover) !important;
+  background-color: var(--vis-control-secondary-hover) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-secondary-border) !important;
+  color: var(--vis-control-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(20, 121, 255, 0.08) !important;
+  transform: none !important;
+}
+
+button.settingsOverlayCloseButton,
+button.customerArchiveCloseButton,
+button.customerPickerModalCloseButton,
+button.infoLegalCloseButton,
+button.voiceLoginModalCloseButton,
+button.dashboardTipsCloseButton,
+button.customerArchiveBackButton {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.settingsOverlayCloseButton:hover:not(:disabled),
+button.settingsOverlayCloseButton:focus-visible:not(:disabled),
+button.customerArchiveCloseButton:hover:not(:disabled),
+button.customerArchiveCloseButton:focus-visible:not(:disabled),
+button.customerPickerModalCloseButton:hover:not(:disabled),
+button.customerPickerModalCloseButton:focus-visible:not(:disabled),
+button.infoLegalCloseButton:hover:not(:disabled),
+button.infoLegalCloseButton:focus-visible:not(:disabled),
+button.voiceLoginModalCloseButton:hover:not(:disabled),
+button.voiceLoginModalCloseButton:focus-visible:not(:disabled),
+button.dashboardTipsCloseButton:hover:not(:disabled),
+button.dashboardTipsCloseButton:focus-visible:not(:disabled),
+button.customerArchiveBackButton:hover:not(:disabled),
+button.customerArchiveBackButton:focus-visible:not(:disabled) {
+  background: #e8eef7 !important;
+  background-color: #e8eef7 !important;
+  background-image: none !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.subscriptionBillingToggle {
+  overflow: visible !important;
+}
+
+.subscriptionBillingToggle button {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.subscriptionBillingToggle button:hover:not(:disabled),
+.subscriptionBillingToggle button:focus-visible:not(:disabled) {
+  background: rgba(20, 121, 255, 0.1) !important;
+  background-color: rgba(20, 121, 255, 0.1) !important;
+  background-image: none !important;
+  color: #244a81 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.subscriptionBillingToggle button.active,
+.subscriptionBillingToggle button.active:hover:not(:disabled),
+.subscriptionBillingToggle button.active:focus-visible:not(:disabled) {
+  background: var(--vis-control-primary) !important;
+  background-color: var(--vis-control-primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  transform: none !important;
+}
+
+.appSidebar,
+.appSidebarNavItem,
+.appSidebarActionButton {
+  overflow: visible !important;
+}
+
+.appSidebar .sidebarQuickNavButton:hover:not(:disabled),
+.appSidebar .sidebarQuickNavButton:focus-visible,
+.appSidebar button.appSidebarNavIconWrap:hover:not(:disabled),
+.appSidebar button.appSidebarNavIconWrap:focus-visible {
+  background: var(--vis-control-primary-hover) !important;
+  background-color: var(--vis-control-primary-hover) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary-hover) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  transform: none !important;
+}
+
+.appFrameWithSidebar .documentModeSwitch,
+.appFrameWithSidebar .recipientTypeButtons {
+  overflow: visible !important;
+}
+
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton:hover,
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton:focus-visible,
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton:hover,
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton:focus-visible,
+.documentModeSwitchButton:not(.active):hover,
+.documentModeSwitchButton:not(.active):focus-visible,
+.recipientTypeButton:not(.active):hover,
+.recipientTypeButton:not(.active):focus-visible {
+  background: var(--vis-control-secondary-hover) !important;
+  background-color: var(--vis-control-secondary-hover) !important;
+  background-image: none !important;
+  color: var(--vis-control-text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton:focus-visible,
+.appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton:focus-visible,
+button.documentModeSwitchButton:focus-visible,
+button.recipientTypeButton:focus-visible {
+  outline: 3px solid var(--vis-control-focus) !important;
+  outline-offset: 3px !important;
+}
+
+.appFrameWithSidebar
+  .documentModeSwitch
+  > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected:hover,
+.appFrameWithSidebar
+  .documentModeSwitch
+  > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected:focus-visible,
+.appFrameWithSidebar
+  .documentModeSwitch
+  > button.dashboardModeToggleButton[aria-pressed="true"]:hover,
+.appFrameWithSidebar
+  .documentModeSwitch
+  > button.dashboardModeToggleButton[aria-pressed="true"]:focus-visible {
+  background: #116fe6 !important;
+  background-color: #116fe6 !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  transform: none !important;
+}
+
+.appFrameWithSidebar
+  .recipientTypeButtons
+  > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected:hover,
+.appFrameWithSidebar
+  .recipientTypeButtons
+  > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected:focus-visible,
+.appFrameWithSidebar
+  .recipientTypeButtons
+  > button.dashboardSegmentToggleButton[aria-pressed="true"]:hover,
+.appFrameWithSidebar
+  .recipientTypeButtons
+  > button.dashboardSegmentToggleButton[aria-pressed="true"]:focus-visible {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: var(--vis-dark, #1f3f72) !important;
+  box-shadow: inset 0 0 0 1px rgba(20, 121, 255, 0.12) !important;
+  transform: none !important;
+}
+
+.settingsDeleteButton:hover:not(:disabled),
+.settingsDeleteButton:focus-visible:not(:disabled),
+.settingsLogoDeleteButton:hover:not(:disabled),
+.settingsLogoDeleteButton:focus-visible:not(:disabled),
+.positionsDeleteButton:hover:not(:disabled),
+.positionsDeleteButton:focus-visible:not(:disabled),
+.positionDeleteButton:hover:not(:disabled),
+.positionDeleteButton:focus-visible:not(:disabled),
+.customerPickerDeleteButton:hover:not(:disabled),
+.customerPickerDeleteButton:focus-visible:not(:disabled) {
+  background: var(--vis-control-danger-hover) !important;
+  background-color: var(--vis-control-danger-hover) !important;
+  background-image: none !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.positionsIntegratedPanel .serviceSuggestionButton:hover,
+.positionsIntegratedPanel .serviceSuggestionButton:focus-visible {
+  background: rgba(255, 255, 255, 0.14) !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.positionsIntegratedPanel .serviceSuggestionButton:hover span,
+.positionsIntegratedPanel .serviceSuggestionButton:focus-visible span {
+  color: #dcecff !important;
+}
+
+.serviceAddCustomButton:hover:not(:disabled),
+.serviceAddCustomButton:focus-visible:not(:disabled) {
+  background: var(--vis-control-secondary-hover) !important;
+  background-color: var(--vis-control-secondary-hover) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-secondary-border) !important;
+  color: var(--vis-control-text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.positionsIntegratedPanel .serviceAddCustomButton:hover:not(:disabled),
+.positionsIntegratedPanel .serviceAddCustomButton:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14) !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  background-image: none !important;
+  border-color: rgba(208, 227, 251, 0.72) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.positionsTypeaheadList button:hover,
+.positionsTypeaheadList button:focus-visible,
+.addressSuggestionButton:hover,
+.addressSuggestionButton:focus-visible,
+.customerPickerItem:hover,
+.customerPickerItem:focus-visible,
+.customerPickerApplyButton:hover,
+.customerPickerApplyButton:focus-visible,
+.customerArchiveCustomerButton:hover,
+.customerArchiveCustomerButton:focus-visible,
+.customerArchiveDocumentButton:hover,
+.customerArchiveDocumentButton:focus-visible,
+.customerArchiveDocumentLink:hover,
+.customerArchiveDocumentLink:focus-visible,
+.customerArchiveSectionToggle:hover,
+.customerArchiveSectionToggle:focus-visible {
+  background: var(--vis-control-secondary-hover) !important;
+  background-color: var(--vis-control-secondary-hover) !important;
+  background-image: none !important;
+  color: var(--vis-control-text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.subscriptionPricingGrid,
+.setupCompletionActions,
+.submitActionRow,
+.onboardingActions,
+.projectWorkspaceActions,
+.projectArchiveActionRow {
+  overflow: visible !important;
+}
+
+.addressSuggestions,
+.serviceSuggestionList,
+.positionsTypeaheadList {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Specificity lock: old legacy hover selectors above are intentionally broad.
+   These repeated-class selectors keep the final interaction contract in charge. */
+html body button.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton:hover:not(:disabled),
+html body button.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton:focus-visible:not(:disabled),
+html body button.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton:hover:not(:disabled),
+html body button.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton:focus-visible:not(:disabled),
+html body a.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton:hover,
+html body a.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton:focus-visible,
+html body .authPrimaryButton.authPrimaryButton.authPrimaryButton.authPrimaryButton.authPrimaryButton.authPrimaryButton.authPrimaryButton.authPrimaryButton:hover:not(:disabled),
+html body .authGithubCard .authGithubPrimaryButton.authGithubPrimaryButton.authGithubPrimaryButton.authGithubPrimaryButton.authGithubPrimaryButton.authGithubPrimaryButton.authGithubPrimaryButton.authGithubPrimaryButton:hover:not(:disabled) {
+  background: var(--vis-control-primary-hover, #1165e0) !important;
+  background-color: var(--vis-control-primary-hover, #1165e0) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary-hover, #1165e0) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: translateY(-1px) !important;
+}
+
+html body button.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton:active:not(:disabled),
+html body button.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton.submitButton:active:not(:disabled),
+html body a.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton.primaryButton:active {
+  background: var(--vis-control-primary-active, #0f56c8) !important;
+  background-color: var(--vis-control-primary-active, #0f56c8) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary-active, #0f56c8) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: translateY(0) scale(0.985) !important;
+}
+
+html body button.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton:hover:not(:disabled),
+html body button.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton:focus-visible:not(:disabled),
+html body a.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton:hover,
+html body a.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton.ghostButton:focus-visible,
+html body button.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton:hover:not(:disabled),
+html body button.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton.submitMailButton:focus-visible:not(:disabled),
+html body button.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle:hover:not(:disabled),
+html body button.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle.customerPickerToggle:focus-visible:not(:disabled) {
+  background: var(--vis-control-secondary-hover, #eaf2ff) !important;
+  background-color: var(--vis-control-secondary-hover, #eaf2ff) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-secondary-border, #bcd3f8) !important;
+  color: var(--vis-control-text, #163462) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body button.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton:hover:not(:disabled),
+html body button.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton.dateInputIconButton:focus-visible:not(:disabled),
+html body button.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton:hover:not(:disabled),
+html body button.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton:focus-visible:not(:disabled) {
+  background: var(--vis-control-secondary-hover, #eaf2ff) !important;
+  background-color: var(--vis-control-secondary-hover, #eaf2ff) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-secondary-border, #bcd3f8) !important;
+  color: var(--vis-control-text, #163462) !important;
+  box-shadow: inset 0 0 0 1px rgba(20, 121, 255, 0.08) !important;
+  transform: none !important;
+}
+
+html body .positionsIntegratedPanel button.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton:hover:not(:disabled),
+html body .positionsIntegratedPanel button.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton.serviceAddCustomButton:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14) !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  background-image: none !important;
+  border-color: rgba(208, 227, 251, 0.72) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body button.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton.settingsDeleteButton:hover:not(:disabled),
+html body button.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton.settingsLogoDeleteButton:hover:not(:disabled),
+html body button.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton.positionsDeleteButton:hover:not(:disabled),
+html body button.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton.positionDeleteButton:hover:not(:disabled),
+html body button.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton.customerPickerDeleteButton:hover:not(:disabled) {
+  background: var(--vis-control-danger-hover, #ffe4e6) !important;
+  background-color: var(--vis-control-danger-hover, #ffe4e6) !important;
+  background-image: none !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .subscriptionBillingToggle button.active.active.active.active.active.active.active.active,
+html body .subscriptionBillingToggle button.active.active.active.active.active.active.active.active:hover:not(:disabled),
+html body .subscriptionBillingToggle button.active.active.active.active.active.active.active.active:focus-visible:not(:disabled) {
+  background: var(--vis-control-primary, #1479ff) !important;
+  background-color: var(--vis-control-primary, #1479ff) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  transform: none !important;
+}
+
+html body .subscriptionBillingToggle button:not(.active):hover:not(:disabled),
+html body .subscriptionBillingToggle button:not(.active):focus-visible:not(:disabled) {
+  background: rgba(20, 121, 255, 0.1) !important;
+  background-color: rgba(20, 121, 255, 0.1) !important;
+  background-image: none !important;
+  color: #244a81 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .appSidebar button.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton:hover:not(:disabled),
+html body .appSidebar button.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton.sidebarQuickNavButton:focus-visible {
+  background: var(--vis-control-primary-hover, #1165e0) !important;
+  background-color: var(--vis-control-primary-hover, #1165e0) !important;
+  background-image: none !important;
+  border-color: var(--vis-control-primary-hover, #1165e0) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  transform: none !important;
+}
+
+html body .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton:hover,
+html body .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton.dashboardModeToggleButton:focus-visible,
+html body .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton:hover,
+html body .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton.dashboardSegmentToggleButton:focus-visible {
+  background: var(--vis-control-secondary-hover, #eaf2ff) !important;
+  background-color: var(--vis-control-secondary-hover, #eaf2ff) !important;
+  background-image: none !important;
+  color: var(--vis-control-text, #163462) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton.dashboardModeToggleButtonSelected.dashboardModeToggleButtonSelected.dashboardModeToggleButtonSelected.dashboardModeToggleButtonSelected.dashboardModeToggleButtonSelected.dashboardModeToggleButtonSelected.dashboardModeToggleButtonSelected:hover,
+html body .appFrameWithSidebar .documentModeSwitch > button.dashboardModeToggleButton[aria-pressed="true"][aria-pressed="true"]:hover {
+  background: #116fe6 !important;
+  background-color: #116fe6 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+  transform: none !important;
+}
+
+html body .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton.dashboardSegmentToggleButtonSelected.dashboardSegmentToggleButtonSelected.dashboardSegmentToggleButtonSelected.dashboardSegmentToggleButtonSelected.dashboardSegmentToggleButtonSelected.dashboardSegmentToggleButtonSelected.dashboardSegmentToggleButtonSelected:hover,
+html body .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentToggleButton[aria-pressed="true"][aria-pressed="true"]:hover {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: var(--vis-dark, #1f3f72) !important;
+  box-shadow: inset 0 0 0 1px rgba(20, 121, 255, 0.12) !important;
+  transform: none !important;
+}
