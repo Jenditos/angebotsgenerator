@@ -9,8 +9,10 @@ import {
 import {
   APPOINTMENT_STATUS_VALUES,
   APPOINTMENT_TYPE_VALUES,
+  AppointmentSource,
   AppointmentStatus,
   AppointmentType,
+  DocumentType,
 } from "@/types/offer";
 
 type AppointmentPostBody = {
@@ -25,8 +27,13 @@ type AppointmentPostBody = {
   projectNumber?: unknown;
   customerName?: unknown;
   projectName?: unknown;
+  documentNumber?: unknown;
+  documentType?: unknown;
   address?: unknown;
   note?: unknown;
+  reminderEnabled?: unknown;
+  reminderMinutesBefore?: unknown;
+  source?: unknown;
 };
 
 function asTrimmedString(value: unknown): string {
@@ -41,6 +48,14 @@ function isAppointmentStatus(value: unknown): value is AppointmentStatus {
   return APPOINTMENT_STATUS_VALUES.includes(value as AppointmentStatus);
 }
 
+function normalizeAppointmentSource(value: unknown): AppointmentSource {
+  return value === "voice" || value === "text" ? value : "manual";
+}
+
+function normalizeDocumentType(value: unknown): DocumentType | undefined {
+  return value === "offer" || value === "invoice" ? value : undefined;
+}
+
 function normalizeDurationMinutes(value: unknown): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -48,6 +63,15 @@ function normalizeDurationMinutes(value: unknown): number {
   }
 
   return Math.min(720, Math.max(15, Math.floor(parsed)));
+}
+
+function normalizeReminderMinutes(value: unknown): number | undefined {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return Math.min(10_080, Math.max(5, Math.floor(parsed)));
 }
 
 function parseLocalAppointmentStart(date: unknown, startTime: unknown): Date | null {
@@ -68,7 +92,11 @@ function parseLocalAppointmentStart(date: unknown, startTime: unknown): Date | n
 async function recordAppointmentActivitySafely(input: {
   userId: string;
   appointmentNumber: string;
-  action: "appointment_created" | "appointment_updated" | "appointment_deleted";
+  action:
+    | "appointment_created"
+    | "appointment_updated"
+    | "appointment_done"
+    | "appointment_deleted";
   metadata?: Record<string, unknown>;
 }) {
   try {
@@ -130,6 +158,9 @@ export async function POST(request: Request) {
     const durationMinutes = normalizeDurationMinutes(body.durationMinutes);
     const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
     const appointmentNumber = asTrimmedString(body.appointmentNumber);
+    const reminderMinutesBefore = normalizeReminderMinutes(
+      body.reminderMinutesBefore,
+    );
     const appointment = await upsertStoredAppointment({
       userId: accessResult.user.id,
       appointmentNumber: appointmentNumber || undefined,
@@ -142,19 +173,33 @@ export async function POST(request: Request) {
       projectNumber: asTrimmedString(body.projectNumber) || undefined,
       customerName: asTrimmedString(body.customerName),
       projectName: asTrimmedString(body.projectName) || undefined,
+      documentNumber: asTrimmedString(body.documentNumber) || undefined,
+      documentType: normalizeDocumentType(body.documentType),
       address: asTrimmedString(body.address) || undefined,
       note: asTrimmedString(body.note) || undefined,
+      reminderEnabled: body.reminderEnabled === true,
+      reminderMinutesBefore,
+      source: normalizeAppointmentSource(body.source),
     });
 
     await recordAppointmentActivitySafely({
       userId: accessResult.user.id,
       appointmentNumber: appointment.appointmentNumber,
-      action: appointmentNumber ? "appointment_updated" : "appointment_created",
+      action: appointmentNumber
+        ? appointment.status === "done"
+          ? "appointment_done"
+          : "appointment_updated"
+        : "appointment_created",
       metadata: {
         title: appointment.title,
         type: appointment.type,
         status: appointment.status,
         startAt: appointment.startAt,
+        documentNumber: appointment.documentNumber,
+        documentType: appointment.documentType,
+        reminderEnabled: appointment.reminderEnabled,
+        reminderMinutesBefore: appointment.reminderMinutesBefore,
+        source: appointment.source,
       },
     });
 

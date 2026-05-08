@@ -12,8 +12,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   APPOINTMENT_STATUS_VALUES,
   APPOINTMENT_TYPE_VALUES,
+  AppointmentSource,
   AppointmentStatus,
   AppointmentType,
+  DocumentType,
   StoredAppointmentRecord,
 } from "@/types/offer";
 import {
@@ -44,8 +46,13 @@ export type UpsertStoredAppointmentInput = {
   projectNumber?: string;
   customerName?: string;
   projectName?: string;
+  documentNumber?: string;
+  documentType?: DocumentType;
   address?: string;
   note?: string;
+  reminderEnabled?: boolean;
+  reminderMinutesBefore?: number;
+  source?: AppointmentSource;
   referenceDate?: Date;
 };
 
@@ -105,6 +112,23 @@ function sanitizeAppointmentStatus(value: unknown): AppointmentStatus {
     : "planned";
 }
 
+function sanitizeAppointmentSource(value: unknown): AppointmentSource {
+  return value === "voice" || value === "text" ? value : "manual";
+}
+
+function sanitizeDocumentType(value: unknown): DocumentType | undefined {
+  return value === "offer" || value === "invoice" ? value : undefined;
+}
+
+function sanitizeReminderMinutes(value: unknown): number | undefined {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return Math.min(10_080, Math.max(5, Math.floor(parsed)));
+}
+
 function normalizeIsoDate(value: unknown): string {
   const rawValue = asTrimmedString(value);
   if (!rawValue) {
@@ -151,8 +175,13 @@ function sanitizeAppointmentRecord(value: unknown): StoredAppointmentRecord | nu
     projectNumber: asTrimmedString(record.projectNumber) || undefined,
     customerName: asTrimmedString(record.customerName),
     projectName: asTrimmedString(record.projectName) || undefined,
+    documentNumber: asTrimmedString(record.documentNumber) || undefined,
+    documentType: sanitizeDocumentType(record.documentType),
     address: asTrimmedString(record.address) || undefined,
     note: asTrimmedString(record.note) || undefined,
+    reminderEnabled: record.reminderEnabled === true,
+    reminderMinutesBefore: sanitizeReminderMinutes(record.reminderMinutesBefore),
+    source: sanitizeAppointmentSource(record.source),
     createdAt,
     updatedAt,
   };
@@ -374,8 +403,15 @@ export async function upsertStoredAppointment(
           asTrimmedString(input.projectNumber) || existing.projectNumber,
         customerName: asTrimmedString(input.customerName),
         projectName: asTrimmedString(input.projectName) || undefined,
+        documentNumber: asTrimmedString(input.documentNumber) || undefined,
+        documentType: sanitizeDocumentType(input.documentType),
         address: asTrimmedString(input.address) || undefined,
         note: asTrimmedString(input.note) || undefined,
+        reminderEnabled: input.reminderEnabled === true,
+        reminderMinutesBefore: sanitizeReminderMinutes(
+          input.reminderMinutesBefore,
+        ),
+        source: sanitizeAppointmentSource(input.source),
         updatedAt: nowIso,
       };
       const appointments = [...store.appointments];
@@ -397,8 +433,13 @@ export async function upsertStoredAppointment(
       projectNumber: asTrimmedString(input.projectNumber) || undefined,
       customerName: asTrimmedString(input.customerName),
       projectName: asTrimmedString(input.projectName) || undefined,
+      documentNumber: asTrimmedString(input.documentNumber) || undefined,
+      documentType: sanitizeDocumentType(input.documentType),
       address: asTrimmedString(input.address) || undefined,
       note: asTrimmedString(input.note) || undefined,
+      reminderEnabled: input.reminderEnabled === true,
+      reminderMinutesBefore: sanitizeReminderMinutes(input.reminderMinutesBefore),
+      source: sanitizeAppointmentSource(input.source),
       createdAt: nowIso,
       updatedAt: nowIso,
     };

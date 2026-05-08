@@ -110,6 +110,8 @@ export const APPOINTMENT_TYPE_VALUES = [
   "work",
   "callback",
   "follow_up",
+  "payment_reminder",
+  "invoice_check",
   "other",
 ] as const;
 
@@ -123,6 +125,8 @@ export const APPOINTMENT_STATUS_VALUES = [
 
 export type AppointmentStatus = (typeof APPOINTMENT_STATUS_VALUES)[number];
 
+export type AppointmentSource = "manual" | "voice" | "text";
+
 export type StoredAppointmentRecord = {
   userId?: string;
   appointmentNumber: string;
@@ -135,8 +139,13 @@ export type StoredAppointmentRecord = {
   projectNumber?: string;
   customerName: string;
   projectName?: string;
+  documentNumber?: string;
+  documentType?: DocumentType;
   address?: string;
   note?: string;
+  reminderEnabled?: boolean;
+  reminderMinutesBefore?: number;
+  source?: AppointmentSource;
   createdAt: string;
   updatedAt: string;
 };

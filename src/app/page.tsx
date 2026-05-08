@@ -57,6 +57,7 @@ import {
   CustomerDraftGroup,
   APPOINTMENT_STATUS_VALUES,
   APPOINTMENT_TYPE_VALUES,
+  AppointmentSource,
   AppointmentStatus,
   AppointmentType,
   DOCUMENT_PAYMENT_STATUS_VALUES,
@@ -267,6 +268,44 @@ type DeleteAppointmentApiResponse = {
 
 type AppointmentFilter = "today" | "week" | "all";
 
+type AppointmentParseCandidate = {
+  id: string;
+  displayName: string;
+  secondaryText?: string;
+  documentType?: DocumentType;
+  score: number;
+};
+
+type AppointmentParseMatch = {
+  status: "matched" | "suggested" | "ambiguous" | "not_found";
+  id?: string;
+  displayName?: string;
+  documentType?: DocumentType;
+  candidates?: AppointmentParseCandidate[];
+};
+
+type AppointmentParseSuggestion = {
+  title?: string;
+  type?: AppointmentType;
+  customerMatch?: AppointmentParseMatch | null;
+  projectMatch?: AppointmentParseMatch | null;
+  documentMatch?: AppointmentParseMatch | null;
+  description?: string;
+  location?: string;
+  date?: string;
+  startTime?: string;
+  durationMinutes?: number;
+  reminderEnabled?: boolean;
+  reminderMinutesBefore?: number;
+  confidenceScore?: number;
+  warnings?: string[];
+};
+
+type AppointmentParseApiResponse = {
+  suggestion?: AppointmentParseSuggestion;
+  error?: string;
+};
+
 type AppointmentFormState = {
   appointmentNumber: string;
   title: string;
@@ -279,8 +318,13 @@ type AppointmentFormState = {
   projectNumber: string;
   customerName: string;
   projectName: string;
+  documentNumber: string;
+  documentType: DocumentType | "";
   address: string;
   note: string;
+  reminderEnabled: boolean;
+  reminderMinutesBefore: string;
+  source: AppointmentSource;
 };
 
 type BillingCheckoutApiResponse = {
@@ -907,6 +951,8 @@ const APPOINTMENT_TYPE_LABELS: Record<AppointmentType, string> = {
   work: "Arbeitstermin",
   callback: "Rückruf",
   follow_up: "Nachfassen",
+  payment_reminder: "Zahlungserinnerung",
+  invoice_check: "Rechnung prüfen",
   other: "Sonstiges",
 };
 
@@ -2502,8 +2548,13 @@ function createAppointmentFormState(
     projectNumber: "",
     customerName: "",
     projectName: "",
+    documentNumber: "",
+    documentType: "",
     address: "",
     note: "",
+    reminderEnabled: false,
+    reminderMinutesBefore: "60",
+    source: "manual",
     ...overrides,
   };
 }
@@ -2536,8 +2587,23 @@ function normalizeAppointmentRecord(
     customerNumber: value.customerNumber?.trim() || undefined,
     projectNumber: value.projectNumber?.trim() || undefined,
     projectName: value.projectName?.trim() || undefined,
+    documentNumber: value.documentNumber?.trim() || undefined,
+    documentType:
+      value.documentType === "offer" || value.documentType === "invoice"
+        ? value.documentType
+        : undefined,
     address: value.address?.trim() || undefined,
     note: value.note?.trim() || undefined,
+    reminderEnabled: value.reminderEnabled === true,
+    reminderMinutesBefore:
+      typeof value.reminderMinutesBefore === "number" &&
+      Number.isFinite(value.reminderMinutesBefore)
+        ? value.reminderMinutesBefore
+        : undefined,
+    source:
+      value.source === "voice" || value.source === "text"
+        ? value.source
+        : "manual",
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
   };
@@ -2723,6 +2789,17 @@ export default function HomePage() {
   const [appointmentsError, setAppointmentsError] = useState("");
   const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false);
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
+  const [appointmentDictationText, setAppointmentDictationText] = useState("");
+  const [isListeningAppointment, setIsListeningAppointment] = useState(false);
+  const [isParsingAppointmentInput, setIsParsingAppointmentInput] =
+    useState(false);
+  const [appointmentVoiceInfo, setAppointmentVoiceInfo] = useState("");
+  const [appointmentVoiceError, setAppointmentVoiceError] = useState("");
+  const [appointmentParseWarnings, setAppointmentParseWarnings] = useState<
+    string[]
+  >([]);
+  const [appointmentInputSource, setAppointmentInputSource] =
+    useState<AppointmentSource>("text");
   const [deletingAppointmentNumber, setDeletingAppointmentNumber] =
     useState<string | null>(null);
   const [isInfoLegalOpen, setIsInfoLegalOpen] = useState(false);
@@ -2757,6 +2834,7 @@ export default function HomePage() {
   const [isClosingProjectArchive, setIsClosingProjectArchive] = useState(false);
   const [isHomeStateHydrated, setIsHomeStateHydrated] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const appointmentRecognitionRef = useRef<any>(null);
   const modeSnapshotsRef = useRef<Record<DocumentMode, ModeSnapshot>>({
     offer: createInitialModeSnapshot(),
     invoice: createInitialModeSnapshot(),
@@ -2772,6 +2850,7 @@ export default function HomePage() {
   const photoCameraStreamRef = useRef<MediaStream | null>(null);
   const shouldAppendNextPhotoUploadRef = useRef(false);
   const finalTranscriptRef = useRef("");
+  const appointmentFinalTranscriptRef = useRef("");
   const settingsOverlayCloseTimeoutRef = useRef<number | null>(null);
   const customerPickerCloseTimeoutRef = useRef<number | null>(null);
   const invoiceDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -3585,6 +3664,10 @@ export default function HomePage() {
         pauseRequestedRef.current = false;
         recognitionRef.current.stop();
         recognitionRef.current = null;
+      }
+      if (appointmentRecognitionRef.current) {
+        appointmentRecognitionRef.current.stop();
+        appointmentRecognitionRef.current = null;
       }
       stopPhotoCameraStream();
       photoParseRequestRef.current += 1;
@@ -4602,6 +4685,7 @@ export default function HomePage() {
       return;
     }
 
+    stopAppointmentDictation();
     setIsClosingAppointments(true);
     if (appointmentsCloseTimeoutRef.current !== null) {
       window.clearTimeout(appointmentsCloseTimeoutRef.current);
@@ -4614,13 +4698,276 @@ export default function HomePage() {
     }, 160);
   }
 
+  function resetAppointmentAssistantState(options?: { keepText?: boolean }) {
+    if (!options?.keepText) {
+      setAppointmentDictationText("");
+    }
+    setAppointmentVoiceInfo("");
+    setAppointmentVoiceError("");
+    setAppointmentParseWarnings([]);
+    setAppointmentInputSource("text");
+  }
+
+  function stopAppointmentDictation() {
+    if (!appointmentRecognitionRef.current) {
+      return;
+    }
+
+    appointmentRecognitionRef.current.stop();
+    appointmentRecognitionRef.current = null;
+    setIsListeningAppointment(false);
+    setAppointmentVoiceInfo("Aufnahme beendet. Du kannst die Felder ausfüllen.");
+  }
+
+  function startAppointmentDictation() {
+    if (isListeningAppointment || isParsingAppointmentInput) {
+      return;
+    }
+
+    if (isAuthStatusLoading) {
+      setAppointmentVoiceError("");
+      setAppointmentVoiceInfo("Loginstatus wird geprüft ...");
+      return;
+    }
+
+    if (!isAuthenticatedUser) {
+      setAppointmentVoiceError("");
+      setAppointmentVoiceInfo("");
+      openVoiceLoginModal();
+      return;
+    }
+
+    const speechCtor =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    if (!speechCtor || !speechSupported) {
+      setAppointmentVoiceInfo("");
+      setAppointmentVoiceError(
+        "Spracherkennung wird auf diesem Gerät/Browser nicht unterstützt. Du kannst den Termintext eintippen.",
+      );
+      return;
+    }
+
+    stopActiveVoiceRecognition();
+    setAppointmentInputSource("voice");
+    setAppointmentVoiceError("");
+    setAppointmentParseWarnings([]);
+    appointmentFinalTranscriptRef.current = "";
+
+    const recognition = new speechCtor();
+    recognition.lang = "de-DE";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListeningAppointment(true);
+      setAppointmentVoiceInfo("Ich höre zu ...");
+    };
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const text = String(event.results[i][0]?.transcript ?? "");
+        if (event.results[i].isFinal) {
+          appointmentFinalTranscriptRef.current =
+            `${appointmentFinalTranscriptRef.current} ${text}`.trim();
+        } else {
+          interimTranscript += text;
+        }
+      }
+      const nextTranscript =
+        `${appointmentFinalTranscriptRef.current} ${interimTranscript}`.trim();
+      setAppointmentDictationText(nextTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      const code = String(event.error ?? "");
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        setAppointmentVoiceError(
+          "Mikrofonzugriff ist blockiert. Bitte im Browser erlauben oder Text eingeben.",
+        );
+      } else if (code === "no-speech") {
+        setAppointmentVoiceError("Keine Sprache erkannt. Bitte erneut versuchen.");
+      } else {
+        setAppointmentVoiceError(
+          "Spracherkennung fehlgeschlagen. Bitte erneut versuchen oder Text eingeben.",
+        );
+      }
+      setAppointmentVoiceInfo("");
+      setIsListeningAppointment(false);
+      appointmentRecognitionRef.current = null;
+    };
+
+    recognition.onend = () => {
+      const transcript = appointmentFinalTranscriptRef.current.trim();
+      setIsListeningAppointment(false);
+      appointmentRecognitionRef.current = null;
+      if (transcript) {
+        setAppointmentDictationText(transcript);
+        setAppointmentVoiceInfo("Aufnahme beendet. Prüfe den Text und fülle die Felder aus.");
+      } else {
+        setAppointmentVoiceInfo("Keine Sprache erkannt. Du kannst den Termintext eintippen.");
+      }
+    };
+
+    appointmentRecognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+    } catch {
+      appointmentRecognitionRef.current = null;
+      setIsListeningAppointment(false);
+      setAppointmentVoiceInfo("");
+      setAppointmentVoiceError(
+        "Aufnahme konnte nicht gestartet werden. Bitte erneut versuchen oder Text eingeben.",
+      );
+    }
+  }
+
+  function applyAppointmentSuggestion(suggestion: AppointmentParseSuggestion) {
+    const customer =
+      suggestion.customerMatch?.status === "matched" && suggestion.customerMatch.id
+        ? storedCustomers.find(
+            (entry) => entry.customerNumber === suggestion.customerMatch?.id,
+          ) ?? null
+        : null;
+    const project =
+      (suggestion.projectMatch?.status === "matched" ||
+        suggestion.projectMatch?.status === "suggested") &&
+      suggestion.projectMatch.id
+        ? storedProjects.find(
+            (entry) => entry.projectNumber === suggestion.projectMatch?.id,
+          ) ?? null
+        : null;
+    const documentNumber =
+      (suggestion.documentMatch?.status === "matched" ||
+        suggestion.documentMatch?.status === "suggested") &&
+      suggestion.documentMatch.id
+        ? suggestion.documentMatch.id
+        : "";
+    const documentType =
+      suggestion.documentMatch?.documentType === "offer" ||
+      suggestion.documentMatch?.documentType === "invoice"
+        ? suggestion.documentMatch.documentType
+        : "";
+    const warnings = Array.isArray(suggestion.warnings)
+      ? suggestion.warnings.filter(Boolean)
+      : [];
+
+    setAppointmentForm((prev) => ({
+      ...prev,
+      title: suggestion.title?.trim() || prev.title,
+      type: suggestion.type && isAppointmentType(suggestion.type)
+        ? suggestion.type
+        : prev.type,
+      date: suggestion.date ?? "",
+      startTime: suggestion.startTime ?? "",
+      durationMinutes:
+        typeof suggestion.durationMinutes === "number" &&
+        Number.isFinite(suggestion.durationMinutes)
+          ? String(suggestion.durationMinutes)
+          : prev.durationMinutes,
+      customerNumber: customer?.customerNumber ?? "",
+      customerName:
+        customer?.customerName ??
+        (suggestion.customerMatch?.status === "matched"
+          ? suggestion.customerMatch.displayName ?? prev.customerName
+          : ""),
+      projectNumber: project?.projectNumber ?? "",
+      projectName:
+        project?.projectName ??
+        (suggestion.projectMatch?.status === "matched" ||
+        suggestion.projectMatch?.status === "suggested"
+          ? suggestion.projectMatch.displayName ?? prev.projectName
+          : ""),
+      documentNumber,
+      documentType,
+      address:
+        suggestion.location?.trim() ||
+        project?.projectAddress ||
+        customer?.customerAddress ||
+        prev.address,
+      note: suggestion.description?.trim() || prev.note,
+      reminderEnabled: suggestion.reminderEnabled === true,
+      reminderMinutesBefore:
+        typeof suggestion.reminderMinutesBefore === "number" &&
+        Number.isFinite(suggestion.reminderMinutesBefore)
+          ? String(suggestion.reminderMinutesBefore)
+          : prev.reminderMinutesBefore,
+      source: appointmentInputSource,
+    }));
+    setAppointmentParseWarnings(warnings);
+    setAppointmentVoiceInfo(
+      warnings.length > 0
+        ? "Felder wurden vorbereitet. Bitte prüfe die Hinweise."
+        : "Felder wurden vorbereitet. Bitte prüfe alles und speichere manuell.",
+    );
+    setAppointmentVoiceError("");
+  }
+
+  async function fillAppointmentFromDictation() {
+    const inputText = appointmentDictationText.trim();
+    if (inputText.length < 3) {
+      setAppointmentVoiceInfo("");
+      setAppointmentVoiceError("Bitte erst Termin sprechen oder Text eingeben.");
+      return;
+    }
+
+    if (inputText.length > MAX_VOICE_TRANSCRIPT_LENGTH) {
+      setAppointmentVoiceInfo("");
+      setAppointmentVoiceError(
+        `Bitte auf maximal ${MAX_VOICE_TRANSCRIPT_LENGTH.toLocaleString("de-DE")} Zeichen kürzen.`,
+      );
+      return;
+    }
+
+    setIsParsingAppointmentInput(true);
+    setAppointmentVoiceInfo("Termin wird analysiert ...");
+    setAppointmentVoiceError("");
+    setAppointmentParseWarnings([]);
+
+    try {
+      const response = await fetch("/api/appointments/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputText }),
+      });
+      const data = (await response.json()) as AppointmentParseApiResponse;
+      if (!response.ok || !data.suggestion) {
+        if (response.status === 401) {
+          setAppointmentVoiceInfo("");
+          setAppointmentVoiceError(
+            "Bitte zuerst einloggen, um Termine per Sprache/Text vorzubereiten.",
+          );
+          return;
+        }
+        setAppointmentVoiceInfo("");
+        setAppointmentVoiceError(
+          data.error ?? "Termintext konnte nicht analysiert werden.",
+        );
+        return;
+      }
+
+      applyAppointmentSuggestion(data.suggestion);
+    } catch {
+      setAppointmentVoiceInfo("");
+      setAppointmentVoiceError("Termintext konnte nicht analysiert werden.");
+    } finally {
+      setIsParsingAppointmentInput(false);
+    }
+  }
+
   function openNewAppointmentForm() {
+    stopAppointmentDictation();
+    resetAppointmentAssistantState();
     setAppointmentForm(buildAppointmentFormFromCurrentContext());
     setIsAppointmentFormOpen(true);
     setAppointmentsError("");
   }
 
   function editAppointment(appointment: StoredAppointmentRecord) {
+    stopAppointmentDictation();
+    resetAppointmentAssistantState();
     const start = new Date(appointment.startAt);
     const end = new Date(appointment.endAt);
     const durationMinutes = Number.isFinite(start.getTime()) && Number.isFinite(end.getTime())
@@ -4639,8 +4986,16 @@ export default function HomePage() {
         projectNumber: appointment.projectNumber ?? "",
         customerName: appointment.customerName,
         projectName: appointment.projectName ?? "",
+        documentNumber: appointment.documentNumber ?? "",
+        documentType: appointment.documentType ?? "",
         address: appointment.address ?? "",
         note: appointment.note ?? "",
+        reminderEnabled: appointment.reminderEnabled === true,
+        reminderMinutesBefore:
+          typeof appointment.reminderMinutesBefore === "number"
+            ? String(appointment.reminderMinutesBefore)
+            : "60",
+        source: appointment.source ?? "manual",
       }),
     );
     setIsAppointmentFormOpen(true);
@@ -4707,6 +5062,7 @@ export default function HomePage() {
       }
       setIsAppointmentFormOpen(false);
       setAppointmentForm(createAppointmentFormState());
+      resetAppointmentAssistantState();
     } catch {
       setAppointmentsError("Termin konnte nicht gespeichert werden.");
     } finally {
@@ -4735,8 +5091,16 @@ export default function HomePage() {
         projectNumber: appointment.projectNumber ?? "",
         customerName: appointment.customerName,
         projectName: appointment.projectName ?? "",
+        documentNumber: appointment.documentNumber ?? "",
+        documentType: appointment.documentType ?? "",
         address: appointment.address ?? "",
         note: appointment.note ?? "",
+        reminderEnabled: appointment.reminderEnabled === true,
+        reminderMinutesBefore:
+          typeof appointment.reminderMinutesBefore === "number"
+            ? String(appointment.reminderMinutesBefore)
+            : "60",
+        source: appointment.source ?? "manual",
       });
     setAppointmentForm(nextForm);
     await saveAppointment(status, nextForm);
@@ -9234,6 +9598,62 @@ export default function HomePage() {
                     void saveAppointment();
                   }}
                 >
+                  <div className="appointmentAssistantPanel">
+                    <div className="appointmentAssistantHeader">
+                      <div>
+                        <strong>Termin per Sprache oder Text</strong>
+                        <span>Die Felder werden nur vorbereitet. Speichern bleibt manuell.</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghostButton appointmentDictationButton"
+                        onClick={
+                          isListeningAppointment
+                            ? stopAppointmentDictation
+                            : startAppointmentDictation
+                        }
+                        disabled={isParsingAppointmentInput}
+                      >
+                        {isListeningAppointment ? "Aufnahme stoppen" : "Termin diktieren"}
+                      </button>
+                    </div>
+                    <label className="appointmentAssistantInput">
+                      <span>Oder Termin als Text eingeben</span>
+                      <textarea
+                        rows={3}
+                        value={appointmentDictationText}
+                        placeholder="Zum Beispiel: Morgen um 14 Uhr Rückruf bei Müller wegen Angebot, Erinnerung 30 Minuten vorher."
+                        onChange={(event) => {
+                          setAppointmentDictationText(event.target.value);
+                          setAppointmentInputSource("text");
+                          setAppointmentVoiceError("");
+                        }}
+                      />
+                    </label>
+                    <div className="appointmentAssistantActions">
+                      <button
+                        type="button"
+                        className="primaryButton appointmentAssistantFillButton"
+                        onClick={() => void fillAppointmentFromDictation()}
+                        disabled={isParsingAppointmentInput || isListeningAppointment}
+                      >
+                        {isParsingAppointmentInput ? "Termin wird analysiert ..." : "Felder ausfüllen"}
+                      </button>
+                      <span>
+                        Browser-Spracherkennung kann je nach Browser über dessen Anbieter laufen.
+                      </span>
+                    </div>
+                    {appointmentVoiceInfo ? (
+                      <p className="voiceStatusCard voiceStatusCardInfo appointmentAssistantMessage">
+                        {appointmentVoiceInfo}
+                      </p>
+                    ) : null}
+                    {appointmentVoiceError ? (
+                      <p className="voiceStatusCard voiceStatusCardError appointmentAssistantMessage">
+                        {appointmentVoiceError}
+                      </p>
+                    ) : null}
+                  </div>
                   <div className="appointmentsFormGrid">
                     <label className="field span2">
                       <span>Titel</span>
@@ -9392,6 +9812,39 @@ export default function HomePage() {
                         ))}
                       </select>
                     </label>
+                    <label className="field">
+                      <span>Dokument</span>
+                      <input
+                        value={appointmentForm.documentNumber}
+                        placeholder="z. B. RE-2026-2044"
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            documentNumber: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Dokumenttyp</span>
+                      <select
+                        value={appointmentForm.documentType}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            documentType:
+                              event.target.value === "offer" ||
+                              event.target.value === "invoice"
+                                ? event.target.value
+                                : "",
+                          }))
+                        }
+                      >
+                        <option value="">Kein Dokument</option>
+                        <option value="offer">Angebot</option>
+                        <option value="invoice">Rechnung</option>
+                      </select>
+                    </label>
                     <label className="field span2">
                       <span>Adresse</span>
                       <input
@@ -9403,6 +9856,42 @@ export default function HomePage() {
                           }))
                         }
                       />
+                    </label>
+                    <label className="field appointmentReminderToggle">
+                      <span>Erinnerung</span>
+                      <label className="appointmentCheckboxLine">
+                        <input
+                          type="checkbox"
+                          checked={appointmentForm.reminderEnabled}
+                          onChange={(event) =>
+                            setAppointmentForm((prev) => ({
+                              ...prev,
+                              reminderEnabled: event.target.checked,
+                            }))
+                          }
+                        />
+                        <span>aktiv</span>
+                      </label>
+                    </label>
+                    <label className="field">
+                      <span>Minuten vorher</span>
+                      <select
+                        value={appointmentForm.reminderMinutesBefore}
+                        onChange={(event) =>
+                          setAppointmentForm((prev) => ({
+                            ...prev,
+                            reminderMinutesBefore: event.target.value,
+                            reminderEnabled: true,
+                          }))
+                        }
+                        disabled={!appointmentForm.reminderEnabled}
+                      >
+                        <option value="15">15 Minuten</option>
+                        <option value="30">30 Minuten</option>
+                        <option value="60">1 Stunde</option>
+                        <option value="120">2 Stunden</option>
+                        <option value="1440">1 Tag</option>
+                      </select>
                     </label>
                     <label className="field span2">
                       <span>Notiz</span>
@@ -9418,11 +9907,22 @@ export default function HomePage() {
                       />
                     </label>
                   </div>
+                  {appointmentParseWarnings.length > 0 ? (
+                    <ul className="appointmentAssistantWarnings" role="alert">
+                      {appointmentParseWarnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <div className="appointmentsFormActions">
                     <button
                       type="button"
                       className="ghostButton appointmentGhostButton"
-                      onClick={() => setIsAppointmentFormOpen(false)}
+                      onClick={() => {
+                        stopAppointmentDictation();
+                        resetAppointmentAssistantState();
+                        setIsAppointmentFormOpen(false);
+                      }}
                     >
                       Abbrechen
                     </button>
@@ -9482,6 +9982,28 @@ export default function HomePage() {
                                     .join(" · ")}
                                 </p>
                                 {appointment.note ? <p>{appointment.note}</p> : null}
+                                {appointment.documentNumber || appointment.reminderEnabled ? (
+                                  <p>
+                                    {[
+                                      appointment.documentNumber
+                                        ? `${
+                                            appointment.documentType === "invoice"
+                                              ? "Rechnung"
+                                              : appointment.documentType === "offer"
+                                                ? "Angebot"
+                                                : "Dokument"
+                                          } ${appointment.documentNumber}`
+                                        : "",
+                                      appointment.reminderEnabled
+                                        ? `Erinnerung ${
+                                            appointment.reminderMinutesBefore ?? 60
+                                          } Min. vorher`
+                                        : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </p>
+                                ) : null}
                               </div>
                             </div>
                             <div className="appointmentCardActions">
