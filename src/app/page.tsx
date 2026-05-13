@@ -9598,15 +9598,23 @@ export default function HomePage() {
                     void saveAppointment();
                   }}
                 >
-                  <div className="appointmentAssistantPanel">
-                    <div className="appointmentAssistantHeader">
-                      <div>
-                        <strong>Termin per Sprache oder Text</strong>
-                        <span>Die Felder werden nur vorbereitet. Speichern bleibt manuell.</span>
-                      </div>
+                  <div className="voicePanel dashboardVoicePanel appointmentAssistantPanel">
+                    <div className="voicePanelHeader appointmentAssistantHeader">
+                      <strong>Termin per KI ausfüllen</strong>
+                      <p>
+                        Diktiere den Termin oder schreibe ihn als Text. Die App
+                        bereitet die Felder vor, gespeichert wird erst nach deiner
+                        Prüfung.
+                      </p>
+                    </div>
+                    <div
+                      className="intakePrimaryActions appointmentAssistantActions"
+                      role="group"
+                      aria-label="Termin per KI ausfüllen"
+                    >
                       <button
                         type="button"
-                        className="ghostButton appointmentDictationButton"
+                        className="intakePrimaryActionButton intakePrimaryActionButtonPrimary appointmentDictationButton"
                         onClick={
                           isListeningAppointment
                             ? stopAppointmentDictation
@@ -9616,42 +9624,67 @@ export default function HomePage() {
                       >
                         {isListeningAppointment ? "Aufnahme stoppen" : "Termin diktieren"}
                       </button>
-                    </div>
-                    <label className="appointmentAssistantInput">
-                      <span>Oder Termin als Text eingeben</span>
-                      <textarea
-                        rows={3}
-                        value={appointmentDictationText}
-                        placeholder="Zum Beispiel: Morgen um 14 Uhr Rückruf bei Müller wegen Angebot, Erinnerung 30 Minuten vorher."
-                        onChange={(event) => {
-                          setAppointmentDictationText(event.target.value);
-                          setAppointmentInputSource("text");
-                          setAppointmentVoiceError("");
-                        }}
-                      />
-                    </label>
-                    <div className="appointmentAssistantActions">
                       <button
                         type="button"
-                        className="primaryButton appointmentAssistantFillButton"
+                        className="intakePrimaryActionButton appointmentAssistantFillButton"
                         onClick={() => void fillAppointmentFromDictation()}
                         disabled={isParsingAppointmentInput || isListeningAppointment}
                       >
                         {isParsingAppointmentInput ? "Termin wird analysiert ..." : "Felder ausfüllen"}
                       </button>
-                      <span>
-                        Browser-Spracherkennung kann je nach Browser über dessen Anbieter laufen.
-                      </span>
                     </div>
-                    {appointmentVoiceInfo ? (
-                      <p className="voiceStatusCard voiceStatusCardInfo appointmentAssistantMessage">
-                        {appointmentVoiceInfo}
-                      </p>
-                    ) : null}
-                    {appointmentVoiceError ? (
-                      <p className="voiceStatusCard voiceStatusCardError appointmentAssistantMessage">
-                        {appointmentVoiceError}
-                      </p>
+                    <label className="field appointmentAssistantInput">
+                      <span>Gesprochener oder geschriebener Termin</span>
+                      <div className="voiceTranscriptFieldBody appointmentAssistantTranscriptFrame">
+                        <textarea
+                          className="voiceTranscriptTextarea appointmentAssistantTextarea"
+                          rows={3}
+                          value={appointmentDictationText}
+                          placeholder="z. B. Morgen um 14 Uhr Rückruf bei Müller wegen Angebot, Erinnerung 30 Minuten vorher"
+                          onChange={(event) => {
+                            setAppointmentDictationText(event.target.value);
+                            setAppointmentInputSource("text");
+                            setAppointmentVoiceError("");
+                          }}
+                        />
+                      </div>
+                    </label>
+                    <p className="appointmentAssistantPrivacy">
+                      Browser-Spracherkennung kann je nach Browser über dessen
+                      Anbieter laufen.
+                    </p>
+                    {appointmentVoiceInfo || appointmentVoiceError ? (
+                      <div className="voiceStatusSection appointmentAssistantStatusSection">
+                        <span className="voiceStatusSectionLabel">Status</span>
+                        <div className="voiceStatusGroup">
+                          {appointmentVoiceInfo ? (
+                            <p className="voiceStatusCard voiceStatusCardInfo appointmentAssistantMessage">
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                i
+                              </span>
+                              <span className="voiceStatusText">
+                                {appointmentVoiceInfo}
+                              </span>
+                            </p>
+                          ) : null}
+                          {appointmentVoiceError ? (
+                            <p className="voiceStatusCard voiceStatusCardError appointmentAssistantMessage">
+                              <span
+                                className="voiceStatusIcon"
+                                aria-hidden="true"
+                              >
+                                !
+                              </span>
+                              <span className="voiceStatusText">
+                                {appointmentVoiceError}
+                              </span>
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
                     ) : null}
                   </div>
                   <div className="appointmentsFormGrid">

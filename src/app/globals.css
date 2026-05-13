@@ -16074,3 +16074,134 @@ html body .appFrameWithSidebar .recipientTypeButtons > button.dashboardSegmentTo
   box-shadow: inset 0 0 0 1px rgba(20, 121, 255, 0.12) !important;
   transform: none !important;
 }
+
+/* Termin-Popup: KI-Section an die Startseiten-Aufnahme angleichen */
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel.dashboardVoicePanel {
+  margin: 0 0 14px !important;
+  padding: 18px !important;
+  row-gap: 14px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(152, 209, 255, 0.32) !important;
+  background:
+    linear-gradient(145deg, rgba(18, 87, 184, 0.96), rgba(12, 61, 137, 0.96)),
+    #1257b8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 16px 34px rgba(20, 65, 130, 0.18) !important;
+  color: #f5fbff !important;
+  overflow: visible !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .voicePanelHeader {
+  gap: 8px !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .voicePanelHeader strong {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  letter-spacing: 0 !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .voicePanelHeader p {
+  max-width: 70ch;
+  color: rgba(239, 247, 255, 0.86) !important;
+  font-size: 0.86rem !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantActions {
+  gap: 10px !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentDictationButton {
+  min-height: 40px !important;
+  padding-inline: 14px !important;
+  white-space: nowrap;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentAssistantFillButton {
+  min-height: 40px !important;
+  padding-inline: 14px !important;
+  white-space: nowrap;
+  border-radius: 10px !important;
+  border: 1.5px solid rgba(210, 237, 255, 0.42) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentAssistantFillButton:hover:not(:disabled),
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentAssistantFillButton:focus-visible:not(:disabled) {
+  border-color: rgba(231, 247, 255, 0.62) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentAssistantFillButton:disabled {
+  border-color: rgba(210, 237, 255, 0.24) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantInput {
+  margin: 0 !important;
+  gap: 8px !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantInput > span {
+  color: rgba(239, 247, 255, 0.9) !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantTranscriptFrame {
+  border-radius: 16px !important;
+  border: 1px solid rgba(176, 221, 255, 0.36) !important;
+  background: rgba(8, 45, 105, 0.26) !important;
+  padding: 8px !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantTextarea {
+  min-height: 96px !important;
+  border-color: rgba(178, 216, 251, 0.58) !important;
+  background: rgba(247, 252, 255, 0.96) !important;
+  color: #153965 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantPrivacy {
+  margin: -4px 0 0 !important;
+  color: rgba(228, 242, 255, 0.78) !important;
+  font-size: 0.74rem !important;
+  line-height: 1.35;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantStatusSection {
+  margin: 0 !important;
+}
+
+html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantMessage {
+  margin: 0 !important;
+  display: grid;
+}
+
+@media (max-width: 760px) {
+  html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel.dashboardVoicePanel {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .appointmentAssistantActions {
+    align-items: stretch !important;
+  }
+
+  html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentDictationButton,
+  html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel button.appointmentAssistantFillButton {
+    width: 100% !important;
+  }
+}
