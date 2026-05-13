@@ -60,6 +60,8 @@ import {
   AppointmentSource,
   AppointmentStatus,
   AppointmentType,
+  DocumentComplianceReport,
+  DocumentComplianceStatus,
   DOCUMENT_PAYMENT_STATUS_VALUES,
   DOCUMENT_PROCESSING_STATUS_VALUES,
   DocumentPaymentStatus,
@@ -105,6 +107,8 @@ type ApiResponse = {
   documentNumber?: string;
   offerNumber?: string;
   invoiceNumber?: string;
+  complianceReport?: DocumentComplianceReport;
+  complianceWarnings?: string[];
 };
 
 type OfferMailActionState = {
@@ -209,6 +213,8 @@ type CustomerArchiveDocument = {
   } | null;
   reminderStatus?: StoredReminderStatus | null;
   reminderDueAt?: string | null;
+  complianceStatus?: DocumentComplianceStatus | null;
+  complianceWarnings?: number | null;
   createdAt: string;
 };
 
@@ -2272,6 +2278,20 @@ function CustomerArchiveDocumentBadges({
   const reminderDateLabel = document.reminderDueAt
     ? formatArchiveDate(document.reminderDueAt)
     : "";
+  const complianceWarningCount = Math.max(
+    0,
+    Number(document.complianceWarnings ?? 0),
+  );
+  const complianceLabel =
+    document.complianceStatus === "blocked"
+      ? "Pflichtdaten fehlen"
+      : document.complianceStatus === "warning"
+        ? complianceWarningCount > 0
+          ? `${complianceWarningCount} Prüfhinweis${complianceWarningCount === 1 ? "" : "e"}`
+          : "Prüfhinweis"
+        : document.complianceStatus === "ready"
+          ? "Basis geprüft"
+          : "";
   const overdueLabel =
     document.latePayment?.enabled &&
     document.latePayment.isOverdue &&
@@ -2283,6 +2303,7 @@ function CustomerArchiveDocumentBadges({
     !document.hasPdf &&
     !paymentStatusLabel &&
     !reminderStatusLabel &&
+    !complianceLabel &&
     !overdueLabel
   ) {
     return null;
@@ -2326,6 +2347,14 @@ function CustomerArchiveDocumentBadges({
           {reminderDateLabel
             ? `${reminderStatusLabel} ${reminderDateLabel}`
             : reminderStatusLabel}
+        </span>
+      ) : null}
+      {complianceLabel ? (
+        <span
+          className="customerArchiveDocumentComplianceBadge"
+          data-compliance-status={document.complianceStatus ?? "unknown"}
+        >
+          {complianceLabel}
         </span>
       ) : null}
     </div>
@@ -4361,6 +4390,8 @@ export default function HomePage() {
               typeof document.reminderDueAt === "string"
                 ? document.reminderDueAt
                 : null,
+            complianceStatus: document.complianceStatus ?? null,
+            complianceWarnings: document.complianceWarnings ?? null,
           }))
           .sort((left, right) => {
             const rightTs = Date.parse(right.createdAt);
@@ -4550,6 +4581,8 @@ export default function HomePage() {
               typeof document.reminderDueAt === "string"
                 ? document.reminderDueAt
                 : null,
+            complianceStatus: document.complianceStatus ?? null,
+            complianceWarnings: document.complianceWarnings ?? null,
         }))
         .sort((left, right) => {
           const rightTs = Date.parse(right.createdAt);
@@ -8467,6 +8500,11 @@ export default function HomePage() {
           paymentStatus: normalizeDocumentPaymentStatus(payload.paymentStatus),
           reminderStatus: normalizeReminderStatus(payload.reminderStatus),
           reminderDueAt: payload.reminderDueAt ?? null,
+          complianceStatus: payload.complianceReport?.status ?? null,
+          complianceWarnings:
+            payload.complianceReport?.issues.filter(
+              (issue) => issue.severity === "warning",
+            ).length ?? null,
           createdAt: new Date().toISOString(),
         };
         setArchiveDocuments((prev) => {
@@ -8496,6 +8534,11 @@ export default function HomePage() {
           paymentStatus: normalizeDocumentPaymentStatus(payload.paymentStatus),
           reminderStatus: normalizeReminderStatus(payload.reminderStatus),
           reminderDueAt: payload.reminderDueAt ?? null,
+          complianceStatus: payload.complianceReport?.status ?? null,
+          complianceWarnings:
+            payload.complianceReport?.issues.filter(
+              (issue) => issue.severity === "warning",
+            ).length ?? null,
           createdAt: new Date().toISOString(),
         };
         setProjectArchiveDocuments((prev) => {
@@ -8537,6 +8580,9 @@ export default function HomePage() {
       const createdDocumentLabel =
         payloadMode === "invoice" ? "Rechnung" : "Angebot";
       const createdDocumentPronoun = payloadMode === "invoice" ? "sie" : "es";
+      const complianceHint = payload.complianceWarnings?.[0]
+        ? ` Hinweis: ${payload.complianceWarnings[0]}`
+        : "";
       setOfferMailActionState({
         payload,
         customerEmail: customerEmailForMail,
@@ -8546,8 +8592,8 @@ export default function HomePage() {
       });
       setPostActionInfo(
         customerEmailForMail
-          ? `${createdDocumentLabel} wurde erstellt. Du kannst ${createdDocumentPronoun} jetzt per E-Mail versenden.`
-          : `${createdDocumentLabel} wurde erstellt. Für den Versand bitte zuerst eine Kunden-E-Mail angeben.`,
+          ? `${createdDocumentLabel} wurde erstellt. Du kannst ${createdDocumentPronoun} jetzt per E-Mail versenden.${complianceHint}`
+          : `${createdDocumentLabel} wurde erstellt. Für den Versand bitte zuerst eine Kunden-E-Mail angeben.${complianceHint}`,
       );
     } catch (submitError) {
       console.error("[offer-submit] Angebot konnte nicht erstellt werden.", {

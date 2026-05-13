@@ -12,6 +12,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import { normalizeDocumentTaxInfo } from "@/lib/document-tax";
 import {
   DocumentType,
+  DocumentComplianceIssue,
+  DocumentComplianceReport,
+  DocumentComplianceStatus,
+  DocumentComplianceSeverity,
   DocumentTaxInfo,
   DocumentPaymentStatus,
   DOCUMENT_PAYMENT_STATUS_VALUES,
@@ -68,6 +72,7 @@ export type CreateStoredOfferInput = {
   status?: DocumentProcessingStatus;
   customerType?: "person" | "company";
   invoice?: StoredInvoiceMetadata | null;
+  compliance?: DocumentComplianceReport | null;
   referenceDate?: Date;
 };
 
@@ -359,6 +364,58 @@ function sanitizeStoredReminderStatus(value: unknown): StoredReminderStatus {
     : "scheduled";
 }
 
+function sanitizeComplianceSeverity(value: unknown): DocumentComplianceSeverity {
+  return value === "error" || value === "warning" ? value : "info";
+}
+
+function sanitizeComplianceStatus(value: unknown): DocumentComplianceStatus {
+  return value === "blocked" || value === "warning" ? value : "ready";
+}
+
+function sanitizeComplianceIssue(value: unknown): DocumentComplianceIssue | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const issue = value as Partial<DocumentComplianceIssue>;
+  const code = asTrimmedString(issue.code);
+  const message = asTrimmedString(issue.message);
+  if (!code || !message) {
+    return null;
+  }
+
+  return {
+    code,
+    severity: sanitizeComplianceSeverity(issue.severity),
+    message,
+    field: asTrimmedString(issue.field) || undefined,
+  };
+}
+
+function sanitizeDocumentComplianceReport(
+  value: unknown,
+): DocumentComplianceReport | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const report = value as Partial<DocumentComplianceReport>;
+  const checkedAt = asTrimmedString(report.checkedAt);
+  if (!checkedAt) {
+    return undefined;
+  }
+
+  return {
+    status: sanitizeComplianceStatus(report.status),
+    checkedAt,
+    issues: Array.isArray(report.issues)
+      ? report.issues
+          .map((issue) => sanitizeComplianceIssue(issue))
+          .filter((issue): issue is DocumentComplianceIssue => Boolean(issue))
+      : [],
+  };
+}
+
 function sanitizeStoredReminderReference(
   value: unknown,
 ): StoredReminderReference | undefined {
@@ -576,6 +633,7 @@ function sanitizeOfferRecord(value: unknown): StoredOfferRecord | null {
       inferredDocumentType === "invoice"
         ? sanitizeStoredInvoiceMetadata(record.invoice)
         : undefined,
+    compliance: sanitizeDocumentComplianceReport(record.compliance),
     customerNumber:
       typeof record.customerNumber === "string" &&
       record.customerNumber.trim().length > 0
@@ -967,6 +1025,7 @@ export async function createStoredOfferRecord(
         documentType === "invoice"
           ? sanitizeStoredInvoiceMetadata(input.invoice)
           : undefined,
+      compliance: sanitizeDocumentComplianceReport(input.compliance),
       customerNumber: input.customerNumber?.trim() || undefined,
       projectNumber: input.projectNumber?.trim() || undefined,
       projectName: input.projectName?.trim() || undefined,

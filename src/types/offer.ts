@@ -93,6 +93,23 @@ export type DocumentTaxInfo = {
   noticeText?: string;
 };
 
+export type DocumentComplianceSeverity = "error" | "warning" | "info";
+
+export type DocumentComplianceIssue = {
+  code: string;
+  severity: DocumentComplianceSeverity;
+  message: string;
+  field?: string;
+};
+
+export type DocumentComplianceStatus = "ready" | "warning" | "blocked";
+
+export type DocumentComplianceReport = {
+  status: DocumentComplianceStatus;
+  checkedAt: string;
+  issues: DocumentComplianceIssue[];
+};
+
 export const PROJECT_STATUS_VALUES = [
   "new",
   "site_visit_planned",
@@ -382,6 +399,7 @@ export type StoredOfferRecord = {
   payment?: StoredPaymentReference;
   reminder?: StoredReminderReference;
   invoice?: StoredInvoiceMetadata;
+  compliance?: DocumentComplianceReport;
   customerNumber?: string;
   projectNumber?: string;
   projectName?: string;

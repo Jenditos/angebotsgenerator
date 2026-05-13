@@ -168,6 +168,10 @@ export async function GET(request: Request) {
             : null,
           reminderStatus: record.reminder?.status ?? null,
           reminderDueAt: record.reminder?.dueAt ?? null,
+          complianceStatus: record.compliance?.status ?? null,
+          complianceWarnings:
+            record.compliance?.issues.filter((issue) => issue.severity === "warning")
+              .length ?? 0,
           createdAt: record.createdAt,
         };
       });

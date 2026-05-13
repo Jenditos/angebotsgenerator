@@ -4,6 +4,11 @@ import { Resend } from "resend";
 import { randomUUID } from "node:crypto";
 import { requireAppAccess } from "@/lib/access/guards";
 import { normalizeDocumentTaxInfo, resolveDocumentTax } from "@/lib/document-tax";
+import {
+  buildDocumentComplianceReport,
+  getBlockingComplianceMessages,
+  getUserFacingComplianceWarnings,
+} from "@/lib/document-compliance";
 import { buildInvoiceMetadata } from "@/lib/late-payment";
 import {
   MAX_LOGO_DATA_URL_LENGTH,
@@ -1320,6 +1325,36 @@ export async function handleGenerateOfferAuthorizedRequest(
             vatRate: resolvedInvoiceTax.vatRate,
           })
         : null;
+    const complianceReport = buildDocumentComplianceReport({
+      documentType,
+      customerType,
+      customerName,
+      customerAddress,
+      customerEmail,
+      serviceDescription: composedServiceDescription,
+      lineItems,
+      settings: settingsForDocument,
+      documentTax,
+      invoiceDate: toDateInputValue(resolvedInvoiceDate),
+      serviceDate: servicePeriod,
+      paymentDueDays,
+      checkedAt: now,
+    });
+    const blockingComplianceMessages =
+      getBlockingComplianceMessages(complianceReport);
+    if (blockingComplianceMessages.length > 0) {
+      return NextResponse.json(
+        {
+          error: blockingComplianceMessages[0],
+          complianceReport,
+          complianceIssues: complianceReport.issues,
+          requestId,
+        },
+        { status: 400 },
+      );
+    }
+    const complianceWarnings =
+      getUserFacingComplianceWarnings(complianceReport);
     const safeSettings = {
       ...settingsForDocument,
       logoDataUrl:
@@ -1505,6 +1540,7 @@ export async function handleGenerateOfferAuthorizedRequest(
         lineItems,
         documentTax,
         invoice: invoiceMetadata,
+        compliance: complianceReport,
         offer,
         configuredLastOfferNumber: validatedSettings.lastOfferNumber,
         configuredLastInvoiceNumber: validatedSettings.lastInvoiceNumber,
@@ -1513,6 +1549,24 @@ export async function handleGenerateOfferAuthorizedRequest(
       generatedDocumentNumber = storedDocument.offerNumber;
       storedDocumentEmail = storedDocument.email;
       storedDocumentPaymentStatus = storedDocument.payment?.status;
+      await recordActivitySafely({
+        userId: actingUserId,
+        entityType: "document",
+        entityId: generatedDocumentNumber,
+        action: "compliance_checked",
+        eventKey: buildActivityEventKey(idempotencyKey, "compliance_checked"),
+        metadata: {
+          documentType,
+          complianceStatus: complianceReport.status,
+          warningCount: complianceReport.issues.filter(
+            (issue) => issue.severity === "warning",
+          ).length,
+          errorCount: complianceReport.issues.filter(
+            (issue) => issue.severity === "error",
+          ).length,
+        },
+        createdAt: now,
+      });
       await recordActivitySafely({
         userId: actingUserId,
         entityType: "document",
@@ -1909,6 +1963,8 @@ export async function handleGenerateOfferAuthorizedRequest(
           : undefined,
       reminderStatus,
       reminderDueAt,
+      complianceReport,
+      complianceWarnings,
       pdfStored: true,
       pdfDownloadUrl: `/api/pdf/customer-documents/${encodeURIComponent(
         generatedDocumentNumber,

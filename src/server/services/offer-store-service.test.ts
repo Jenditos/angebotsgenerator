@@ -245,6 +245,54 @@ describe("offer-store-service", () => {
     }
   });
 
+  it("stores a document compliance report on creation", async () => {
+    const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-compliance-"));
+    const storePath = path.join(dataDir, "offers-store.json");
+    const lockPath = path.join(dataDir, "offers-store.lock");
+
+    try {
+      const created = await createStoredOfferRecord(
+        {
+          ...createSampleInput("compliance"),
+          compliance: {
+            status: "warning",
+            checkedAt: "2026-01-01T10:00:00.000Z",
+            issues: [
+              {
+                code: "structured_e_invoice_missing",
+                severity: "warning",
+                message: "B2B-Rechnung braucht spaeter eine E-Rechnung.",
+              },
+            ],
+          },
+        },
+        {
+          dataDir,
+          storePath,
+          lockPath,
+        },
+      );
+
+      expect(created.compliance?.status).toBe("warning");
+      expect(created.compliance?.issues[0]?.code).toBe(
+        "structured_e_invoice_missing",
+      );
+
+      const persistedRaw = await readFile(storePath, "utf8");
+      const persisted = JSON.parse(persistedRaw) as {
+        offers: Array<{
+          compliance?: { status?: string; issues?: Array<{ code?: string }> };
+        }>;
+      };
+      expect(persisted.offers[0].compliance?.status).toBe("warning");
+      expect(persisted.offers[0].compliance?.issues?.[0]?.code).toBe(
+        "structured_e_invoice_missing",
+      );
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
   it("stores an email reference on an existing document record", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-email-"));
     const storePath = path.join(dataDir, "offers-store.json");
