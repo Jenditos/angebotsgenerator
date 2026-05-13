@@ -16205,3 +16205,29 @@ html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .app
     width: 100% !important;
   }
 }
+
+/* Termin-Popup: Inhalt darf unten nicht vom Modal abgeschnitten werden */
+html body .customerArchiveSheet.appointmentsSheet {
+  height: auto !important;
+  max-height: min(calc(100dvh - 96px), 820px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  padding-bottom: calc(28px + env(safe-area-inset-bottom)) !important;
+  scroll-padding-bottom: 32px;
+}
+
+html body .customerArchiveSheet.appointmentsSheet .appointmentsForm {
+  margin-bottom: 18px;
+}
+
+html body .customerArchiveSheet.appointmentsSheet .appointmentsList {
+  padding-bottom: 4px;
+}
+
+@media (max-width: 760px) {
+  html body .customerArchiveSheet.appointmentsSheet {
+    max-height: calc(100dvh - 28px) !important;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom)) !important;
+  }
+}
