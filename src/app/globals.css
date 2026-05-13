@@ -16231,3 +16231,65 @@ html body .customerArchiveSheet.appointmentsSheet .appointmentsList {
     padding-bottom: calc(32px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* ==========================================================================
+   Global Shadow Clipping Guard
+   Keep elevated buttons/cards from being cut by parent containers.
+   ========================================================================== */
+html body :is(
+  .formCard,
+  .dashboardPrimaryCard,
+  .voicePanel,
+  .recipientType,
+  .accountMenuPanel,
+  .settingsOverlaySheet,
+  .customerArchiveSheet,
+  .customerPickerModalSheet,
+  .infoLegalSheet,
+  .subscriptionModalSheet,
+  .tipsOverlaySheet,
+  .voiceLoginModalSheet,
+  .photoCameraSheet,
+  .setupCompletionCard,
+  .setupCompletionActions,
+  .onboardingResumeModalActions,
+  .onboardingPageEmbedded .onboardingActions,
+  .appointmentsToolbar,
+  .appointmentsFormActions,
+  .submitActionRow,
+  .dashboardCtaRow,
+  .projectWorkspaceActions,
+  .projectArchiveActionRow
+) {
+  overflow: visible !important;
+}
+
+/* Preserve inner clipping only where it is functionally required */
+html body :is(
+  .positionsTypeaheadList,
+  .serviceSuggestionList,
+  .addressSuggestions,
+  .customerArchiveTree,
+  .customerArchiveDocumentList,
+  .photoCameraPreview,
+  .photoSelectionPreviewItem,
+  .photoSelectionPreviewThumb,
+  .onboardingProgressTrack,
+  .onboardingProgressTrackTop
+) {
+  overflow: hidden !important;
+}
+
+/* Small breathing room below action rows so hover shadows remain visible */
+html body :is(
+  .setupCompletionActions,
+  .onboardingResumeModalActions,
+  .onboardingPageEmbedded .onboardingActions,
+  .appointmentsFormActions,
+  .submitActionRow,
+  .dashboardCtaRow,
+  .projectWorkspaceActions,
+  .projectArchiveActionRow
+) {
+  padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+}
