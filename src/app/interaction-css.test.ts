@@ -44,6 +44,9 @@ describe("VISIORO interaction CSS contract", () => {
     expect(contractCss).toContain("button.dateInputIconButton:hover:not(:disabled)");
     expect(contractCss).toContain(".settingsSectionToggle:hover:not(:disabled)");
     expect(contractCss).toContain("background: rgba(231, 239, 255, 0.66)");
+    expect(contractCss).toContain(".settingsSectionBadge-ok");
+    expect(contractCss).toContain(".settingsSectionBadge-warning");
+    expect(contractCss).toContain(".settingsSectionBadge-error");
   });
 
   it("keeps focus visible and suggestion lists scrollable", () => {

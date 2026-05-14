@@ -97,12 +97,19 @@ const LOGO_JPEG_QUALITIES = [0.92, 0.86, 0.8, 0.74, 0.68];
 const ADDITIONAL_BANK_ACCOUNT_ID_PREFIX = "bank-extra";
 
 type SettingsSectionId = "company" | "tax" | "payment" | "documents";
+type SettingsSectionStatus = "ok" | "warning" | "error";
+
+const SETTINGS_SECTION_STATUS_LABELS: Record<SettingsSectionStatus, string> = {
+  ok: "OK",
+  warning: "Prüfen",
+  error: "Fehlt",
+};
 
 type SettingsAccordionSectionProps = {
   id: SettingsSectionId;
   title: string;
   description: string;
-  badge: string;
+  status: SettingsSectionStatus;
   isOpen: boolean;
   onToggle: () => void;
   children: ReactNode;
@@ -112,13 +119,14 @@ function SettingsAccordionSection({
   id,
   title,
   description,
-  badge,
+  status,
   isOpen,
   onToggle,
   children,
 }: SettingsAccordionSectionProps) {
   const titleId = `settings-section-${id}-title`;
   const bodyId = `settings-section-${id}-body`;
+  const statusLabel = SETTINGS_SECTION_STATUS_LABELS[status];
 
   return (
     <section
@@ -146,7 +154,14 @@ function SettingsAccordionSection({
           <span className="settingsSectionSubtitle">{description}</span>
         </span>
         <span className="settingsSectionToggleMeta">
-          <span className="settingsSectionBadge">{badge}</span>
+          <span
+            className={`settingsSectionBadge settingsSectionBadge-${status}`}
+            aria-label={`Status: ${statusLabel}`}
+            title={`Status: ${statusLabel}`}
+          >
+            <span className="settingsSectionStatusDot" aria-hidden="true" />
+            <span>{statusLabel}</span>
+          </span>
           <span className="settingsSectionChevron" aria-hidden="true">
             <svg viewBox="0 0 20 20" focusable="false">
               <path
@@ -1630,25 +1645,29 @@ export default function SettingsPage() {
     };
   }, []);
 
-  const companySectionBadge =
+  const isCompanySectionComplete =
     settings.companyName.trim() &&
     settings.ownerName.trim() &&
     settings.companyEmail.trim() &&
+    isValidEmailAddress(settings.companyEmail.trim()) &&
     settings.companyStreet.trim() &&
     settings.companyPostalCode.trim() &&
-    settings.companyCity.trim()
-      ? "Basis vollständig"
-      : "Pflichtdaten";
-  const taxSectionBadge =
-    settings.taxNumber.trim() || settings.vatId.trim()
-      ? "Steuerdaten gesetzt"
-      : "Optional prüfen";
-  const paymentSectionBadge = ibanValidation.isValid
-    ? "Zahlung bereit"
-    : "IBAN prüfen";
-  const documentsSectionBadge = orderedPdfColumns.some((column) => column.visible)
-    ? "PDF konfiguriert"
-    : "PDF prüfen";
+    settings.companyCity.trim();
+  const companySectionStatus: SettingsSectionStatus = isCompanySectionComplete
+    ? "ok"
+    : "error";
+  const taxSectionStatus: SettingsSectionStatus =
+    settings.taxNumber.trim() || settings.vatId.trim() ? "ok" : "warning";
+  const paymentSectionStatus: SettingsSectionStatus = ibanValidation.isValid
+    ? "ok"
+    : settings.companyIban.trim()
+      ? "warning"
+      : "error";
+  const documentsSectionStatus: SettingsSectionStatus = orderedPdfColumns.some(
+    (column) => column.visible,
+  )
+    ? "ok"
+    : "warning";
 
   return (
     <main className={`page ${isEmbedded ? "settingsEmbeddedPage" : ""}`}>
@@ -1734,7 +1753,7 @@ export default function SettingsPage() {
               id="company"
               title="Firmendaten"
               description="Logo, Absender, Kontakt und Adresse für Angebote und Rechnungen."
-              badge={companySectionBadge}
+              status={companySectionStatus}
               isOpen={isSettingsSectionOpen("company")}
               onToggle={() => toggleSettingsSection("company")}
             >
@@ -1922,7 +1941,7 @@ export default function SettingsPage() {
               id="tax"
               title="Steuerliche Angaben"
               description="Steuersatz, Steuernummer, USt-IdNr. und Hinweise für Sonderfälle."
-              badge={taxSectionBadge}
+              status={taxSectionStatus}
               isOpen={isSettingsSectionOpen("tax")}
               onToggle={() => toggleSettingsSection("tax")}
             >
@@ -2028,7 +2047,7 @@ export default function SettingsPage() {
               id="payment"
               title="Bankverbindung & Zahlungsdaten"
               description="IBAN, weitere Konten, Zahlungsziel und Zahlungssäumnis."
-              badge={paymentSectionBadge}
+              status={paymentSectionStatus}
               isOpen={isSettingsSectionOpen("payment")}
               onToggle={() => toggleSettingsSection("payment")}
             >
@@ -2360,7 +2379,7 @@ export default function SettingsPage() {
               id="documents"
               title="Dokumente & Layout"
               description="Nummernkreise, Angebotsbedingungen und PDF-Tabellenlayout."
-              badge={documentsSectionBadge}
+              status={documentsSectionStatus}
               isOpen={isSettingsSectionOpen("documents")}
               onToggle={() => toggleSettingsSection("documents")}
             >
