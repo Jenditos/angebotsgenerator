@@ -10449,6 +10449,7 @@ export default function HomePage() {
                   <div className="onboardingFlowOverlayFrameWrap onboardingFlowInlineContent">
                     <OnboardingPageClient
                       embedded
+                      initialSettings={companySettings}
                       preferredStartStep={onboardingEntryStep}
                       onEmbeddedEvent={handleEmbeddedOnboardingEvent}
                     />

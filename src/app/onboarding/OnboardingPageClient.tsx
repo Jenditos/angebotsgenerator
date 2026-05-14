@@ -115,6 +115,7 @@ type EmbeddedOnboardingMessage = OnboardingFlowEvent & {
 
 type OnboardingPageClientProps = {
   embedded?: boolean;
+  initialSettings?: CompanySettings | null;
   onEmbeddedEvent?: (event: OnboardingFlowEvent) => void;
   preferredStartStep?: number;
 };
@@ -334,14 +335,18 @@ function buildStepPayload(
 
 export default function OnboardingPageClient({
   embedded = false,
+  initialSettings = null,
   onEmbeddedEvent,
   preferredStartStep,
 }: OnboardingPageClientProps) {
   const router = useRouter();
   const isEmbeddedMode = embedded;
-  const [settings, setSettings] = useState<CompanySettings>(emptySettings);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<CompanySettings>(
+    () => initialSettings ?? emptySettings,
+  );
+  const [currentStep, setCurrentStep] = useState(() =>
+    clampOnboardingStep(preferredStartStep ?? 1),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [error, setError] = useState("");
@@ -370,7 +375,6 @@ export default function OnboardingPageClient({
     let cancelled = false;
 
     async function loadInitialData() {
-      setIsLoading(true);
       setError("");
       try {
         const response = await fetch("/api/settings", { cache: "no-store" });
@@ -429,10 +433,6 @@ export default function OnboardingPageClient({
       } catch {
         if (!cancelled) {
           setError("Onboarding konnte nicht geladen werden.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
         }
       }
     }
@@ -873,22 +873,6 @@ export default function OnboardingPageClient({
 
       return prev;
     });
-  }
-
-  if (isLoading) {
-    return (
-      <main
-        className={`page onboardingPage ${isEmbeddedMode ? "onboardingPageEmbedded" : ""}`}
-      >
-        {!isEmbeddedMode ? <div className="ambient ambientA" aria-hidden /> : null}
-        {!isEmbeddedMode ? <div className="ambient ambientB" aria-hidden /> : null}
-        <div className="container onboardingContainer">
-          <section className="glassCard onboardingCard onboardingLoadingCard">
-            <p className="voiceInfo">Onboarding wird geladen ...</p>
-          </section>
-        </div>
-      </main>
-    );
   }
 
   const stepTitle =
