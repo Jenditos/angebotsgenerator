@@ -50,4 +50,23 @@ describe("VISIORO interaction CSS contract", () => {
     expect(contractCss).toContain("overflow-y: auto !important");
     expect(contractCss).not.toContain(".subscriptionModalBody,\n.subscriptionPricingGrid");
   });
+
+  it("does not let the global shadow guard break modal scrolling", () => {
+    const shadowGuardStart = css.indexOf("Global Shadow Clipping Guard");
+    expect(shadowGuardStart).toBeGreaterThan(-1);
+
+    const shadowGuardCss = css.slice(shadowGuardStart);
+    const visibleOverflowRule = shadowGuardCss.match(
+      /html body :is\((?<selectors>[\s\S]*?)\)\s*\{\s*overflow:\s*visible !important;\s*\}/,
+    );
+
+    expect(visibleOverflowRule?.groups?.selectors ?? "").not.toContain(
+      ".customerArchiveSheet",
+    );
+    expect(shadowGuardCss).toContain("html body .customerArchiveSheet {");
+    expect(shadowGuardCss).toContain(
+      "html body .customerArchiveSheet.appointmentsSheet {",
+    );
+    expect(shadowGuardCss).toContain("overflow-y: auto !important");
+  });
 });

@@ -16227,8 +16227,9 @@ html body .appFrameWithSidebar .appointmentsForm .appointmentAssistantPanel .app
 
 /* Termin-Popup: Inhalt darf unten nicht vom Modal abgeschnitten werden */
 html body .customerArchiveSheet.appointmentsSheet {
-  height: auto !important;
-  max-height: min(calc(100dvh - 96px), 820px) !important;
+  height: min(calc(100dvh - 36px), 860px) !important;
+  max-height: min(calc(100dvh - 36px), 860px) !important;
+  min-height: 0 !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   overscroll-behavior: contain;
@@ -16246,6 +16247,7 @@ html body .customerArchiveSheet.appointmentsSheet .appointmentsList {
 
 @media (max-width: 760px) {
   html body .customerArchiveSheet.appointmentsSheet {
+    height: calc(100dvh - 28px) !important;
     max-height: calc(100dvh - 28px) !important;
     padding-bottom: calc(32px + env(safe-area-inset-bottom)) !important;
   }
@@ -16262,7 +16264,6 @@ html body :is(
   .recipientType,
   .accountMenuPanel,
   .settingsOverlaySheet,
-  .customerArchiveSheet,
   .customerPickerModalSheet,
   .infoLegalSheet,
   .subscriptionModalSheet,
@@ -16281,6 +16282,15 @@ html body :is(
   .projectArchiveActionRow
 ) {
   overflow: visible !important;
+}
+
+html body .customerArchiveSheet {
+  overflow: hidden !important;
+}
+
+html body .customerArchiveSheet.appointmentsSheet {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 /* Preserve inner clipping only where it is functionally required */
