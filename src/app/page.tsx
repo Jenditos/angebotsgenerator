@@ -10912,40 +10912,6 @@ export default function HomePage() {
                   </button>
                   <span className="appSidebarNavLabel">Einstellungen</span>
                 </div>
-                <div className={`appSidebarNavItem ${isSubscriptionModalOpen ? "active" : ""}`}>
-                  <button
-                    type="button"
-                    className="sidebarQuickNavButton"
-                    onClick={openSubscriptionFromAccountMenu}
-                    aria-label="Abo und Preis anzeigen"
-                    title="Abo und Preis"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="sidebarQuickNavIcon"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <path
-                        d="M4.6 7.2h14.8a1.9 1.9 0 0 1 1.9 1.9v8a1.9 1.9 0 0 1-1.9 1.9H4.6a1.9 1.9 0 0 1-1.9-1.9v-8a1.9 1.9 0 0 1 1.9-1.9Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M3 10.2h18M6.2 15.7h4.8"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                  <span className="appSidebarNavLabel">Abo</span>
-                </div>
                 <div className={`appSidebarNavItem ${isAppointmentsOpen ? "active" : ""}`}>
                   <button
                     type="button"
@@ -11006,6 +10972,40 @@ export default function HomePage() {
                     </svg>
                   </button>
                   <span className="appSidebarNavLabel">Gespeicherte Kunden</span>
+                </div>
+                <div className={`appSidebarNavItem ${isSubscriptionModalOpen ? "active" : ""}`}>
+                  <button
+                    type="button"
+                    className="sidebarQuickNavButton"
+                    onClick={openSubscriptionFromAccountMenu}
+                    aria-label="Abo und Preis anzeigen"
+                    title="Abo und Preis"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="sidebarQuickNavIcon"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M4.6 7.2h14.8a1.9 1.9 0 0 1 1.9 1.9v8a1.9 1.9 0 0 1-1.9 1.9H4.6a1.9 1.9 0 0 1-1.9-1.9v-8a1.9 1.9 0 0 1 1.9-1.9Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M3 10.2h18M6.2 15.7h4.8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <span className="appSidebarNavLabel">Abo</span>
                 </div>
                 <div className={`appSidebarNavItem ${isSetupHintOpen ? "active" : ""}`}>
                   <button
