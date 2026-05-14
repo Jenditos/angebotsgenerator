@@ -16379,6 +16379,65 @@ html body .settingsPageTransition .settingsSectionBadge-error .settingsSectionSt
   box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14);
 }
 
+html body .settingsPageTransition .settingsFieldLabelRow {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+html body .settingsPageTransition .settingsFieldLabelRow > span:first-child {
+  min-width: 0;
+}
+
+html body .settingsPageTransition .settingsFieldInlineStatus {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.69rem !important;
+  font-weight: 850;
+  letter-spacing: 0 !important;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+html body .settingsPageTransition .settingsFieldInlineStatus-error {
+  color: #b42318 !important;
+  background: rgba(254, 242, 242, 0.94);
+  border-color: rgba(220, 38, 38, 0.24);
+}
+
+html body .settingsPageTransition .settingsFieldInlineStatus-warning {
+  color: #8a560f !important;
+  background: rgba(255, 251, 235, 0.94);
+  border-color: rgba(217, 119, 6, 0.24);
+}
+
+html body .settingsPageTransition
+  .settingsFieldNeedsAttention-error
+  > :is(input, textarea, select) {
+  border-color: rgba(220, 38, 38, 0.48) !important;
+  background: rgba(255, 251, 251, 0.98) !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08) !important;
+}
+
+html body .settingsPageTransition
+  .settingsFieldNeedsAttention-warning
+  > :is(input, textarea, select) {
+  border-color: rgba(217, 119, 6, 0.42) !important;
+  background: rgba(255, 252, 244, 0.98) !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1) !important;
+}
+
+html body .settingsPageTransition
+  .settingsFieldNeedsAttention
+  > :is(input, textarea, select):focus {
+  outline: 3px solid rgba(55, 113, 231, 0.18);
+  outline-offset: 2px;
+}
+
 html body .settingsPageTransition .settingsSectionChevron {
   width: 34px;
   height: 34px;

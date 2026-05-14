@@ -98,11 +98,27 @@ const ADDITIONAL_BANK_ACCOUNT_ID_PREFIX = "bank-extra";
 
 type SettingsSectionId = "company" | "tax" | "payment" | "documents";
 type SettingsSectionStatus = "ok" | "warning" | "error";
+type SettingsFieldAttention = "missing" | "invalid" | "choice";
 
 const SETTINGS_SECTION_STATUS_LABELS: Record<SettingsSectionStatus, string> = {
   ok: "OK",
   warning: "Prüfen",
   error: "Fehlt",
+};
+
+const SETTINGS_FIELD_ATTENTION_LABELS: Record<SettingsFieldAttention, string> = {
+  missing: "Fehlt",
+  invalid: "Prüfen",
+  choice: "Eine Angabe nötig",
+};
+
+const SETTINGS_FIELD_ATTENTION_TONES: Record<
+  SettingsFieldAttention,
+  "error" | "warning"
+> = {
+  missing: "error",
+  invalid: "error",
+  choice: "warning",
 };
 
 type SettingsAccordionSectionProps = {
@@ -187,6 +203,41 @@ function SettingsAccordionSection({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function getSettingsFieldClassName(
+  baseClassName: string,
+  attention?: SettingsFieldAttention,
+): string {
+  if (!attention) {
+    return baseClassName;
+  }
+
+  const tone = SETTINGS_FIELD_ATTENTION_TONES[attention];
+  return `${baseClassName} settingsFieldNeedsAttention settingsFieldNeedsAttention-${tone}`;
+}
+
+function SettingsFieldLabel({
+  children,
+  attention,
+}: {
+  children: ReactNode;
+  attention?: SettingsFieldAttention;
+}) {
+  if (!attention) {
+    return <span>{children}</span>;
+  }
+
+  const tone = SETTINGS_FIELD_ATTENTION_TONES[attention];
+
+  return (
+    <span className="settingsFieldLabelRow">
+      <span>{children}</span>
+      <span className={`settingsFieldInlineStatus settingsFieldInlineStatus-${tone}`}>
+        {SETTINGS_FIELD_ATTENTION_LABELS[attention]}
+      </span>
+    </span>
   );
 }
 
@@ -1645,14 +1696,38 @@ export default function SettingsPage() {
     };
   }, []);
 
+  const isCompanyNameMissing = !settings.companyName.trim();
+  const isOwnerNameMissing = !settings.ownerName.trim();
+  const isCompanyStreetMissing = !settings.companyStreet.trim();
+  const isCompanyPostalCodeMissing = !settings.companyPostalCode.trim();
+  const isCompanyCityMissing = !settings.companyCity.trim();
+  const isCompanyEmailMissing = !settings.companyEmail.trim();
+  const isCompanyEmailInvalid =
+    !isCompanyEmailMissing &&
+    !isValidEmailAddress(settings.companyEmail.trim());
+  const isSenderCopyEmailInvalid =
+    settings.senderCopyEmail.trim().length > 0 &&
+    !isValidEmailAddress(settings.senderCopyEmail.trim());
+  const isCompanyWebsiteInvalid =
+    settings.companyWebsite.trim().length > 0 &&
+    !validateWebsiteInput(settings.companyWebsite).isValid;
+  const isTaxIdentifierMissing =
+    !settings.taxNumber.trim() && !settings.vatId.trim();
+  const isCompanyIbanMissing = !settings.companyIban.trim();
+  const isCompanyIbanInvalid = !isCompanyIbanMissing && !ibanValidation.isValid;
+  const companyEmailAttention: SettingsFieldAttention | undefined =
+    isCompanyEmailMissing ? "missing" : isCompanyEmailInvalid ? "invalid" : undefined;
+  const companyIbanAttention: SettingsFieldAttention | undefined =
+    isCompanyIbanMissing ? "missing" : isCompanyIbanInvalid ? "invalid" : undefined;
+
   const isCompanySectionComplete =
-    settings.companyName.trim() &&
-    settings.ownerName.trim() &&
-    settings.companyEmail.trim() &&
-    isValidEmailAddress(settings.companyEmail.trim()) &&
-    settings.companyStreet.trim() &&
-    settings.companyPostalCode.trim() &&
-    settings.companyCity.trim();
+    !isCompanyNameMissing &&
+    !isOwnerNameMissing &&
+    !isCompanyEmailMissing &&
+    !isCompanyEmailInvalid &&
+    !isCompanyStreetMissing &&
+    !isCompanyPostalCodeMissing &&
+    !isCompanyCityMissing;
   const companySectionStatus: SettingsSectionStatus = isCompanySectionComplete
     ? "ok"
     : "error";
@@ -1757,10 +1832,20 @@ export default function SettingsPage() {
               isOpen={isSettingsSectionOpen("company")}
               onToggle={() => toggleSettingsSection("company")}
             >
-                <label className="field">
-                  <span>Firmenname</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isCompanyNameMissing ? "missing" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isCompanyNameMissing ? "missing" : undefined}
+                  >
+                    Firmenname
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={isCompanyNameMissing ? "true" : undefined}
                     value={settings.companyName}
                     autoCapitalize="words"
                     onChange={(e) =>
@@ -1772,10 +1857,20 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>Inhaber / Ansprechpartner</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isOwnerNameMissing ? "missing" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isOwnerNameMissing ? "missing" : undefined}
+                  >
+                    Inhaber / Ansprechpartner
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={isOwnerNameMissing ? "true" : undefined}
                     value={settings.ownerName}
                     autoCapitalize="words"
                     onChange={(e) =>
@@ -1787,10 +1882,20 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field span2">
-                  <span>Adresse</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field span2",
+                    isCompanyStreetMissing ? "missing" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isCompanyStreetMissing ? "missing" : undefined}
+                  >
+                    Adresse
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={isCompanyStreetMissing ? "true" : undefined}
                     value={settings.companyStreet}
                     autoCapitalize="words"
                     onChange={(e) =>
@@ -1802,10 +1907,24 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>PLZ</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isCompanyPostalCodeMissing ? "missing" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={
+                      isCompanyPostalCodeMissing ? "missing" : undefined
+                    }
+                  >
+                    PLZ
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={
+                      isCompanyPostalCodeMissing ? "true" : undefined
+                    }
                     value={settings.companyPostalCode}
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -1818,10 +1937,20 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>Ort</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isCompanyCityMissing ? "missing" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isCompanyCityMissing ? "missing" : undefined}
+                  >
+                    Ort
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={isCompanyCityMissing ? "true" : undefined}
                     value={settings.companyCity}
                     autoCapitalize="words"
                     onChange={(e) =>
@@ -1848,10 +1977,18 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>Firmen-E-Mail</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    companyEmailAttention,
+                  )}
+                >
+                  <SettingsFieldLabel attention={companyEmailAttention}>
+                    Firmen-E-Mail
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={companyEmailAttention ? "true" : undefined}
                     type="email"
                     autoCapitalize="none"
                     autoCorrect="off"
@@ -1865,10 +2002,22 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>Website</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isCompanyWebsiteInvalid ? "invalid" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isCompanyWebsiteInvalid ? "invalid" : undefined}
+                  >
+                    Website
+                  </SettingsFieldLabel>
                   <input
                     type="text"
+                    aria-invalid={
+                      isCompanyWebsiteInvalid ? "true" : undefined
+                    }
                     inputMode="url"
                     autoCapitalize="none"
                     autoCorrect="off"
@@ -1882,10 +2031,22 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field span2">
-                  <span>Interne Kopie per E-Mail (optional)</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field span2",
+                    isSenderCopyEmailInvalid ? "invalid" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isSenderCopyEmailInvalid ? "invalid" : undefined}
+                  >
+                    Interne Kopie per E-Mail (optional)
+                  </SettingsFieldLabel>
                   <input
                     type="email"
+                    aria-invalid={
+                      isSenderCopyEmailInvalid ? "true" : undefined
+                    }
                     autoCapitalize="none"
                     autoCorrect="off"
                     value={settings.senderCopyEmail}
@@ -1962,9 +2123,19 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>Steuernummer</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isTaxIdentifierMissing ? "choice" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isTaxIdentifierMissing ? "choice" : undefined}
+                  >
+                    Steuernummer
+                  </SettingsFieldLabel>
                   <input
+                    aria-invalid={isTaxIdentifierMissing ? "true" : undefined}
                     value={settings.taxNumber}
                     autoCapitalize="characters"
                     onChange={(e) =>
@@ -1977,9 +2148,19 @@ export default function SettingsPage() {
                   />
                 </label>
 
-                <label className="field">
-                  <span>USt-IdNr.</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field",
+                    isTaxIdentifierMissing ? "choice" : undefined,
+                  )}
+                >
+                  <SettingsFieldLabel
+                    attention={isTaxIdentifierMissing ? "choice" : undefined}
+                  >
+                    USt-IdNr.
+                  </SettingsFieldLabel>
                   <input
+                    aria-invalid={isTaxIdentifierMissing ? "true" : undefined}
                     value={settings.vatId}
                     autoCapitalize="characters"
                     onChange={(e) =>
@@ -2051,10 +2232,18 @@ export default function SettingsPage() {
               isOpen={isSettingsSectionOpen("payment")}
               onToggle={() => toggleSettingsSection("payment")}
             >
-                <label className="field span2 settingsIbanField">
-                  <span>IBAN</span>
+                <label
+                  className={getSettingsFieldClassName(
+                    "field span2 settingsIbanField",
+                    companyIbanAttention,
+                  )}
+                >
+                  <SettingsFieldLabel attention={companyIbanAttention}>
+                    IBAN
+                  </SettingsFieldLabel>
                   <input
                     required
+                    aria-invalid={companyIbanAttention ? "true" : undefined}
                     value={settings.companyIban}
                     inputMode="text"
                     autoCapitalize="characters"

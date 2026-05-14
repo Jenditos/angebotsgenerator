@@ -47,6 +47,8 @@ describe("VISIORO interaction CSS contract", () => {
     expect(contractCss).toContain(".settingsSectionBadge-ok");
     expect(contractCss).toContain(".settingsSectionBadge-warning");
     expect(contractCss).toContain(".settingsSectionBadge-error");
+    expect(contractCss).toContain(".settingsFieldNeedsAttention-error");
+    expect(contractCss).toContain(".settingsFieldNeedsAttention-warning");
   });
 
   it("keeps focus visible and suggestion lists scrollable", () => {
