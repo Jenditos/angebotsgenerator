@@ -42,6 +42,8 @@ describe("VISIORO interaction CSS contract", () => {
     expect(contractCss).toContain(".positionDeleteButton:hover:not(:disabled)");
     expect(contractCss).toContain(".serviceAddCustomButton:hover:not(:disabled)");
     expect(contractCss).toContain("button.dateInputIconButton:hover:not(:disabled)");
+    expect(contractCss).toContain(".settingsSectionToggle:hover:not(:disabled)");
+    expect(contractCss).toContain("background: rgba(231, 239, 255, 0.66)");
   });
 
   it("keeps focus visible and suggestion lists scrollable", () => {
@@ -62,6 +64,9 @@ describe("VISIORO interaction CSS contract", () => {
 
     expect(visibleOverflowRule?.groups?.selectors ?? "").not.toContain(
       ".customerArchiveSheet",
+    );
+    expect(visibleOverflowRule?.groups?.selectors ?? "").toContain(
+      ".settingsAccordionSection",
     );
     expect(shadowGuardCss).toContain("html body .customerArchiveSheet {");
     expect(shadowGuardCss).toContain(

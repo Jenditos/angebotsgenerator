@@ -9,6 +9,7 @@ import {
   FormEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -39,6 +40,7 @@ import {
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isValidEmailAddress } from "@/lib/user-input";
 import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import {
   AdditionalBankAccount,
@@ -93,6 +95,85 @@ const LOGO_DOWNSCALE_FACTOR = 0.82;
 const LOGO_MAX_DOWNSCALE_ATTEMPTS = 6;
 const LOGO_JPEG_QUALITIES = [0.92, 0.86, 0.8, 0.74, 0.68];
 const ADDITIONAL_BANK_ACCOUNT_ID_PREFIX = "bank-extra";
+
+type SettingsSectionId = "company" | "tax" | "payment" | "documents";
+
+type SettingsAccordionSectionProps = {
+  id: SettingsSectionId;
+  title: string;
+  description: string;
+  badge: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+};
+
+function SettingsAccordionSection({
+  id,
+  title,
+  description,
+  badge,
+  isOpen,
+  onToggle,
+  children,
+}: SettingsAccordionSectionProps) {
+  const titleId = `settings-section-${id}-title`;
+  const bodyId = `settings-section-${id}-body`;
+
+  return (
+    <section
+      className={`settingsSectionCard settingsAccordionSection span2 ${
+        isOpen ? "isOpen" : "isCollapsed"
+      }`}
+      data-settings-section={id}
+    >
+      <button
+        type="button"
+        className="settingsSectionToggle"
+        aria-expanded={isOpen}
+        aria-controls={bodyId}
+        onClick={onToggle}
+      >
+        <span className="settingsSectionTitleBlock">
+          <span
+            id={titleId}
+            className="settingsSectionTitle"
+            role="heading"
+            aria-level={2}
+          >
+            {title}
+          </span>
+          <span className="settingsSectionSubtitle">{description}</span>
+        </span>
+        <span className="settingsSectionToggleMeta">
+          <span className="settingsSectionBadge">{badge}</span>
+          <span className="settingsSectionChevron" aria-hidden="true">
+            <svg viewBox="0 0 20 20" focusable="false">
+              <path
+                d="M5 7.5 10 12.5 15 7.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </span>
+      </button>
+      {isOpen ? (
+        <div
+          id={bodyId}
+          className="settingsSectionGrid settingsAccordionBody"
+          role="region"
+          aria-labelledby={titleId}
+        >
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function sortPdfColumns(
   columns: PdfTableColumnConfig[],
@@ -545,6 +626,9 @@ export default function SettingsPage() {
     useState<PdfColumnDropPosition>("after");
   const [isLeavingSettings, setIsLeavingSettings] = useState(false);
   const [logoPreviewRevision, setLogoPreviewRevision] = useState(0);
+  const [openSettingsSections, setOpenSettingsSections] = useState<
+    SettingsSectionId[]
+  >(["company"]);
   const leaveSettingsTimeoutRef = useRef<number | null>(null);
   const autosaveTimeoutRef = useRef<number | null>(null);
   const settingsSaveRequestRef = useRef(0);
@@ -573,6 +657,25 @@ export default function SettingsPage() {
   );
   const canAddAdditionalBankAccount =
     normalizedAdditionalBankAccounts.length < MAX_ADDITIONAL_BANK_ACCOUNTS;
+
+  const isSettingsSectionOpen = useCallback(
+    (sectionId: SettingsSectionId) => openSettingsSections.includes(sectionId),
+    [openSettingsSections],
+  );
+
+  const openSettingsSection = useCallback((sectionId: SettingsSectionId) => {
+    setOpenSettingsSections((prev) =>
+      prev.includes(sectionId) ? prev : [...prev, sectionId],
+    );
+  }, []);
+
+  function toggleSettingsSection(sectionId: SettingsSectionId) {
+    setOpenSettingsSections((prev) =>
+      prev.includes(sectionId)
+        ? prev.filter((currentSectionId) => currentSectionId !== sectionId)
+        : [...prev, sectionId],
+    );
+  }
 
   useEffect(() => {
     latestSettingsRef.current = settings;
@@ -1374,11 +1477,80 @@ export default function SettingsPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIbanFieldTouched(true);
+    if (!validateSettingsBeforeManualSave()) {
+      return;
+    }
     if (autosaveTimeoutRef.current !== null) {
       window.clearTimeout(autosaveTimeoutRef.current);
       autosaveTimeoutRef.current = null;
     }
     await persistSettings(settings, "manual");
+  }
+
+  function validateSettingsBeforeManualSave(): boolean {
+    if (!settings.companyName.trim()) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie den Firmennamen ein.");
+      return false;
+    }
+    if (!settings.ownerName.trim()) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie den Inhaber oder Ansprechpartner ein.");
+      return false;
+    }
+    if (!settings.companyStreet.trim()) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie die Adresse ein.");
+      return false;
+    }
+    if (!settings.companyPostalCode.trim()) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie die PLZ ein.");
+      return false;
+    }
+    if (!settings.companyCity.trim()) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie den Ort ein.");
+      return false;
+    }
+    if (!settings.companyEmail.trim()) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie die Firmen-E-Mail ein.");
+      return false;
+    }
+    if (!isValidEmailAddress(settings.companyEmail.trim())) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie eine gültige Firmen-E-Mail ein.");
+      return false;
+    }
+    if (
+      settings.senderCopyEmail.trim() &&
+      !isValidEmailAddress(settings.senderCopyEmail.trim())
+    ) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie eine gültige interne Kopie-E-Mail ein.");
+      return false;
+    }
+    if (!validateWebsiteInput(settings.companyWebsite).isValid) {
+      openSettingsSection("company");
+      setError("Bitte geben Sie eine gültige Website ein.");
+      return false;
+    }
+    if (!settings.companyIban.trim()) {
+      openSettingsSection("payment");
+      setIbanFieldTouched(true);
+      setError("Bitte geben Sie die IBAN ein.");
+      return false;
+    }
+    if (!validateIbanInput(settings.companyIban).isValid) {
+      openSettingsSection("payment");
+      setIbanFieldTouched(true);
+      setError(validateIbanInput(settings.companyIban).message);
+      return false;
+    }
+
+    setError("");
+    return true;
   }
 
   function resetSettings() {
@@ -1457,6 +1629,26 @@ export default function SettingsPage() {
       }
     };
   }, []);
+
+  const companySectionBadge =
+    settings.companyName.trim() &&
+    settings.ownerName.trim() &&
+    settings.companyEmail.trim() &&
+    settings.companyStreet.trim() &&
+    settings.companyPostalCode.trim() &&
+    settings.companyCity.trim()
+      ? "Basis vollständig"
+      : "Pflichtdaten";
+  const taxSectionBadge =
+    settings.taxNumber.trim() || settings.vatId.trim()
+      ? "Steuerdaten gesetzt"
+      : "Optional prüfen";
+  const paymentSectionBadge = ibanValidation.isValid
+    ? "Zahlung bereit"
+    : "IBAN prüfen";
+  const documentsSectionBadge = orderedPdfColumns.some((column) => column.visible)
+    ? "PDF konfiguriert"
+    : "PDF prüfen";
 
   return (
     <main className={`page ${isEmbedded ? "settingsEmbeddedPage" : ""}`}>
@@ -1537,16 +1729,15 @@ export default function SettingsPage() {
         </section>
 
         <section className="glassCard formCard">
-          <form onSubmit={onSubmit} className="formGrid">
-            <div className="settingsSectionCard span2">
-              <div className="settingsSectionHeader">
-                <h2 className="settingsSectionTitle">Firmendaten</h2>
-                <p className="settingsSectionSubtitle">
-                  Diese Daten werden auf Angeboten und Rechnungen als Absender
-                  verwendet.
-                </p>
-              </div>
-              <div className="settingsSectionGrid">
+          <form onSubmit={onSubmit} className="formGrid" noValidate>
+            <SettingsAccordionSection
+              id="company"
+              title="Firmendaten"
+              description="Logo, Absender, Kontakt und Adresse für Angebote und Rechnungen."
+              badge={companySectionBadge}
+              isOpen={isSettingsSectionOpen("company")}
+              onToggle={() => toggleSettingsSection("company")}
+            >
                 <label className="field">
                   <span>Firmenname</span>
                   <input
@@ -1725,18 +1916,16 @@ export default function SettingsPage() {
                     />
                   </div>
                 ) : null}
-              </div>
-            </div>
+            </SettingsAccordionSection>
 
-            <div className="settingsSectionCard span2">
-              <div className="settingsSectionHeader">
-                <h2 className="settingsSectionTitle">Steuerliche Angaben</h2>
-                <p className="settingsSectionSubtitle">
-                  Angaben für korrekte Ausweisung von Steuerinformationen in den
-                  Dokumenten.
-                </p>
-              </div>
-              <div className="settingsSectionGrid">
+            <SettingsAccordionSection
+              id="tax"
+              title="Steuerliche Angaben"
+              description="Steuersatz, Steuernummer, USt-IdNr. und Hinweise für Sonderfälle."
+              badge={taxSectionBadge}
+              isOpen={isSettingsSectionOpen("tax")}
+              onToggle={() => toggleSettingsSection("tax")}
+            >
                 <label className="field">
                   <span>MwSt. (%) für PDF</span>
                   <input
@@ -1833,20 +2022,16 @@ export default function SettingsPage() {
                     </span>
                   </label>
                 </div>
-              </div>
-            </div>
+            </SettingsAccordionSection>
 
-            <div className="settingsSectionCard span2">
-              <div className="settingsSectionHeader">
-                <h2 className="settingsSectionTitle">
-                  Bankverbindung / Zahlungsdaten
-                </h2>
-                <p className="settingsSectionSubtitle">
-                  Diese Informationen werden im unteren Bereich von Angebot und
-                  Rechnung ausgegeben.
-                </p>
-              </div>
-              <div className="settingsSectionGrid">
+            <SettingsAccordionSection
+              id="payment"
+              title="Bankverbindung & Zahlungsdaten"
+              description="IBAN, weitere Konten, Zahlungsziel und Zahlungssäumnis."
+              badge={paymentSectionBadge}
+              isOpen={isSettingsSectionOpen("payment")}
+              onToggle={() => toggleSettingsSection("payment")}
+            >
                 <label className="field span2 settingsIbanField">
                   <span>IBAN</span>
                   <input
@@ -2169,17 +2354,16 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+            </SettingsAccordionSection>
 
-            <div className="settingsSectionCard span2">
-              <div className="settingsSectionHeader">
-                <h2 className="settingsSectionTitle">Dokumente & Layout</h2>
-                <p className="settingsSectionSubtitle">
-                  Steuerung für Nummernkreise, Hinweise und PDF-Tabellenlayout.
-                </p>
-              </div>
-              <div className="settingsSectionGrid">
+            <SettingsAccordionSection
+              id="documents"
+              title="Dokumente & Layout"
+              description="Nummernkreise, Angebotsbedingungen und PDF-Tabellenlayout."
+              badge={documentsSectionBadge}
+              isOpen={isSettingsSectionOpen("documents")}
+              onToggle={() => toggleSettingsSection("documents")}
+            >
                 <label className="field">
                   <span>Angebotsgültigkeit (Tage)</span>
                   <input
@@ -2343,8 +2527,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+            </SettingsAccordionSection>
 
             <div className="submitActionRow dashboardCtaRow span2 settingsSaveActionRow">
               <button
