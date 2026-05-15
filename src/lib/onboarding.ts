@@ -1,8 +1,8 @@
 import { CompanySettings } from "@/types/offer";
 
 export const ONBOARDING_MIN_STEP = 1;
-export const ONBOARDING_MAX_STEP = 5;
-export const ONBOARDING_TOTAL_STEPS = 5;
+export const ONBOARDING_MAX_STEP = 4;
+export const ONBOARDING_TOTAL_STEPS = 4;
 export const ONBOARDING_SNOOZE_COOKIE_NAME = "onboarding_snoozed";
 
 export type OnboardingState = {
@@ -11,8 +11,8 @@ export type OnboardingState = {
   onboardingStep: number;
 };
 
-export function hasTaxIdentifier(settings: CompanySettings): boolean {
-  return Boolean(settings.taxNumber.trim() || settings.vatId.trim());
+function hasFirstAndLastName(ownerName: string): boolean {
+  return ownerName.trim().split(/\s+/).filter(Boolean).length >= 2;
 }
 
 export function getMissingOnboardingRequiredFields(
@@ -24,7 +24,7 @@ export function getMissingOnboardingRequiredFields(
     missing.push("companyName");
   }
 
-  if (!settings.ownerName.trim()) {
+  if (!hasFirstAndLastName(settings.ownerName)) {
     missing.push("ownerName");
   }
 
@@ -44,15 +44,14 @@ export function getMissingOnboardingRequiredFields(
     missing.push("companyCity");
   }
 
-  if (!Array.isArray(settings.customServiceTypes) || settings.customServiceTypes.length === 0) {
+  if (
+    !Array.isArray(settings.customServiceTypes) ||
+    settings.customServiceTypes.length === 0
+  ) {
     missing.push("customServiceTypes");
   }
 
-  if (!settings.companyIban.trim()) {
-    missing.push("companyIban");
-  }
-
-  if (!hasTaxIdentifier(settings)) {
+  if (!settings.taxNumber.trim()) {
     missing.push("taxIdentifier");
   }
 

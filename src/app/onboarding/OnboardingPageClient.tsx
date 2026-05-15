@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   formatIbanForDisplay,
@@ -8,17 +8,6 @@ import {
   validateIbanInput,
 } from "@/lib/iban";
 import { MAIN_BANK_ACCOUNT_ID } from "@/lib/bank-accounts";
-import {
-  LOGO_ALLOWED_FORMATS_LABEL,
-  LOGO_UPLOAD_ACCEPT_ATTRIBUTE,
-  MAX_LOGO_DATA_URL_LENGTH,
-  MAX_LOGO_RENDER_EDGE_PX,
-  MAX_LOGO_UPLOAD_FILE_BYTES,
-  MAX_LOGO_UPLOAD_FILE_MB,
-  hasSupportedLogoExtension,
-  isSupportedLogoMimeType,
-  sanitizeCompanyLogoDataUrl,
-} from "@/lib/logo-config";
 import {
   ONBOARDING_SNOOZE_COOKIE_NAME,
   ONBOARDING_TOTAL_STEPS,
@@ -29,12 +18,6 @@ import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { isValidEmailAddress } from "@/lib/user-input";
 import { TradeMultiSelect } from "@/components/TradeMultiSelect";
 import { CompanySettings } from "@/types/offer";
-
-const KLEINUNTERNEHMER_NOTICE_DEFAULT =
-  "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.";
-const LOGO_DOWNSCALE_FACTOR = 0.82;
-const LOGO_MAX_DOWNSCALE_ATTEMPTS = 6;
-const LOGO_JPEG_QUALITIES = [0.92, 0.86, 0.8, 0.74, 0.68];
 
 const emptySettings: CompanySettings = {
   companyName: "",
@@ -53,7 +36,7 @@ const emptySettings: CompanySettings = {
   defaultBankAccountId: MAIN_BANK_ACCOUNT_ID,
   taxNumber: "",
   vatId: "",
-  companyCountry: "",
+  companyCountry: "Deutschland",
   euVatNoticeText: "",
   includeCustomerVatId: false,
   senderCopyEmail: "",
@@ -73,65 +56,6 @@ const emptySettings: CompanySettings = {
   lastInvoiceNumber: "",
   customServiceTypes: [],
 };
-
-const CREW_PREVIEW_CARDS = [
-  {
-    title: "Sekretärin",
-    text: "antwortet Kunden und hält Termine im Blick.",
-    tone: "blue",
-  },
-  {
-    title: "Nachfasser",
-    text: "erinnert dich, wenn Kunden nicht reagieren.",
-    tone: "amber",
-  },
-  {
-    title: "Reputations",
-    text: "holt nach Abnahme Bewertungen ein.",
-    tone: "green",
-  },
-];
-
-const LIFECYCLE_PREVIEW_ITEMS = [
-  {
-    label: "Tag 0",
-    title: "Angebot raus",
-    text: "Kunde, Leistungen und Nummer sind bereit.",
-    tone: "blue",
-  },
-  {
-    label: "Tag 3",
-    title: "Nachfasser erinnert dich",
-    text: "Kunde hat nicht reagiert, Erinnerung vorbereitet.",
-    tone: "amber",
-  },
-  {
-    label: "Tag 5",
-    title: "Zusage · Bauakte angelegt",
-    text: "Timeline, Fotos und Notizen bleiben zusammen.",
-    tone: "green",
-  },
-  {
-    label: "Tag X",
-    title: "Rechnung in Sekunden",
-    text: "Aus dem Angebot wird mit einem Klick die Rechnung.",
-    tone: "teal",
-  },
-  {
-    label: "Tag X+14",
-    title: "Bewertung holen",
-    text: "Google-Rezension nach Abnahme, sauber vorbereitet.",
-    tone: "purple",
-  },
-];
-
-const FINAL_CHECKLIST_ITEMS = [
-  "Crew kennengelernt",
-  "Firma und Kontakt eingerichtet",
-  "Gewerke und Steuerbasis gespeichert",
-  "Zahlung für Rechnungen vorbereitet",
-  "Ablauf bis zur Bewertung verstanden",
-];
 
 type OnboardingApiState = {
   onboardingCompleted: boolean;
@@ -217,268 +141,56 @@ function emitEmbeddedOnboardingEvent(
   );
 }
 
-function scaleToMaxEdge(
-  width: number,
-  height: number,
-  maxEdge: number,
-): { width: number; height: number } {
-  const largestEdge = Math.max(width, height);
-  if (largestEdge <= maxEdge) {
-    return { width, height };
-  }
-
-  const scale = maxEdge / largestEdge;
-  return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
-  };
-}
-
-function serializeCanvasWithinLimit(
-  canvas: HTMLCanvasElement,
-  maxDataUrlLength: number,
-): string | null {
-  try {
-    const pngDataUrl = canvas.toDataURL("image/png");
-    if (pngDataUrl.length <= maxDataUrlLength) {
-      return pngDataUrl;
-    }
-  } catch {
-    // Continue with JPEG fallback.
-  }
-
-  for (const quality of LOGO_JPEG_QUALITIES) {
-    try {
-      const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
-      if (jpegDataUrl.length <= maxDataUrlLength) {
-        return jpegDataUrl;
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
-}
-
-function isSupportedLogoFile(file: File): boolean {
-  if (isSupportedLogoMimeType(file.type)) {
-    return true;
-  }
-  return hasSupportedLogoExtension(file.name);
-}
-
-async function loadImageElementFromFile(file: File): Promise<HTMLImageElement> {
-  return await new Promise<HTMLImageElement>((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(image);
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("logo-image-load-failed"));
-    };
-
-    image.src = objectUrl;
-  });
-}
-
-async function convertLogoFileToDataUrl(file: File): Promise<string> {
-  const image = await loadImageElementFromFile(file);
-  const naturalWidth = image.naturalWidth || image.width;
-  const naturalHeight = image.naturalHeight || image.height;
-
-  if (naturalWidth <= 0 || naturalHeight <= 0) {
-    throw new Error("logo-image-invalid");
-  }
-
-  const initialSize = scaleToMaxEdge(
-    naturalWidth,
-    naturalHeight,
-    MAX_LOGO_RENDER_EDGE_PX,
-  );
-  let canvas = document.createElement("canvas");
-  canvas.width = initialSize.width;
-  canvas.height = initialSize.height;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("logo-canvas-unavailable");
-  }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-  const firstAttempt = serializeCanvasWithinLimit(canvas, MAX_LOGO_DATA_URL_LENGTH);
-  if (firstAttempt) {
-    return firstAttempt;
-  }
-
-  for (let attempt = 0; attempt < LOGO_MAX_DOWNSCALE_ATTEMPTS; attempt += 1) {
-    const resizedCanvas = document.createElement("canvas");
-    resizedCanvas.width = Math.max(
-      1,
-      Math.round(canvas.width * LOGO_DOWNSCALE_FACTOR),
-    );
-    resizedCanvas.height = Math.max(
-      1,
-      Math.round(canvas.height * LOGO_DOWNSCALE_FACTOR),
-    );
-
-    const resizedCtx = resizedCanvas.getContext("2d");
-    if (!resizedCtx) {
-      throw new Error("logo-canvas-unavailable");
-    }
-
-    resizedCtx.clearRect(0, 0, resizedCanvas.width, resizedCanvas.height);
-    resizedCtx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
-    canvas = resizedCanvas;
-
-    const candidate = serializeCanvasWithinLimit(
-      canvas,
-      MAX_LOGO_DATA_URL_LENGTH,
-    );
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  throw new Error("logo-too-large-after-optimization");
-}
-
 function buildStepPayload(
   step: number,
   settings: CompanySettings,
 ): Partial<CompanySettings> {
-  if (step === 1) {
+  if (step === 2) {
+    return {
+      customServiceTypes: settings.customServiceTypes,
+    };
+  }
+
+  if (step === 3) {
     return {
       companyName: settings.companyName,
       ownerName: settings.ownerName,
+      companyStreet: settings.companyStreet,
+      companyPostalCode: settings.companyPostalCode,
+      companyCity: settings.companyCity,
+      companyCountry: settings.companyCountry || "Deutschland",
       companyPhone: settings.companyPhone,
       companyEmail: settings.companyEmail,
     };
   }
 
-  if (step === 2) {
-    return {
-      companyStreet: settings.companyStreet,
-      companyPostalCode: settings.companyPostalCode,
-      companyCity: settings.companyCity,
-    };
-  }
-
-  if (step === 3) {
+  if (step === 4) {
     return {
       taxNumber: settings.taxNumber,
       vatId: settings.vatId,
-      euVatNoticeText: settings.euVatNoticeText,
-      customServiceTypes: settings.customServiceTypes,
-    };
-  }
-
-  if (step === 4) {
-    return {
       companyIban: settings.companyIban,
       companyBic: settings.companyBic,
-      companyBankName: settings.companyBankName,
       invoicePaymentDueDays: settings.invoicePaymentDueDays,
     };
   }
 
-  return {
-    logoDataUrl: settings.logoDataUrl,
-  };
+  return {};
 }
 
-function renderOnboardingIcon(step: number) {
-  if (step === 1) {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M4.5 19.5h15M6 19.5V7.8c0-.9.7-1.6 1.6-1.6h8.8c.9 0 1.6.7 1.6 1.6v11.7M9 10h1.5M13.5 10H15M9 13.5h1.5M13.5 13.5H15"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
-        />
-      </svg>
-    );
+function splitOwnerName(value: string): { firstName: string; lastName: string } {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return { firstName: "", lastName: "" };
   }
 
-  if (step === 2) {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M12 21s6-5 6-10a6 6 0 0 0-12 0c0 5 6 10 6 10Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
-        />
-        <path
-          d="M12 13.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        />
-      </svg>
-    );
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: "" };
   }
 
-  if (step === 3) {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M5 13.4 10.6 19 20 6.5"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-        />
-      </svg>
-    );
-  }
-
-  if (step === 4) {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          d="M4 8.5h16M6.5 16h3M5.8 5.5h12.4c1 0 1.8.8 1.8 1.8v9.4c0 1-.8 1.8-1.8 1.8H5.8c-1 0-1.8-.8-1.8-1.8V7.3c0-1 .8-1.8 1.8-1.8Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M7 12.4 10.3 16 17.5 8"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-      <path
-        d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1],
+  };
 }
 
 export default function OnboardingPageClient({
@@ -489,6 +201,7 @@ export default function OnboardingPageClient({
 }: OnboardingPageClientProps) {
   const router = useRouter();
   const isEmbeddedMode = embedded;
+  const headingId = isEmbeddedMode ? "onboarding-flow-title" : "onboarding-title";
   const [settings, setSettings] = useState<CompanySettings>(
     () => initialSettings ?? emptySettings,
   );
@@ -496,12 +209,8 @@ export default function OnboardingPageClient({
     clampOnboardingStep(preferredStartStep ?? 1),
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
-  const [confirmCompletion, setConfirmCompletion] = useState(false);
-  const [logoPreviewRevision, setLogoPreviewRevision] = useState(0);
-  const [smallBusinessRule, setSmallBusinessRule] = useState(false);
   const [onboardingState, setOnboardingState] = useState<OnboardingApiState>({
     onboardingCompleted: false,
     onboardingCompletedAt: null,
@@ -517,6 +226,10 @@ export default function OnboardingPageClient({
   const ibanValidation = useMemo(
     () => validateIbanInput(settings.companyIban),
     [settings.companyIban],
+  );
+  const ownerNameParts = useMemo(
+    () => splitOwnerName(settings.ownerName),
+    [settings.ownerName],
   );
 
   useEffect(() => {
@@ -564,9 +277,6 @@ export default function OnboardingPageClient({
             preferredStartStep ?? nextOnboarding.onboardingStep,
           );
           setCurrentStep(resumedStep);
-          setSmallBusinessRule(
-            /§\s*19\s*ustg/i.test(nextSettings.euVatNoticeText.trim()),
-          );
           if (isEmbeddedMode) {
             emitEmbeddedOnboardingEvent(
               {
@@ -688,24 +398,40 @@ export default function OnboardingPageClient({
     setSettings((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateOwnerNamePart(part: "firstName" | "lastName", value: string) {
+    const firstName = part === "firstName" ? value : ownerNameParts.firstName;
+    const lastName = part === "lastName" ? value : ownerNameParts.lastName;
+    updateSetting(
+      "ownerName",
+      [firstName.trim(), lastName.trim()].filter(Boolean).join(" "),
+    );
+  }
+
   function validateStep(step: number): string | null {
     if (step === 1) {
-      if (!settings.companyName.trim()) {
-        return "Bitte Firmenname eingeben.";
-      }
-      if (!settings.ownerName.trim()) {
-        return "Bitte Inhaber / Ansprechpartner eingeben.";
-      }
-      if (!settings.companyEmail.trim()) {
-        return "Bitte Firmen-E-Mail eingeben.";
-      }
-      if (!isValidEmailAddress(settings.companyEmail.trim())) {
-        return "Bitte eine gültige Firmen-E-Mail eingeben.";
-      }
       return null;
     }
 
     if (step === 2) {
+      if (
+        !Array.isArray(settings.customServiceTypes) ||
+        settings.customServiceTypes.length === 0
+      ) {
+        return "Bitte wähle mindestens ein Gewerk aus.";
+      }
+      return null;
+    }
+
+    if (step === 3) {
+      if (!settings.companyName.trim()) {
+        return "Bitte Firmenname eingeben.";
+      }
+      if (!ownerNameParts.firstName.trim()) {
+        return "Bitte Vorname eingeben.";
+      }
+      if (!ownerNameParts.lastName.trim()) {
+        return "Bitte Nachname eingeben.";
+      }
       if (!settings.companyStreet.trim()) {
         return "Bitte Straße und Hausnummer eingeben.";
       }
@@ -715,25 +441,21 @@ export default function OnboardingPageClient({
       if (!settings.companyCity.trim()) {
         return "Bitte Ort eingeben.";
       }
-      return null;
-    }
-
-    if (step === 3) {
-      if (!Array.isArray(settings.customServiceTypes) || settings.customServiceTypes.length === 0) {
-        return "Bitte wähle mindestens ein Gewerk aus.";
+      if (!settings.companyEmail.trim()) {
+        return "Bitte E-Mail eingeben.";
       }
-      if (!settings.taxNumber.trim() && !settings.vatId.trim()) {
-        return "Bitte mindestens Steuernummer oder USt-IdNr. eingeben.";
+      if (!isValidEmailAddress(settings.companyEmail.trim())) {
+        return "Bitte eine gültige E-Mail eingeben.";
       }
       return null;
     }
 
     if (step === 4) {
-      const iban = settings.companyIban.trim();
-      if (!iban) {
-        return "Bitte eine IBAN eingeben.";
+      if (!settings.taxNumber.trim()) {
+        return "Bitte Steuernummer eingeben.";
       }
-      if (!ibanValidation.isValid) {
+      const iban = settings.companyIban.trim();
+      if (iban && !ibanValidation.isValid) {
         return ibanValidation.message;
       }
       if (
@@ -744,10 +466,6 @@ export default function OnboardingPageClient({
         return "Bitte ein gültiges Zahlungsziel zwischen 0 und 365 Tagen eingeben.";
       }
       return null;
-    }
-
-    if (step === 5 && !confirmCompletion) {
-      return "Bitte bestätige den Abschluss der Ersteinrichtung.";
     }
 
     return null;
@@ -831,7 +549,7 @@ export default function OnboardingPageClient({
 
   async function completeOnboarding() {
     setInfo("");
-    const validationError = validateStep(5);
+    const validationError = validateStep(ONBOARDING_TOTAL_STEPS);
     if (validationError) {
       setError(validationError);
       return;
@@ -839,12 +557,13 @@ export default function OnboardingPageClient({
 
     if (!hasCompletedOnboardingRequiredFields(settings)) {
       setError(
-        "Bitte prüfe die Pflichtfelder. Firmenname, Adresse, E-Mail, IBAN und Steuernummer/USt-IdNr. sind erforderlich.",
+        "Bitte prüfe die Pflichtfelder. Gewerk, Firmendaten, Adresse, E-Mail und Steuernummer sind erforderlich.",
       );
       return;
     }
 
     const completionSettingsPatch: Partial<CompanySettings> = {
+      customServiceTypes: settings.customServiceTypes,
       companyName: settings.companyName,
       ownerName: settings.ownerName,
       companyPhone: settings.companyPhone,
@@ -852,14 +571,12 @@ export default function OnboardingPageClient({
       companyStreet: settings.companyStreet,
       companyPostalCode: settings.companyPostalCode,
       companyCity: settings.companyCity,
+      companyCountry: settings.companyCountry || "Deutschland",
       taxNumber: settings.taxNumber,
       vatId: settings.vatId,
-      euVatNoticeText: settings.euVatNoticeText,
       companyIban: settings.companyIban,
       companyBic: settings.companyBic,
-      companyBankName: settings.companyBankName,
       invoicePaymentDueDays: settings.invoicePaymentDueDays,
-      logoDataUrl: settings.logoDataUrl,
     };
 
     const success = await queuePersist(
@@ -894,7 +611,7 @@ export default function OnboardingPageClient({
     setError("");
     setInfo("");
 
-    // Modal sofort schließen — Speichern läuft im Hintergrund
+    // Modal sofort schließen; Speichern läuft im Hintergrund.
     setOnboardingSnoozeCookie();
     if (isEmbeddedMode) {
       emitEmbeddedOnboardingEvent(
@@ -909,7 +626,7 @@ export default function OnboardingPageClient({
       router.replace("/");
     }
 
-    // Fortschritt im Hintergrund speichern (non-blocking)
+    // Fortschritt im Hintergrund speichern.
     const stepPatch = buildStepPayload(currentStep, settings);
     void queuePersist(stepPatch, {
       onboardingStep: currentStep,
@@ -918,286 +635,191 @@ export default function OnboardingPageClient({
     });
   }
 
-  async function onLogoUpload(event: ChangeEvent<HTMLInputElement>) {
-    const inputElement = event.currentTarget;
-    const file = inputElement.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    setError("");
-    setInfo("");
-
-    if (!isSupportedLogoFile(file)) {
-      setError(
-        `Dieses Format wird nicht unterstützt. Erlaubt sind ${LOGO_ALLOWED_FORMATS_LABEL}.`,
-      );
-      inputElement.value = "";
-      return;
-    }
-
-    if (file.size > MAX_LOGO_UPLOAD_FILE_BYTES) {
-      setError(
-        `Die Datei ist zu groß. Maximal ${MAX_LOGO_UPLOAD_FILE_MB} MB sind erlaubt.`,
-      );
-      inputElement.value = "";
-      return;
-    }
-
-    setIsUploadingLogo(true);
-    try {
-      const dataUrl = await convertLogoFileToDataUrl(file);
-      const sanitizedLogo = sanitizeCompanyLogoDataUrl(dataUrl);
-      const nextSettings: CompanySettings = {
-        ...settings,
-        logoDataUrl: sanitizedLogo,
-      };
-      setSettings(nextSettings);
-      setLogoPreviewRevision((prev) => prev + 1);
-
-      const success = await queuePersist(
-        { logoDataUrl: sanitizedLogo },
-        { onboardingStep: currentStep },
-      );
-      if (!success) {
-        return;
-      }
-      setInfo("Logo gespeichert.");
-    } catch (uploadError) {
-      if (
-        uploadError instanceof Error &&
-        uploadError.message === "logo-too-large-after-optimization"
-      ) {
-        setError(
-          "Das Logo ist trotz Optimierung zu groß. Bitte eine kleinere Datei wählen.",
-        );
-      } else {
-        setError(
-          "Das Logo konnte nicht verarbeitet werden. Bitte PNG, JPG, JPEG, WEBP oder SVG verwenden.",
-        );
-      }
-    } finally {
-      setIsUploadingLogo(false);
-      inputElement.value = "";
-    }
-  }
-
-  async function deleteLogo() {
-    if (!settings.logoDataUrl) {
-      return;
-    }
-    setError("");
-    setInfo("");
-
-    const success = await queuePersist(
-      { logoDataUrl: "" },
-      { onboardingStep: currentStep },
-    );
-    if (!success) {
-      return;
-    }
-
-    setSettings((prev) => ({ ...prev, logoDataUrl: "" }));
-    setLogoPreviewRevision((prev) => prev + 1);
-    setInfo("Logo entfernt.");
-  }
-
-  function toggleSmallBusinessRule(checked: boolean) {
-    setSmallBusinessRule(checked);
-    setSettings((prev) => {
-      if (checked) {
-        if (prev.euVatNoticeText.trim()) {
-          return prev;
-        }
-        return {
-          ...prev,
-          euVatNoticeText: KLEINUNTERNEHMER_NOTICE_DEFAULT,
-        };
-      }
-
-      if (prev.euVatNoticeText.trim() === KLEINUNTERNEHMER_NOTICE_DEFAULT) {
-        return {
-          ...prev,
-          euVatNoticeText: "",
-        };
-      }
-
-      return prev;
-    });
-  }
-
   const stepTitle =
     currentStep === 1
-      ? "Deine Firma"
+      ? "Willkommen bei VISIORO"
       : currentStep === 2
-        ? "Wo findet man dich?"
+        ? "Was bietet dein Betrieb an?"
         : currentStep === 3
-          ? "Dein Gewerk"
-          : currentStep === 4
-            ? "Und dann läuft es"
-            : "Alles klar!";
+          ? "Deine Firmendaten"
+          : "Rechnungsdaten";
 
   const stepDescription =
     currentStep === 1
-      ? "Damit deine Crew weiß, wer du bist und Angebote in deinem Namen rausgehen."
+      ? "Richte deine App in wenigen Minuten ein. Danach kannst du Angebote und Rechnungen schneller erstellen."
       : currentStep === 2
-        ? "Adresse und Kontakt landen automatisch sauber auf Angeboten und Rechnungen."
+        ? "Wähle ein oder mehrere Gewerke. Die KI nutzt diese Auswahl, um passende Fachbegriffe und Leistungspositionen vorzuschlagen."
         : currentStep === 3
-          ? "Das hilft der KI, die richtigen Fachbegriffe und Leistungspositionen zu verwenden."
-          : currentStep === 4
-            ? "Während du auf der Baustelle bist, arbeitet deine digitale Crew im Hintergrund weiter."
-            : "Deine Crew ist bereit. Du bist nicht mehr alleine.";
+          ? "Diese Daten erscheinen später automatisch auf deinen Angeboten und Rechnungen."
+          : "Diese Angaben kannst du später jederzeit ändern.";
 
-  const primaryButtonLabel = currentStep === 4 ? "Zum Abschluss" : "Weiter";
+  const primaryButtonLabel =
+    currentStep === 1
+      ? "Einrichtung starten"
+      : currentStep === ONBOARDING_TOTAL_STEPS
+        ? "Einrichtung abschließen"
+        : "Weiter";
 
   return (
     <main
-      className={`page onboardingPage onboardingPageStep${currentStep} ${
+      className={`page onboardingPage onboardingSetup onboardingPageStep${currentStep} ${
         isEmbeddedMode ? "onboardingPageEmbedded" : ""
       }`}
     >
       {!isEmbeddedMode ? <div className="ambient ambientA" aria-hidden /> : null}
       {!isEmbeddedMode ? <div className="ambient ambientB" aria-hidden /> : null}
 
-      <div className="container onboardingContainer">
-        <section className="glassCard onboardingCard">
-          <header className="onboardingHeader">
-            <div className="onboardingProgressTrackTop" aria-hidden>
-              <div
-                className="onboardingProgressValueTop"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="onboardingTopNav" aria-label="Onboarding Navigation">
+      <div className="onboardingSetupShell">
+        <section className="onboardingSetupPanel" aria-labelledby={headingId}>
+          <header className="onboardingSetupTop">
+            <div className="onboardingSetupTopRow">
+              <p className="onboardingSetupStepText">
+                Schritt {currentStep} von {ONBOARDING_TOTAL_STEPS}
+              </p>
               {currentStep > 1 ? (
                 <button
                   type="button"
-                  className="onboardingBackButton"
-                  onClick={() => void goToPreviousStep()}
-                  disabled={isSaving || isUploadingLogo}
+                  className="onboardingSetupSkip"
+                  onClick={() => void postponeOnboarding()}
+                  disabled={isSaving}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    focusable="false"
-                    className="onboardingBackIcon"
-                  >
-                    <path
-                      d="m15 5-7 7 7 7"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                  <span>Zurück</span>
+                  Später einrichten
                 </button>
-              ) : (
-                <span aria-hidden="true" />
-              )}
-              {currentStep < ONBOARDING_TOTAL_STEPS ? (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="onboardingSkipButton onboardingTopSkipButton"
-                  onClick={() =>
-                    !(isSaving || isUploadingLogo) && void postponeOnboarding()
-                  }
-                  onKeyDown={(event) => {
-                    if (
-                      (event.key === "Enter" || event.key === " ") &&
-                      !(isSaving || isUploadingLogo)
-                    ) {
-                      event.preventDefault();
-                      void postponeOnboarding();
-                    }
-                  }}
-                  aria-disabled={isSaving || isUploadingLogo}
-                >
-                  Später
-                </span>
               ) : null}
             </div>
-            <div className="onboardingHeaderMain">
+            <div className="onboardingSetupProgressTrack" aria-hidden>
               <div
-                className={`onboardingHeroIcon onboardingHeroIconStep${currentStep}`}
-                aria-hidden="true"
-              >
-                {renderOnboardingIcon(currentStep)}
-              </div>
-              <div className="onboardingHeaderText">
-                <p className="heroEyebrow">
-                  Schritt {currentStep} von {ONBOARDING_TOTAL_STEPS}
-                </p>
-                <span className="onboardingStepBadge">
-                  {currentStep === ONBOARDING_TOTAL_STEPS
-                    ? "Bereit"
-                    : "2 Minuten"}
-                </span>
-              </div>
-              <h1>{stepTitle}</h1>
-              <p className="heroText">{stepDescription}</p>
+                className="onboardingSetupProgressValue"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
           </header>
 
           <div
-            className="onboardingStepCard"
+            className="onboardingSetupScroll"
             onBlurCapture={() => {
               void persistCurrentStepDraft();
             }}
           >
-            {currentStep === 1 ? (
-              <>
-                <div
-                  className="onboardingCrewPreview"
-                  aria-label="Digitale Crew im Überblick"
-                >
-                  {CREW_PREVIEW_CARDS.map((card) => (
-                    <article
-                      key={card.title}
-                      className={`onboardingCrewCard onboardingCrewCard-${card.tone}`}
-                    >
-                      <span className="onboardingCrewIcon" aria-hidden="true">
-                        {card.title.charAt(0)}
-                      </span>
-                      <div>
-                        <strong>{card.title}</strong>
-                        <p>{card.text}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+            <div className="onboardingSetupContent">
+              <div className="onboardingSetupIntro">
+                {currentStep === 1 ? (
+                  <div className="onboardingSetupBrandMark" aria-hidden="true">
+                    <span>V</span>
+                  </div>
+                ) : null}
+                <h1 id={headingId}>{stepTitle}</h1>
+                <p>{stepDescription}</p>
+                {currentStep === 1 ? (
+                  <div className="onboardingSetupBenefit">
+                    Deine Angaben werden später automatisch in Angeboten,
+                    Rechnungen und PDF-Dokumenten verwendet.
+                  </div>
+                ) : null}
+              </div>
 
-                <div className="onboardingGrid">
-                  <label className="field">
-                    <span>Firmenname *</span>
+              {currentStep === 2 ? (
+                <section className="onboardingSetupSection">
+                  <TradeMultiSelect
+                    idPrefix="onboarding-trade"
+                    selectedTrades={settings.customServiceTypes}
+                    onChange={(nextTrades) =>
+                      updateSetting("customServiceTypes", nextTrades)
+                    }
+                    variant="onboarding"
+                  />
+                </section>
+              ) : null}
+
+              {currentStep === 3 ? (
+                <div className="onboardingSetupForm">
+                  <label className="onboardingSetupField onboardingSetupFieldFull">
+                    <span>Firmenname</span>
                     <input
-                      required
                       value={settings.companyName}
                       autoCapitalize="words"
-                      placeholder="z. B. Bauwerk Müller GmbH"
+                      placeholder="z. B. Malerbetrieb Müller GmbH"
                       onChange={(event) =>
                         updateSetting("companyName", event.target.value)
                       }
                     />
                   </label>
 
-                  <label className="field">
-                    <span>Ansprechpartner *</span>
+                  <label className="onboardingSetupField">
+                    <span>Vorname</span>
                     <input
-                      required
-                      value={settings.ownerName}
+                      value={ownerNameParts.firstName}
                       autoCapitalize="words"
-                      placeholder="z. B. Max Müller"
+                      placeholder="Max"
                       onChange={(event) =>
-                        updateSetting("ownerName", event.target.value)
+                        updateOwnerNamePart("firstName", event.target.value)
                       }
                     />
                   </label>
 
-                  <label className="field">
-                    <span>Telefon</span>
+                  <label className="onboardingSetupField">
+                    <span>Nachname</span>
+                    <input
+                      value={ownerNameParts.lastName}
+                      autoCapitalize="words"
+                      placeholder="Müller"
+                      onChange={(event) =>
+                        updateOwnerNamePart("lastName", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="onboardingSetupField onboardingSetupFieldFull">
+                    <span>Straße und Hausnummer</span>
+                    <input
+                      value={settings.companyStreet}
+                      autoCapitalize="words"
+                      placeholder="Musterstraße 12"
+                      onChange={(event) =>
+                        updateSetting("companyStreet", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="onboardingSetupField onboardingSetupFieldShort">
+                    <span>PLZ</span>
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={settings.companyPostalCode}
+                      placeholder="80331"
+                      onChange={(event) =>
+                        updateSetting("companyPostalCode", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="onboardingSetupField">
+                    <span>Ort</span>
+                    <input
+                      value={settings.companyCity}
+                      autoCapitalize="words"
+                      placeholder="München"
+                      onChange={(event) =>
+                        updateSetting("companyCity", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="onboardingSetupField onboardingSetupFieldFull">
+                    <span>Land</span>
+                    <input
+                      value={settings.companyCountry || "Deutschland"}
+                      autoCapitalize="words"
+                      placeholder="Deutschland"
+                      onChange={(event) =>
+                        updateSetting("companyCountry", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="onboardingSetupField">
+                    <span>Telefonnummer</span>
                     <input
                       type="tel"
                       autoComplete="tel"
@@ -1209,10 +831,9 @@ export default function OnboardingPageClient({
                     />
                   </label>
 
-                  <label className="field">
-                    <span>E-Mail *</span>
+                  <label className="onboardingSetupField">
+                    <span>E-Mail</span>
                     <input
-                      required
                       type="email"
                       autoCapitalize="none"
                       autoCorrect="off"
@@ -1224,329 +845,156 @@ export default function OnboardingPageClient({
                     />
                   </label>
                 </div>
-              </>
-            ) : null}
+              ) : null}
 
-            {currentStep === 2 ? (
-              <div className="onboardingGrid">
-                <label className="field span2">
-                  <span>Straße + Hausnummer *</span>
-                  <input
-                    required
-                    value={settings.companyStreet}
-                    autoCapitalize="words"
-                    placeholder="Musterstraße 12"
-                    onChange={(event) =>
-                      updateSetting("companyStreet", event.target.value)
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>PLZ *</span>
-                  <input
-                    required
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={settings.companyPostalCode}
-                    placeholder="80331"
-                    onChange={(event) =>
-                      updateSetting("companyPostalCode", event.target.value)
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Ort *</span>
-                  <input
-                    required
-                    value={settings.companyCity}
-                    autoCapitalize="words"
-                    placeholder="München"
-                    onChange={(event) =>
-                      updateSetting("companyCity", event.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            ) : null}
-
-            {currentStep === 3 ? (
-              <div className="onboardingStepBody onboardingStepBodyTax">
-                <section className="onboardingFormSection onboardingFormSectionAccent">
-                  <div className="onboardingFormSectionHeader">
-                    <p className="onboardingFormSectionEyebrow">Gewerke</p>
-                    <h3 className="onboardingFormSectionTitle">
-                      Was bietet dein Betrieb an?
-                    </h3>
-                    <p className="onboardingFormSectionText">
-                      Suche dein Gewerk oder nutze die häufig gewählten
-                      Baustellen-Gewerke.
-                    </p>
-                  </div>
-
-                  <TradeMultiSelect
-                    idPrefix="onboarding-trade"
-                    selectedTrades={settings.customServiceTypes}
-                    onChange={(nextTrades) =>
-                      updateSetting("customServiceTypes", nextTrades)
-                    }
-                    helperText="Wähle alle Gewerke aus, die dein Betrieb anbietet."
-                    variant="onboarding"
-                  />
-                </section>
-
-                <section className="onboardingFormSection onboardingFormSectionRequired">
-                  <div className="onboardingFormSectionHeader">
-                    <p className="onboardingFormSectionEyebrow">Pflichtbereich</p>
-                    <h3 className="onboardingFormSectionTitle">
-                      Steuerangaben für saubere Rechnungen
-                    </h3>
-                    <p className="onboardingFormSectionText">
-                      Trage entweder deine Steuernummer oder deine USt-IdNr. ein.
-                      Eine der beiden Angaben reicht aus.
-                    </p>
-                  </div>
-
-                  <div className="onboardingGrid onboardingGridCompact">
-                    <label className="field">
-                      <span>Steuernummer</span>
-                      <input
-                        value={settings.taxNumber}
-                        autoCapitalize="characters"
-                        onChange={(event) =>
-                          updateSetting("taxNumber", event.target.value)
-                        }
-                        placeholder="z. B. 12/345/67890"
-                      />
-                    </label>
-
-                    <label className="field">
-                      <span>USt-IdNr.</span>
-                      <input
-                        value={settings.vatId}
-                        autoCapitalize="characters"
-                        onChange={(event) =>
-                          updateSetting("vatId", event.target.value)
-                        }
-                        placeholder="z. B. DE123456789"
-                      />
-                    </label>
-                  </div>
-                </section>
-
-                <section className="onboardingFormSection onboardingFormSectionOptional">
-                  <div className="onboardingFormSectionHeader">
-                    <p className="onboardingFormSectionEyebrow">Optional</p>
-                    <h3 className="onboardingFormSectionTitle">
-                      Kleinunternehmerregelung und Hinweistext
-                    </h3>
-                    <p className="onboardingFormSectionText">
-                      Aktiviere die Regelung nur, wenn sie auf dein Unternehmen
-                      zutrifft. Den Hinweistext brauchst du nur für Sonderfälle.
-                    </p>
-                  </div>
-
-                  <label className="onboardingToggle onboardingToggleCard">
+              {currentStep === 4 ? (
+                <div className="onboardingSetupForm">
+                  <label className="onboardingSetupField">
+                    <span>Steuernummer</span>
                     <input
-                      type="checkbox"
-                      checked={smallBusinessRule}
+                      value={settings.taxNumber}
+                      autoCapitalize="characters"
+                      placeholder="z. B. 12/345/67890"
                       onChange={(event) =>
-                        toggleSmallBusinessRule(event.target.checked)
+                        updateSetting("taxNumber", event.target.value)
                       }
                     />
-                    <span>Kleinunternehmerregelung (§ 19 UStG) anwenden</span>
                   </label>
 
-                  <label className="field">
-                    <span>Steuerhinweis (optional)</span>
-                    <textarea
-                      rows={3}
-                      value={settings.euVatNoticeText}
-                      onChange={(event) =>
-                        updateSetting("euVatNoticeText", event.target.value)
-                      }
-                      placeholder="z. B. Reverse-Charge-Hinweis oder Hinweis zur Steuerbefreiung"
-                    />
-                  </label>
-                </section>
-              </div>
-            ) : null}
-
-            {currentStep === 4 ? (
-              <div className="onboardingGrid">
-                <label className="field span2">
-                  <span>IBAN *</span>
-                  <input
-                    required
-                    value={settings.companyIban}
-                    autoCapitalize="characters"
-                    autoCorrect="off"
-                    placeholder="z. B. DE89 3704 0044 0532 0130 00"
-                    onChange={(event) =>
-                      updateSetting(
-                        "companyIban",
-                        formatIbanForDisplay(event.target.value),
-                      )
-                    }
-                  />
-                  <small
-                    className={`settingsIbanHint ${ibanValidation.isValid ? "isValid" : "isInvalid"} isVisible`}
-                  >
-                    {settings.companyIban.trim()
-                      ? ibanValidation.message
-                      : "Die IBAN wird lokal auf Format, Länge und Prüfziffer geprüft."}
-                  </small>
-                </label>
-
-                <label className="field">
-                  <span>BIC (optional)</span>
-                  <input
-                    value={settings.companyBic}
-                    autoCapitalize="characters"
-                    autoCorrect="off"
-                    onChange={(event) =>
-                      updateSetting("companyBic", normalizeBicInput(event.target.value))
-                    }
-                    placeholder="z. B. COBADEFFXXX"
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Bankname (optional)</span>
-                  <input
-                    value={settings.companyBankName}
-                    autoCapitalize="words"
-                    onChange={(event) =>
-                      updateSetting("companyBankName", event.target.value)
-                    }
-                    placeholder="z. B. Musterbank AG"
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Zahlungsziel (Tage)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="365"
-                    value={settings.invoicePaymentDueDays}
-                    onChange={(event) =>
-                      updateSetting(
-                        "invoicePaymentDueDays",
-                        Number(event.target.value || "14"),
-                      )
-                    }
-                  />
-                </label>
-
-                <div className="onboardingLifecyclePreview span2">
-                  {LIFECYCLE_PREVIEW_ITEMS.map((item) => (
-                    <article
-                      key={item.title}
-                      className={`onboardingLifecycleItem onboardingLifecycleItem-${item.tone}`}
-                    >
-                      <span className="onboardingLifecycleDot" aria-hidden="true" />
-                      <div>
-                        <p>{item.label}</p>
-                        <strong>{item.title}</strong>
-                        <span>{item.text}</span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {currentStep === 5 ? (
-              <div className="onboardingFinalWrap">
-                <div className="onboardingFinalChecklist">
-                  {FINAL_CHECKLIST_ITEMS.map((item) => (
-                    <div key={item} className="onboardingChecklistItem">
-                      <span aria-hidden="true">✓</span>
-                      <strong>{item}</strong>
-                    </div>
-                  ))}
-                </div>
-
-                <section className="onboardingLogoPanel">
-                  <div>
-                    <p className="onboardingLogoTitle">Logo optional ergänzen</p>
-                    <p className="onboardingHint">
-                      {LOGO_ALLOWED_FORMATS_LABEL}, maximal{" "}
-                      {MAX_LOGO_UPLOAD_FILE_MB} MB. Du kannst das später ändern.
-                    </p>
-                  </div>
-
-                  <label className="onboardingLogoUpload">
-                    <span>{settings.logoDataUrl ? "Logo ersetzen" : "Logo hochladen"}</span>
+                  <label className="onboardingSetupField">
+                    <span>
+                      USt-IdNr. <small>optional</small>
+                    </span>
                     <input
-                      type="file"
-                      accept={LOGO_UPLOAD_ACCEPT_ATTRIBUTE}
-                      onChange={onLogoUpload}
-                      disabled={isUploadingLogo}
+                      value={settings.vatId}
+                      autoCapitalize="characters"
+                      placeholder="z. B. DE123456789"
+                      onChange={(event) =>
+                        updateSetting("vatId", event.target.value)
+                      }
                     />
                   </label>
 
-                  {settings.logoDataUrl ? (
-                    <div className="logoFrame">
-                      <img
-                        key={logoPreviewRevision}
-                        src={settings.logoDataUrl}
-                        alt="Logo Vorschau"
-                        className="logoPreview"
-                      />
-                      <button
-                        type="button"
-                        className="ghostButton onboardingLogoRemoveButton"
-                        disabled={isUploadingLogo}
-                        onClick={() => void deleteLogo()}
+                  <label className="onboardingSetupField onboardingSetupFieldFull">
+                    <span>
+                      IBAN <small>optional</small>
+                    </span>
+                    <input
+                      value={settings.companyIban}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      placeholder="z. B. DE89 3704 0044 0532 0130 00"
+                      onChange={(event) =>
+                        updateSetting(
+                          "companyIban",
+                          formatIbanForDisplay(event.target.value),
+                        )
+                      }
+                    />
+                    {settings.companyIban.trim() ? (
+                      <small
+                        className={`onboardingSetupHint ${
+                          ibanValidation.isValid ? "isValid" : "isInvalid"
+                        }`}
                       >
-                        Entfernen
-                      </button>
-                    </div>
-                  ) : null}
-                </section>
+                        {ibanValidation.message}
+                      </small>
+                    ) : null}
+                  </label>
 
-                <label className="onboardingToggle onboardingConfirmToggle">
-                  <input
-                    type="checkbox"
-                    checked={confirmCompletion}
-                    onChange={(event) => setConfirmCompletion(event.target.checked)}
-                  />
-                  <span>
-                    Alles geprüft. Ich möchte die Ersteinrichtung abschließen.
-                  </span>
-                </label>
-              </div>
-            ) : null}
+                  <label className="onboardingSetupField">
+                    <span>
+                      BIC <small>optional</small>
+                    </span>
+                    <input
+                      value={settings.companyBic}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      placeholder="z. B. COBADEFFXXX"
+                      onChange={(event) =>
+                        updateSetting(
+                          "companyBic",
+                          normalizeBicInput(event.target.value),
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label className="onboardingSetupField">
+                    <span>Standard-Zahlungsziel</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="365"
+                      value={settings.invoicePaymentDueDays}
+                      onChange={(event) =>
+                        updateSetting(
+                          "invoicePaymentDueDays",
+                          Number(event.target.value || "14"),
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              {error ? (
+                <p className="onboardingSetupMessage isError">{error}</p>
+              ) : null}
+              {!error && info ? (
+                <p className="onboardingSetupMessage isSuccess">{info}</p>
+              ) : null}
+              {isSaving ? (
+                <p className="onboardingSetupMessage">Speichern ...</p>
+              ) : null}
+            </div>
           </div>
 
-          <footer className="onboardingActions">
-            {currentStep < ONBOARDING_TOTAL_STEPS ? (
+          <footer className="onboardingSetupFooter">
+            {currentStep > 1 ? (
               <button
                 type="button"
-                className="primaryButton"
-                onClick={() => void goToNextStep()}
-                disabled={isSaving || isUploadingLogo}
+                className="onboardingSetupBack"
+                onClick={() => void goToPreviousStep()}
+                disabled={isSaving}
               >
-                {primaryButtonLabel}
+                Zurück
               </button>
             ) : (
               <button
                 type="button"
-                className="primaryButton"
-                onClick={() => void completeOnboarding()}
-                disabled={isSaving || isUploadingLogo}
+                className="onboardingSetupBack onboardingSetupBackPlaceholder"
+                tabIndex={-1}
+                aria-hidden="true"
               >
-                Leg los!
+                Zurück
               </button>
             )}
+            <div className="onboardingSetupFooterActions">
+              {currentStep === 1 ? (
+                <button
+                  type="button"
+                  className="onboardingSetupSecondary"
+                  onClick={() => void postponeOnboarding()}
+                  disabled={isSaving}
+                >
+                  Später einrichten
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="onboardingSetupPrimary"
+                onClick={() =>
+                  currentStep < ONBOARDING_TOTAL_STEPS
+                    ? void goToNextStep()
+                    : void completeOnboarding()
+                }
+                disabled={isSaving}
+              >
+                {isSaving ? "Speichern ..." : primaryButtonLabel}
+              </button>
+            </div>
           </footer>
-
-          {isSaving ? <p className="voiceInfo">Speichern ...</p> : null}
-          {error ? <p className="error">{error}</p> : null}
-          {!error && info ? <p className="success">{info}</p> : null}
         </section>
       </div>
     </main>

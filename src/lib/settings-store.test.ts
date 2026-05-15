@@ -248,7 +248,7 @@ describe("settings-store", () => {
       onboardingCompleted: false,
     });
     const withClampedStep = await readOnboardingStatus();
-    expect(withClampedStep.onboardingStep).toBe(5);
+    expect(withClampedStep.onboardingStep).toBe(4);
     expect(withClampedStep.onboardingCompleted).toBe(false);
     expect(withClampedStep.onboardingCompletedAt).toBeNull();
 
@@ -257,7 +257,7 @@ describe("settings-store", () => {
     });
     const completed = await readOnboardingStatus();
     expect(completed.onboardingCompleted).toBe(true);
-    expect(completed.onboardingStep).toBe(5);
+    expect(completed.onboardingStep).toBe(4);
     expect(typeof completed.onboardingCompletedAt).toBe("string");
 
     await writeOnboardingStatus({

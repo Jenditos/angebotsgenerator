@@ -180,6 +180,7 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
       "Appreteure, Dekateure",
       "Schnellreiniger",
       "Teppichreiniger",
+      "Garten- und Landschaftsbau",
       "Getränkeleitungsreiniger",
       "Lampenschirmhersteller (Sonderanfertigung)",
       "Klavierstimmer",
@@ -399,6 +400,27 @@ const TRADE_SERVICE_PRESETS: TradeServicePreset[] = [
     },
     aiHint:
       "Nutze Mengen, Beton-/Steinqualitäten, Bewehrung, Schalung, Erdarbeiten, Verdichtung und Baustelleneinrichtung.",
+  },
+  {
+    match: ["Garten- und Landschaftsbau"],
+    services: [
+      "Außenanlage vorbereiten",
+      "Pflasterarbeiten",
+      "Terrasse anlegen",
+      "Rollrasen verlegen",
+      "Bepflanzung",
+      "Zaunmontage",
+      "Entwässerung",
+      "Pflegearbeiten",
+    ],
+    placeholders: {
+      serviceSearch: "z. B. Pflaster, Terrasse, Rollrasen, Zaun oder Bepflanzung",
+      serviceDescription:
+        "z. B. Außenfläche vorbereiten, Unterbau herstellen und Pflasterfläche inkl. Einfassung verlegen",
+      positionDescription: "z. B. Unterbau herstellen, Pflaster verlegen oder Bepflanzung liefern",
+    },
+    aiHint:
+      "Berücksichtige Erdarbeiten, Unterbau, Entwässerung, Materialstärken, Pflanzqualitäten und Pflegehinweise.",
   },
   {
     match: ["Metallbauer", "Feinwerkmechaniker", "Behälter und Apparatebauer", "Metallbildner"],

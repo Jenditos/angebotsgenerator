@@ -21,12 +21,21 @@ type TradeMultiSelectProps = {
 
 const FEATURED_TRADE_OPTIONS = [
   { label: "Maler und Lackierer", tradeName: "Maler und Lackierer" },
-  { label: "Sanitär, Heizung, Klima (SHK)", tradeName: "Installateur und Heizungsbauer" },
+  {
+    label: "Sanitär, Heizung, Klima",
+    tradeName: "Installateur und Heizungsbauer",
+  },
   { label: "Elektro", tradeName: "Elektrotechniker" },
   { label: "Tischler / Schreiner", tradeName: "Tischler" },
   { label: "Trockenbau", tradeName: "Stuckateure" },
   { label: "Bodenleger", tradeName: "Bodenleger" },
   { label: "Dachdecker", tradeName: "Dachdecker" },
+  {
+    label: "Garten- und Landschaftsbau",
+    tradeName: "Garten- und Landschaftsbau",
+  },
+  { label: "Fliesenleger", tradeName: "Fliesen-, Platten- und Mosaikleger" },
+  { label: "Maurer / Bauunternehmen", tradeName: "Maurer und Betonbauer" },
 ];
 
 export function TradeMultiSelect({
@@ -243,44 +252,44 @@ export function TradeMultiSelect({
       {shouldShowFullList ? (
         <div className="tradeMultiSelectGroups">
           {filteredGroups.map((group) => {
-          const selectedInGroup = group.trades.filter((trade) =>
-            selectedSet.has(trade.name),
-          ).length;
+            const selectedInGroup = group.trades.filter((trade) =>
+              selectedSet.has(trade.name),
+            ).length;
 
-          return (
-            <details
-              key={group.section}
-              className="tradeGroup"
-              open={selectedInGroup > 0}
-            >
-              <summary>
-                <span>{group.label}</span>
-                <small>
-                  {selectedInGroup > 0 ? `${selectedInGroup} / ` : ""}
-                  {group.trades.length}
-                </small>
-              </summary>
-              <p className="tradeGroupDescription">{group.description}</p>
-              <div className="tradeChoiceGrid" role="group" aria-label={group.label}>
-                {group.trades.map((trade) => {
-                  const isSelected = selectedSet.has(trade.name);
-                  return (
-                    <button
-                      key={trade.id}
-                      id={`${idPrefix}-${trade.id}`}
-                      type="button"
-                      className={`tradeChoice ${isSelected ? "isSelected" : ""}`}
-                      aria-pressed={isSelected}
-                      onClick={() => toggleTrade(trade.name)}
-                    >
-                      <span>{trade.name}</span>
-                      <small>{trade.section}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            </details>
-          );
+            return (
+              <details
+                key={group.section}
+                className="tradeGroup"
+                open={selectedInGroup > 0}
+              >
+                <summary>
+                  <span>{group.label}</span>
+                  <small>
+                    {selectedInGroup > 0 ? `${selectedInGroup} / ` : ""}
+                    {group.trades.length}
+                  </small>
+                </summary>
+                <p className="tradeGroupDescription">{group.description}</p>
+                <div className="tradeChoiceGrid" role="group" aria-label={group.label}>
+                  {group.trades.map((trade) => {
+                    const isSelected = selectedSet.has(trade.name);
+                    return (
+                      <button
+                        key={trade.id}
+                        id={`${idPrefix}-${trade.id}`}
+                        type="button"
+                        className={`tradeChoice ${isSelected ? "isSelected" : ""}`}
+                        aria-pressed={isSelected}
+                        onClick={() => toggleTrade(trade.name)}
+                      >
+                        <span>{trade.name}</span>
+                        <small>{trade.section}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </details>
+            );
           })}
         </div>
       ) : null}

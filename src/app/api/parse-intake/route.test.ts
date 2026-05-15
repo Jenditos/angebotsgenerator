@@ -214,10 +214,10 @@ describe("POST /api/parse-intake", () => {
     expect(payload.inputMode).toBe("photo");
     expect(payload.fields?.companyName).toBe("Malerbetrieb Blau");
     expect(payload.fields?.street).toBe("Hauptstraße 5");
-    expect(parseOfferIntakeFromImageMock).toHaveBeenCalledWith([
-      VALID_PNG_DATA_URL,
-      VALID_WEBP_DATA_URL,
-    ]);
+    expect(parseOfferIntakeFromImageMock).toHaveBeenCalledWith(
+      [VALID_PNG_DATA_URL, VALID_WEBP_DATA_URL],
+      { selectedTrade: "", tradeContext: "" },
+    );
   });
 
   it("detects reverse-charge tax hints from OCR source text", async () => {

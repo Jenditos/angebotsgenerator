@@ -52,6 +52,7 @@ import {
   isValidEmailAddress,
 } from "@/lib/user-input";
 import {
+  ONBOARDING_SNOOZE_COOKIE_NAME,
   ONBOARDING_TOTAL_STEPS,
   clampOnboardingStep,
   getMissingOnboardingRequiredFields,
@@ -1233,14 +1234,13 @@ const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent
 const ONBOARDING_PROMPT_SHOWN_SESSION_KEY = "visioro-onboarding-prompt-shown-v1";
 const ONBOARDING_REQUIRED_FIELD_LABELS: Record<string, string> = {
   companyName: "Firmenname",
-  ownerName: "Ansprechpartner",
+  ownerName: "Vor- und Nachname",
   companyEmail: "E-Mail",
   companyStreet: "Straße und Hausnummer",
   companyPostalCode: "PLZ",
   companyCity: "Ort",
-  customServiceTypes: "Gewerk",
-  taxIdentifier: "Steuerdaten",
-  companyIban: "IBAN",
+  customServiceTypes: "Gewerke",
+  taxIdentifier: "Steuernummer",
 };
 const ONBOARDING_REQUIRED_FIELD_COUNT = Object.keys(
   ONBOARDING_REQUIRED_FIELD_LABELS,
@@ -1296,34 +1296,53 @@ function resolveOnboardingStepValue(step: unknown): number {
   return clampOnboardingStep(parsedStep);
 }
 
+function hasOnboardingSnoozeCookie(): boolean {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  return document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .some((part) => part === `${ONBOARDING_SNOOZE_COOKIE_NAME}=1`);
+}
+
+function setOnboardingSnoozeCookie(): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=1; path=/; samesite=lax`;
+}
+
+function clearOnboardingSnoozeCookie(): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`;
+}
+
 function resolvePreferredOnboardingStep(
   missingFields: string[],
   fallbackStep: unknown,
 ): number {
-  if (
-    missingFields.includes("companyName") ||
-    missingFields.includes("ownerName") ||
-    missingFields.includes("companyEmail")
-  ) {
-    return 1;
-  }
-
-  if (
-    missingFields.includes("companyStreet") ||
-    missingFields.includes("companyPostalCode") ||
-    missingFields.includes("companyCity")
-  ) {
+  if (missingFields.includes("customServiceTypes")) {
     return 2;
   }
 
   if (
-    missingFields.includes("customServiceTypes") ||
-    missingFields.includes("taxIdentifier")
+    missingFields.includes("companyName") ||
+    missingFields.includes("ownerName") ||
+    missingFields.includes("companyEmail") ||
+    missingFields.includes("companyStreet") ||
+    missingFields.includes("companyPostalCode") ||
+    missingFields.includes("companyCity")
   ) {
     return 3;
   }
 
-  if (missingFields.includes("companyIban")) {
+  if (missingFields.includes("taxIdentifier")) {
     return 4;
   }
 
@@ -1353,12 +1372,10 @@ function formatOnboardingCompletionText(
     if (primaryField === "customServiceTypes") {
       return "Damit Vorschläge und KI-Texte zu deinem Betrieb passen, wähle bitte noch dein Gewerk.";
     }
-    if (entryStep === 3) {
-      return "Damit Angebote und Rechnungen korrekt erstellt werden, ergänze bitte noch deine Steuerdaten.";
+    if (primaryField === "taxIdentifier" || entryStep === 4) {
+      return "Damit Rechnungen sauber erstellt werden, ergänze bitte noch deine Steuernummer.";
     }
-    if (entryStep === 4) {
-      return "Damit Angebote und Rechnungen vollständig erstellt werden, ergänze bitte noch deine IBAN.";
-    }
+    return "Damit Angebote und Rechnungen automatisch korrekt befüllt werden, ergänze bitte noch deine Firmendaten.";
   }
 
   return "Damit Angebote und Rechnungen korrekt erstellt werden, ergänze bitte noch deine fehlenden Firmendaten.";
@@ -1373,14 +1390,11 @@ function formatOnboardingPrimaryActionLabel(
     if (primaryField === "customServiceTypes") {
       return "Gewerk auswählen";
     }
-    if (entryStep === 2) {
-      return "Adresse ergänzen";
-    }
     if (entryStep === 3) {
-      return "Steuerdaten ergänzen";
+      return "Firmendaten ergänzen";
     }
     if (entryStep === 4) {
-      return "IBAN ergänzen";
+      return "Rechnungsdaten ergänzen";
     }
   }
 
@@ -1396,7 +1410,7 @@ function formatOnboardingMissingFieldHint(
   }
 
   if (field === "taxIdentifier") {
-    return "Steuernummer oder USt-IdNr., je nach Unternehmen.";
+    return "Die Steuernummer wird später für saubere Rechnungen verwendet.";
   }
 
   if (field === "customServiceTypes") {
@@ -1405,10 +1419,6 @@ function formatOnboardingMissingFieldHint(
 
   if (field === "ownerName") {
     return "Name der verantwortlichen Person oder des Ansprechpartners.";
-  }
-
-  if (field === "companyIban") {
-    return "Wird auf Angeboten und Rechnungen als Zahlungskonto verwendet.";
   }
 
   return "";
@@ -2874,6 +2884,7 @@ export default function HomePage() {
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [showOnboardingPromptModal, setShowOnboardingPromptModal] = useState(false);
   const [onboardingMode, setOnboardingMode] = useState<OnboardingModalMode>("prompt");
+  const [isOnboardingSnoozed, setIsOnboardingSnoozed] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
@@ -2994,7 +3005,7 @@ export default function HomePage() {
     isAuthenticatedUser &&
     !isAuthStatusLoading &&
     onboardingMissingFields.length > 0;
-  const shouldAutoPromptOnboarding = shouldRequireOnboarding;
+  const shouldAutoPromptOnboarding = shouldRequireOnboarding && !isOnboardingSnoozed;
   const shouldShowOnboardingCompletionCard = false;
   const onboardingPrimaryMissingField = onboardingMissingFields[0] ?? null;
   const onboardingCompletionTitle = formatOnboardingCompletionTitle(
@@ -3412,6 +3423,10 @@ export default function HomePage() {
   useEffect(() => {
     router.prefetch("/settings");
   }, [router]);
+
+  useEffect(() => {
+    setIsOnboardingSnoozed(hasOnboardingSnoozeCookie());
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -5648,6 +5663,8 @@ export default function HomePage() {
   }
 
   function dismissOnboardingPromptModal() {
+    setOnboardingSnoozeCookie();
+    setIsOnboardingSnoozed(true);
     closeOnboardingModal();
   }
 
@@ -5657,6 +5674,8 @@ export default function HomePage() {
     }
 
     setIsSetupHintOpen(false);
+    clearOnboardingSnoozeCookie();
+    setIsOnboardingSnoozed(false);
     if (isAccountMenuOpen) {
       closeAccountMenu();
     }
@@ -5671,6 +5690,7 @@ export default function HomePage() {
 
       if (event.type === "onboarding_completed") {
         setIsOnboardingCompleted(true);
+        setIsOnboardingSnoozed(false);
         setOnboardingStep(ONBOARDING_TOTAL_STEPS);
         setShowOnboardingPromptModal(false);
         setOnboardingMode("prompt");
@@ -5682,6 +5702,7 @@ export default function HomePage() {
       setOnboardingStep(nextStep);
 
       if (event.type === "onboarding_postponed") {
+        setIsOnboardingSnoozed(true);
         setShowOnboardingPromptModal(false);
         setOnboardingMode("prompt");
       }

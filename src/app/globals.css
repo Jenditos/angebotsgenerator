@@ -18484,3 +18484,595 @@ html body .onboardingPageStep5 .onboardingActions {
     font-size: 0.98rem !important;
   }
 }
+
+/* Onboarding Setup v3 */
+html body .settingsOverlayBackdrop.onboardingFlowOverlayBackdrop {
+  display: grid !important;
+  place-items: center !important;
+  padding: 32px !important;
+  overflow: auto !important;
+  background: rgba(15, 23, 42, 0.58) !important;
+}
+
+html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
+  width: min(780px, calc(100vw - 64px)) !important;
+  max-width: 780px !important;
+  height: auto !important;
+  max-height: calc(100dvh - 64px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(203, 213, 225, 0.72) !important;
+  border-radius: 24px !important;
+  background: transparent !important;
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.32) !important;
+}
+
+html body .settingsOverlaySheet.onboardingFlowOverlaySheet .onboardingFlowCloseRow {
+  display: none !important;
+}
+
+html body .onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  max-height: calc(100dvh - 64px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+html body .onboardingSetup {
+  min-height: 100dvh !important;
+  padding: 48px 24px !important;
+  background:
+    radial-gradient(circle at top left, rgba(31, 99, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, #edf5ff 0%, #f7fbff 54%, #ffffff 100%) !important;
+  color: #111827 !important;
+}
+
+html body .onboardingSetup.onboardingPageEmbedded {
+  min-height: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+html body .onboardingSetupShell {
+  width: 100% !important;
+  max-width: 780px !important;
+  margin: 0 auto !important;
+}
+
+html body .onboardingPageEmbedded .onboardingSetupShell {
+  max-width: none !important;
+}
+
+html body .onboardingSetupPanel {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: min(720px, calc(100dvh - 96px)) !important;
+  max-height: calc(100dvh - 96px) !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(203, 213, 225, 0.74) !important;
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.16) !important;
+}
+
+html body .onboardingPageEmbedded .onboardingSetupPanel {
+  min-height: min(720px, calc(100dvh - 64px)) !important;
+  max-height: calc(100dvh - 64px) !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingSetupTop {
+  flex: 0 0 auto !important;
+  padding: 32px 48px 0 !important;
+}
+
+html body .onboardingSetupTopRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  min-height: 32px !important;
+}
+
+html body .onboardingSetupStepText {
+  margin: 0 !important;
+  color: #64748b !important;
+  font-size: 0.88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.02em !important;
+}
+
+html body .onboardingSetupSkip,
+html body .onboardingSetupSecondary,
+html body .onboardingSetupBack {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  font: inherit !important;
+  font-size: 0.92rem !important;
+  font-weight: 720 !important;
+  line-height: 1.2 !important;
+  text-decoration: none !important;
+}
+
+html body .onboardingSetupSkip:hover:not(:disabled),
+html body .onboardingSetupSecondary:hover:not(:disabled),
+html body .onboardingSetupBack:hover:not(:disabled) {
+  color: #1f63ff !important;
+}
+
+html body .onboardingSetupSkip:disabled,
+html body .onboardingSetupSecondary:disabled,
+html body .onboardingSetupBack:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+html body .onboardingSetupProgressTrack {
+  height: 6px !important;
+  margin-top: 20px !important;
+  overflow: hidden !important;
+  border-radius: 999px !important;
+  background: #e5ebf3 !important;
+}
+
+html body .onboardingSetupProgressValue {
+  height: 100% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(90deg, #1f63ff, #3b82f6) !important;
+  transition: width 220ms ease !important;
+}
+
+html body .onboardingSetupScroll {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+html body .onboardingSetupContent {
+  display: grid !important;
+  gap: 24px !important;
+  padding: 24px 48px 0 !important;
+}
+
+html body .onboardingSetupIntro {
+  display: grid !important;
+  gap: 12px !important;
+  max-width: 640px !important;
+}
+
+html body .onboardingSetupBrandMark {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 56px !important;
+  height: 56px !important;
+  margin-bottom: 12px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #12386f, #1f63ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 30px rgba(31, 99, 255, 0.18) !important;
+}
+
+html body .onboardingSetupBrandMark span {
+  font-size: 1.35rem !important;
+  font-weight: 860 !important;
+  letter-spacing: 0 !important;
+}
+
+html body .onboardingSetupIntro h1 {
+  margin: 0 !important;
+  color: #0f172a !important;
+  font-size: clamp(1.75rem, 3.2vw, 2rem) !important;
+  font-weight: 820 !important;
+  line-height: 1.18 !important;
+  letter-spacing: 0 !important;
+}
+
+html body .onboardingSetupIntro p {
+  max-width: 58ch !important;
+  margin: 0 !important;
+  color: #5f6f85 !important;
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+
+html body .onboardingSetupBenefit {
+  margin-top: 12px !important;
+  padding: 16px 18px !important;
+  border: 1px solid #dbe7ff !important;
+  border-radius: 16px !important;
+  background: #f4f8ff !important;
+  color: #334155 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+}
+
+html body .onboardingSetupSection {
+  margin-top: 0 !important;
+}
+
+html body .onboardingSetupForm {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 22px 20px !important;
+  width: 100% !important;
+}
+
+html body .onboardingSetupField {
+  display: grid !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+html body .onboardingSetupFieldFull {
+  grid-column: 1 / -1 !important;
+}
+
+html body .onboardingSetupFieldShort {
+  grid-column: span 1 !important;
+}
+
+html body .onboardingSetupField > span {
+  color: #273449 !important;
+  font-size: 0.92rem !important;
+  font-weight: 760 !important;
+  line-height: 1.25 !important;
+}
+
+html body .onboardingSetupField > span small {
+  color: #94a3b8 !important;
+  font-size: 0.84rem !important;
+  font-weight: 680 !important;
+}
+
+html body .onboardingSetup :is(input:not([type="checkbox"]), textarea, select) {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 100% !important;
+  min-height: 52px !important;
+  padding: 0 16px !important;
+  border: 1px solid #d5dde8 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02) !important;
+  font: inherit !important;
+  font-size: 0.98rem !important;
+  line-height: 1.2 !important;
+  outline: none !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease !important;
+}
+
+html body .onboardingSetup input[type="number"]::-webkit-outer-spin-button,
+html body .onboardingSetup input[type="number"]::-webkit-inner-spin-button {
+  margin: 0 !important;
+  -webkit-appearance: none !important;
+}
+
+html body .onboardingSetup input[type="number"] {
+  -moz-appearance: textfield !important;
+}
+
+html body .onboardingSetup :is(input:not([type="checkbox"]), textarea, select)::placeholder {
+  color: #aeb8c7 !important;
+}
+
+html body .onboardingSetup :is(input:not([type="checkbox"]), textarea, select):focus {
+  border-color: #1f63ff !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(31, 99, 255, 0.14) !important;
+}
+
+html body .onboardingSetupHint {
+  margin: 0 !important;
+  color: #64748b !important;
+  font-size: 0.84rem !important;
+  line-height: 1.35 !important;
+}
+
+html body .onboardingSetupHint.isValid {
+  color: #0f766e !important;
+}
+
+html body .onboardingSetupHint.isInvalid {
+  color: #b42318 !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding {
+  gap: 16px !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeQuickSection {
+  gap: 16px !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeQuickGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoice {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 56px !important;
+  width: 100% !important;
+  padding: 0 16px !important;
+  border: 1px solid #dbe3ee !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  color: #26344a !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03) !important;
+  font-size: 0.96rem !important;
+  font-weight: 760 !important;
+  line-height: 1.25 !important;
+  text-align: left !important;
+  white-space: normal !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoice small {
+  display: none !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoice:hover,
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoice:focus-visible {
+  border-color: rgba(31, 99, 255, 0.42) !important;
+  background: #f8fbff !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06) !important;
+  transform: none !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoice.isSelected,
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoice[aria-pressed="true"] {
+  border-color: #1f63ff !important;
+  background: #1f63ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(31, 99, 255, 0.2) !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoiceMore {
+  border-style: dashed !important;
+  color: #475569 !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoiceMore.isExpanded {
+  border-style: solid !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeMultiSelectSearch input {
+  min-height: 52px !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeSelectedChips {
+  gap: 8px !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeSelectedChip {
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  background: #eef6ff !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeMultiSelectGroups {
+  max-height: 320px !important;
+  padding-right: 2px !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeGroup {
+  border-radius: 16px !important;
+  background: #ffffff !important;
+}
+
+html body .onboardingSetup .tradeMultiSelectOnboarding .tradeChoiceGrid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+  padding: 0 14px 14px !important;
+}
+
+html body .onboardingSetupMessage {
+  margin: 8px 0 0 !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.4 !important;
+}
+
+html body .onboardingSetupMessage.isError {
+  border: 1px solid #fecdd3 !important;
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+
+html body .onboardingSetupMessage.isSuccess {
+  border: 1px solid #bbf7d0 !important;
+  background: #f0fdf4 !important;
+  color: #15803d !important;
+}
+
+html body .onboardingSetupFooter {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  margin-top: 32px !important;
+  padding: 24px 48px 40px !important;
+  border-top: 1px solid #edf1f6 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+
+html body .onboardingSetupBack {
+  min-height: 48px !important;
+  padding: 0 !important;
+}
+
+html body .onboardingSetupBackPlaceholder {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html body .onboardingSetupFooterActions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 16px !important;
+}
+
+html body .onboardingSetupPrimary {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 196px !important;
+  min-height: 52px !important;
+  padding: 0 24px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #1f63ff !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  box-shadow: 0 14px 26px rgba(31, 99, 255, 0.22) !important;
+  font: inherit !important;
+  font-size: 1rem !important;
+  font-weight: 820 !important;
+  line-height: 1 !important;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease !important;
+}
+
+html body .onboardingSetupPrimary:hover:not(:disabled),
+html body .onboardingSetupPrimary:focus-visible:not(:disabled) {
+  background: #1554e8 !important;
+  box-shadow: 0 16px 30px rgba(31, 99, 255, 0.26) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body .onboardingSetupPrimary:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+html body .onboardingSetupPrimary:disabled {
+  background: #b8c7ee !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 720px) {
+  html body .settingsOverlayBackdrop.onboardingFlowOverlayBackdrop {
+    padding: 0 !important;
+  }
+
+  html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
+    width: 100vw !important;
+    max-width: none !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  html body .onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+    min-height: 100dvh !important;
+    max-height: none !important;
+  }
+
+  html body .onboardingSetup {
+    padding: 0 !important;
+  }
+
+  html body .onboardingSetupShell {
+    max-width: none !important;
+  }
+
+  html body .onboardingSetupPanel,
+  html body .onboardingPageEmbedded .onboardingSetupPanel {
+    min-height: 100dvh !important;
+    max-height: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  html body .onboardingSetupTop {
+    padding: 24px 24px 0 !important;
+  }
+
+  html body .onboardingSetupContent {
+    gap: 24px !important;
+    padding: 24px 24px 0 !important;
+  }
+
+  html body .onboardingSetupIntro h1 {
+    font-size: clamp(1.5rem, 7vw, 1.75rem) !important;
+  }
+
+  html body .onboardingSetupIntro p {
+    font-size: 0.98rem !important;
+  }
+
+  html body .onboardingSetupForm {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  html body .onboardingSetupField,
+  html body .onboardingSetupFieldShort,
+  html body .onboardingSetupFieldFull {
+    grid-column: 1 / -1 !important;
+  }
+
+  html body .onboardingSetup .tradeMultiSelectOnboarding .tradeQuickGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .onboardingSetupFooter {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 20px 24px max(24px, env(safe-area-inset-bottom)) !important;
+  }
+
+  html body .onboardingSetupFooterActions {
+    flex: 1 1 auto !important;
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  html body .onboardingSetupPrimary {
+    width: 100% !important;
+  }
+
+  html body .onboardingSetupBack {
+    align-self: flex-start !important;
+    flex: 0 0 auto !important;
+    min-height: 32px !important;
+  }
+
+  html body .onboardingSetupBackPlaceholder {
+    display: none !important;
+  }
+}
+
+@media (max-height: 720px) and (min-width: 721px) {
+  html body .onboardingSetupPanel,
+  html body .onboardingPageEmbedded .onboardingSetupPanel {
+    min-height: calc(100dvh - 64px) !important;
+  }
+}
