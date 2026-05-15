@@ -1030,7 +1030,7 @@ export default function OnboardingPageClient({
       : currentStep === 2
         ? "Diese Angaben erscheinen sauber auf Angeboten, Rechnungen und Kundenmails."
         : currentStep === 3
-          ? "Wähle deine Gewerke und ergänze die Steuerdaten. Danach passen Vorschläge und KI-Texte besser."
+          ? "Wähle deine Gewerke und ergänze die Steuerdaten. Danach passt sich die App an deinen Betrieb an."
           : currentStep === 4
             ? "Einmal eintragen, danach stehen Zahlungsziel und Bankdaten automatisch im Dokument."
             : "Prüfe den Überblick und starte danach direkt mit deinem ersten echten Angebot.";
@@ -1265,13 +1265,13 @@ export default function OnboardingPageClient({
               <div className="onboardingStepBody onboardingStepBodyTax">
                 <section className="onboardingFormSection onboardingFormSectionAccent">
                   <div className="onboardingFormSectionHeader">
-                    <p className="onboardingFormSectionEyebrow">Dein Ton</p>
+                    <p className="onboardingFormSectionEyebrow">Gewerke</p>
                     <h3 className="onboardingFormSectionTitle">
-                      Welche Gewerke macht dein Betrieb?
+                      Was bietet dein Betrieb an?
                     </h3>
                     <p className="onboardingFormSectionText">
-                      Wähle alle Gewerke aus, die dein Betrieb anbietet. Das
-                      steuert später Fachbegriffe, Leistungen und KI-Vorschläge.
+                      Suche dein Gewerk oder nutze die häufig gewählten
+                      Baustellen-Gewerke.
                     </p>
                   </div>
 
@@ -1281,7 +1281,7 @@ export default function OnboardingPageClient({
                     onChange={(nextTrades) =>
                       updateSetting("customServiceTypes", nextTrades)
                     }
-                    helperText="Die Liste ist auf baustellennahe Handwerksleistungen zugeschnitten."
+                    helperText="Die Auswahl steuert spätere Leistungspositionen, Platzhalter und KI-Texte."
                   />
                 </section>
 

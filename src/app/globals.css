@@ -17803,3 +17803,251 @@ html body .onboardingPage .success {
     min-height: calc(100dvh - 36px) !important;
   }
 }
+
+/* Professional Onboarding Overlay UX */
+html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
+  width: min(560px, calc(100vw - 56px)) !important;
+  max-width: 560px !important;
+  max-height: min(88vh, 820px) !important;
+  border-radius: 22px !important;
+  background: #f4f8fc !important;
+}
+
+html body .onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  max-height: min(88vh, 820px) !important;
+}
+
+html body .onboardingPageEmbedded .onboardingContainer {
+  padding: 0 28px 22px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingProgressTrackTop {
+  width: calc(100% + 56px) !important;
+  margin-left: -28px !important;
+  margin-right: -28px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingTopNav {
+  min-height: 56px !important;
+  padding: 16px 50px 4px 0 !important;
+}
+
+html body .onboardingPageEmbedded .onboardingBackButton,
+html body .onboardingPageEmbedded .onboardingTopSkipButton {
+  font-size: 0.92rem !important;
+}
+
+html body .onboardingPageEmbedded .onboardingHeaderMain {
+  gap: 9px !important;
+  padding: 16px 0 18px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingHeaderText {
+  gap: 9px !important;
+}
+
+html body .onboardingPageEmbedded .heroEyebrow {
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em !important;
+}
+
+html body .onboardingPageEmbedded .onboardingStepBadge {
+  min-height: 23px !important;
+  padding: 0 8px !important;
+  font-size: 0.68rem !important;
+}
+
+html body .onboardingPageEmbedded .onboardingHeader h1 {
+  max-width: none !important;
+  overflow-wrap: anywhere !important;
+  font-size: clamp(1.85rem, 4.1vw, 2.28rem) !important;
+  line-height: 1.08 !important;
+}
+
+html body .onboardingPageEmbedded .heroText {
+  max-width: 44ch !important;
+  color: #66758c !important;
+  font-size: 0.96rem !important;
+  line-height: 1.45 !important;
+}
+
+html body .onboardingPageEmbedded .onboardingStepBodyTax {
+  gap: 14px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSection {
+  gap: 16px !important;
+  padding: 18px !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05) !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSectionAccent {
+  border-color: rgba(15, 118, 110, 0.18) !important;
+  background:
+    linear-gradient(180deg, rgba(240, 253, 250, 0.95), rgba(255, 255, 255, 0.98)),
+    #ffffff !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSectionHeader {
+  gap: 7px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSectionEyebrow {
+  color: #0f766e !important;
+  font-size: 0.68rem !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSectionTitle {
+  color: #111827 !important;
+  font-size: 1.04rem !important;
+  font-weight: 820 !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSectionText {
+  max-width: 42ch !important;
+  color: #66758c !important;
+  font-size: 0.86rem !important;
+  line-height: 1.45 !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelect {
+  gap: 14px !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectHeader {
+  align-items: end !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectHeader strong {
+  color: #111827 !important;
+  font-size: 0.92rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectHeader span,
+html body .onboardingPageEmbedded .tradeMultiSelectHeader small,
+html body .onboardingPageEmbedded .tradeMultiSelectHelper {
+  color: #66758c !important;
+  font-size: 0.8rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectSearch input {
+  min-height: 50px !important;
+  padding: 0 16px !important;
+  border-color: #d7deea !important;
+  border-radius: 14px !important;
+  font-size: 0.92rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeQuickSection,
+html body .onboardingPageEmbedded .tradeSearchResults {
+  gap: 12px !important;
+}
+
+html body .onboardingPageEmbedded .tradeQuickHeader {
+  padding-top: 2px !important;
+}
+
+html body .onboardingPageEmbedded .tradeQuickTitle,
+html body .onboardingPageEmbedded .tradeSearchResultTitle {
+  color: #475569 !important;
+  font-size: 0.84rem !important;
+  font-weight: 760 !important;
+}
+
+html body .onboardingPageEmbedded .tradeShowAllButton {
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  color: #1e3a8a !important;
+  background: #eef4ff !important;
+  font-size: 0.83rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeQuickGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+html body .onboardingPageEmbedded .tradeChoice {
+  justify-content: space-between !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  padding: 9px 11px 9px 12px !important;
+  border-color: #d8e1ee !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #1f3558 !important;
+  font-size: 0.88rem !important;
+  font-weight: 780 !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03) !important;
+}
+
+html body .onboardingPageEmbedded .tradeChoice small {
+  min-width: 24px !important;
+  height: 24px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  font-size: 0.68rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeSelectedChips {
+  gap: 7px !important;
+}
+
+html body .onboardingPageEmbedded .tradeSelectedChip {
+  min-height: 32px !important;
+  font-size: 0.8rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectGroups {
+  max-height: 250px !important;
+  padding-right: 0 !important;
+}
+
+html body .onboardingPageEmbedded .tradeGroup {
+  border-radius: 14px !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPageEmbedded .tradeGroup summary {
+  padding: 12px 14px !important;
+  font-size: 0.9rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeChoiceGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSectionRequired {
+  border-color: rgba(47, 91, 234, 0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.82), rgba(255, 255, 255, 0.98)),
+    #ffffff !important;
+}
+
+@media (max-width: 560px) {
+  html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
+    width: min(100vw - 20px, 480px) !important;
+  }
+
+  html body .onboardingPageEmbedded .onboardingContainer {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  html body .onboardingPageEmbedded .onboardingProgressTrackTop {
+    width: calc(100% + 40px) !important;
+    margin-left: -20px !important;
+    margin-right: -20px !important;
+  }
+
+  html body .onboardingPageEmbedded .tradeQuickGrid,
+  html body .onboardingPageEmbedded .tradeChoiceGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
