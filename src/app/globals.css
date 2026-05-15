@@ -10852,6 +10852,21 @@ button.documentModeSwitchButton.active {
   color: var(--vis-white, #ffffff) !important;
 }
 
+.settingsOnboardingRestartButton {
+  width: fit-content !important;
+  margin-top: 18px !important;
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+.settingsOnboardingRestartButton:hover,
+.settingsOnboardingRestartButton:focus-visible {
+  border-color: rgba(255, 255, 255, 0.58) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
 .settingsPageTransition .settingsDeleteButton,
 .settingsPageTransition .settingsPdfColumnsReset,
 .settingsPageTransition .settingsDeleteButton:hover,

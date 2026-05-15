@@ -100,6 +100,7 @@ type EmbeddedOnboardingMessage = OnboardingFlowEvent & {
 type OnboardingPageClientProps = {
   embedded?: boolean;
   initialSettings?: CompanySettings | null;
+  allowCompletedRestart?: boolean;
   onEmbeddedEvent?: (event: OnboardingFlowEvent) => void;
   preferredStartStep?: number;
 };
@@ -196,6 +197,7 @@ function splitOwnerName(value: string): { firstName: string; lastName: string } 
 export default function OnboardingPageClient({
   embedded = false,
   initialSettings = null,
+  allowCompletedRestart = false,
   onEmbeddedEvent,
   preferredStartStep,
 }: OnboardingPageClientProps) {
@@ -254,19 +256,19 @@ export default function OnboardingPageClient({
           onboardingStep: 1,
         };
 
-        if (nextOnboarding.onboardingCompleted) {
-          if (isEmbeddedMode) {
-            emitEmbeddedOnboardingEvent(
-              {
-                type: "onboarding_completed",
-                onboardingCompleted: true,
-                onboardingStep: ONBOARDING_TOTAL_STEPS,
-              },
-              onEmbeddedEvent,
-            );
-            return;
-          }
-          router.replace("/");
+        if (
+          nextOnboarding.onboardingCompleted &&
+          isEmbeddedMode &&
+          !allowCompletedRestart
+        ) {
+          emitEmbeddedOnboardingEvent(
+            {
+              type: "onboarding_completed",
+              onboardingCompleted: true,
+              onboardingStep: ONBOARDING_TOTAL_STEPS,
+            },
+            onEmbeddedEvent,
+          );
           return;
         }
 
@@ -274,7 +276,8 @@ export default function OnboardingPageClient({
           setSettings(nextSettings);
           setOnboardingState(nextOnboarding);
           const resumedStep = clampOnboardingStep(
-            preferredStartStep ?? nextOnboarding.onboardingStep,
+            preferredStartStep ??
+              (nextOnboarding.onboardingCompleted ? 1 : nextOnboarding.onboardingStep),
           );
           setCurrentStep(resumedStep);
           if (isEmbeddedMode) {
@@ -300,7 +303,13 @@ export default function OnboardingPageClient({
     return () => {
       cancelled = true;
     };
-  }, [isEmbeddedMode, onEmbeddedEvent, preferredStartStep, router]);
+  }, [
+    allowCompletedRestart,
+    isEmbeddedMode,
+    onEmbeddedEvent,
+    preferredStartStep,
+    router,
+  ]);
 
   useEffect(() => {
     const handlePageHide = () => {

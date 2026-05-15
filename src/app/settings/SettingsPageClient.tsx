@@ -1820,6 +1820,13 @@ export default function SettingsPage() {
             Dein Logo sowie deine Kontakt- und Firmendaten werden automatisch in
             PDF und Mail-Entwurf übernommen.
           </p>
+          <Link
+            href="/onboarding?restart=1"
+            target={isEmbedded ? "_top" : undefined}
+            className="ghostButton settingsOnboardingRestartButton"
+          >
+            Onboarding erneut starten
+          </Link>
         </section>
 
         <section className="glassCard formCard">
