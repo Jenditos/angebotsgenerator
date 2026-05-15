@@ -52,7 +52,6 @@ import {
   isValidEmailAddress,
 } from "@/lib/user-input";
 import {
-  ONBOARDING_SNOOZE_COOKIE_NAME,
   ONBOARDING_TOTAL_STEPS,
   clampOnboardingStep,
   getMissingOnboardingRequiredFields,
@@ -1231,7 +1230,6 @@ const DEFAULT_MANUAL_GROUP_LABEL = "Weitere Positionen";
 const HOME_STATE_STORAGE_KEY = "visioro-home-state-v1";
 const SETTINGS_DRAFT_STORAGE_KEY = "visioro-settings-draft-v1";
 const SETTINGS_PERSISTENT_DRAFT_STORAGE_KEY = "visioro-settings-draft-persistent-v1";
-const ONBOARDING_PROMPT_SHOWN_SESSION_KEY = "visioro-onboarding-prompt-shown-v1";
 const ONBOARDING_REQUIRED_FIELD_LABELS: Record<string, string> = {
   companyName: "Firmenname",
   ownerName: "Vor- und Nachname",
@@ -1294,33 +1292,6 @@ function resolveOnboardingStepValue(step: unknown): number {
     return 1;
   }
   return clampOnboardingStep(parsedStep);
-}
-
-function hasOnboardingSnoozeCookie(): boolean {
-  if (typeof document === "undefined") {
-    return false;
-  }
-
-  return document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .some((part) => part === `${ONBOARDING_SNOOZE_COOKIE_NAME}=1`);
-}
-
-function setOnboardingSnoozeCookie(): void {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=1; path=/; samesite=lax`;
-}
-
-function clearOnboardingSnoozeCookie(): void {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  document.cookie = `${ONBOARDING_SNOOZE_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=lax`;
 }
 
 function resolvePreferredOnboardingStep(
@@ -2884,7 +2855,8 @@ export default function HomePage() {
   const [isSetupHintOpen, setIsSetupHintOpen] = useState(false);
   const [showOnboardingPromptModal, setShowOnboardingPromptModal] = useState(false);
   const [onboardingMode, setOnboardingMode] = useState<OnboardingModalMode>("prompt");
-  const [isOnboardingSnoozed, setIsOnboardingSnoozed] = useState(false);
+  const [hasDismissedOnboardingThisView, setHasDismissedOnboardingThisView] =
+    useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
@@ -3005,7 +2977,8 @@ export default function HomePage() {
     isAuthenticatedUser &&
     !isAuthStatusLoading &&
     onboardingMissingFields.length > 0;
-  const shouldAutoPromptOnboarding = shouldRequireOnboarding && !isOnboardingSnoozed;
+  const shouldAutoPromptOnboarding =
+    shouldRequireOnboarding && !hasDismissedOnboardingThisView;
   const shouldShowOnboardingCompletionCard = false;
   const onboardingPrimaryMissingField = onboardingMissingFields[0] ?? null;
   const onboardingCompletionTitle = formatOnboardingCompletionTitle(
@@ -3425,10 +3398,6 @@ export default function HomePage() {
   }, [router]);
 
   useEffect(() => {
-    setIsOnboardingSnoozed(hasOnboardingSnoozeCookie());
-  }, []);
-
-  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -3437,34 +3406,15 @@ export default function HomePage() {
       setShowOnboardingPromptModal(false);
       if (!shouldRequireOnboarding) {
         setOnboardingMode("prompt");
-        try {
-          window.sessionStorage.removeItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY);
-        } catch {
-          // Ignore storage read/write restrictions.
-        }
+        setHasDismissedOnboardingThisView(false);
       }
       return;
     }
 
-    let hasShownPromptInSession = false;
-    try {
-      hasShownPromptInSession =
-        window.sessionStorage.getItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY) ===
-        "1";
-    } catch {
-      // Ignore storage read/write restrictions.
-    }
-
-    if (!hasShownPromptInSession) {
-      setShowOnboardingPromptModal(true);
-      setOnboardingMode("prompt");
-      try {
-        window.sessionStorage.setItem(ONBOARDING_PROMPT_SHOWN_SESSION_KEY, "1");
-      } catch {
-        // Ignore storage read/write restrictions.
-      }
-    }
-  }, [shouldAutoPromptOnboarding, shouldRequireOnboarding]);
+    setOnboardingStep(onboardingEntryStep);
+    setShowOnboardingPromptModal(false);
+    setOnboardingMode("steps");
+  }, [onboardingEntryStep, shouldAutoPromptOnboarding, shouldRequireOnboarding]);
 
   useEffect(() => {
     if (isSettingsOverlayOpen || isClosingSettingsOverlay) {
@@ -5658,13 +5608,12 @@ export default function HomePage() {
   }
 
   function closeOnboardingModal() {
+    setHasDismissedOnboardingThisView(true);
     setShowOnboardingPromptModal(false);
     setOnboardingMode("prompt");
   }
 
   function dismissOnboardingPromptModal() {
-    setOnboardingSnoozeCookie();
-    setIsOnboardingSnoozed(true);
     closeOnboardingModal();
   }
 
@@ -5674,8 +5623,7 @@ export default function HomePage() {
     }
 
     setIsSetupHintOpen(false);
-    clearOnboardingSnoozeCookie();
-    setIsOnboardingSnoozed(false);
+    setHasDismissedOnboardingThisView(false);
     if (isAccountMenuOpen) {
       closeAccountMenu();
     }
@@ -5690,7 +5638,7 @@ export default function HomePage() {
 
       if (event.type === "onboarding_completed") {
         setIsOnboardingCompleted(true);
-        setIsOnboardingSnoozed(false);
+        setHasDismissedOnboardingThisView(false);
         setOnboardingStep(ONBOARDING_TOTAL_STEPS);
         setShowOnboardingPromptModal(false);
         setOnboardingMode("prompt");
@@ -5702,7 +5650,7 @@ export default function HomePage() {
       setOnboardingStep(nextStep);
 
       if (event.type === "onboarding_postponed") {
-        setIsOnboardingSnoozed(true);
+        setHasDismissedOnboardingThisView(true);
         setShowOnboardingPromptModal(false);
         setOnboardingMode("prompt");
       }
