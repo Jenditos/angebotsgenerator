@@ -16567,3 +16567,1080 @@ html body :is(
 ) {
   padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
 }
+
+/* ==========================================================================
+   Onboarding Photo-Inspired Refresh
+   Mobile-first flow inspired by the provided onboarding references, with a
+   distinct color palette and copy hierarchy.
+   ========================================================================== */
+html body .onboardingPage {
+  --onboard-bg: #f2f7fb;
+  --onboard-bg-soft: #f8fbf7;
+  --onboard-surface: #ffffff;
+  --onboard-ink: #101827;
+  --onboard-muted: #687487;
+  --onboard-soft-text: #9aa4b5;
+  --onboard-line: rgba(113, 128, 150, 0.22);
+  --onboard-primary: #2f5bea;
+  --onboard-primary-hover: #2348c4;
+  --onboard-teal: #0f8f7f;
+  --onboard-green: #12a66c;
+  --onboard-amber: #e67800;
+  min-height: 100dvh !important;
+  padding: 0 !important;
+  background:
+    linear-gradient(180deg, var(--onboard-bg) 0%, var(--onboard-bg-soft) 54%, #ffffff 100%) !important;
+  color: var(--onboard-ink) !important;
+}
+
+html body .onboardingPage > .ambient {
+  display: none !important;
+}
+
+html body .onboardingPage .onboardingContainer {
+  width: 100% !important;
+  max-width: 488px !important;
+  margin: 0 auto !important;
+  padding: 0 22px 32px !important;
+}
+
+html body .onboardingPage .onboardingCard {
+  display: grid !important;
+  gap: 22px !important;
+  min-height: 100dvh !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPageEmbedded {
+  min-height: 100% !important;
+  background:
+    linear-gradient(180deg, var(--onboard-bg) 0%, var(--onboard-bg-soft) 58%, #ffffff 100%) !important;
+}
+
+html body .onboardingPageEmbedded .onboardingContainer {
+  max-width: none !important;
+  padding: 0 22px 16px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingCard {
+  min-height: auto !important;
+  gap: 18px !important;
+}
+
+html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
+  position: relative !important;
+  --onboard-bg: #f2f7fb;
+  width: min(492px, calc(100vw - 24px)) !important;
+  max-width: 492px !important;
+  height: auto !important;
+  max-height: min(92vh, 820px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 24px !important;
+  background: var(--onboard-bg) !important;
+  box-shadow: 0 28px 68px rgba(8, 20, 45, 0.32) !important;
+}
+
+html body .onboardingFlowCloseRow {
+  position: absolute !important;
+  z-index: 4 !important;
+  top: 12px !important;
+  right: 12px !important;
+  padding: 0 !important;
+}
+
+html body .settingsOverlaySheet.onboardingFlowOverlaySheet .settingsOverlayCloseButton {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  border: 1px solid rgba(113, 128, 150, 0.2) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.84) !important;
+  color: #566174 !important;
+}
+
+html body .onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  max-height: min(92vh, 820px) !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: transparent !important;
+}
+
+html body .onboardingPage .onboardingHeader {
+  display: grid !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+html body .onboardingPage .onboardingProgressTrackTop {
+  width: calc(100% + 44px) !important;
+  height: 4px !important;
+  margin: 0 -22px !important;
+  border-radius: 0 !important;
+  background: #dce5ef !important;
+}
+
+html body .onboardingPage .onboardingProgressValueTop {
+  height: 100% !important;
+  border-radius: 0 !important;
+  background: var(--onboard-primary) !important;
+  transition: width 260ms ease !important;
+}
+
+html body .onboardingPage .onboardingTopNav {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  min-height: 52px !important;
+  padding: 16px 0 4px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingTopNav {
+  padding-right: 46px !important;
+}
+
+html body .onboardingPage .onboardingBackButton {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-self: start !important;
+  gap: 6px !important;
+  min-height: 38px !important;
+  padding: 0 4px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--onboard-muted) !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  font-size: 0.98rem !important;
+  font-weight: 620 !important;
+}
+
+html body .onboardingPage .onboardingBackButton:hover:not(:disabled),
+html body .onboardingPage .onboardingBackButton:focus-visible:not(:disabled) {
+  background: transparent !important;
+  color: var(--onboard-ink) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .onboardingPage .onboardingBackButton:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+html body .onboardingPage .onboardingBackIcon {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+html body .onboardingPage .onboardingTopSkipButton {
+  justify-self: end !important;
+  color: var(--onboard-soft-text) !important;
+  font-size: 0.96rem !important;
+  font-weight: 620 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+html body .onboardingPage .onboardingTopSkipButton:hover,
+html body .onboardingPage .onboardingTopSkipButton:focus-visible {
+  color: var(--onboard-muted) !important;
+}
+
+html body .onboardingPage .onboardingTopSkipButton[aria-disabled="true"] {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+html body .onboardingPage .onboardingHeaderMain {
+  display: grid !important;
+  justify-items: start !important;
+  gap: 12px !important;
+  padding: 34px 0 4px !important;
+}
+
+html body .onboardingPage .onboardingHeroIcon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 74px !important;
+  height: 74px !important;
+  border: 1px solid rgba(47, 91, 234, 0.18) !important;
+  border-radius: 18px !important;
+  background: rgba(47, 91, 234, 0.08) !important;
+  color: var(--onboard-primary) !important;
+  box-shadow: 0 12px 30px rgba(21, 42, 90, 0.08) !important;
+}
+
+html body .onboardingPage .onboardingHeroIcon svg {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+html body .onboardingPage .onboardingHeroIconStep3 {
+  border-color: rgba(15, 143, 127, 0.22) !important;
+  background: rgba(15, 143, 127, 0.1) !important;
+  color: var(--onboard-teal) !important;
+}
+
+html body .onboardingPage .onboardingHeroIconStep4 {
+  border-color: rgba(230, 120, 0, 0.22) !important;
+  background: rgba(230, 120, 0, 0.1) !important;
+  color: var(--onboard-amber) !important;
+}
+
+html body .onboardingPage .onboardingHeroIconStep5 {
+  border-color: rgba(18, 166, 108, 0.22) !important;
+  background: rgba(18, 166, 108, 0.1) !important;
+  color: var(--onboard-green) !important;
+}
+
+html body .onboardingPage .onboardingHeaderText {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+html body .onboardingPage .heroEyebrow {
+  margin: 0 !important;
+  color: var(--onboard-primary) !important;
+  font-size: 0.76rem !important;
+  font-weight: 820 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+
+html body .onboardingPage .onboardingStepBadge {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 25px !important;
+  padding: 0 9px !important;
+  border: 1px solid rgba(15, 143, 127, 0.16) !important;
+  border-radius: 999px !important;
+  background: rgba(15, 143, 127, 0.08) !important;
+  color: var(--onboard-teal) !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+html body .onboardingPage .onboardingHeader h1 {
+  margin: 0 !important;
+  max-width: 12ch !important;
+  color: var(--onboard-ink) !important;
+  font-size: clamp(2rem, 9vw, 3rem) !important;
+  font-weight: 860 !important;
+  line-height: 1.05 !important;
+  letter-spacing: 0 !important;
+}
+
+html body .onboardingPage .heroText {
+  margin: 0 !important;
+  max-width: 30ch !important;
+  color: var(--onboard-muted) !important;
+  font-size: clamp(1.03rem, 4.2vw, 1.22rem) !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0 !important;
+}
+
+html body .onboardingPage .onboardingStepCard {
+  display: grid !important;
+  gap: 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPage .onboardingGrid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+}
+
+html body .onboardingPage .span2 {
+  grid-column: 1 / -1 !important;
+}
+
+html body .onboardingPage .field {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+html body .onboardingPage .field > span,
+html body .onboardingPage .field span {
+  color: #344154 !important;
+  font-size: 0.96rem !important;
+  font-weight: 720 !important;
+  letter-spacing: 0 !important;
+}
+
+html body .onboardingPage :is(input:not([type="checkbox"]), select, textarea) {
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 0 16px !important;
+  border: 1.5px solid #d5dce8 !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--onboard-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+  font-size: 1rem !important;
+  line-height: 1.2 !important;
+}
+
+html body .onboardingPage textarea {
+  min-height: 108px !important;
+  padding-top: 14px !important;
+  line-height: 1.45 !important;
+}
+
+html body .onboardingPage :is(input:not([type="checkbox"]), select, textarea)::placeholder {
+  color: #c3cad5 !important;
+}
+
+html body .onboardingPage :is(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: var(--onboard-primary) !important;
+  background: #ffffff !important;
+  outline: none !important;
+  box-shadow:
+    0 0 0 3px rgba(47, 91, 234, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+html body .onboardingCrewPreview {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+html body .onboardingCrewCard {
+  display: grid !important;
+  grid-template-columns: 54px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(113, 128, 150, 0.16) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 10px 22px rgba(21, 42, 90, 0.08) !important;
+}
+
+html body .onboardingCrewIcon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+  font-size: 1.12rem !important;
+  font-weight: 840 !important;
+}
+
+html body .onboardingCrewCard-blue .onboardingCrewIcon {
+  background: rgba(47, 91, 234, 0.1) !important;
+  color: var(--onboard-primary) !important;
+}
+
+html body .onboardingCrewCard-amber .onboardingCrewIcon {
+  background: rgba(230, 120, 0, 0.11) !important;
+  color: var(--onboard-amber) !important;
+}
+
+html body .onboardingCrewCard-green .onboardingCrewIcon {
+  background: rgba(18, 166, 108, 0.11) !important;
+  color: var(--onboard-green) !important;
+}
+
+html body .onboardingCrewCard strong {
+  display: block !important;
+  margin: 0 0 3px !important;
+  color: var(--onboard-ink) !important;
+  font-size: 1.02rem !important;
+  line-height: 1.2 !important;
+}
+
+html body .onboardingCrewCard p {
+  margin: 0 !important;
+  color: var(--onboard-muted) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.35 !important;
+}
+
+html body .onboardingPage .onboardingStepBodyTax,
+html body .onboardingPage .onboardingFinalWrap {
+  display: grid !important;
+  gap: 14px !important;
+}
+
+html body .onboardingPage .onboardingFormSection,
+html body .onboardingPage .onboardingLogoPanel {
+  display: grid !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border: 1px solid rgba(113, 128, 150, 0.16) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 10px 22px rgba(21, 42, 90, 0.07) !important;
+}
+
+html body .onboardingPage .onboardingFormSectionAccent {
+  border-color: rgba(15, 143, 127, 0.18) !important;
+  background:
+    linear-gradient(180deg, rgba(15, 143, 127, 0.08), rgba(255, 255, 255, 0.94)),
+    #ffffff !important;
+}
+
+html body .onboardingPage .onboardingFormSectionRequired {
+  border-color: rgba(47, 91, 234, 0.2) !important;
+  background:
+    linear-gradient(180deg, rgba(47, 91, 234, 0.07), rgba(255, 255, 255, 0.96)),
+    #ffffff !important;
+}
+
+html body .onboardingPage .onboardingFormSectionOptional {
+  background: rgba(255, 255, 255, 0.86) !important;
+}
+
+html body .onboardingPage .onboardingFormSectionHeader {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+html body .onboardingPage .onboardingFormSectionEyebrow {
+  margin: 0 !important;
+  color: var(--onboard-teal) !important;
+  font-size: 0.72rem !important;
+  font-weight: 840 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+html body .onboardingPage .onboardingFormSectionTitle,
+html body .onboardingLogoTitle {
+  margin: 0 !important;
+  color: var(--onboard-ink) !important;
+  font-size: 1.05rem !important;
+  font-weight: 780 !important;
+  line-height: 1.28 !important;
+  letter-spacing: 0 !important;
+}
+
+html body .onboardingPage .onboardingFormSectionText,
+html body .onboardingPage .onboardingHint {
+  margin: 0 !important;
+  color: var(--onboard-muted) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.45 !important;
+}
+
+html body .onboardingChipCloud {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+html body .onboardingChoiceChip {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 42px !important;
+  padding: 0 15px !important;
+  border: 1px solid rgba(113, 128, 150, 0.14) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  color: #344154 !important;
+  box-shadow: none !important;
+  font-size: 0.94rem !important;
+  font-weight: 720 !important;
+  line-height: 1 !important;
+}
+
+html body .onboardingChoiceChip:hover:not(:disabled),
+html body .onboardingChoiceChip:focus-visible:not(:disabled) {
+  border-color: rgba(15, 143, 127, 0.34) !important;
+  background: rgba(15, 143, 127, 0.1) !important;
+  color: #0d675e !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html body .onboardingChoiceChip.isSelected,
+html body .onboardingChoiceChip[aria-pressed="true"] {
+  border-color: var(--onboard-teal) !important;
+  background: var(--onboard-teal) !important;
+  color: #ffffff !important;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tradeMultiSelect {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.tradeMultiSelectHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tradeMultiSelectHeader > div {
+  display: grid;
+  gap: 3px;
+}
+
+.tradeMultiSelectHeader strong {
+  color: #111827;
+  font-size: 0.98rem;
+  font-weight: 850;
+}
+
+.tradeMultiSelectHeader span,
+.tradeMultiSelectHeader small,
+.tradeMultiSelectHelper,
+.tradeMultiSelectEmpty,
+.tradeGroupDescription {
+  color: #64748b;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.tradeMultiSelectSearch input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  padding: 13px 15px;
+  outline: none;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.tradeMultiSelectSearch input:focus {
+  border-color: rgba(20, 184, 166, 0.9);
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.13);
+}
+
+.tradeMultiSelectGroups {
+  display: grid;
+  gap: 10px;
+  max-height: 430px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.tradeGroup {
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.tradeGroup summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 15px;
+  color: #111827;
+  font-weight: 820;
+}
+
+.tradeGroup summary::-webkit-details-marker {
+  display: none;
+}
+
+.tradeGroup summary small {
+  flex: 0 0 auto;
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.tradeGroupDescription {
+  margin: -4px 15px 12px;
+}
+
+.tradeChoiceGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.tradeChoice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(203, 213, 225, 0.85);
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.91rem;
+  font-weight: 720;
+  line-height: 1.2;
+  min-height: 38px;
+  padding: 8px 12px;
+  text-align: left;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.tradeChoice small {
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 850;
+  padding: 2px 6px;
+}
+
+.tradeChoice:hover,
+.tradeChoice:focus-visible {
+  border-color: rgba(20, 184, 166, 0.55);
+  background: #ffffff;
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  outline: none;
+}
+
+.tradeChoice.isSelected,
+.tradeChoice[aria-pressed="true"] {
+  border-color: rgba(13, 148, 136, 0.75);
+  background: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.2);
+}
+
+.tradeChoice.isSelected small,
+.tradeChoice[aria-pressed="true"] small {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.tradeMultiSelectCompact .tradeMultiSelectGroups {
+  max-height: 360px;
+}
+
+.settingsTradeField {
+  align-items: stretch;
+}
+
+.settingsTradeField > span {
+  color: #334155;
+  font-weight: 780;
+}
+
+.positionsTradeSelector {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+
+.positionsTradeField {
+  margin: 0;
+}
+
+.positionsTradeField select {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.48);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  min-height: 48px;
+  padding: 0 14px;
+  outline: none;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.positionsTradeField select:focus {
+  border-color: rgba(20, 184, 166, 0.9);
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+}
+
+.positionsTradeHint {
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .tradeMultiSelectHeader {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tradeMultiSelectGroups {
+    max-height: 390px;
+  }
+
+  .tradeChoice {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+html body .onboardingPage .onboardingToggle {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 11px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(113, 128, 150, 0.16) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  color: var(--onboard-ink) !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPage .onboardingToggle input {
+  width: 18px !important;
+  height: 18px !important;
+  margin-top: 2px !important;
+  accent-color: var(--onboard-primary) !important;
+  flex: 0 0 auto !important;
+}
+
+html body .onboardingPage .onboardingToggle span {
+  color: #344154 !important;
+  font-size: 0.94rem !important;
+  font-weight: 650 !important;
+  line-height: 1.42 !important;
+}
+
+html body .onboardingLifecyclePreview {
+  position: relative !important;
+  display: grid !important;
+  gap: 12px !important;
+  padding: 4px 0 0 32px !important;
+}
+
+html body .onboardingLifecyclePreview::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 18px !important;
+  bottom: 18px !important;
+  left: 10px !important;
+  width: 2px !important;
+  background: rgba(113, 128, 150, 0.2) !important;
+}
+
+html body .onboardingLifecycleItem {
+  position: relative !important;
+  padding: 14px 14px 14px 16px !important;
+  border: 1px solid rgba(113, 128, 150, 0.16) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 10px 20px rgba(21, 42, 90, 0.07) !important;
+}
+
+html body .onboardingLifecycleDot {
+  position: absolute !important;
+  top: 18px !important;
+  left: -34px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border: 4px solid var(--onboard-bg) !important;
+  border-radius: 999px !important;
+  background: var(--onboard-primary) !important;
+}
+
+html body .onboardingLifecycleItem-amber .onboardingLifecycleDot {
+  background: var(--onboard-amber) !important;
+}
+
+html body .onboardingLifecycleItem-green .onboardingLifecycleDot {
+  background: var(--onboard-green) !important;
+}
+
+html body .onboardingLifecycleItem p {
+  margin: 0 0 4px !important;
+  color: var(--onboard-primary) !important;
+  font-size: 0.76rem !important;
+  font-weight: 840 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+html body .onboardingLifecycleItem-amber p {
+  color: var(--onboard-amber) !important;
+}
+
+html body .onboardingLifecycleItem-green p {
+  color: var(--onboard-green) !important;
+}
+
+html body .onboardingLifecycleItem strong {
+  display: block !important;
+  margin: 0 0 4px !important;
+  color: var(--onboard-ink) !important;
+  font-size: 1rem !important;
+  line-height: 1.22 !important;
+}
+
+html body .onboardingLifecycleItem span:not(.onboardingLifecycleDot) {
+  display: block !important;
+  color: var(--onboard-muted) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.38 !important;
+}
+
+html body .onboardingFinalChecklist {
+  display: grid !important;
+  gap: 10px !important;
+  padding: 16px !important;
+  border: 1px solid rgba(18, 166, 108, 0.18) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(18, 166, 108, 0.07), rgba(255, 255, 255, 0.96)),
+    #ffffff !important;
+  box-shadow: 0 10px 22px rgba(21, 42, 90, 0.07) !important;
+}
+
+html body .onboardingChecklistItem {
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 34px !important;
+}
+
+html body .onboardingChecklistItem span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 999px !important;
+  background: rgba(18, 166, 108, 0.13) !important;
+  color: var(--onboard-green) !important;
+  font-size: 0.92rem !important;
+  font-weight: 900 !important;
+}
+
+html body .onboardingChecklistItem strong {
+  color: #273445 !important;
+  font-size: 0.98rem !important;
+  line-height: 1.28 !important;
+}
+
+html body .onboardingLogoUpload {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  border: 1px solid rgba(47, 91, 234, 0.18) !important;
+  border-radius: 12px !important;
+  background: rgba(47, 91, 234, 0.08) !important;
+  color: #2549bd !important;
+  font-size: 0.94rem !important;
+  font-weight: 760 !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+}
+
+html body .onboardingLogoUpload input {
+  position: absolute !important;
+  inset: 0 !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+}
+
+html body .onboardingPage .logoFrame {
+  display: grid !important;
+  grid-template-columns: 72px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(113, 128, 150, 0.16) !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+}
+
+html body .onboardingPage .logoPreview {
+  width: 72px !important;
+  height: 72px !important;
+  object-fit: contain !important;
+  border-radius: 8px !important;
+}
+
+html body .onboardingLogoRemoveButton {
+  justify-self: start !important;
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+}
+
+html body .onboardingConfirmToggle {
+  background: #ffffff !important;
+}
+
+html body .onboardingPage .settingsIbanHint {
+  margin-top: -2px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35 !important;
+}
+
+html body .onboardingPage .onboardingActions {
+  display: block !important;
+  margin: 4px 0 0 !important;
+  padding: 0 0 max(18px, env(safe-area-inset-bottom)) !important;
+  border: 0 !important;
+}
+
+html body .onboardingPage .onboardingActions .primaryButton,
+html body .onboardingPage .onboardingActions button.primaryButton {
+  width: 100% !important;
+  min-height: 64px !important;
+  padding: 0 18px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: var(--onboard-primary) !important;
+  background-color: var(--onboard-primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(47, 91, 234, 0.22) !important;
+  font-size: 1.12rem !important;
+  font-weight: 820 !important;
+}
+
+html body .onboardingPage .onboardingActions .primaryButton:hover:not(:disabled),
+html body .onboardingPage .onboardingActions button.primaryButton:hover:not(:disabled),
+html body .onboardingPage .onboardingActions .primaryButton:focus-visible:not(:disabled),
+html body .onboardingPage .onboardingActions button.primaryButton:focus-visible:not(:disabled) {
+  background: var(--onboard-primary-hover) !important;
+  background-color: var(--onboard-primary-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(47, 91, 234, 0.26) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body .onboardingPage .onboardingActions .primaryButton:disabled,
+html body .onboardingPage .onboardingActions button.primaryButton:disabled {
+  background: #d7e0fb !important;
+  background-color: #d7e0fb !important;
+  color: #51617d !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPage .voiceInfo,
+html body .onboardingPage .error,
+html body .onboardingPage .success {
+  margin: -8px 0 18px !important;
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  font-size: 0.92rem !important;
+  line-height: 1.4 !important;
+}
+
+html body .onboardingPage .voiceInfo {
+  color: #40516b !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+html body .onboardingPage .error {
+  color: #9f1239 !important;
+  background: #fff1f2 !important;
+}
+
+html body .onboardingPage .success {
+  color: #116149 !important;
+  background: #ecfdf5 !important;
+}
+
+@media (max-width: 420px) {
+  html body .onboardingPage .onboardingContainer {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  html body .onboardingPage .onboardingProgressTrackTop {
+    width: calc(100% + 36px) !important;
+    margin-left: -18px !important;
+    margin-right: -18px !important;
+  }
+
+  html body .onboardingPage .onboardingHeaderMain {
+    padding-top: 26px !important;
+  }
+
+  html body .onboardingPage .onboardingHeader h1 {
+    max-width: 11ch !important;
+  }
+
+  html body .onboardingCrewCard {
+    grid-template-columns: 48px minmax(0, 1fr) !important;
+    padding: 12px !important;
+  }
+
+  html body .onboardingCrewIcon {
+    width: 46px !important;
+    height: 46px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  html body .onboardingPage:not(.onboardingPageEmbedded) .onboardingCrewPreview {
+    display: none !important;
+  }
+
+  html body .onboardingPage:not(.onboardingPageEmbedded) .onboardingHeaderMain {
+    padding-top: 28px !important;
+  }
+}
+
+@media (min-width: 760px) {
+  html body .onboardingPage:not(.onboardingPageEmbedded) {
+    padding: 18px 0 !important;
+  }
+
+  html body .onboardingPage:not(.onboardingPageEmbedded) .onboardingCard {
+    min-height: calc(100dvh - 36px) !important;
+  }
+}

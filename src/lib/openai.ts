@@ -299,11 +299,13 @@ function getClient(): OpenAI | null {
 function fallbackOffer(input: OfferPromptInput): OfferText {
   const laborCost = input.hours * input.hourlyRate;
   const total = laborCost + input.materialCost;
+  const tradeLine = input.selectedTrade ? `Gewerk: ${input.selectedTrade}\n` : "";
 
   return {
     subject: `Angebot für ${input.customerName}`,
     intro: `Sehr geehrte/r ${input.customerName},\n\nvielen Dank für Ihre Anfrage. Gern unterbreiten wir Ihnen folgendes Angebot.`,
     details:
+      tradeLine +
       `Leistung: ${input.serviceDescription}\n` +
       `Arbeitszeit: ${input.hours} x ${input.hourlyRate.toFixed(2)} EUR = ${laborCost.toFixed(2)} EUR\n` +
       `Materialkosten: ${input.materialCost.toFixed(2)} EUR\n` +
@@ -383,6 +385,11 @@ export type ParsedIntakeConfidence = {
   customer?: number;
   items?: number;
   document?: number;
+};
+
+export type IntakeParseOptions = {
+  selectedTrade?: string;
+  tradeContext?: string;
 };
 
 export type IntakeParseResult = {
@@ -1110,6 +1117,8 @@ export async function generateOfferText(input: OfferPromptInput): Promise<OfferT
 Erstelle ein professionelles Angebot auf Deutsch mit diesen Daten:
 Kunde: ${input.customerName}
 Adresse: ${input.customerAddress}
+${input.selectedTrade ? `Gewerk: ${input.selectedTrade}` : ""}
+${input.tradeContext ? `Gewerk-Kontext: ${input.tradeContext}` : ""}
 Leistung: ${input.serviceDescription}
 Stunden: ${input.hours}
 Stundensatz: ${input.hourlyRate}
@@ -1459,6 +1468,25 @@ const INTAKE_SYSTEM_PROMPT =
   "Unsichere Daten zurückhaltend behandeln, confidence setzen und needs_review=true lassen. " +
   "Antworte strikt mit validem JSON, ohne Markdown und ohne erklärenden Text.";
 
+function buildIntakeTradeInstruction(options: IntakeParseOptions = {}): string {
+  const selectedTrade = options.selectedTrade?.trim();
+  const tradeContext = options.tradeContext?.trim();
+  if (!selectedTrade && !tradeContext) {
+    return "";
+  }
+
+  return [
+    "",
+    "Gewerk-Kontext:",
+    selectedTrade ? `- Gewähltes Gewerk: ${selectedTrade}` : "",
+    tradeContext ? `- ${tradeContext}` : "",
+    "- Nutze diesen Kontext, um echte Leistungspositionen fachlich passend zu gruppieren und zu benennen.",
+    "- Erfinde trotz Gewerk-Kontext keine Mengen, Preise oder Kundendaten.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function asRecord(input: unknown): Record<string, unknown> | undefined {
   if (!input || typeof input !== "object") {
     return undefined;
@@ -1758,7 +1786,10 @@ function parseIntakeModelPayload(raw: string): {
   };
 }
 
-export async function parseOfferIntake(transcript: string): Promise<IntakeParseResult> {
+export async function parseOfferIntake(
+  transcript: string,
+  options: IntakeParseOptions = {},
+): Promise<IntakeParseResult> {
   const openai = getClient();
   const cleanTranscript = transcript.trim();
   if (!cleanTranscript) {
@@ -1796,6 +1827,7 @@ Regeln:
 - Keine Erklärungen.
 - Unsichere/leere Werte leer lassen.
 - Nichts raten.
+${buildIntakeTradeInstruction(options)}
 
 Antwort-JSON-Schema:
 ${INTAKE_JSON_SCHEMA}
@@ -1842,6 +1874,7 @@ ${INTAKE_FEW_SHOTS}`,
 
 export async function parseOfferIntakeFromImage(
   imageDataUrls: string | string[],
+  options: IntakeParseOptions = {},
 ): Promise<IntakeParseResult> {
   const openai = getClient();
   const normalizedImageDataUrls = (
@@ -1893,6 +1926,7 @@ Regeln:
 - Führe Kundendaten, Adressen, Positionen und Preise aus mehreren Fotos in einer gemeinsamen Antwort zusammen.
 - Doppelte Positionen nicht mehrfach ausgeben.
 - Wenn sich Angaben zwischen Fotos widersprechen, nimm nur den sichersten Wert und setze needs_review auf true.
+${buildIntakeTradeInstruction(options)}
 
 Antwort-JSON-Schema:
 ${INTAKE_JSON_SCHEMA}

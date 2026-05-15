@@ -196,6 +196,8 @@ export type OfferPromptInput = {
   customerName: string;
   customerAddress: string;
   serviceDescription: string;
+  selectedTrade?: string;
+  tradeContext?: string;
   hours: number;
   hourlyRate: number;
   materialCost: number;
@@ -293,6 +295,7 @@ export type CustomerDraftGroup = {
 
 export type CustomerDraftState = {
   serviceDescription: string;
+  selectedTrade?: string;
   hours: string;
   hourlyRate: string;
   materialCost: string;
@@ -323,6 +326,7 @@ export type GenerateOfferRequest = {
   city: string;
   customerEmail: string;
   serviceDescription: string;
+  selectedTrade?: string;
   selectedServices?: string[];
   selectedServiceEntries?: Array<{
     label?: string;

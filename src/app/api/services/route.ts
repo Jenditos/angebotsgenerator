@@ -23,9 +23,11 @@ export async function GET(request: Request) {
       supabase: accessResult.supabase,
       userId: accessResult.user.id,
     });
-    const catalog = buildServiceCatalog(settings.customServices);
-
     const { searchParams } = new URL(request.url);
+    const selectedTrade = searchParams.get("trade")?.trim() ?? "";
+    const catalog = buildServiceCatalog(settings.customServices, {
+      selectedTrade,
+    });
     const query = searchParams.get("q")?.trim() ?? "";
     const limit = Number(searchParams.get("limit") ?? 120);
     const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 200) : 120;
@@ -34,7 +36,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       services,
-      customServices: settings.customServices
+      customServices: settings.customServices,
+      selectedTrade
     });
   } catch {
     return NextResponse.json({ error: "Leistungen konnten nicht geladen werden." }, { status: 500 });
@@ -79,7 +82,9 @@ export async function POST(request: Request) {
     );
 
     if (existingCustomService) {
-      const services = buildServiceCatalog(currentCustomServices);
+      const services = buildServiceCatalog(currentCustomServices, {
+        selectedTrade: category,
+      });
       return NextResponse.json({
         customService: existingCustomService,
         customServices: currentCustomServices,
@@ -100,7 +105,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       customService,
       customServices: updatedSettings.customServices,
-      services: buildServiceCatalog(updatedSettings.customServices)
+      services: buildServiceCatalog(updatedSettings.customServices, {
+        selectedTrade: category,
+      })
     });
   } catch {
     return NextResponse.json({ error: "Eigene Leistung konnte nicht gespeichert werden." }, { status: 500 });

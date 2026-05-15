@@ -44,6 +44,10 @@ export function getMissingOnboardingRequiredFields(
     missing.push("companyCity");
   }
 
+  if (!Array.isArray(settings.customServiceTypes) || settings.customServiceTypes.length === 0) {
+    missing.push("customServiceTypes");
+  }
+
   if (!settings.companyIban.trim()) {
     missing.push("companyIban");
   }

@@ -25,6 +25,10 @@ import {
   resolvePreferredPaymentBankAccount,
   sanitizeAdditionalBankAccounts,
 } from "@/lib/bank-accounts";
+import {
+  getTradeAiContext,
+  sanitizeHandwerkTradeSelections,
+} from "@/lib/handwerk-trades";
 import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
@@ -306,9 +310,7 @@ function resolveCompanySettings(
         ? payload.lastInvoiceNumber.trim()
         : FALLBACK_COMPANY_SETTINGS.lastInvoiceNumber,
     customServiceTypes: Array.isArray(payload.customServiceTypes)
-      ? payload.customServiceTypes
-          .map((entry) => String(entry).trim())
-          .filter(Boolean)
+      ? sanitizeHandwerkTradeSelections(payload.customServiceTypes)
       : [...FALLBACK_COMPANY_SETTINGS.customServiceTypes],
   };
 }
@@ -1262,6 +1264,34 @@ export async function handleGenerateOfferAuthorizedRequest(
             ibanVerificationStatus: "valid",
           }
         : validatedSettings;
+    const configuredTrades = sanitizeHandwerkTradeSelections(
+      settingsForDocument.customServiceTypes,
+    );
+    const selectedTrade =
+      sanitizeHandwerkTradeSelections(
+        body.selectedTrade ? [body.selectedTrade] : [],
+      )[0] ?? "";
+    if (configuredTrades.length > 0 && !selectedTrade) {
+      return NextResponse.json(
+        {
+          error: "Bitte wählen Sie ein Gewerk für dieses Dokument aus.",
+        },
+        { status: 400 },
+      );
+    }
+    if (
+      selectedTrade &&
+      configuredTrades.length > 0 &&
+      !configuredTrades.includes(selectedTrade)
+    ) {
+      return NextResponse.json(
+        {
+          error: "Das ausgewählte Gewerk ist nicht in den Firmeneinstellungen hinterlegt.",
+        },
+        { status: 400 },
+      );
+    }
+    const tradeContext = getTradeAiContext(selectedTrade);
     const paymentDueDays =
       documentType === "invoice"
         ? parsePaymentDueDays(settingsForDocument.invoicePaymentDueDays)
@@ -1392,6 +1422,8 @@ export async function handleGenerateOfferAuthorizedRequest(
             customerName,
             customerAddress,
             serviceDescription: composedServiceDescription,
+            selectedTrade,
+            tradeContext,
             hours,
             hourlyRate,
             materialCost,
@@ -1427,6 +1459,7 @@ export async function handleGenerateOfferAuthorizedRequest(
         customerAddress,
         draftState: {
           serviceDescription: composedServiceDescription,
+          selectedTrade,
           hours: toDecimalInputValue(hours),
           hourlyRate: toDecimalInputValue(hourlyRate),
           materialCost: toDecimalInputValue(materialCost),
@@ -1484,6 +1517,7 @@ export async function handleGenerateOfferAuthorizedRequest(
           note: projectNote,
           draftState: {
             serviceDescription: composedServiceDescription,
+            selectedTrade,
             hours: toDecimalInputValue(hours),
             hourlyRate: toDecimalInputValue(hourlyRate),
             materialCost: toDecimalInputValue(materialCost),

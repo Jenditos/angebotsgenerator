@@ -11,6 +11,7 @@ import {
   sanitizeCompanyLogoDataUrl,
 } from "@/lib/logo-config";
 import { sanitizeCustomServices } from "@/lib/service-catalog";
+import { sanitizeHandwerkTradeSelections } from "@/lib/handwerk-trades";
 import {
   formatIbanForDisplay,
   normalizeBicInput,
@@ -542,7 +543,7 @@ function buildNextSettings(
     customServiceTypes:
       typeof payload.customServiceTypes === "undefined"
         ? current.customServiceTypes
-        : asStringArray(payload.customServiceTypes),
+        : sanitizeHandwerkTradeSelections(payload.customServiceTypes),
   };
 }
 
@@ -822,7 +823,7 @@ function resolveSettingsPayload(
       parsed.lastInvoiceNumber,
       defaultSettings.lastInvoiceNumber,
     ),
-    customServiceTypes: asStringArray(parsed.customServiceTypes),
+    customServiceTypes: sanitizeHandwerkTradeSelections(parsed.customServiceTypes),
   };
 }
 

@@ -18,6 +18,11 @@ import {
   normalizeSearchValue,
   searchServices,
 } from "@/lib/service-catalog";
+import {
+  getHandwerkTradeByName,
+  getTradePlaceholders,
+  sanitizeHandwerkTradeSelections,
+} from "@/lib/handwerk-trades";
 import { InfoLegalModal } from "@/components/InfoLegalModal";
 import { VisioroLogoImage } from "@/components/VisioroLogoImage";
 import { VoiceLoginRequiredModal } from "@/components/VoiceLoginRequiredModal";
@@ -886,6 +891,7 @@ type ModeSnapshot = {
   activeCustomerNumber: string;
   activeProjectNumber: string;
   selectedServices: SelectedServiceEntry[];
+  selectedTrade: string;
   intakeInputMode: IntakeInputMode;
   hasUsedPrimaryVoiceIntake: boolean;
   voiceTranscript: string;
@@ -924,6 +930,7 @@ function createInitialModeSnapshot(): ModeSnapshot {
     activeCustomerNumber: "",
     activeProjectNumber: "",
     selectedServices: [createManualSelectedServiceEntry()],
+    selectedTrade: "",
     intakeInputMode: "voice",
     hasUsedPrimaryVoiceIntake: false,
     voiceTranscript: "",
@@ -1231,6 +1238,7 @@ const ONBOARDING_REQUIRED_FIELD_LABELS: Record<string, string> = {
   companyStreet: "Straße und Hausnummer",
   companyPostalCode: "PLZ",
   companyCity: "Ort",
+  customServiceTypes: "Gewerk",
   taxIdentifier: "Steuerdaten",
   companyIban: "IBAN",
 };
@@ -1308,7 +1316,10 @@ function resolvePreferredOnboardingStep(
     return 2;
   }
 
-  if (missingFields.includes("taxIdentifier")) {
+  if (
+    missingFields.includes("customServiceTypes") ||
+    missingFields.includes("taxIdentifier")
+  ) {
     return 3;
   }
 
@@ -1336,8 +1347,12 @@ function formatOnboardingCompletionTitle(count: number): string {
 function formatOnboardingCompletionText(
   missingCount: number,
   entryStep: number,
+  primaryField?: string | null,
 ): string {
   if (missingCount === 1) {
+    if (primaryField === "customServiceTypes") {
+      return "Damit Vorschläge und KI-Texte zu deinem Betrieb passen, wähle bitte noch dein Gewerk.";
+    }
     if (entryStep === 3) {
       return "Damit Angebote und Rechnungen korrekt erstellt werden, ergänze bitte noch deine Steuerdaten.";
     }
@@ -1352,8 +1367,12 @@ function formatOnboardingCompletionText(
 function formatOnboardingPrimaryActionLabel(
   missingCount: number,
   entryStep: number,
+  primaryField?: string | null,
 ): string {
   if (missingCount === 1) {
+    if (primaryField === "customServiceTypes") {
+      return "Gewerk auswählen";
+    }
     if (entryStep === 2) {
       return "Adresse ergänzen";
     }
@@ -1378,6 +1397,10 @@ function formatOnboardingMissingFieldHint(
 
   if (field === "taxIdentifier") {
     return "Steuernummer oder USt-IdNr., je nach Unternehmen.";
+  }
+
+  if (field === "customServiceTypes") {
+    return "Mindestens ein Gewerk, damit Vorschläge und KI-Kontext passen.";
   }
 
   if (field === "ownerName") {
@@ -1510,6 +1533,7 @@ function hydrateModeSnapshot(value: unknown): ModeSnapshot {
     activeCustomerNumber: asString(value.activeCustomerNumber),
     activeProjectNumber: asString(value.activeProjectNumber),
     selectedServices: hydrateSelectedServices(value.selectedServices),
+    selectedTrade: asString(value.selectedTrade),
     intakeInputMode: value.intakeInputMode === "photo" ? "photo" : "voice",
     hasUsedPrimaryVoiceIntake: value.hasUsedPrimaryVoiceIntake === true,
     voiceTranscript: asString(value.voiceTranscript),
@@ -1684,9 +1708,7 @@ function normalizeCompanySettingsInput(value: unknown): CompanySettings | null {
       fallbackCompanySettings.lastInvoiceNumber,
     ),
     customServiceTypes: Array.isArray(value.customServiceTypes)
-      ? value.customServiceTypes
-          .map((entry) => String(entry).trim())
-          .filter(Boolean)
+      ? sanitizeHandwerkTradeSelections(value.customServiceTypes)
       : fallbackCompanySettings.customServiceTypes,
   };
 }
@@ -2700,6 +2722,7 @@ export default function HomePage() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
     null,
   );
+  const [selectedTrade, setSelectedTrade] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState<
     AddressSuggestion[]
   >([]);
@@ -2980,10 +3003,12 @@ export default function HomePage() {
   const onboardingCompletionText = formatOnboardingCompletionText(
     onboardingMissingFields.length,
     onboardingEntryStep,
+    onboardingPrimaryMissingField,
   );
   const onboardingPrimaryActionLabel = formatOnboardingPrimaryActionLabel(
     onboardingMissingFields.length,
     onboardingEntryStep,
+    onboardingPrimaryMissingField,
   );
   const onboardingMissingFieldHint = formatOnboardingMissingFieldHint(
     onboardingPrimaryMissingField,
@@ -2991,6 +3016,20 @@ export default function HomePage() {
   );
   const onboardingTagSectionLabel =
     onboardingMissingFields.length === 1 ? "Nächster Schritt" : "Offene Pflichtangaben";
+
+  const availableCompanyTrades = useMemo(
+    () => sanitizeHandwerkTradeSelections(companySettings?.customServiceTypes ?? []),
+    [companySettings?.customServiceTypes],
+  );
+  const selectedTradeDetails = useMemo(
+    () => getHandwerkTradeByName(selectedTrade),
+    [selectedTrade],
+  );
+  const selectedTradePlaceholders = useMemo(
+    () => getTradePlaceholders(selectedTrade),
+    [selectedTrade],
+  );
+  const shouldRequireTradeSelection = availableCompanyTrades.length > 0;
 
   const serviceSearchValue = serviceSearch.trim();
   const serviceSuggestions = useMemo(
@@ -3432,6 +3471,7 @@ export default function HomePage() {
     setActiveCustomerNumber(snapshot.activeCustomerNumber);
     setActiveProjectNumber(snapshot.activeProjectNumber);
     setSelectedServices(cloneSelectedServices(snapshot.selectedServices));
+    setSelectedTrade(snapshot.selectedTrade);
     setIntakeInputMode(snapshot.intakeInputMode);
     setHasUsedPrimaryVoiceIntake(snapshot.hasUsedPrimaryVoiceIntake);
     setVoiceTranscript(snapshot.voiceTranscript);
@@ -3458,6 +3498,7 @@ export default function HomePage() {
       activeCustomerNumber,
       activeProjectNumber,
       selectedServices: cloneSelectedServices(selectedServices),
+      selectedTrade,
       intakeInputMode,
       hasUsedPrimaryVoiceIntake,
       voiceTranscript,
@@ -4056,6 +4097,20 @@ export default function HomePage() {
   }, [loadSettingsStatus]);
 
   useEffect(() => {
+    setSelectedTrade((current) => {
+      if (availableCompanyTrades.length === 0) {
+        return "";
+      }
+
+      if (current && availableCompanyTrades.includes(current)) {
+        return current;
+      }
+
+      return availableCompanyTrades.length === 1 ? availableCompanyTrades[0] : "";
+    });
+  }, [availableCompanyTrades]);
+
+  useEffect(() => {
     if (!activeProjectNumber || isProjectsLoading || storedProjects.length > 0) {
       return;
     }
@@ -4122,7 +4177,12 @@ export default function HomePage() {
       setServiceError("");
 
       try {
-        const response = await fetch("/api/services?limit=250");
+        const params = new URLSearchParams({ limit: "250" });
+        if (selectedTrade) {
+          params.set("trade", selectedTrade);
+        }
+
+        const response = await fetch(`/api/services?${params.toString()}`);
         const data = (await response.json()) as ServicesApiResponse;
         if (!response.ok) {
           if (mounted) {
@@ -4152,7 +4212,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [selectedTrade]);
 
   useEffect(() => {
     function closeFloatingPanels(event: MouseEvent) {
@@ -5884,6 +5944,7 @@ export default function HomePage() {
           customerAddress,
           draftState: {
             serviceDescription: form.serviceDescription.trim(),
+            selectedTrade,
             hours: form.hours.trim(),
             hourlyRate: form.hourlyRate.trim(),
             materialCost: form.materialCost.trim(),
@@ -5946,6 +6007,7 @@ export default function HomePage() {
       customerAddress,
       draftState: {
         serviceDescription: form.serviceDescription.trim(),
+        selectedTrade,
         hours: form.hours.trim(),
         hourlyRate: form.hourlyRate.trim(),
         materialCost: form.materialCost.trim(),
@@ -6016,6 +6078,7 @@ export default function HomePage() {
       note: form.projectNote.trim(),
       draftState: {
         serviceDescription: form.serviceDescription.trim(),
+        selectedTrade,
         hours: form.hours.trim(),
         hourlyRate: form.hourlyRate.trim(),
         materialCost: form.materialCost.trim(),
@@ -6117,6 +6180,7 @@ export default function HomePage() {
           projectNote: form.projectNote,
           draftState: {
             serviceDescription: form.serviceDescription.trim(),
+            selectedTrade,
             hours: form.hours.trim(),
             hourlyRate: form.hourlyRate.trim(),
             materialCost: form.materialCost.trim(),
@@ -6208,6 +6272,10 @@ export default function HomePage() {
     const draftSelectedServices = selectedServicesFromDraftPayload(
       draftState?.positions,
     );
+    const draftSelectedTrade =
+      sanitizeHandwerkTradeSelections(
+        draftState?.selectedTrade ? [draftState.selectedTrade] : [],
+      )[0] ?? "";
     setDocumentTax(normalizeDocumentTaxInfo(draftState?.documentTax) ?? null);
 
     setForm((prev) => ({
@@ -6236,6 +6304,7 @@ export default function HomePage() {
       paymentDueDays: draftState?.paymentDueDays || prev.paymentDueDays,
     }));
     setSelectedServices(draftSelectedServices);
+    setSelectedTrade(draftSelectedTrade);
     setActiveCustomerNumber(project.customerNumber ?? "");
     setActiveProjectNumber(project.projectNumber);
     setActivePriceSubitemId(null);
@@ -6285,6 +6354,10 @@ export default function HomePage() {
     const draftSelectedServices = selectedServicesFromDraftPayload(
       draftState?.positions,
     );
+    const draftSelectedTrade =
+      sanitizeHandwerkTradeSelections(
+        draftState?.selectedTrade ? [draftState.selectedTrade] : [],
+      )[0] ?? "";
     setDocumentTax(normalizeDocumentTaxInfo(draftState?.documentTax) ?? null);
     const shouldResetProject =
       Boolean(
@@ -6324,6 +6397,7 @@ export default function HomePage() {
       paymentDueDays: draftState?.paymentDueDays || "14",
     }));
     setSelectedServices(draftSelectedServices);
+    setSelectedTrade(draftSelectedTrade);
     setActiveCustomerNumber(customer.customerNumber);
     if (shouldResetProject) {
       setActiveProjectNumber("");
@@ -6516,7 +6590,7 @@ export default function HomePage() {
       const response = await fetch("/api/services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label }),
+        body: JSON.stringify({ label, category: selectedTrade || undefined }),
       });
       const data = (await response.json()) as ServicesApiResponse & {
         customService?: { label?: string };
@@ -7890,7 +7964,7 @@ export default function HomePage() {
       const response = await fetch("/api/parse-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputMode: "voice", transcript }),
+        body: JSON.stringify({ inputMode: "voice", transcript, selectedTrade }),
       });
       console.log("[voice] parse response received", {
         status: response.status,
@@ -8024,6 +8098,7 @@ export default function HomePage() {
         body: JSON.stringify({
           inputMode: "photo",
           photoDataUrls: preparedPhotoDataUrls,
+          selectedTrade,
         }),
       });
       if (parseRequestId !== photoParseRequestRef.current) {
@@ -8346,6 +8421,18 @@ export default function HomePage() {
     setOfferMailActionState(null);
     setIsPreparingOfferMailDraft(false);
 
+    if (availableCompanyTrades.length === 0) {
+      setError(
+        "Bitte hinterlege in den Einstellungen zuerst mindestens ein Gewerk.",
+      );
+      return;
+    }
+
+    if (!selectedTrade.trim()) {
+      setError("Bitte wähle aus, für welches Gewerk dieses Angebot ist.");
+      return;
+    }
+
     const selectedServicesPayload = selectedServices
       .map(selectedServiceToRequestValue)
       .filter((value) => value.length > 0);
@@ -8403,6 +8490,16 @@ export default function HomePage() {
         return;
       }
 
+      const requestTrades = sanitizeHandwerkTradeSelections(
+        settingsPayloadForRequest.customServiceTypes,
+      );
+      if (!requestTrades.includes(selectedTrade)) {
+        setError(
+          "Bitte wähle ein Gewerk, das in deinen Einstellungen hinterlegt ist.",
+        );
+        return;
+      }
+
       const ibanValidation = validateIbanInput(
         settingsPayloadForRequest.companyIban,
       );
@@ -8431,6 +8528,7 @@ export default function HomePage() {
             projectNumber: activeProjectNumber || undefined,
             projectAddress:
               form.projectAddress.trim() || buildProjectAddressFallback(form),
+            selectedTrade,
             selectedServices: selectedServicesPayload,
             selectedServiceEntries: selectedServiceEntriesPayload,
             positions: positionsPayload,
@@ -12193,6 +12291,38 @@ export default function HomePage() {
                         LEISTUNGEN &amp; POSITIONEN
                       </h3>
                     </div>
+                    <div className="positionsTradeSelector">
+                      <label className="field positionsTradeField">
+                        <span>Gewerk für dieses Angebot</span>
+                        <select
+                          value={selectedTrade}
+                          onChange={(event) => {
+                            setSelectedTrade(event.target.value);
+                            setServiceSearch("");
+                            setIsServiceSearchOpen(false);
+                            setServiceInfo("");
+                            setServiceError("");
+                          }}
+                          required={shouldRequireTradeSelection}
+                        >
+                          <option value="">Gewerk auswählen</option>
+                          {availableCompanyTrades.map((tradeName) => (
+                            <option key={tradeName} value={tradeName}>
+                              {tradeName}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {selectedTradeDetails ? (
+                        <p className="positionsTradeHint">
+                          {selectedTradeDetails.sectionLabel}
+                        </p>
+                      ) : (
+                        <p className="positionsTradeHint">
+                          Deine Auswahl steuert Vorschläge, Platzhalter und KI-Kontext.
+                        </p>
+                      )}
+                    </div>
                     <div className="positionsMetaGroupHeader">
                       <span className="positionsMetaGroupTitle">
                         Leistungsart
@@ -12205,7 +12335,7 @@ export default function HomePage() {
                           className="serviceSearchInput"
                           aria-label="Leistung suchen"
                           value={serviceSearch}
-                          placeholder="z. B. Fliesenarbeiten, Betonarbeiten, Elektroinstallation"
+                          placeholder={selectedTradePlaceholders.serviceSearch}
                           autoCapitalize="words"
                           onFocus={() => setIsServiceSearchOpen(true)}
                           onChange={(event) => {
@@ -12348,7 +12478,7 @@ export default function HomePage() {
                                       }
                                       placeholder={
                                         index === 0
-                                          ? "Bezeichnung / Unterpunkt"
+                                          ? selectedTradePlaceholders.positionDescription
                                           : "Weitere Position"
                                       }
                                       aria-label={`Bezeichnung für ${service.label}`}
@@ -12581,7 +12711,7 @@ export default function HomePage() {
                           className="projectDescriptionTextarea"
                           rows={3}
                           aria-label="Leistungsbeschreibung"
-                          placeholder="z. B. Verlegung von 60x60 Feinsteinzeugfliesen inkl. Fugenmaterial"
+                          placeholder={selectedTradePlaceholders.serviceDescription}
                           autoCapitalize="sentences"
                           value={form.serviceDescription}
                           onChange={(e) =>

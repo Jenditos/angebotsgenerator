@@ -1,4 +1,8 @@
 import { CustomService, ServiceCatalogItem } from "@/types/offer";
+import {
+  getHandwerkTradeByName,
+  getTradeServiceLabels,
+} from "@/lib/handwerk-trades";
 
 export const DEFAULT_CUSTOM_SERVICE_CATEGORY = "Eigene Leistungen";
 
@@ -119,7 +123,39 @@ const SEED_SERVICES: ServiceCatalogItem[] = SERVICE_SEED_CATEGORIES.flatMap(({ c
   }))
 );
 
-export function getSeedServices(): ServiceCatalogItem[] {
+type ServiceCatalogOptions = {
+  selectedTrade?: string;
+};
+
+function createSeedService(label: string, category: string, index: number): ServiceCatalogItem {
+  return {
+    id: `seed-${createSlug(category)}-${createSlug(label)}-${index}`,
+    label,
+    category,
+    source: "seed",
+  };
+}
+
+function getTradeSeedServices(selectedTrade: string): ServiceCatalogItem[] {
+  const trade = getHandwerkTradeByName(selectedTrade);
+  if (!trade) {
+    return [];
+  }
+
+  return getTradeServiceLabels(trade.name).map((label, index) =>
+    createSeedService(label, trade.name, index),
+  );
+}
+
+export function getSeedServices(options: ServiceCatalogOptions = {}): ServiceCatalogItem[] {
+  const selectedTrade = options.selectedTrade?.trim() ?? "";
+  if (selectedTrade) {
+    const tradeServices = getTradeSeedServices(selectedTrade);
+    if (tradeServices.length > 0) {
+      return tradeServices.map((service) => ({ ...service }));
+    }
+  }
+
   return SEED_SERVICES.map((service) => ({ ...service }));
 }
 
@@ -186,8 +222,11 @@ export function createCustomService(input: { label: string; category?: string })
   };
 }
 
-export function buildServiceCatalog(customServices: CustomService[]): ServiceCatalogItem[] {
-  const base = getSeedServices();
+export function buildServiceCatalog(
+  customServices: CustomService[],
+  options: ServiceCatalogOptions = {},
+): ServiceCatalogItem[] {
+  const base = getSeedServices(options);
   const merged = [...base];
   const unique = new Set(base.map((service) => serviceKey(service.label, service.category)));
 

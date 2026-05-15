@@ -4,6 +4,7 @@ import {
   normalizeBicInput,
   validateIbanInput,
 } from "@/lib/iban";
+import { sanitizeHandwerkTradeSelections } from "@/lib/handwerk-trades";
 import {
   OnboardingStatusUpdate,
   SettingsStoreContext,
@@ -292,9 +293,9 @@ export async function POST(request: Request) {
     }
 
     if (Array.isArray(body.customServiceTypes)) {
-      sanitized.customServiceTypes = body.customServiceTypes
-        .map((item) => String(item).trim())
-        .filter(Boolean);
+      sanitized.customServiceTypes = sanitizeHandwerkTradeSelections(
+        body.customServiceTypes,
+      );
       hasSettingsChanges = true;
     }
 

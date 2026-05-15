@@ -41,6 +41,8 @@ import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isValidEmailAddress } from "@/lib/user-input";
+import { sanitizeHandwerkTradeSelections } from "@/lib/handwerk-trades";
+import { TradeMultiSelect } from "@/components/TradeMultiSelect";
 import { VisioroLogoPill } from "@/components/VisioroLogoPill";
 import {
   AdditionalBankAccount,
@@ -516,9 +518,7 @@ function normalizeSettingsDraft(input: unknown): CompanySettings | null {
     lastOfferNumber: asString(input.lastOfferNumber),
     lastInvoiceNumber: asString(input.lastInvoiceNumber),
     customServiceTypes: Array.isArray(input.customServiceTypes)
-      ? input.customServiceTypes
-          .map((entry) => String(entry).trim())
-          .filter(Boolean)
+      ? sanitizeHandwerkTradeSelections(input.customServiceTypes)
       : [],
   };
 }
@@ -2056,8 +2056,24 @@ export default function SettingsPage() {
                         senderCopyEmail: e.target.value,
                       }))
                     }
-                  />
+                    />
                 </label>
+
+                <div className="field span2 settingsTradeField">
+                  <span>Gewerke</span>
+                  <TradeMultiSelect
+                    idPrefix="settings-trade"
+                    compact
+                    selectedTrades={settings.customServiceTypes}
+                    onChange={(nextTrades) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        customServiceTypes: nextTrades,
+                      }))
+                    }
+                    helperText="Diese Auswahl steuert Vorschläge, Platzhalter und KI-Kontext bei neuen Angeboten."
+                  />
+                </div>
 
                 <label className="field span2">
                   <span>Firmenlogo</span>

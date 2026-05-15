@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAppAccess } from "@/lib/access/guards";
 import { detectDocumentTaxInfo } from "@/lib/document-tax";
+import {
+  getTradeAiContext,
+  sanitizeHandwerkTradeSelections,
+} from "@/lib/handwerk-trades";
 import { parseOfferIntake, parseOfferIntakeFromImage } from "@/lib/openai";
 import { MAX_VOICE_TRANSCRIPT_LENGTH } from "@/lib/user-input";
 
@@ -117,6 +121,7 @@ type ParseIntakeRequestBody = {
   transcript?: string;
   photoDataUrl?: string;
   photoDataUrls?: string[];
+  selectedTrade?: string;
 };
 
 type IntakeVoicePosition = {
@@ -1452,6 +1457,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as ParseIntakeRequestBody;
     requestMode = body.inputMode === "photo" ? "photo" : "voice";
     const transcript = body.transcript?.trim() ?? "";
+    const selectedTrade =
+      sanitizeHandwerkTradeSelections(
+        body.selectedTrade ? [body.selectedTrade] : [],
+      )[0] ?? "";
+    const tradeContext = getTradeAiContext(selectedTrade);
     const normalizedPhotoDataUrls = Array.isArray(body.photoDataUrls)
       ? body.photoDataUrls.map((entry) => String(entry ?? "").trim())
       : [];
@@ -1538,8 +1548,14 @@ export async function POST(request: Request) {
 
     const parsed =
       requestMode === "photo"
-        ? await parseOfferIntakeFromImage(photoDataUrls)
-        : await parseOfferIntake(transcript);
+        ? await parseOfferIntakeFromImage(photoDataUrls, {
+            selectedTrade,
+            tradeContext,
+          })
+        : await parseOfferIntake(transcript, {
+            selectedTrade,
+            tradeContext,
+          });
     if (
       requestMode === "photo" &&
       parsed.usedFallback &&
