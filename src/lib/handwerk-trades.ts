@@ -46,7 +46,7 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
   {
     section: "A",
     label: SECTION_LABELS.A,
-    description: "53 aktuell zulassungspflichtige Handwerke nach HwO Anlage A.",
+    description: "Baustellennahe Auswahl aus den zulassungspflichtigen Handwerken.",
     trades: [
       "Maurer und Betonbauer",
       "Ofen- und Luftheizungsbauer",
@@ -61,7 +61,6 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
       "Gerüstbauer",
       "Schornsteinfeger",
       "Metallbauer",
-      "Chirurgiemechaniker",
       "Karosserie- und Fahrzeugbauer",
       "Feinwerkmechaniker",
       "Zweiradmechaniker",
@@ -77,15 +76,6 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
       "Tischler",
       "Boots- und Schiffbauer",
       "Seiler",
-      "Bäcker",
-      "Konditor",
-      "Fleischer",
-      "Augenoptiker",
-      "Hörakustiker",
-      "Orthopädietechniker",
-      "Orthopädieschuhmacher",
-      "Zahntechniker",
-      "Friseure",
       "Glaser",
       "Glasbläser und Glasapparatebauer",
       "Mechaniker für Reifen- und Vulkanisationstechnik",
@@ -106,7 +96,7 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
   {
     section: "B1",
     label: SECTION_LABELS.B1,
-    description: "41 aktuell aktive zulassungsfreie Handwerke nach HwO Anlage B1.",
+    description: "Baustellennahe Auswahl aus den zulassungsfreien Handwerken.",
     trades: [
       "Uhrmacher",
       "Graveure",
@@ -125,13 +115,9 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
       "Kürschner",
       "Schuhmacher",
       "Sattler und Feintäschner",
-      "Müller",
-      "Brauer und Mälzer",
-      "Weinküfer",
       "Textilreiniger",
       "Wachszieher",
       "Gebäudereiniger",
-      "Feinoptiker",
       "Glas- und Porzellanmaler",
       "Edelsteinschleifer und -graveure",
       "Fotografen",
@@ -148,13 +134,12 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
       "Vergolder",
       "Holz- und Bautenschützer (Mauerschutz und Holzimprägnierung in Gebäuden)",
       "Bestatter",
-      "Kosmetiker",
     ],
   },
   {
     section: "B2",
     label: SECTION_LABELS.B2,
-    description: "51 aktuell aktive handwerksähnliche Gewerbe nach HwO Anlage B2.",
+    description: "Baustellennahe Auswahl aus den handwerksähnlichen Gewerben.",
     trades: [
       "Eisenflechter",
       "Bautentrocknungsgewerbe",
@@ -192,14 +177,10 @@ const HANDWERK_TRADE_GROUP_SEEDS: TradeGroupSeed[] = [
       "Handschuhmacher",
       "Ausführung einfacher Schuhreparaturen",
       "Gerber",
-      "Innerei-Fleischer (Kuttler)",
-      "Speiseeishersteller (mit Vertrieb von Speiseeis mit üblichem Zubehör)",
-      "Fleischzerleger, Ausbeiner",
       "Appreteure, Dekateure",
       "Schnellreiniger",
       "Teppichreiniger",
       "Getränkeleitungsreiniger",
-      "Maskenbildner",
       "Lampenschirmhersteller (Sonderanfertigung)",
       "Klavierstimmer",
       "Theaterplastiker",
@@ -462,27 +443,6 @@ const TRADE_SERVICE_PRESETS: TradeServicePreset[] = [
       "Nutze Reinigungsart, Fläche, Turnus, Verschmutzungsgrad, Reinigungsmittel und Objektbereiche.",
   },
   {
-    match: ["Friseure", "Kosmetiker", "Maskenbildner"],
-    services: [
-      "Beratung",
-      "Waschen, Schneiden und Styling",
-      "Färbung",
-      "Pflegebehandlung",
-      "Kosmetikbehandlung",
-      "Make-up",
-      "Material und Produkte",
-      "Terminpauschale",
-    ],
-    placeholders: {
-      serviceSearch: "z. B. Beratung, Schnitt, Farbe, Pflege oder Behandlung",
-      serviceDescription:
-        "z. B. Beratung, Schnitt und Styling inkl. Pflegebehandlung und eingesetzter Produkte",
-      positionDescription: "z. B. Haarschnitt, Farbservice, Pflegebehandlung oder Make-up",
-    },
-    aiHint:
-      "Formuliere kundenfreundlich, mit klaren Behandlungs- oder Servicepaketen und Material-/Produktanteilen.",
-  },
-  {
     match: ["Fotografen"],
     services: [
       "Vorgespräch und Konzept",
@@ -502,27 +462,6 @@ const TRADE_SERVICE_PRESETS: TradeServicePreset[] = [
     },
     aiHint:
       "Achte auf Shootingdauer, Bildanzahl, Retusche, Nutzungsrechte, Lieferformat und Termin-/Anfahrtsanteile.",
-  },
-  {
-    match: ["Bäcker", "Konditor", "Fleischer", "Speiseeishersteller", "Brauer und Mälzer"],
-    services: [
-      "Beratung und Planung",
-      "Herstellung nach Auftrag",
-      "Material und Zutaten",
-      "Dekoration",
-      "Lieferung",
-      "Aufbau vor Ort",
-      "Verpackung",
-      "Sonderanfertigung",
-    ],
-    placeholders: {
-      serviceSearch: "z. B. Sonderanfertigung, Lieferung, Dekoration oder Verpackung",
-      serviceDescription:
-        "z. B. Herstellung und Lieferung der bestellten Waren inkl. Zutaten, Verpackung und Aufbau",
-      positionDescription: "z. B. Torte herstellen, Lieferung, Dekoration oder Verpackung",
-    },
-    aiHint:
-      "Berücksichtige Stückzahlen, Gewicht, Zutaten, Liefertermin, Verpackung, Kühlung und individuelle Ausführung.",
   },
 ];
 

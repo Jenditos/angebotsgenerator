@@ -25,13 +25,13 @@ export function TradeMultiSelect({
   helperText,
 }: TradeMultiSelectProps) {
   const [query, setQuery] = useState("");
-  const selectedOfficialTrades = useMemo(
+  const selectedRelevantTrades = useMemo(
     () => sanitizeHandwerkTradeSelections(selectedTrades),
     [selectedTrades],
   );
   const selectedSet = useMemo(
-    () => new Set(selectedOfficialTrades),
-    [selectedOfficialTrades],
+    () => new Set(selectedRelevantTrades),
+    [selectedRelevantTrades],
   );
   const normalizedQuery = normalizeTradeSearchValue(query);
 
@@ -65,12 +65,12 @@ export function TradeMultiSelect({
         <div>
           <strong>Gewerke auswählen</strong>
           <span>
-            {selectedOfficialTrades.length > 0
-              ? `${selectedOfficialTrades.length} ausgewählt`
+            {selectedRelevantTrades.length > 0
+              ? `${selectedRelevantTrades.length} ausgewählt`
               : "Noch kein Gewerk ausgewählt"}
           </span>
         </div>
-        <small>{HANDWERK_TRADE_TOTAL_COUNT} offizielle Einträge</small>
+        <small>{HANDWERK_TRADE_TOTAL_COUNT} baustellennahe Einträge</small>
       </div>
 
       <label className="tradeMultiSelectSearch">
@@ -129,7 +129,7 @@ export function TradeMultiSelect({
       </div>
 
       {filteredGroups.length === 0 ? (
-        <p className="tradeMultiSelectEmpty">Kein offizielles Gewerk gefunden.</p>
+        <p className="tradeMultiSelectEmpty">Kein passendes Gewerk gefunden.</p>
       ) : null}
     </div>
   );

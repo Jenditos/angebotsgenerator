@@ -1281,7 +1281,7 @@ export default function OnboardingPageClient({
                     onChange={(nextTrades) =>
                       updateSetting("customServiceTypes", nextTrades)
                     }
-                    helperText="Die Liste basiert auf den aktuell aktiven Gewerken der HwO-Anlagen A, B1 und B2."
+                    helperText="Die Liste ist auf baustellennahe Handwerksleistungen zugeschnitten."
                   />
                 </section>
 
