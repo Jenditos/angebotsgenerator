@@ -18051,3 +18051,436 @@ html body .onboardingPageEmbedded .onboardingFormSectionRequired {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Mobile reference onboarding polish */
+html body .onboardingPage {
+  --onboard-primary: #1f63ff;
+  --onboard-primary-hover: #1554e8;
+  --onboard-ink: #0f172a;
+  --onboard-muted: #657285;
+  --onboard-soft-text: #98a2b3;
+  --onboard-line: #d9e0ea;
+  --onboard-bg: #eef6ff;
+  background:
+    linear-gradient(180deg, #eef6ff 0%, #f7fbff 58%, #ffffff 100%) !important;
+}
+
+html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
+  width: min(462px, calc(100vw - 40px)) !important;
+  max-width: 462px !important;
+  max-height: min(92vh, 860px) !important;
+  border-radius: 26px !important;
+  background: #f2f8ff !important;
+  box-shadow: 0 34px 90px rgba(15, 23, 42, 0.34) !important;
+}
+
+html body .onboardingFlowOverlayFrameWrap.onboardingFlowInlineContent {
+  max-height: min(92vh, 860px) !important;
+}
+
+html body .onboardingPage .onboardingContainer {
+  max-width: 484px !important;
+  padding: 0 28px 34px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingContainer {
+  padding: 0 28px 24px !important;
+}
+
+html body .onboardingPage .onboardingCard {
+  gap: 0 !important;
+}
+
+html body .onboardingPage .onboardingProgressTrackTop {
+  width: calc(100% + 56px) !important;
+  height: 4px !important;
+  margin: 0 -28px !important;
+  background: #dce4ee !important;
+}
+
+html body .onboardingPage .onboardingProgressValueTop {
+  background: var(--onboard-primary) !important;
+}
+
+html body .onboardingPage .onboardingTopNav {
+  min-height: 70px !important;
+  padding: 20px 0 6px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingTopNav {
+  padding-right: 46px !important;
+}
+
+html body .onboardingPage .onboardingBackButton,
+html body .onboardingPage .onboardingTopSkipButton {
+  color: #7b8798 !important;
+  font-size: 1.02rem !important;
+  font-weight: 580 !important;
+}
+
+html body .onboardingPage .onboardingBackIcon {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+html body .onboardingPage .onboardingHeaderText {
+  display: none !important;
+}
+
+html body .onboardingPage .onboardingHeroIcon {
+  display: none !important;
+}
+
+html body .onboardingPage .onboardingHeaderMain {
+  justify-items: start !important;
+  gap: 18px !important;
+  padding: 70px 0 34px !important;
+  text-align: left !important;
+}
+
+html body .onboardingPageEmbedded .onboardingHeaderMain {
+  padding: 42px 0 28px !important;
+}
+
+html body .onboardingPage .onboardingHeader h1 {
+  max-width: none !important;
+  overflow-wrap: normal !important;
+  color: var(--onboard-ink) !important;
+  font-size: clamp(2.05rem, 7.4vw, 2.55rem) !important;
+  font-weight: 860 !important;
+  line-height: 1.12 !important;
+}
+
+html body .onboardingPage .heroText {
+  max-width: 34ch !important;
+  color: var(--onboard-muted) !important;
+  font-size: clamp(1.1rem, 4.5vw, 1.32rem) !important;
+  line-height: 1.48 !important;
+}
+
+html body .onboardingPageStep4 .onboardingHeaderMain,
+html body .onboardingPageStep5 .onboardingHeaderMain {
+  justify-items: center !important;
+  padding-top: 56px !important;
+  text-align: center !important;
+}
+
+html body .onboardingPageStep4 .heroText,
+html body .onboardingPageStep5 .heroText {
+  max-width: 38ch !important;
+}
+
+html body .onboardingPageStep5 .onboardingHeroIcon {
+  display: inline-flex !important;
+  width: 88px !important;
+  height: 88px !important;
+  border: 1.5px solid #aaf4c7 !important;
+  border-radius: 24px !important;
+  background: #ecfff4 !important;
+  color: #0cab55 !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPageStep5 .onboardingHeroIcon svg {
+  width: 54px !important;
+  height: 54px !important;
+}
+
+html body .onboardingPageStep1 .onboardingCrewPreview {
+  display: none !important;
+}
+
+html body .onboardingPage .onboardingStepCard {
+  gap: 22px !important;
+}
+
+html body .onboardingPage .onboardingGrid {
+  gap: 24px !important;
+}
+
+html body .onboardingPage .field {
+  gap: 9px !important;
+}
+
+html body .onboardingPage .field > span,
+html body .onboardingPage .field span {
+  color: #344154 !important;
+  font-size: 1.05rem !important;
+  font-weight: 720 !important;
+}
+
+html body .onboardingPage :is(input:not([type="checkbox"]), select, textarea) {
+  min-height: 64px !important;
+  padding: 0 18px !important;
+  border: 1.5px solid #d4dbe6 !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--onboard-ink) !important;
+  box-shadow: none !important;
+  font-size: 1.02rem !important;
+}
+
+html body .onboardingPage textarea {
+  padding-top: 15px !important;
+}
+
+html body .onboardingPage :is(input:not([type="checkbox"]), select, textarea)::placeholder {
+  color: #e4e8ee !important;
+}
+
+html body .onboardingPage :is(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: var(--onboard-primary) !important;
+  box-shadow: 0 0 0 4px rgba(31, 99, 255, 0.18) !important;
+}
+
+html body .onboardingPage .onboardingStepBodyTax {
+  gap: 28px !important;
+}
+
+html body .onboardingPageStep3 .onboardingFormSectionAccent,
+html body .onboardingPageStep3 .onboardingFormSectionRequired {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .onboardingPageStep3 .onboardingFormSectionAccent .onboardingFormSectionHeader,
+html body .onboardingPageStep3 .onboardingFormSectionRequired .onboardingFormSectionHeader {
+  display: none !important;
+}
+
+html body .onboardingPage .onboardingFormSectionOptional,
+html body .onboardingPage .onboardingLogoPanel {
+  padding: 20px !important;
+  border: 1px solid rgba(213, 221, 232, 0.9) !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06) !important;
+}
+
+html body .tradeMultiSelectOnboarding {
+  gap: 18px !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeMultiSelectHelper {
+  margin: -2px 0 0 !important;
+  color: #7a8595 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.42 !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeQuickGrid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px 12px !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeChoice {
+  width: auto !important;
+  min-height: 46px !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 0 18px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #eef0f4 !important;
+  color: #364254 !important;
+  box-shadow: none !important;
+  font-size: 1.04rem !important;
+  font-weight: 720 !important;
+  white-space: nowrap !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeChoice small {
+  display: none !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeChoice:hover,
+html body .tradeMultiSelectOnboarding .tradeChoice:focus-visible {
+  background: #e7ebf2 !important;
+  color: #172033 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeChoice.isSelected,
+html body .tradeMultiSelectOnboarding .tradeChoice[aria-pressed="true"] {
+  background: var(--onboard-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(31, 99, 255, 0.2) !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeChoiceMore.isExpanded {
+  background: #172033 !important;
+  color: #ffffff !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeMultiSelectSearch input {
+  min-height: 54px !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeMultiSelectGroups {
+  max-height: 300px !important;
+  gap: 10px !important;
+  padding: 0 !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeGroup {
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeGroup summary {
+  padding: 14px 16px !important;
+}
+
+html body .tradeMultiSelectOnboarding .tradeChoiceGrid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+html body .onboardingLifecyclePreview {
+  gap: 16px !important;
+  margin-top: 8px !important;
+  padding: 0 0 0 44px !important;
+}
+
+html body .onboardingLifecyclePreview::before {
+  top: 28px !important;
+  bottom: 28px !important;
+  left: 15px !important;
+  width: 3px !important;
+  background: #dfe5ee !important;
+}
+
+html body .onboardingLifecycleItem {
+  min-height: 82px !important;
+  padding: 18px 18px 18px 22px !important;
+  border: 1px solid rgba(213, 221, 232, 0.9) !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08) !important;
+}
+
+html body .onboardingLifecycleDot {
+  top: 22px !important;
+  left: -48px !important;
+  width: 34px !important;
+  height: 34px !important;
+  border: 5px solid #eef6ff !important;
+}
+
+html body .onboardingLifecycleItem p {
+  margin-bottom: 5px !important;
+  font-size: 0.82rem !important;
+}
+
+html body .onboardingLifecycleItem strong {
+  font-size: 1.06rem !important;
+}
+
+html body .onboardingLifecycleItem span:not(.onboardingLifecycleDot) {
+  font-size: 0.95rem !important;
+}
+
+html body .onboardingLifecycleItem-teal .onboardingLifecycleDot {
+  background: #0d9488 !important;
+}
+
+html body .onboardingLifecycleItem-purple .onboardingLifecycleDot {
+  background: #7c3aed !important;
+}
+
+html body .onboardingLifecycleItem-teal p {
+  color: #0d9488 !important;
+}
+
+html body .onboardingLifecycleItem-purple p {
+  color: #7c3aed !important;
+}
+
+html body .onboardingFinalChecklist {
+  gap: 14px !important;
+  padding: 24px 28px !important;
+  border: 1px solid rgba(213, 221, 232, 0.9) !important;
+  border-radius: 24px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+html body .onboardingChecklistItem {
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  min-height: 36px !important;
+}
+
+html body .onboardingChecklistItem span {
+  width: 28px !important;
+  height: 28px !important;
+  background: #dcfce7 !important;
+  color: #0f9f55 !important;
+}
+
+html body .onboardingChecklistItem strong {
+  color: #344154 !important;
+  font-size: 1.02rem !important;
+}
+
+html body .onboardingPage .onboardingActions {
+  margin-top: 34px !important;
+  padding-bottom: max(26px, env(safe-area-inset-bottom)) !important;
+}
+
+html body .onboardingPage .onboardingActions .primaryButton,
+html body .onboardingPage .onboardingActions button.primaryButton {
+  min-height: 66px !important;
+  border-radius: 14px !important;
+  background: var(--onboard-primary) !important;
+  background-color: var(--onboard-primary) !important;
+  box-shadow: 0 12px 26px rgba(31, 99, 255, 0.22) !important;
+  font-size: 1.18rem !important;
+  font-weight: 820 !important;
+}
+
+html body .onboardingPageStep5 .onboardingActions {
+  max-width: 340px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+@media (max-width: 520px) {
+  html body .onboardingPage .onboardingContainer {
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+  }
+
+  html body .onboardingPage .onboardingProgressTrackTop {
+    width: calc(100% + 44px) !important;
+    margin-left: -22px !important;
+    margin-right: -22px !important;
+  }
+
+  html body .onboardingPage .onboardingHeaderMain {
+    padding-top: 56px !important;
+  }
+
+  html body .onboardingPageEmbedded .onboardingHeaderMain {
+    padding-top: 36px !important;
+  }
+
+  html body .onboardingPage .onboardingHeader h1 {
+    font-size: clamp(2rem, 9vw, 2.42rem) !important;
+  }
+
+  html body .onboardingPage .heroText {
+    font-size: clamp(1.04rem, 4.8vw, 1.22rem) !important;
+  }
+
+  html body .tradeMultiSelectOnboarding .tradeChoice {
+    min-height: 44px !important;
+    padding: 0 16px !important;
+    font-size: 0.98rem !important;
+  }
+}

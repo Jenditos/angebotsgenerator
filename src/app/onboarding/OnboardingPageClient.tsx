@@ -76,18 +76,18 @@ const emptySettings: CompanySettings = {
 
 const CREW_PREVIEW_CARDS = [
   {
-    title: "Office-Assistenz",
-    text: "sortiert Kunden, Termine und Entwürfe.",
+    title: "Sekretärin",
+    text: "antwortet Kunden und hält Termine im Blick.",
     tone: "blue",
   },
   {
     title: "Nachfasser",
-    text: "denkt an Angebote, bevor sie liegen bleiben.",
+    text: "erinnert dich, wenn Kunden nicht reagieren.",
     tone: "amber",
   },
   {
-    title: "Reputation",
-    text: "bereitet Bewertungen nach Abschluss vor.",
+    title: "Reputations",
+    text: "holt nach Abnahme Bewertungen ein.",
     tone: "green",
   },
 ];
@@ -95,29 +95,42 @@ const CREW_PREVIEW_CARDS = [
 const LIFECYCLE_PREVIEW_ITEMS = [
   {
     label: "Tag 0",
-    title: "Angebot geht raus",
-    text: "Kunde, Leistungen und Nummer sind sauber vorbereitet.",
+    title: "Angebot raus",
+    text: "Kunde, Leistungen und Nummer sind bereit.",
     tone: "blue",
   },
   {
     label: "Tag 3",
-    title: "Nachfassen",
-    text: "Wenn keine Antwort kommt, liegt die Erinnerung bereit.",
+    title: "Nachfasser erinnert dich",
+    text: "Kunde hat nicht reagiert, Erinnerung vorbereitet.",
     tone: "amber",
   },
   {
-    label: "Nach Abschluss",
-    title: "Rechnung & Bewertung",
-    text: "Aus dem Angebot wird eine Rechnung, danach folgt die Rezension.",
+    label: "Tag 5",
+    title: "Zusage · Bauakte angelegt",
+    text: "Timeline, Fotos und Notizen bleiben zusammen.",
     tone: "green",
+  },
+  {
+    label: "Tag X",
+    title: "Rechnung in Sekunden",
+    text: "Aus dem Angebot wird mit einem Klick die Rechnung.",
+    tone: "teal",
+  },
+  {
+    label: "Tag X+14",
+    title: "Bewertung holen",
+    text: "Google-Rezension nach Abnahme, sauber vorbereitet.",
+    tone: "purple",
   },
 ];
 
 const FINAL_CHECKLIST_ITEMS = [
-  "Firmendaten sind hinterlegt",
-  "Adresse und Kontaktwege passen",
-  "Steuern und Zahlung sind bereit",
-  "Dein erstes Angebot kann starten",
+  "Crew kennengelernt",
+  "Firma und Kontakt eingerichtet",
+  "Gewerke und Steuerbasis gespeichert",
+  "Zahlung für Rechnungen vorbereitet",
+  "Ablauf bis zur Bewertung verstanden",
 ];
 
 type OnboardingApiState = {
@@ -1019,32 +1032,29 @@ export default function OnboardingPageClient({
       : currentStep === 2
         ? "Wo findet man dich?"
         : currentStep === 3
-          ? "Gewerk & Steuern"
+          ? "Dein Gewerk"
           : currentStep === 4
-            ? "Zahlung ohne Suchen"
-            : "Alles startklar";
+            ? "Und dann läuft es"
+            : "Alles klar!";
 
   const stepDescription =
     currentStep === 1
-      ? "Damit deine digitale Crew weiß, wer du bist und wie Kunden dich erreichen."
+      ? "Damit deine Crew weiß, wer du bist und Angebote in deinem Namen rausgehen."
       : currentStep === 2
-        ? "Diese Angaben erscheinen sauber auf Angeboten, Rechnungen und Kundenmails."
+        ? "Adresse und Kontakt landen automatisch sauber auf Angeboten und Rechnungen."
         : currentStep === 3
-          ? "Wähle deine Gewerke und ergänze die Steuerdaten. Danach passt sich die App an deinen Betrieb an."
+          ? "Das hilft der KI, die richtigen Fachbegriffe und Leistungspositionen zu verwenden."
           : currentStep === 4
-            ? "Einmal eintragen, danach stehen Zahlungsziel und Bankdaten automatisch im Dokument."
-            : "Prüfe den Überblick und starte danach direkt mit deinem ersten echten Angebot.";
+            ? "Während du auf der Baustelle bist, arbeitet deine digitale Crew im Hintergrund weiter."
+            : "Deine Crew ist bereit. Du bist nicht mehr alleine.";
 
-  const primaryButtonLabel =
-    currentStep === 1
-      ? "Crew vorbereiten"
-      : currentStep === 4
-        ? "Zum Abschluss"
-        : "Weiter";
+  const primaryButtonLabel = currentStep === 4 ? "Zum Abschluss" : "Weiter";
 
   return (
     <main
-      className={`page onboardingPage ${isEmbeddedMode ? "onboardingPageEmbedded" : ""}`}
+      className={`page onboardingPage onboardingPageStep${currentStep} ${
+        isEmbeddedMode ? "onboardingPageEmbedded" : ""
+      }`}
     >
       {!isEmbeddedMode ? <div className="ambient ambientA" aria-hidden /> : null}
       {!isEmbeddedMode ? <div className="ambient ambientB" aria-hidden /> : null}
@@ -1281,7 +1291,8 @@ export default function OnboardingPageClient({
                     onChange={(nextTrades) =>
                       updateSetting("customServiceTypes", nextTrades)
                     }
-                    helperText="Die Auswahl steuert spätere Leistungspositionen, Platzhalter und KI-Texte."
+                    helperText="Wähle alle Gewerke aus, die dein Betrieb anbietet."
+                    variant="onboarding"
                   />
                 </section>
 
@@ -1528,7 +1539,7 @@ export default function OnboardingPageClient({
                 onClick={() => void completeOnboarding()}
                 disabled={isSaving || isUploadingLogo}
               >
-                Ersteinrichtung abschließen
+                Leg los!
               </button>
             )}
           </footer>

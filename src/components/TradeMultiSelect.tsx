@@ -16,19 +16,17 @@ type TradeMultiSelectProps = {
   idPrefix?: string;
   compact?: boolean;
   helperText?: string;
+  variant?: "default" | "onboarding";
 };
 
 const FEATURED_TRADE_OPTIONS = [
-  { label: "Maler", tradeName: "Maler und Lackierer" },
+  { label: "Maler und Lackierer", tradeName: "Maler und Lackierer" },
+  { label: "Sanitär, Heizung, Klima (SHK)", tradeName: "Installateur und Heizungsbauer" },
   { label: "Elektro", tradeName: "Elektrotechniker" },
-  { label: "SHK", tradeName: "Installateur und Heizungsbauer" },
-  { label: "Tischler", tradeName: "Tischler" },
-  { label: "Fliesen", tradeName: "Fliesen-, Platten- und Mosaikleger" },
-  { label: "Boden", tradeName: "Bodenleger" },
-  { label: "Dach", tradeName: "Dachdecker" },
+  { label: "Tischler / Schreiner", tradeName: "Tischler" },
   { label: "Trockenbau", tradeName: "Stuckateure" },
-  { label: "Maurer", tradeName: "Maurer und Betonbauer" },
-  { label: "Zimmerer", tradeName: "Zimmerer" },
+  { label: "Bodenleger", tradeName: "Bodenleger" },
+  { label: "Dachdecker", tradeName: "Dachdecker" },
 ];
 
 export function TradeMultiSelect({
@@ -37,6 +35,7 @@ export function TradeMultiSelect({
   idPrefix = "trade",
   compact = false,
   helperText,
+  variant = "default",
 }: TradeMultiSelectProps) {
   const [query, setQuery] = useState("");
   const [isFullListOpen, setIsFullListOpen] = useState(false);
@@ -100,22 +99,37 @@ export function TradeMultiSelect({
 
   const hasQuery = normalizedQuery.length > 0;
   const shouldShowFullList = isFullListOpen && !hasQuery;
+  const isOnboardingVariant = variant === "onboarding";
+  const shouldShowSearch = !isOnboardingVariant || isFullListOpen || hasQuery;
+  const featuredTradeNames = new Set(
+    featuredTrades.map(({ trade }) => trade.name),
+  );
+  const shouldShowSelectedChips =
+    selectedRelevantTrades.length > 0 &&
+    (!isOnboardingVariant ||
+      selectedRelevantTrades.some((tradeName) => !featuredTradeNames.has(tradeName)));
 
   return (
-    <div className={`tradeMultiSelect ${compact ? "tradeMultiSelectCompact" : ""}`}>
-      <div className="tradeMultiSelectHeader">
-        <div>
-          <strong>Gewerke auswählen</strong>
-          <span>
-            {selectedRelevantTrades.length > 0
-              ? `${selectedRelevantTrades.length} ausgewählt`
-              : "Noch kein Gewerk ausgewählt"}
-          </span>
+    <div
+      className={`tradeMultiSelect ${compact ? "tradeMultiSelectCompact" : ""} ${
+        isOnboardingVariant ? "tradeMultiSelectOnboarding" : ""
+      }`}
+    >
+      {!isOnboardingVariant ? (
+        <div className="tradeMultiSelectHeader">
+          <div>
+            <strong>Gewerke auswählen</strong>
+            <span>
+              {selectedRelevantTrades.length > 0
+                ? `${selectedRelevantTrades.length} ausgewählt`
+                : "Noch kein Gewerk ausgewählt"}
+            </span>
+          </div>
+          <small>{HANDWERK_TRADE_TOTAL_COUNT} baustellennahe Gewerke</small>
         </div>
-        <small>{HANDWERK_TRADE_TOTAL_COUNT} baustellennahe Gewerke</small>
-      </div>
+      ) : null}
 
-      {selectedRelevantTrades.length > 0 ? (
+      {shouldShowSelectedChips ? (
         <div className="tradeSelectedChips" aria-label="Ausgewählte Gewerke">
           {selectedRelevantTrades.map((tradeName) => (
             <button
@@ -132,15 +146,17 @@ export function TradeMultiSelect({
         </div>
       ) : null}
 
-      <label className="tradeMultiSelectSearch">
-        <span className="srOnly">Gewerk suchen</span>
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Gewerk suchen, z. B. Elektrotechniker"
-          autoCapitalize="words"
-        />
-      </label>
+      {shouldShowSearch ? (
+        <label className="tradeMultiSelectSearch">
+          <span className="srOnly">Gewerk suchen</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Gewerk suchen, z. B. Elektrotechniker"
+            autoCapitalize="words"
+          />
+        </label>
+      ) : null}
 
       {helperText && !hasQuery ? (
         <p className="tradeMultiSelectHelper">{helperText}</p>
@@ -148,16 +164,18 @@ export function TradeMultiSelect({
 
       {!hasQuery ? (
         <section className="tradeQuickSection" aria-label="Häufig gewählte Gewerke">
-          <div className="tradeQuickHeader">
-            <p className="tradeQuickTitle">Häufig gewählt</p>
-            <button
-              type="button"
-              className="tradeShowAllButton"
-              onClick={() => setIsFullListOpen((current) => !current)}
-            >
-              {isFullListOpen ? "Liste einklappen" : "Alle Gewerke anzeigen"}
-            </button>
-          </div>
+          {!isOnboardingVariant ? (
+            <div className="tradeQuickHeader">
+              <p className="tradeQuickTitle">Häufig gewählt</p>
+              <button
+                type="button"
+                className="tradeShowAllButton"
+                onClick={() => setIsFullListOpen((current) => !current)}
+              >
+                {isFullListOpen ? "Liste einklappen" : "Alle Gewerke anzeigen"}
+              </button>
+            </div>
+          ) : null}
           <div className="tradeQuickGrid">
             {featuredTrades.map(({ label, trade }) => {
               const isSelected = selectedSet.has(trade.name);
@@ -177,6 +195,18 @@ export function TradeMultiSelect({
                 </button>
               );
             })}
+            {isOnboardingVariant ? (
+              <button
+                type="button"
+                className={`tradeChoice tradeChoiceFeatured tradeChoiceMore ${
+                  isFullListOpen ? "isExpanded" : ""
+                }`}
+                aria-expanded={isFullListOpen}
+                onClick={() => setIsFullListOpen((current) => !current)}
+              >
+                <span>{isFullListOpen ? "Liste einklappen" : "Sonstiges Gewerk"}</span>
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}
