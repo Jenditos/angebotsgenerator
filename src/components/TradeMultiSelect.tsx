@@ -5,6 +5,7 @@ import {
   HANDWERK_TRADE_GROUPS,
   HANDWERK_TRADE_NAMES,
   HANDWERK_TRADE_TOTAL_COUNT,
+  type HandwerkTrade,
   normalizeTradeSearchValue,
   sanitizeHandwerkTradeSelections,
 } from "@/lib/handwerk-trades";
@@ -17,6 +18,19 @@ type TradeMultiSelectProps = {
   helperText?: string;
 };
 
+const FEATURED_TRADE_OPTIONS = [
+  { label: "Maler", tradeName: "Maler und Lackierer" },
+  { label: "Elektro", tradeName: "Elektrotechniker" },
+  { label: "SHK", tradeName: "Installateur und Heizungsbauer" },
+  { label: "Tischler", tradeName: "Tischler" },
+  { label: "Fliesen", tradeName: "Fliesen-, Platten- und Mosaikleger" },
+  { label: "Boden", tradeName: "Bodenleger" },
+  { label: "Dach", tradeName: "Dachdecker" },
+  { label: "Trockenbau", tradeName: "Stuckateure" },
+  { label: "Maurer", tradeName: "Maurer und Betonbauer" },
+  { label: "Zimmerer", tradeName: "Zimmerer" },
+];
+
 export function TradeMultiSelect({
   selectedTrades,
   onChange,
@@ -25,6 +39,7 @@ export function TradeMultiSelect({
   helperText,
 }: TradeMultiSelectProps) {
   const [query, setQuery] = useState("");
+  const [isFullListOpen, setIsFullListOpen] = useState(false);
   const selectedRelevantTrades = useMemo(
     () => sanitizeHandwerkTradeSelections(selectedTrades),
     [selectedTrades],
@@ -34,6 +49,30 @@ export function TradeMultiSelect({
     [selectedRelevantTrades],
   );
   const normalizedQuery = normalizeTradeSearchValue(query);
+  const allTrades = useMemo(
+    () => HANDWERK_TRADE_GROUPS.flatMap((group) => group.trades),
+    [],
+  );
+  const featuredTrades = useMemo(() => {
+    const byName = new Map(allTrades.map((trade) => [trade.name, trade]));
+
+    return FEATURED_TRADE_OPTIONS.map((option) => {
+      const trade = byName.get(option.tradeName);
+      return trade ? { ...option, trade } : null;
+    }).filter(
+      (option): option is { label: string; tradeName: string; trade: HandwerkTrade } =>
+        Boolean(option),
+    );
+  }, [allTrades]);
+  const searchResults = useMemo(() => {
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return allTrades
+      .filter((trade) => trade.searchText.includes(normalizedQuery))
+      .slice(0, 18);
+  }, [allTrades, normalizedQuery]);
 
   const filteredGroups = useMemo(() => {
     if (!normalizedQuery) {
@@ -59,6 +98,9 @@ export function TradeMultiSelect({
     onChange(HANDWERK_TRADE_NAMES.filter((name) => nextSet.has(name)));
   }
 
+  const hasQuery = normalizedQuery.length > 0;
+  const shouldShowFullList = isFullListOpen && !hasQuery;
+
   return (
     <div className={`tradeMultiSelect ${compact ? "tradeMultiSelectCompact" : ""}`}>
       <div className="tradeMultiSelectHeader">
@@ -70,8 +112,25 @@ export function TradeMultiSelect({
               : "Noch kein Gewerk ausgewählt"}
           </span>
         </div>
-        <small>{HANDWERK_TRADE_TOTAL_COUNT} baustellennahe Einträge</small>
+        <small>{HANDWERK_TRADE_TOTAL_COUNT} baustellennahe Gewerke</small>
       </div>
+
+      {selectedRelevantTrades.length > 0 ? (
+        <div className="tradeSelectedChips" aria-label="Ausgewählte Gewerke">
+          {selectedRelevantTrades.map((tradeName) => (
+            <button
+              key={tradeName}
+              type="button"
+              className="tradeSelectedChip"
+              onClick={() => toggleTrade(tradeName)}
+              aria-label={`${tradeName} entfernen`}
+            >
+              <span>{tradeName}</span>
+              <strong aria-hidden="true">×</strong>
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <label className="tradeMultiSelectSearch">
         <span className="srOnly">Gewerk suchen</span>
@@ -83,10 +142,77 @@ export function TradeMultiSelect({
         />
       </label>
 
-      {helperText ? <p className="tradeMultiSelectHelper">{helperText}</p> : null}
+      {helperText && !hasQuery ? (
+        <p className="tradeMultiSelectHelper">{helperText}</p>
+      ) : null}
 
-      <div className="tradeMultiSelectGroups">
-        {filteredGroups.map((group, groupIndex) => {
+      {!hasQuery ? (
+        <section className="tradeQuickSection" aria-label="Häufig gewählte Gewerke">
+          <div className="tradeQuickHeader">
+            <p className="tradeQuickTitle">Häufig gewählt</p>
+            <button
+              type="button"
+              className="tradeShowAllButton"
+              onClick={() => setIsFullListOpen((current) => !current)}
+            >
+              {isFullListOpen ? "Liste einklappen" : "Alle Gewerke anzeigen"}
+            </button>
+          </div>
+          <div className="tradeQuickGrid">
+            {featuredTrades.map(({ label, trade }) => {
+              const isSelected = selectedSet.has(trade.name);
+              return (
+                <button
+                  key={trade.id}
+                  type="button"
+                  className={`tradeChoice tradeChoiceFeatured ${
+                    isSelected ? "isSelected" : ""
+                  }`}
+                  aria-pressed={isSelected}
+                  onClick={() => toggleTrade(trade.name)}
+                  title={trade.name}
+                >
+                  <span>{label}</span>
+                  <small>{trade.section}</small>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {hasQuery ? (
+        <section className="tradeSearchResults" aria-label="Suchergebnisse">
+          <p className="tradeSearchResultTitle">
+            {searchResults.length > 0
+              ? "Passende Gewerke"
+              : "Kein passendes Gewerk gefunden"}
+          </p>
+          {searchResults.length > 0 ? (
+            <div className="tradeChoiceGrid">
+              {searchResults.map((trade) => {
+                const isSelected = selectedSet.has(trade.name);
+                return (
+                  <button
+                    key={trade.id}
+                    type="button"
+                    className={`tradeChoice ${isSelected ? "isSelected" : ""}`}
+                    aria-pressed={isSelected}
+                    onClick={() => toggleTrade(trade.name)}
+                  >
+                    <span>{trade.name}</span>
+                    <small>{trade.section}</small>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {shouldShowFullList ? (
+        <div className="tradeMultiSelectGroups">
+          {filteredGroups.map((group) => {
           const selectedInGroup = group.trades.filter((trade) =>
             selectedSet.has(trade.name),
           ).length;
@@ -95,7 +221,7 @@ export function TradeMultiSelect({
             <details
               key={group.section}
               className="tradeGroup"
-              open={Boolean(normalizedQuery) || selectedInGroup > 0 || groupIndex === 0}
+              open={selectedInGroup > 0}
             >
               <summary>
                 <span>{group.label}</span>
@@ -125,11 +251,8 @@ export function TradeMultiSelect({
               </div>
             </details>
           );
-        })}
-      </div>
-
-      {filteredGroups.length === 0 ? (
-        <p className="tradeMultiSelectEmpty">Kein passendes Gewerk gefunden.</p>
+          })}
+        </div>
       ) : null}
     </div>
   );

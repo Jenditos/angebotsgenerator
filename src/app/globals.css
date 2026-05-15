@@ -17127,10 +17127,52 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
 .tradeMultiSelectHeader small,
 .tradeMultiSelectHelper,
 .tradeMultiSelectEmpty,
-.tradeGroupDescription {
+.tradeGroupDescription,
+.tradeSearchResultTitle,
+.tradeQuickTitle {
   color: #64748b;
   font-size: 0.88rem;
   line-height: 1.45;
+}
+
+.tradeSelectedChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tradeSelectedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid rgba(13, 148, 136, 0.24);
+  border-radius: 999px;
+  background: rgba(13, 148, 136, 0.09);
+  color: #0f766e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 760;
+  padding: 6px 10px 6px 12px;
+}
+
+.tradeSelectedChip strong {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.tradeSelectedChip:hover,
+.tradeSelectedChip:focus-visible {
+  background: rgba(13, 148, 136, 0.14) !important;
+  color: #0f766e !important;
+  outline: none;
 }
 
 .tradeMultiSelectSearch input {
@@ -17152,10 +17194,58 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
   box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.13);
 }
 
+.tradeQuickSection,
+.tradeSearchResults {
+  display: grid;
+  gap: 10px;
+}
+
+.tradeQuickHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tradeQuickTitle,
+.tradeSearchResultTitle {
+  margin: 0;
+  color: #334155;
+  font-weight: 820;
+}
+
+.tradeShowAllButton {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #0f766e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 820;
+  min-height: 32px;
+  padding: 0 11px;
+}
+
+.tradeShowAllButton:hover,
+.tradeShowAllButton:focus-visible {
+  background: rgba(15, 118, 110, 0.14) !important;
+  color: #0f766e !important;
+  outline: none;
+}
+
+.tradeQuickGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .tradeMultiSelectGroups {
   display: grid;
   gap: 10px;
-  max-height: 430px;
+  max-height: 300px;
   overflow: auto;
   padding-right: 3px;
 }
@@ -17225,6 +17315,11 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
     box-shadow 0.16s ease;
 }
 
+.tradeChoiceFeatured {
+  min-height: 36px;
+  background: #ffffff;
+}
+
 .tradeChoice small {
   border-radius: 999px;
   background: rgba(15, 118, 110, 0.1);
@@ -17236,20 +17331,20 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
 
 .tradeChoice:hover,
 .tradeChoice:focus-visible {
-  border-color: rgba(20, 184, 166, 0.55);
-  background: #ffffff;
-  color: #0f172a;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  border-color: rgba(20, 184, 166, 0.55) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08) !important;
   outline: none;
 }
 
 .tradeChoice.isSelected,
 .tradeChoice[aria-pressed="true"] {
-  border-color: rgba(13, 148, 136, 0.75);
-  background: #0f766e;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.2);
+  border-color: rgba(13, 148, 136, 0.75) !important;
+  background: #0f766e !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.2) !important;
 }
 
 .tradeChoice.isSelected small,
@@ -17259,7 +17354,7 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
 }
 
 .tradeMultiSelectCompact .tradeMultiSelectGroups {
-  max-height: 360px;
+  max-height: 270px;
 }
 
 .settingsTradeField {
@@ -17306,6 +17401,70 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
   font-size: 0.86rem;
   line-height: 1.4;
   margin: 0;
+}
+
+html body .onboardingPageEmbedded .onboardingHeaderMain {
+  gap: 8px !important;
+  padding: 10px 0 2px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingHeroIcon {
+  display: none !important;
+}
+
+html body .onboardingPageEmbedded .onboardingHeader h1 {
+  max-width: none !important;
+  font-size: clamp(1.55rem, 4vw, 2.05rem) !important;
+  line-height: 1.08 !important;
+}
+
+html body .onboardingPageEmbedded .heroText {
+  max-width: 42ch !important;
+  font-size: 0.95rem !important;
+  line-height: 1.42 !important;
+}
+
+html body .onboardingPageEmbedded .onboardingStepBodyTax {
+  gap: 12px !important;
+}
+
+html body .onboardingPageEmbedded .onboardingFormSection {
+  gap: 12px !important;
+  padding: 14px !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelect {
+  gap: 12px !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectHeader strong {
+  font-size: 0.95rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectHeader span,
+html body .onboardingPageEmbedded .tradeMultiSelectHeader small,
+html body .onboardingPageEmbedded .tradeMultiSelectHelper,
+html body .onboardingPageEmbedded .tradeGroupDescription,
+html body .onboardingPageEmbedded .tradeQuickTitle,
+html body .onboardingPageEmbedded .tradeSearchResultTitle {
+  font-size: 0.82rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectSearch input {
+  min-height: 48px !important;
+  padding: 0 14px !important;
+  border-radius: 13px !important;
+  font-size: 0.9rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeChoice {
+  min-height: 34px !important;
+  padding: 7px 10px !important;
+  font-size: 0.84rem !important;
+}
+
+html body .onboardingPageEmbedded .tradeMultiSelectGroups {
+  max-height: 235px !important;
 }
 
 @media (max-width: 640px) {

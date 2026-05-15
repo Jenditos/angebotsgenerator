@@ -1030,7 +1030,7 @@ export default function OnboardingPageClient({
       : currentStep === 2
         ? "Diese Angaben erscheinen sauber auf Angeboten, Rechnungen und Kundenmails."
         : currentStep === 3
-          ? "Sag kurz, in welcher Sprache deine Angebote klingen sollen, und hinterlege die Steuerbasis."
+          ? "Wähle deine Gewerke und ergänze die Steuerdaten. Danach passen Vorschläge und KI-Texte besser."
           : currentStep === 4
             ? "Einmal eintragen, danach stehen Zahlungsziel und Bankdaten automatisch im Dokument."
             : "Prüfe den Überblick und starte danach direkt mit deinem ersten echten Angebot.";
@@ -1267,7 +1267,7 @@ export default function OnboardingPageClient({
                   <div className="onboardingFormSectionHeader">
                     <p className="onboardingFormSectionEyebrow">Dein Ton</p>
                     <h3 className="onboardingFormSectionTitle">
-                      Welche Baustellen-Sprache soll die KI kennen?
+                      Welche Gewerke macht dein Betrieb?
                     </h3>
                     <p className="onboardingFormSectionText">
                       Wähle alle Gewerke aus, die dein Betrieb anbietet. Das
