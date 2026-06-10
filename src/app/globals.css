@@ -19405,3 +19405,54 @@ button.projectDeleteConfirmButton:disabled {
     width: 100%;
   }
 }
+
+/* Dialog placement contract: every full-screen popup is centered consistently. */
+html body :is(
+    .settingsOverlayBackdrop,
+    .customerPickerModalBackdrop,
+    .infoLegalBackdrop,
+    .voiceLoginModalBackdrop,
+    .customerArchiveBackdrop,
+    .projectDeleteBackdrop
+  ) {
+  display: grid !important;
+  place-items: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left)) !important;
+  overflow: auto !important;
+}
+
+html body :is(
+    .settingsOverlaySheet,
+    .customerPickerModalSheet,
+    .infoLegalSheet,
+    .voiceLoginModalSheet,
+    .customerArchiveSheet,
+    .projectDeleteDialog
+  ) {
+  margin: auto !important;
+}
+
+@media (max-width: 760px) {
+  html body :is(
+      .settingsOverlayBackdrop,
+      .customerPickerModalBackdrop,
+      .infoLegalBackdrop,
+      .voiceLoginModalBackdrop,
+      .customerArchiveBackdrop,
+      .projectDeleteBackdrop
+    ) {
+    place-items: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
