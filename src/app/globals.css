@@ -19007,6 +19007,33 @@ html body .onboardingSetupFooterActions {
   gap: 16px !important;
 }
 
+html body .onboardingSetupFooterActions .onboardingSetupSecondary {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 52px !important;
+  padding: 0 22px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  font-size: 0.98rem !important;
+  font-weight: 760 !important;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease !important;
+}
+
+html body .onboardingSetupFooterActions .onboardingSetupSecondary:hover:not(:disabled),
+html body .onboardingSetupFooterActions .onboardingSetupSecondary:focus-visible:not(:disabled) {
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  transform: none !important;
+}
+
 html body .onboardingSetupPrimary {
   appearance: none !important;
   -webkit-appearance: none !important;

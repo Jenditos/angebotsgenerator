@@ -4,6 +4,7 @@ import { middleware } from "../middleware";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import {
   canUseApp,
+  isInternalTester,
   readEffectiveUserAccessRecord,
 } from "@/lib/access/user-access";
 import {
@@ -25,6 +26,7 @@ jest.mock("@/lib/access/access-errors", () => ({
 
 jest.mock("@/lib/access/user-access", () => ({
   canUseApp: jest.fn(),
+  isInternalTester: jest.fn(),
   readEffectiveUserAccessRecord: jest.fn(),
 }));
 
@@ -36,6 +38,7 @@ jest.mock("@/lib/supabase/config", () => ({
 const createServerClientMock = jest.mocked(createServerClient);
 const isAuthBypassEnabledMock = jest.mocked(isAuthBypassEnabled);
 const canUseAppMock = jest.mocked(canUseApp);
+const isInternalTesterMock = jest.mocked(isInternalTester);
 const readEffectiveUserAccessRecordMock = jest.mocked(
   readEffectiveUserAccessRecord,
 );
@@ -76,6 +79,7 @@ describe("middleware access control", () => {
       anonKey: "anon-key",
     });
     canUseAppMock.mockReturnValue(true);
+    isInternalTesterMock.mockReturnValue(false);
     readEffectiveUserAccessRecordMock.mockResolvedValue({} as never);
     createServerClientMock.mockReturnValue(buildSupabaseClient() as never);
   });
@@ -125,5 +129,29 @@ describe("middleware access control", () => {
     expect(response.headers.get("location")).toBe(
       "https://example.com/onboarding",
     );
+  });
+
+  it("opens the app directly for internal testers without reading onboarding", async () => {
+    const supabase = buildSupabaseClient({
+      data: null,
+      error: { code: "42P01", message: "user_settings missing" },
+    });
+    createServerClientMock.mockReturnValue(supabase as never);
+    isInternalTesterMock.mockReturnValue(true);
+
+    const response = await middleware(new NextRequest("https://example.com/"));
+
+    expect(response.headers.get("location")).toBeNull();
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("keeps internal testers out of the mandatory onboarding route", async () => {
+    isInternalTesterMock.mockReturnValue(true);
+
+    const response = await middleware(
+      new NextRequest("https://example.com/onboarding"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://example.com/");
   });
 });

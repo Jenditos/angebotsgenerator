@@ -692,7 +692,7 @@ export default function OnboardingPageClient({
                   onClick={() => void postponeOnboarding()}
                   disabled={isSaving}
                 >
-                  Später einrichten
+                  Zur App
                 </button>
               ) : null}
             </div>
@@ -987,7 +987,7 @@ export default function OnboardingPageClient({
                   onClick={() => void postponeOnboarding()}
                   disabled={isSaving}
                 >
-                  Später einrichten
+                  Zur App
                 </button>
               ) : null}
               <button

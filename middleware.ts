@@ -4,6 +4,7 @@ import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import { logUserAccessError } from "@/lib/access/access-errors";
 import {
   canUseApp,
+  isInternalTester,
   readEffectiveUserAccessRecord,
 } from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
@@ -133,6 +134,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth", request.url));
   }
 
+  const internalTester = isInternalTester(user);
   let canOpenApp = false;
   try {
     const accessRecord = await readEffectiveUserAccessRecord(supabase, user);
@@ -145,8 +147,8 @@ export async function middleware(request: NextRequest) {
     canOpenApp = false;
   }
 
-  let hasCompletedOnboarding = false;
-  if (canOpenApp) {
+  let hasCompletedOnboarding = internalTester;
+  if (canOpenApp && !internalTester) {
     try {
       const { data, error } = await supabase
         .from("user_settings")

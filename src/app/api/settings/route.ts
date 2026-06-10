@@ -41,14 +41,18 @@ function classifySettingsStoreError(error: unknown): {
   const normalized = rawMessage.toLowerCase();
   const isSetupProblem =
     normalized.includes("42p01") ||
+    normalized.includes("pgrst204") ||
+    normalized.includes("pgrst205") ||
     normalized.includes("user_settings") ||
-    normalized.includes("permission denied");
+    normalized.includes("permission denied") ||
+    normalized.includes("supabase-einstellungen") ||
+    normalized.includes("supabase-onboardingstatus");
 
   if (isSetupProblem) {
     return {
       status: 503,
       publicMessage:
-        "Einstellungen-Speicher ist aktuell nicht vollständig eingerichtet.",
+        "Die Einrichtung ist aktuell nicht verfügbar. Bitte versuche es später erneut.",
     };
   }
 
