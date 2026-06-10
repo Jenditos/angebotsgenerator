@@ -6,8 +6,31 @@ import {
   removeStoredAppointment,
   upsertStoredAppointment,
 } from "./appointment-store-service";
+import {
+  allocateBusinessSequence,
+  listBusinessRecords,
+  removeBusinessRecord,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "@/server/services/business-record-store";
+
+jest.mock("@/server/services/business-record-store", () => ({
+  allocateBusinessSequence: jest.fn(),
+  findBusinessRecord: jest.fn(),
+  listBusinessRecords: jest.fn(),
+  removeBusinessRecord: jest.fn(),
+  shouldUseSupabaseBusinessStore: jest.fn(),
+  upsertBusinessRecord: jest.fn(),
+}));
 
 const TEST_USER_ID = "user-appointment-1";
+const mockedAllocateBusinessSequence = jest.mocked(allocateBusinessSequence);
+const mockedListBusinessRecords = jest.mocked(listBusinessRecords);
+const mockedRemoveBusinessRecord = jest.mocked(removeBusinessRecord);
+const mockedShouldUseSupabaseBusinessStore = jest.mocked(
+  shouldUseSupabaseBusinessStore,
+);
+const mockedUpsertBusinessRecord = jest.mocked(upsertBusinessRecord);
 
 function createSampleInput(seed: string) {
   return {
@@ -25,6 +48,11 @@ function createSampleInput(seed: string) {
 }
 
 describe("appointment-store-service", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedShouldUseSupabaseBusinessStore.mockReturnValue(false);
+  });
+
   it("persists appointments with incrementing TER numbers", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "appointment-store-"));
     const storePath = path.join(dataDir, "appointments-store.json");
@@ -95,5 +123,60 @@ describe("appointment-store-service", () => {
     } finally {
       await rm(dataDir, { recursive: true, force: true });
     }
+  });
+
+  it("uses tenant-scoped business records and the atomic sequence in Supabase mode", async () => {
+    mockedShouldUseSupabaseBusinessStore.mockReturnValue(true);
+    mockedListBusinessRecords
+      .mockResolvedValueOnce([
+        {
+          ...createSampleInput("1"),
+          appointmentNumber: "TER-000007",
+          createdAt: "2026-05-01T07:00:00.000Z",
+          updatedAt: "2026-05-01T07:00:00.000Z",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          ...createSampleInput("1"),
+          appointmentNumber: "TER-000007",
+          createdAt: "2026-05-01T07:00:00.000Z",
+          updatedAt: "2026-05-01T07:00:00.000Z",
+        },
+      ]);
+    mockedAllocateBusinessSequence.mockResolvedValue(8);
+    mockedRemoveBusinessRecord.mockResolvedValue(true);
+
+    const listed = await listStoredAppointments(TEST_USER_ID);
+    const created = await upsertStoredAppointment(createSampleInput("2"));
+    const removed = await removeStoredAppointment(
+      TEST_USER_ID,
+      created.appointmentNumber,
+    );
+
+    expect(listed).toHaveLength(1);
+    expect(created.appointmentNumber).toBe("TER-000008");
+    expect(mockedListBusinessRecords).toHaveBeenCalledWith(
+      TEST_USER_ID,
+      "appointment",
+    );
+    expect(mockedAllocateBusinessSequence).toHaveBeenCalledWith({
+      userId: TEST_USER_ID,
+      counterType: "appointment",
+      floor: 7,
+    });
+    expect(mockedUpsertBusinessRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: TEST_USER_ID,
+        entityType: "appointment",
+        entityKey: "TER-000008",
+      }),
+    );
+    expect(mockedRemoveBusinessRecord).toHaveBeenCalledWith(
+      TEST_USER_ID,
+      "appointment",
+      "TER-000008",
+    );
+    expect(removed).toBe(true);
   });
 });

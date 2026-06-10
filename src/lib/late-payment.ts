@@ -3,6 +3,10 @@ import {
   DocumentPaymentStatus,
   StoredInvoiceMetadata,
 } from "@/types/offer";
+import {
+  calculateDocumentMoneyTotals,
+  roundMoney,
+} from "@/lib/offer-position-utils";
 
 export type LatePaymentDebtorType = "consumer" | "business";
 
@@ -137,22 +141,21 @@ export function buildInvoiceMetadata(input: {
   const paymentDueDays = Math.floor(
     clampNumber(input.paymentDueDays, 14, 0, 365),
   );
-  const subtotalAmount = Math.max(
+  const lineItemsSubtotal = Math.max(
     0,
     Number.isFinite(input.lineItemsSubtotal) ? input.lineItemsSubtotal : 0,
   );
   const vatRate = normalizeLatePaymentInterestPercent(input.vatRate, 0);
-  const vatAmount = subtotalAmount * (vatRate / 100);
-  const totalAmount = subtotalAmount + vatAmount;
+  const totals = calculateDocumentMoneyTotals([lineItemsSubtotal], vatRate);
 
   return {
     invoiceDate,
     paymentDueDays,
     dueDate: addDaysToDateValue(invoiceDate, paymentDueDays),
-    subtotalAmount: Number(subtotalAmount.toFixed(2)),
+    subtotalAmount: totals.subtotalAmount,
     vatRate,
-    vatAmount: Number(vatAmount.toFixed(2)),
-    totalAmount: Number(totalAmount.toFixed(2)),
+    vatAmount: totals.vatAmount,
+    totalAmount: totals.totalAmount,
     currency: "EUR",
   };
 }
@@ -204,7 +207,7 @@ export function calculateLatePaymentInterest(input: {
     (asOfDate.getTime() - payableAfterGraceDate.getTime()) / MS_PER_DAY,
   );
   const daysOverdue = Math.max(0, rawDaysOverdue);
-  const calculationBaseAmount = Math.max(0, invoice.totalAmount);
+  const calculationBaseAmount = roundMoney(Math.max(0, invoice.totalAmount));
   const canCalculate =
     Boolean(input.settings.latePaymentInterestEnabled) &&
     shouldCalculateForPaymentStatus(input.paymentStatus) &&
@@ -220,7 +223,7 @@ export function calculateLatePaymentInterest(input: {
     isOverdue: daysOverdue > 0 && shouldCalculateForPaymentStatus(input.paymentStatus),
     daysOverdue,
     annualInterestPercent,
-    interestAmount: Number(interestAmount.toFixed(2)),
+    interestAmount: roundMoney(interestAmount),
     dueDate: invoice.dueDate,
     calculationBaseAmount,
     debtorType,

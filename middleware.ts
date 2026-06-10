@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
-import { isUserAccessSetupError, logUserAccessError } from "@/lib/access/access-errors";
+import { logUserAccessError } from "@/lib/access/access-errors";
 import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -86,8 +86,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const pathname = request.nextUrl.pathname;
   if (!isSupabaseConfigured()) {
-    return NextResponse.next();
+    if (isAuthRoute(pathname) || pathname === "/upgrade") {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/auth", request.url));
   }
 
   const { url, anonKey } = getSupabasePublicConfig();
@@ -112,7 +116,6 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const pathname = request.nextUrl.pathname;
   if (isAuthFlowRoute(pathname)) {
     return response;
   }
@@ -127,29 +130,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth", request.url));
   }
 
-  let canOpenApp = true;
+  let canOpenApp = false;
   try {
     const accessRecord = await readUserAccessRecord(supabase, user.id);
-    if (accessRecord) {
-      canOpenApp = canUseApp(accessRecord);
-    }
+    canOpenApp = Boolean(accessRecord && canUseApp(accessRecord));
   } catch (error) {
-    if (isUserAccessSetupError(error)) {
-      logUserAccessError("middleware.readUserAccessRecord transient setup fallback", error, {
-        userId: user.id,
-        pathname,
-      });
-      canOpenApp = true;
-    } else {
-      logUserAccessError("middleware.readUserAccessRecord", error, {
-        userId: user.id,
-        pathname,
-      });
-      canOpenApp = false;
-    }
+    logUserAccessError("middleware.readUserAccessRecord", error, {
+      userId: user.id,
+      pathname,
+    });
+    canOpenApp = false;
   }
 
-  let hasCompletedOnboarding = true;
+  let hasCompletedOnboarding = false;
   if (canOpenApp) {
     try {
       const { data, error } = await supabase
@@ -160,22 +153,20 @@ export async function middleware(request: NextRequest) {
 
       if (error) {
         if (isUserSettingsSetupError(error)) {
-          console.warn(
-            "[middleware] user_settings onboarding status unavailable; allowing app access fallback",
+          console.error(
+            "[middleware] user_settings onboarding status unavailable",
             {
               userId: user.id,
               pathname,
               error,
             },
           );
-          hasCompletedOnboarding = true;
         } else {
           console.error("[middleware] failed to read onboarding status", {
             userId: user.id,
             pathname,
             error,
           });
-          hasCompletedOnboarding = true;
         }
       } else {
         hasCompletedOnboarding = Boolean(
@@ -188,7 +179,6 @@ export async function middleware(request: NextRequest) {
         pathname,
         error,
       });
-      hasCompletedOnboarding = true;
     }
   }
 
@@ -209,6 +199,14 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedAppRoute(pathname) && !canOpenApp) {
     return NextResponse.redirect(new URL("/upgrade", request.url));
+  }
+
+  if (
+    canOpenApp &&
+    !hasCompletedOnboarding &&
+    isProtectedAppRoute(pathname)
+  ) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   if (!canOpenApp && isOnboardingRoute(pathname)) {

@@ -79,4 +79,11 @@ describe("VISIORO interaction CSS contract", () => {
     );
     expect(shadowGuardCss).toContain("overflow-y: auto !important");
   });
+
+  it("keeps mobile onboarding top-aligned and archive back navigation readable", () => {
+    expect(css).toContain("place-items: start stretch !important");
+    expect(css).toContain("html body button.customerArchiveBackButton");
+    expect(css).toContain("width: auto !important");
+    expect(css).toContain("min-height: 44px !important");
+  });
 });

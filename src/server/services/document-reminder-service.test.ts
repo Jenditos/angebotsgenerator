@@ -87,7 +87,7 @@ describe("document-reminder-service", () => {
       expect(first?.dueAt).toBe("2026-01-04T10:00:00.000Z");
       expect(second?.dueAt).toBe(first?.dueAt);
 
-      const activities = await listActivityLogEntries({
+      const activities = await listActivityLogEntries(TEST_USER_ID, {
         dataDir,
         storePath: activityStorePath,
         lockPath: activityLockPath,

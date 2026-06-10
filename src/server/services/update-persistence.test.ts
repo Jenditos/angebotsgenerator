@@ -64,6 +64,8 @@ describe("update persistence", () => {
   const originalHome = process.env.HOME;
   const originalDataDir = process.env.DATA_DIR;
   const originalDataHome = process.env.VISIORO_DATA_HOME;
+  const originalVercel = process.env.VERCEL;
+  const originalVercelEnv = process.env.VERCEL_ENV;
   const createdDirs: string[] = [];
 
   async function createTempDir(prefix: string): Promise<string> {
@@ -93,10 +95,45 @@ describe("update persistence", () => {
     } else {
       process.env.VISIORO_DATA_HOME = originalDataHome;
     }
+    if (typeof originalVercel === "undefined") {
+      delete process.env.VERCEL;
+    } else {
+      process.env.VERCEL = originalVercel;
+    }
+    if (typeof originalVercelEnv === "undefined") {
+      delete process.env.VERCEL_ENV;
+    } else {
+      process.env.VERCEL_ENV = originalVercelEnv;
+    }
     __resetRuntimeDataDirPreparationForTests();
 
     await Promise.all(
       createdDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+    );
+  });
+
+  it("rejects an unconfigured ephemeral data directory in Vercel production", async () => {
+    delete process.env.DATA_DIR;
+    delete process.env.VISIORO_DATA_HOME;
+    process.env.VERCEL = "1";
+    process.env.VERCEL_ENV = "production";
+
+    expect(() => resolveRuntimeDataDir()).toThrow(
+      "Dauerhafte Datenspeicherung ist in Vercel-Produktion nicht konfiguriert",
+    );
+    await expect(ensureRuntimeDataDirReady()).rejects.toThrow(
+      "Dauerhafte Datenspeicherung ist in Vercel-Produktion nicht konfiguriert",
+    );
+  });
+
+  it("rejects explicitly configured /tmp storage in Vercel production", () => {
+    process.env.DATA_DIR = "/tmp/visioro-persistent";
+    delete process.env.VISIORO_DATA_HOME;
+    process.env.VERCEL = "1";
+    process.env.VERCEL_ENV = "production";
+
+    expect(() => resolveRuntimeDataDir()).toThrow(
+      "darf nicht unter /tmp liegen",
     );
   });
 

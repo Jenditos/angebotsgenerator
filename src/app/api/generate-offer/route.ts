@@ -33,6 +33,11 @@ import { generateOfferText } from "@/lib/openai";
 import { OfferPdfDocument } from "@/lib/pdf";
 import { getDefaultPdfTableColumns } from "@/lib/pdf-table-config";
 import {
+  calculatePositionTotal,
+  sumMoney,
+} from "@/lib/offer-position-utils";
+import { isValidEmailAddress } from "@/lib/user-input";
+import {
   createStoredOfferRecord,
   updateStoredOfferRecordEmailReference,
   updateStoredOfferRecordPdfReference,
@@ -65,6 +70,36 @@ const OFFER_DEBUG_LOGS_ENABLED = process.env.OFFER_DEBUG_LOGS === "1";
 const MAX_EXPLICIT_POSITION_COUNT = 120;
 const MAX_LINE_ITEM_QUANTITY = 1_000_000;
 const MAX_LINE_ITEM_UNIT_PRICE = 1_000_000;
+const GENERATE_OFFER_TEXT_LIMITS = {
+  idempotencyKey: 200,
+  customerNumber: 64,
+  projectNumber: 64,
+  projectName: 240,
+  projectAddress: 500,
+  projectNote: 5_000,
+  companyName: 200,
+  firstName: 120,
+  lastName: 120,
+  street: 200,
+  postalCode: 20,
+  city: 120,
+  customerEmail: 320,
+  serviceDescription: 10_000,
+  selectedTrade: 120,
+  invoiceDate: 30,
+  serviceDate: 120,
+} as const;
+const SAFE_OFFER_DEBUG_STRING_KEYS = new Set([
+  "customerNumber",
+  "customerType",
+  "documentNumber",
+  "documentTaxTreatment",
+  "documentType",
+  "ibanVerificationStatus",
+  "paymentBankAccountId",
+  "paymentBankAccountSource",
+  "projectNumber",
+]);
 const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   companyName: "",
   ownerName: "",
@@ -103,6 +138,40 @@ const FALLBACK_COMPANY_SETTINGS: CompanySettings = {
   customServiceTypes: [],
 };
 
+export function sanitizeOfferDebugPayload(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === "boolean") {
+      sanitized[key] = value;
+      continue;
+    }
+
+    if (
+      typeof value === "number" &&
+      (key.endsWith("Count") || key === "byteLength")
+    ) {
+      sanitized[key] = value;
+      continue;
+    }
+
+    if (typeof value === "string" && SAFE_OFFER_DEBUG_STRING_KEYS.has(key)) {
+      sanitized[key] = value;
+      continue;
+    }
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      sanitized[key] = sanitizeOfferDebugPayload(
+        value as Record<string, unknown>,
+      );
+    }
+  }
+
+  return sanitized;
+}
+
 function debugOfferLog(
   requestId: string,
   stage: string,
@@ -113,7 +182,10 @@ function debugOfferLog(
   }
 
   if (payload) {
-    console.info(`[generate-offer:${requestId}] ${stage}`, payload);
+    console.info(
+      `[generate-offer:${requestId}] ${stage}`,
+      sanitizeOfferDebugPayload(payload),
+    );
     return;
   }
 
@@ -138,6 +210,43 @@ function buildRuntimeCustomerNumber(referenceDate: Date): string {
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function findGenerateOfferInputLengthError(
+  body: GenerateOfferRequest,
+): string | null {
+  for (const [field, maxLength] of Object.entries(GENERATE_OFFER_TEXT_LIMITS)) {
+    const value = body[field as keyof GenerateOfferRequest];
+    if (typeof value === "string" && value.trim().length > maxLength) {
+      return `Das Feld ${field} darf maximal ${maxLength.toLocaleString(
+        "de-DE",
+      )} Zeichen lang sein.`;
+    }
+  }
+
+  if (
+    Array.isArray(body.selectedServices) &&
+    body.selectedServices.some(
+      (entry) => typeof entry !== "string" || entry.trim().length > 500,
+    )
+  ) {
+    return "Ausgewählte Leistungen dürfen jeweils maximal 500 Zeichen lang sein.";
+  }
+
+  if (
+    Array.isArray(body.positions) &&
+    body.positions.some(
+      (position) =>
+        (typeof position?.group === "string" && position.group.trim().length > 200) ||
+        (typeof position?.description === "string" &&
+          position.description.trim().length > 2_000) ||
+        (typeof position?.unit === "string" && position.unit.trim().length > 30),
+    )
+  ) {
+    return "Eine Position enthält zu langen Text.";
+  }
+
+  return null;
 }
 
 function toNumberInRange(
@@ -772,7 +881,7 @@ function buildPdfLineItems(input: {
       description: position.description || `Position ${index + 1}`,
       unit: position.unit,
       unitPrice: position.unitPrice,
-      totalPrice: position.quantity * position.unitPrice,
+      totalPrice: calculatePositionTotal(position.quantity, position.unitPrice),
     }));
   }
 
@@ -803,7 +912,7 @@ function buildPdfLineItems(input: {
           : input.serviceDescription || "Arbeitsleistung",
       unit: "Std.",
       unitPrice: input.hourlyRate,
-      totalPrice: quantity * input.hourlyRate,
+      totalPrice: calculatePositionTotal(quantity, input.hourlyRate),
     });
   }
 
@@ -814,7 +923,7 @@ function buildPdfLineItems(input: {
       description: "Material",
       unit: "Psch.",
       unitPrice: input.materialCost,
-      totalPrice: input.materialCost,
+      totalPrice: calculatePositionTotal(1, input.materialCost),
     });
   }
 
@@ -1061,6 +1170,21 @@ export async function handleGenerateOfferAuthorizedRequest(
       );
     }
 
+    if (!isObjectRecord(body)) {
+      return NextResponse.json(
+        { error: "Ungültige Anfrage. Bitte Eingaben prüfen.", requestId },
+        { status: 400 },
+      );
+    }
+
+    const inputLengthError = findGenerateOfferInputLengthError(body);
+    if (inputLengthError) {
+      return NextResponse.json(
+        { error: inputLengthError, requestId },
+        { status: 400 },
+      );
+    }
+
     const idempotencyKey = normalizeIdempotencyKey(body.idempotencyKey);
     const actingUserId = context.userId?.trim();
     if (!actingUserId) {
@@ -1119,12 +1243,9 @@ export async function handleGenerateOfferAuthorizedRequest(
     const hourlyRate = toNonNegativeNumber(toNumber(body.hourlyRate));
     const materialCost = toNonNegativeNumber(toNumber(body.materialCost));
     debugOfferLog(requestId, "normalized_numeric_fields", {
-      hoursInput: normalizeNumberishInputValue(body.hours),
-      hourlyRateInput: normalizeNumberishInputValue(body.hourlyRate),
-      materialCostInput: normalizeNumberishInputValue(body.materialCost),
-      hours,
-      hourlyRate,
-      materialCost,
+      hasHours: Boolean(normalizeNumberishInputValue(body.hours)),
+      hasHourlyRate: Boolean(normalizeNumberishInputValue(body.hourlyRate)),
+      hasMaterialCost: Boolean(normalizeNumberishInputValue(body.materialCost)),
     });
 
     if (
@@ -1136,6 +1257,13 @@ export async function handleGenerateOfferAuthorizedRequest(
     ) {
       return NextResponse.json(
         { error: "Bitte alle Pflichtfelder ausfüllen." },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidEmailAddress(customerEmail)) {
+      return NextResponse.json(
+        { error: "Bitte eine gültige E-Mail-Adresse eingeben." },
         { status: 400 },
       );
     }
@@ -1164,23 +1292,17 @@ export async function handleGenerateOfferAuthorizedRequest(
         );
       }
 
-      const normalizedPositionsPreview = body.positions.map((position, index) => {
-        const quantityRaw = normalizeNumberishInputValue(position?.quantity);
-        const unitPriceRaw = normalizeNumberishInputValue(position?.unitPrice);
-        const quantityParsed = quantityRaw ? toNumber(quantityRaw) : null;
-        const unitPriceParsed = unitPriceRaw ? toNumber(unitPriceRaw) : null;
-
-        return {
-          index,
-          description: normalizeInputValue(position?.description),
-          quantityRaw,
-          unitPriceRaw,
-          quantityParsed,
-          unitPriceParsed,
-        };
-      });
       debugOfferLog(requestId, "positions_before_validation", {
-        positions: normalizedPositionsPreview,
+        positionsCount: body.positions.length,
+        positionsWithDescriptionCount: body.positions.filter((position) =>
+          Boolean(normalizeInputValue(position?.description)),
+        ).length,
+        positionsWithQuantityCount: body.positions.filter((position) =>
+          Boolean(normalizeNumberishInputValue(position?.quantity)),
+        ).length,
+        positionsWithUnitPriceCount: body.positions.filter((position) =>
+          Boolean(normalizeNumberishInputValue(position?.unitPrice)),
+        ).length,
       });
 
       for (const position of body.positions) {
@@ -1245,16 +1367,22 @@ export async function handleGenerateOfferAuthorizedRequest(
     const preferredPaymentBankAccount = resolvePreferredPaymentBankAccount(
       validatedSettings,
     );
-    if (!preferredPaymentBankAccount.isValid) {
+    const hasConfiguredPaymentIban =
+      Boolean(validatedSettings.companyIban.trim()) ||
+      validatedSettings.additionalBankAccounts.some((account) =>
+        Boolean(account.iban.trim()),
+      );
+    if (hasConfiguredPaymentIban && !preferredPaymentBankAccount.isValid) {
       return NextResponse.json(
         {
           error:
-            "Bitte hinterlegen Sie in den Einstellungen eine gültige IBAN, bevor Dokumente erstellt werden.",
+            "Die hinterlegte IBAN ist ungültig. Bitte in den Einstellungen prüfen.",
         },
         { status: 400 },
       );
     }
     const settingsForDocument: CompanySettings =
+      preferredPaymentBankAccount.isValid &&
       preferredPaymentBankAccount.source === "additional"
         ? {
             ...validatedSettings,
@@ -1319,13 +1447,12 @@ export async function handleGenerateOfferAuthorizedRequest(
     });
     debugOfferLog(requestId, "line_items_built", {
       lineItemsCount: lineItems.length,
-      lineItemsPreview: lineItems.map((lineItem) => ({
-        position: lineItem.position,
-        description: lineItem.description,
-        quantity: lineItem.quantity,
-        unitPrice: lineItem.unitPrice,
-        totalPrice: lineItem.totalPrice,
-      })),
+      lineItemsWithGroupCount: lineItems.filter((lineItem) =>
+        Boolean(lineItem.group),
+      ).length,
+      lineItemsWithPriceCount: lineItems.filter(
+        (lineItem) => lineItem.totalPrice > 0,
+      ).length,
     });
 
     const invalidLineItem = findInvalidLineItem(lineItems);
@@ -1337,9 +1464,8 @@ export async function handleGenerateOfferAuthorizedRequest(
         { status: 400 },
       );
     }
-    const invoiceSubtotalAmount = lineItems.reduce(
-      (sum, lineItem) => sum + lineItem.totalPrice,
-      0,
+    const invoiceSubtotalAmount = sumMoney(
+      lineItems.map((lineItem) => lineItem.totalPrice),
     );
     const resolvedInvoiceTax = resolveDocumentTax({
       vatRate: settingsForDocument.vatRate,
@@ -1660,39 +1786,32 @@ export async function handleGenerateOfferAuthorizedRequest(
       documentNumber: generatedDocumentNumber,
       customerNumber: customerNumberForDocument,
       projectNumber: projectNumberForDocument,
-      projectName: projectNameForDocument,
-      projectAddress: projectAddressForDocument,
-      customerName,
-      customerAddress,
-      customerEmail,
-      serviceDescription: composedServiceDescription,
-      projectDetails: projectDetailsForPdf,
-      lineItems,
-      documentTax,
+      hasProjectName: Boolean(projectNameForDocument),
+      hasProjectAddress: Boolean(projectAddressForDocument),
+      hasCustomerEmail: Boolean(customerEmail),
+      hasServiceDescription: Boolean(composedServiceDescription),
+      hasProjectDetails: Boolean(projectDetailsForPdf),
+      lineItemsCount: lineItems.length,
+      documentTaxTreatment: documentTax?.treatment,
       settings: {
-        companyName: settingsForDocument.companyName,
-        ownerName: settingsForDocument.ownerName,
-        companyStreet: settingsForDocument.companyStreet,
-        companyPostalCode: settingsForDocument.companyPostalCode,
-        companyCity: settingsForDocument.companyCity,
-        companyEmail: settingsForDocument.companyEmail,
-        companyPhone: settingsForDocument.companyPhone,
-        companyWebsite: settingsForDocument.companyWebsite,
+        hasCompanyName: Boolean(settingsForDocument.companyName),
+        hasOwnerName: Boolean(settingsForDocument.ownerName),
+        hasCompanyAddress: Boolean(
+          settingsForDocument.companyStreet ||
+            settingsForDocument.companyPostalCode ||
+            settingsForDocument.companyCity,
+        ),
+        hasCompanyEmail: Boolean(settingsForDocument.companyEmail),
+        hasCompanyPhone: Boolean(settingsForDocument.companyPhone),
+        hasCompanyWebsite: Boolean(settingsForDocument.companyWebsite),
         companyIbanPresent: Boolean(settingsForDocument.companyIban),
-        companyIbanLast4: settingsForDocument.companyIban
-          .replace(/\s+/g, "")
-          .slice(-4),
         companyBicPresent: Boolean(settingsForDocument.companyBic),
         companyBankNamePresent: Boolean(settingsForDocument.companyBankName),
         ibanVerificationStatus: settingsForDocument.ibanVerificationStatus,
-        senderCopyEmail: settingsForDocument.senderCopyEmail,
+        hasSenderCopyEmail: Boolean(settingsForDocument.senderCopyEmail),
         logoDataUrlPresent: Boolean(settingsForDocument.logoDataUrl),
         pdfTableColumnsCount: settingsForDocument.pdfTableColumns.length,
-        vatRate: settingsForDocument.vatRate,
-        offerValidityDays: settingsForDocument.offerValidityDays,
-        invoicePaymentDueDays: settingsForDocument.invoicePaymentDueDays,
-        offerTermsTextLength: settingsForDocument.offerTermsText.length,
-        documentTax,
+        hasOfferTermsText: Boolean(settingsForDocument.offerTermsText),
         paymentBankAccountSource: preferredPaymentBankAccount.source,
         paymentBankAccountId: preferredPaymentBankAccount.accountId,
       },

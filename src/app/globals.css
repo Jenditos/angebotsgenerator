@@ -6247,6 +6247,7 @@ button.customerArchiveCustomerButton.active {
   display: grid;
   gap: 10px;
   align-content: start;
+  min-width: 0;
 }
 
 button.customerArchiveBackButton {
@@ -18991,6 +18992,10 @@ html body .onboardingSetupPrimary:disabled {
 @media (max-width: 720px) {
   html body .settingsOverlayBackdrop.onboardingFlowOverlayBackdrop {
     padding: 0 !important;
+    place-items: start stretch !important;
+    align-items: flex-start !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
   }
 
   html body .settingsOverlaySheet.onboardingFlowOverlaySheet {
@@ -19089,5 +19094,227 @@ html body .onboardingSetupPrimary:disabled {
   html body .onboardingSetupPanel,
   html body .onboardingPageEmbedded .onboardingSetupPanel {
     min-height: calc(100dvh - 64px) !important;
+  }
+}
+
+/* Baustellen-UX: clear archive navigation and destructive confirmation */
+.projectWorkspaceChoice,
+.projectWorkspaceSelected {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d9e4f2;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.projectWorkspaceSelected {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.projectWorkspaceSelectedCopy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.projectWorkspaceSelectedCopy strong {
+  color: #17345f;
+  font-size: 1rem;
+}
+
+.projectWorkspaceSelectedCopy span {
+  color: #526b92;
+  overflow-wrap: anywhere;
+}
+
+.projectWorkspaceMore {
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.projectWorkspaceMore summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  color: #315683;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.projectWorkspaceMoreGrid {
+  padding: 0 12px 12px;
+}
+
+.projectWorkspaceEditorActions {
+  padding-top: 4px;
+}
+
+html body button.customerArchiveBackButton {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 44px !important;
+  justify-content: flex-start !important;
+  padding: 8px 12px !important;
+  border: 1px solid #dbe4f0 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  white-space: normal !important;
+  text-align: left !important;
+  line-height: 1.25 !important;
+}
+
+html body button.customerArchiveBackButton:hover:not(:disabled),
+html body button.customerArchiveBackButton:focus-visible:not(:disabled) {
+  border-color: #b9c9df !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.projectArchiveDetailHeader {
+  gap: 8px;
+}
+
+.projectArchiveDetailHeader .projectSummaryMetaRow {
+  gap: 7px;
+}
+
+.projectArchiveDetailHeader .projectSummaryMetaRow > span:not(.projectStatusBadge) {
+  color: #52647e;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.projectDeleteBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.projectDeleteDialog {
+  width: min(460px, 100%);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px 14px;
+  padding: 20px;
+  border: 1px solid #fecdd3;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+}
+
+.projectDeleteDialogIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #be123c;
+  font-weight: 800;
+}
+
+.projectDeleteDialogCopy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.projectDeleteDialogCopy strong {
+  color: #0f172a;
+  font-size: 1.02rem;
+}
+
+.projectDeleteDialogCopy p {
+  color: #526176;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.projectDeleteDialog > .voiceWarning,
+.projectDeleteDialogActions {
+  grid-column: 1 / -1;
+}
+
+.projectDeleteDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+button.projectDeleteConfirmButton {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #be123c;
+  border-radius: var(--button-radius);
+  background: #be123c;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+button.projectDeleteConfirmButton:hover:not(:disabled),
+button.projectDeleteConfirmButton:focus-visible:not(:disabled) {
+  border-color: #9f1239;
+  background: #9f1239;
+}
+
+button.projectDeleteConfirmButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 760px) {
+  .projectWorkspaceSelected {
+    grid-template-columns: 1fr;
+  }
+
+  .projectWorkspaceHeader .projectStatusBadge {
+    justify-self: flex-start;
+  }
+
+  .projectDeleteBackdrop {
+    align-items: end;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .projectDeleteDialog {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .projectDeleteDialogIcon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .projectDeleteDialog > .voiceWarning,
+  .projectDeleteDialogActions {
+    grid-column: auto;
+  }
+
+  .projectDeleteDialogActions {
+    flex-direction: column-reverse;
+  }
+
+  .projectDeleteDialogActions > * {
+    width: 100%;
   }
 }

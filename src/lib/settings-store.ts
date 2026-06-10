@@ -48,14 +48,6 @@ const MAX_LATE_PAYMENT_GRACE_DAYS = 365;
 const MAX_TERMS_TEXT_LENGTH = 3000;
 const MAX_EU_VAT_NOTICE_TEXT_LENGTH = 2000;
 const MAX_BANK_NAME_LENGTH = 120;
-const SETTINGS_SETUP_ERROR_CODES = new Set([
-  "42P01", // relation does not exist
-  "42501", // insufficient privilege / RLS
-  "3F000", // invalid schema
-  "PGRST204", // unknown column in schema cache
-  "PGRST205", // unknown table/view in schema cache
-]);
-
 const defaultSettings: CompanySettings = {
   companyName: "",
   ownerName: "",
@@ -184,45 +176,6 @@ function asObject(value: unknown): Record<string, unknown> | null {
     return null;
   }
   return value as Record<string, unknown>;
-}
-
-function asUpperString(value: unknown): string {
-  return typeof value === "string" ? value.trim().toUpperCase() : "";
-}
-
-function asLowerString(value: unknown): string {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
-
-function isUserSettingsSetupError(error: unknown): boolean {
-  const direct = asObject(error);
-  const cause = asObject(direct?.cause);
-
-  const codeCandidates = [
-    asUpperString(direct?.code),
-    asUpperString(cause?.code),
-  ].filter(Boolean);
-  if (codeCandidates.some((code) => SETTINGS_SETUP_ERROR_CODES.has(code))) {
-    return true;
-  }
-
-  const messageParts = [
-    asLowerString(direct?.message),
-    asLowerString(cause?.message),
-    asLowerString(cause?.details),
-    asLowerString(cause?.hint),
-  ].filter(Boolean);
-  const haystack = messageParts.join(" | ");
-  if (!haystack) {
-    return false;
-  }
-
-  return (
-    haystack.includes("user_settings") ||
-    haystack.includes("could not find the table") ||
-    haystack.includes("schema cache") ||
-    haystack.includes("permission denied")
-  );
 }
 
 function asTrimmedString(value: unknown, fallback = ""): string {
@@ -849,14 +802,6 @@ export async function readSettings(
       .maybeSingle();
 
     if (error) {
-      if (isUserSettingsSetupError(error)) {
-        const code = (error as { code?: string }).code ?? "UNKNOWN";
-        console.warn(
-          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Verwende Fallback-Settings im Runtime-Speicher.`,
-        );
-        return readSettingsFromRuntimeFile();
-      }
-
       const code = (error as { code?: string }).code ?? "UNKNOWN";
       throw new Error(
         `[settings-store] Supabase-Einstellungen konnten nicht geladen werden (${code}).`,
@@ -899,14 +844,6 @@ export async function readOnboardingStatus(
       .maybeSingle();
 
     if (error) {
-      if (isUserSettingsSetupError(error)) {
-        const code = (error as { code?: string }).code ?? "UNKNOWN";
-        console.warn(
-          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Verwende Fallback-Onboarding im Runtime-Speicher.`,
-        );
-        return readOnboardingStatusFromRuntimeFile();
-      }
-
       const code = (error as { code?: string }).code ?? "UNKNOWN";
       throw new Error(
         `[settings-store] Supabase-Onboardingstatus konnte nicht geladen werden (${code}).`,
@@ -996,14 +933,6 @@ export async function writeSettings(
       );
 
     if (error) {
-      if (isUserSettingsSetupError(error)) {
-        const code = (error as { code?: string }).code ?? "UNKNOWN";
-        console.warn(
-          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Schreibe in den Runtime-Speicher.`,
-        );
-        return writeSettingsToRuntimeFile(next);
-      }
-
       const code = (error as { code?: string }).code ?? "UNKNOWN";
       throw new Error(
         `[settings-store] Supabase-Einstellungen konnten nicht gespeichert werden (${code}).`,
@@ -1040,14 +969,6 @@ export async function writeOnboardingStatus(
       );
 
     if (error) {
-      if (isUserSettingsSetupError(error)) {
-        const code = (error as { code?: string }).code ?? "UNKNOWN";
-        console.warn(
-          `[settings-store] Supabase user_settings nicht vollständig eingerichtet (${code}). Schreibe Onboarding in den Runtime-Speicher.`,
-        );
-        return writeOnboardingStatusToRuntimeFile(next);
-      }
-
       const code = (error as { code?: string }).code ?? "UNKNOWN";
       throw new Error(
         `[settings-store] Supabase-Onboardingstatus konnte nicht gespeichert werden (${code}).`,

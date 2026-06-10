@@ -14,6 +14,12 @@ import {
   ensureRuntimeDataDirReady,
   resolveRuntimeDataDir,
 } from "@/server/services/store-runtime-paths";
+import {
+  findBusinessRecord,
+  listBusinessRecords,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "@/server/services/business-record-store";
 
 export type ActivityEntityType =
   | "customer"
@@ -147,6 +153,32 @@ function resolvePaths(overrides?: Partial<ActivityLogPaths>): ActivityLogPaths {
   };
 }
 
+function hasPathOverrides(overrides?: Partial<ActivityLogPaths>): boolean {
+  return Boolean(
+    overrides?.dataDir || overrides?.storePath || overrides?.lockPath,
+  );
+}
+
+function normalizeRequiredUserId(value: unknown): string {
+  const userId = asTrimmedString(value);
+  if (!userId) {
+    throw new Error("User-ID fuer Activity-Log fehlt.");
+  }
+  return userId;
+}
+
+function sanitizeSupabaseActivity(
+  value: unknown,
+  userId: string,
+): ActivityLogRecord | null {
+  const activity = sanitizeActivityRecord(value);
+  return activity ? { ...activity, userId } : null;
+}
+
+function activityEntityKey(activity: ActivityLogRecord): string {
+  return activity.eventKey ? `event:${activity.eventKey}` : `id:${activity.id}`;
+}
+
 function isMissingFileError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   return code === "ENOENT";
@@ -236,6 +268,48 @@ export async function createActivityLogEntry(
   input: CreateActivityLogEntryInput,
   overrides?: Partial<ActivityLogPaths>,
 ): Promise<ActivityLogRecord> {
+  const userId = normalizeRequiredUserId(input.userId);
+  const eventKey = asTrimmedString(input.eventKey) || undefined;
+  const activity: ActivityLogRecord = {
+    id: randomUUID(),
+    userId,
+    entityType: input.entityType,
+    entityId: asTrimmedString(input.entityId),
+    action: asTrimmedString(input.action),
+    eventKey,
+    metadata: sanitizeMetadata(input.metadata),
+    createdAt: (input.createdAt ?? new Date()).toISOString(),
+  };
+
+  if (!activity.entityId || !activity.action) {
+    throw new Error("Activity-Log-Eintrag ist unvollstaendig.");
+  }
+
+  if (shouldUseSupabaseBusinessStore(hasPathOverrides(overrides))) {
+    const entityKey = activityEntityKey(activity);
+    if (eventKey) {
+      const existing = sanitizeSupabaseActivity(
+        await findBusinessRecord<ActivityLogRecord>(
+          userId,
+          "activity",
+          entityKey,
+        ),
+        userId,
+      );
+      if (existing) {
+        return existing;
+      }
+    }
+
+    await upsertBusinessRecord({
+      userId,
+      entityType: "activity",
+      entityKey,
+      payload: activity,
+    });
+    return activity;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -243,29 +317,13 @@ export async function createActivityLogEntry(
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
     const store = await readStoreWithDataLossProtection(paths.storePath);
-    const eventKey = asTrimmedString(input.eventKey) || undefined;
     if (eventKey) {
       const existing = store.activities.find(
-        (activity) => activity.eventKey === eventKey,
+        (entry) => entry.userId === userId && entry.eventKey === eventKey,
       );
       if (existing) {
         return existing;
       }
-    }
-
-    const activity: ActivityLogRecord = {
-      id: randomUUID(),
-      userId: asTrimmedString(input.userId) || undefined,
-      entityType: input.entityType,
-      entityId: asTrimmedString(input.entityId),
-      action: asTrimmedString(input.action),
-      eventKey,
-      metadata: sanitizeMetadata(input.metadata),
-      createdAt: (input.createdAt ?? new Date()).toISOString(),
-    };
-
-    if (!activity.entityId || !activity.action) {
-      throw new Error("Activity-Log-Eintrag ist unvollstaendig.");
     }
 
     await writeStoreUnsafe(paths.storePath, {
@@ -279,14 +337,40 @@ export async function createActivityLogEntry(
 }
 
 export async function listActivityLogEntries(
+  userId: string,
   overrides?: Partial<ActivityLogPaths>,
 ): Promise<ActivityLogRecord[]> {
+  const normalizedUserId = normalizeRequiredUserId(userId);
+
+  if (shouldUseSupabaseBusinessStore(hasPathOverrides(overrides))) {
+    return sortActivities(
+      (
+        await listBusinessRecords<ActivityLogRecord>(
+          normalizedUserId,
+          "activity",
+        )
+      )
+        .map((activity) =>
+          sanitizeSupabaseActivity(activity, normalizedUserId),
+        )
+        .filter((activity): activity is ActivityLogRecord => Boolean(activity)),
+    );
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
   const store = await readStoreWithDataLossProtection(paths.storePath);
 
-  return [...store.activities].sort((left, right) => {
+  return sortActivities(
+    store.activities.filter(
+      (activity) => asTrimmedString(activity.userId) === normalizedUserId,
+    ),
+  );
+}
+
+function sortActivities(activities: ActivityLogRecord[]): ActivityLogRecord[] {
+  return [...activities].sort((left, right) => {
     const rightTs = Date.parse(right.createdAt);
     const leftTs = Date.parse(left.createdAt);
     if (Number.isFinite(rightTs) && Number.isFinite(leftTs) && rightTs !== leftTs) {

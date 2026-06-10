@@ -43,7 +43,19 @@ function resolveConfiguredProvider(
     return "local";
   }
 
-  return process.env.DOCUMENT_PDF_STORAGE_PROVIDER === "supabase"
+  const configuredProvider = (
+    process.env.DOCUMENT_PDF_STORAGE_PROVIDER ?? ""
+  )
+    .trim()
+    .toLowerCase();
+  if (configuredProvider === "supabase") {
+    return "supabase";
+  }
+  if (configuredProvider === "local") {
+    return "local";
+  }
+
+  return process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production"
     ? "supabase"
     : "local";
 }
@@ -61,13 +73,17 @@ function toSafeFilename(value: string): string {
 }
 
 function resolvePaths(overrides?: Partial<PdfStoragePaths>): PdfStoragePaths {
-  const dataDir = overrides?.dataDir ?? resolveRuntimeDataDir();
+  const provider = resolveConfiguredProvider(overrides);
+  const dataDir =
+    overrides?.dataDir ?? (provider === "local" ? resolveRuntimeDataDir() : "");
   return {
     dataDir,
     pdfDir:
       overrides?.pdfDir ??
-      path.join(/*turbopackIgnore: true*/ dataDir, PDF_STORAGE_DIR_NAME),
-    provider: resolveConfiguredProvider(overrides),
+      (provider === "local"
+        ? path.join(/*turbopackIgnore: true*/ dataDir, PDF_STORAGE_DIR_NAME)
+        : ""),
+    provider,
     supabaseBucket: resolveSupabaseBucket(overrides),
   };
 }

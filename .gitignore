@@ -1,4 +1,11 @@
 node_modules
 .next
-.env.local
+.env*
+!.env.example
 .DS_Store
+*.tsbuildinfo
+
+# Local runtime data can contain company and customer information.
+data/*
+!data/.gitkeep
+!data/README.md

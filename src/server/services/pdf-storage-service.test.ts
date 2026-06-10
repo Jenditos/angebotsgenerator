@@ -6,6 +6,92 @@ import { readStoredDocumentPdf, saveDocumentPdf } from "./pdf-storage-service";
 const TEST_USER_ID = "user-test-1";
 
 describe("pdf-storage-service", () => {
+  const originalDataDir = process.env.DATA_DIR;
+  const originalDataHome = process.env.VISIORO_DATA_HOME;
+  const originalVercel = process.env.VERCEL;
+  const originalVercelEnv = process.env.VERCEL_ENV;
+  const originalPdfStorageProvider = process.env.DOCUMENT_PDF_STORAGE_PROVIDER;
+
+  afterEach(() => {
+    if (typeof originalDataDir === "undefined") {
+      delete process.env.DATA_DIR;
+    } else {
+      process.env.DATA_DIR = originalDataDir;
+    }
+    if (typeof originalDataHome === "undefined") {
+      delete process.env.VISIORO_DATA_HOME;
+    } else {
+      process.env.VISIORO_DATA_HOME = originalDataHome;
+    }
+    if (typeof originalVercel === "undefined") {
+      delete process.env.VERCEL;
+    } else {
+      process.env.VERCEL = originalVercel;
+    }
+    if (typeof originalVercelEnv === "undefined") {
+      delete process.env.VERCEL_ENV;
+    } else {
+      process.env.VERCEL_ENV = originalVercelEnv;
+    }
+    if (typeof originalPdfStorageProvider === "undefined") {
+      delete process.env.DOCUMENT_PDF_STORAGE_PROVIDER;
+    } else {
+      process.env.DOCUMENT_PDF_STORAGE_PROVIDER = originalPdfStorageProvider;
+    }
+  });
+
+  it("rejects local pdf storage without persistent Vercel production configuration", async () => {
+    delete process.env.DATA_DIR;
+    delete process.env.VISIORO_DATA_HOME;
+    process.env.VERCEL = "1";
+    process.env.VERCEL_ENV = "production";
+    process.env.DOCUMENT_PDF_STORAGE_PROVIDER = "local";
+
+    await expect(
+      saveDocumentPdf({
+        userId: TEST_USER_ID,
+        documentNumber: "ANG-2026-001",
+        pdfBuffer: Buffer.from("%PDF test"),
+      }),
+    ).rejects.toThrow(
+      "Dauerhafte Datenspeicherung ist in Vercel-Produktion nicht konfiguriert",
+    );
+  });
+
+  it("does not require a local data directory for Supabase pdf storage", async () => {
+    delete process.env.DATA_DIR;
+    delete process.env.VISIORO_DATA_HOME;
+    process.env.VERCEL = "1";
+    process.env.VERCEL_ENV = "production";
+
+    await expect(
+      saveDocumentPdf(
+        {
+          userId: TEST_USER_ID,
+          documentNumber: "ANG-2026-001",
+          pdfBuffer: Buffer.from("%PDF test"),
+        },
+        { provider: "supabase" },
+      ),
+    ).rejects.toThrow("Supabase PDF-Speicher ist aktiviert");
+  });
+
+  it("defaults to Supabase pdf storage in Vercel production", async () => {
+    delete process.env.DATA_DIR;
+    delete process.env.VISIORO_DATA_HOME;
+    delete process.env.DOCUMENT_PDF_STORAGE_PROVIDER;
+    process.env.VERCEL = "1";
+    process.env.VERCEL_ENV = "production";
+
+    await expect(
+      saveDocumentPdf({
+        userId: TEST_USER_ID,
+        documentNumber: "ANG-2026-001",
+        pdfBuffer: Buffer.from("%PDF test"),
+      }),
+    ).rejects.toThrow("Supabase PDF-Speicher ist aktiviert");
+  });
+
   it("stores a document pdf outside the public app tree", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "pdf-storage-"));
     const pdfDir = path.join(dataDir, "document-pdfs");

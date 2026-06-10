@@ -1148,12 +1148,12 @@ Antworte im JSON-Schema:
         return parsed;
       }
       debugOfferTextLog("fallback_invalid_model_json_schema", {
-        rawPreview: raw.slice(0, 400),
+        responseLength: raw.length,
       });
       return fallbackOffer(input);
     } catch {
       debugOfferTextLog("fallback_invalid_model_json", {
-        rawPreview: raw.slice(0, 400),
+        responseLength: raw.length,
       });
       return fallbackOffer(input);
     }

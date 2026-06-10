@@ -9,13 +9,11 @@ import {
   isAuthBypassEnabled,
 } from "@/lib/access/auth-bypass";
 import {
-  isUserAccessSetupError,
   classifyUserAccessError,
   logUserAccessError,
 } from "@/lib/access/access-errors";
 import {
   buildAccessState,
-  buildTransientTrialAccessRecord,
   ensureUserAccessRecord,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
@@ -106,38 +104,6 @@ export async function GET() {
       missingFields,
     });
   } catch (error) {
-    if (isUserAccessSetupError(error)) {
-      logUserAccessError("GET /api/access/status transient setup fallback", error, {
-        userId: authResult.user.id,
-      });
-      const fallbackAccessRecord = buildTransientTrialAccessRecord(authResult.user);
-      let onboarding = {
-        onboardingCompleted: false,
-        onboardingCompletedAt: null as string | null,
-        onboardingStep: 1,
-      };
-      try {
-        onboarding = await readOnboardingStatus({
-          supabase: authResult.supabase,
-          userId: authResult.user.id,
-        });
-      } catch {
-        // Keep defaults when onboarding status cannot be loaded.
-      }
-      return NextResponse.json({
-        authenticated: true,
-        user: {
-          id: authResult.user.id,
-          email: authResult.user.email ?? "",
-        },
-        access: fallbackAccessRecord,
-        state: buildAccessState(fallbackAccessRecord),
-        onboarding,
-        missingFields: [],
-        setupWarning: true,
-      });
-    }
-
     logUserAccessError("GET /api/access/status", error, {
       userId: authResult.user.id,
     });

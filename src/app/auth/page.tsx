@@ -469,7 +469,9 @@ export default function AuthPage() {
             {!isForgotMode ? (
               <>
                 <div className="authGithubPasswordRow">
-                  <span className="authGithubLabel">Passwort</span>
+                  <label className="authGithubLabel" htmlFor="auth-password">
+                    Passwort
+                  </label>
                   <button
                     type="button"
                     className="authGithubInlineLink"
@@ -479,6 +481,7 @@ export default function AuthPage() {
                   </button>
                 </div>
                 <input
+                  id="auth-password"
                   className="authGithubInput"
                   required
                   type="password"

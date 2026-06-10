@@ -395,7 +395,7 @@ const SUBSCRIPTION_PRICING_PLANS: SubscriptionPricingPlan[] = [
       "Angebote und Rechnungen",
       "PDF-Erstellung",
       "KI-Erfassung",
-      "Kunden- und Projektarchiv",
+      "Kunden- und Baustellenarchiv",
     ],
     badge: "Empfohlen",
   },
@@ -2700,6 +2700,7 @@ export default function HomePage() {
     useState(false);
   const [activeCustomerNumber, setActiveCustomerNumber] = useState("");
   const [activeProjectNumber, setActiveProjectNumber] = useState("");
+  const [isProjectEditorOpen, setIsProjectEditorOpen] = useState(false);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
     null,
   );
@@ -2768,6 +2769,9 @@ export default function HomePage() {
   const [deletingProjectNumber, setDeletingProjectNumber] = useState<
     string | null
   >(null);
+  const [projectPendingDeletion, setProjectPendingDeletion] =
+    useState<StoredProjectRecord | null>(null);
+  const [projectDeleteError, setProjectDeleteError] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [projectSearch, setProjectSearch] = useState("");
   const [customersError, setCustomersError] = useState("");
@@ -2909,6 +2913,7 @@ export default function HomePage() {
   const onboardingModalRef = useRef<HTMLElement | null>(null);
   const customerArchiveSheetRef = useRef<HTMLElement | null>(null);
   const projectArchiveSheetRef = useRef<HTMLElement | null>(null);
+  const projectDeleteDialogRef = useRef<HTMLElement | null>(null);
   const appointmentsSheetRef = useRef<HTMLElement | null>(null);
   const projectNameInputRef = useRef<HTMLInputElement | null>(null);
   const customerNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -3291,7 +3296,7 @@ export default function HomePage() {
       {
         id: `${selectedArchiveProject.projectNumber}-created`,
         createdAt: selectedArchiveProject.createdAt,
-        title: "Projekt angelegt",
+        title: "Baustelle angelegt",
         detail: selectedArchiveProject.projectName,
       },
       ...(selectedArchiveProject.updatedAt !== selectedArchiveProject.createdAt
@@ -3299,7 +3304,7 @@ export default function HomePage() {
             {
               id: `${selectedArchiveProject.projectNumber}-updated`,
               createdAt: selectedArchiveProject.updatedAt,
-              title: "Projekt aktualisiert",
+              title: "Baustelle aktualisiert",
               detail: formatProjectStatusLabel(selectedArchiveProject.status),
             },
           ]
@@ -3353,8 +3358,12 @@ export default function HomePage() {
     containerRef: customerArchiveSheetRef,
   });
   useDialogFocusTrap({
-    isOpen: isProjectArchiveOpen,
+    isOpen: isProjectArchiveOpen && !projectPendingDeletion,
     containerRef: projectArchiveSheetRef,
+  });
+  useDialogFocusTrap({
+    isOpen: Boolean(projectPendingDeletion),
+    containerRef: projectDeleteDialogRef,
   });
   useDialogFocusTrap({
     isOpen: isAppointmentsOpen,
@@ -3800,6 +3809,7 @@ export default function HomePage() {
     const hasBlockingOverlay =
       isCustomerArchiveOpen ||
       isProjectArchiveOpen ||
+      Boolean(projectPendingDeletion) ||
       isInfoLegalOpen ||
       isSubscriptionModalOpen ||
       isSettingsOverlayOpen ||
@@ -3832,6 +3842,7 @@ export default function HomePage() {
   }, [
     isCustomerArchiveOpen,
     isProjectArchiveOpen,
+    projectPendingDeletion,
     isInfoLegalOpen,
     isSubscriptionModalOpen,
     isSettingsOverlayOpen,
@@ -3872,6 +3883,14 @@ export default function HomePage() {
 
       if (isInfoLegalOpen) {
         closeInfoLegalModal();
+        return;
+      }
+
+      if (projectPendingDeletion) {
+        if (!deletingProjectNumber) {
+          setProjectPendingDeletion(null);
+          setProjectDeleteError("");
+        }
         return;
       }
 
@@ -3941,6 +3960,8 @@ export default function HomePage() {
     isClosingCustomerArchive,
     isProjectArchiveOpen,
     isClosingProjectArchive,
+    projectPendingDeletion,
+    deletingProjectNumber,
     isAppointmentsOpen,
     isClosingAppointments,
     isInfoLegalOpen,
@@ -4340,14 +4361,14 @@ export default function HomePage() {
       const data = (await response.json()) as ProjectsApiResponse;
       if (!response.ok) {
         setProjectsError(
-          data.error ?? "Gespeicherte Projekte konnten nicht geladen werden.",
+          data.error ?? "Gespeicherte Baustellen konnten nicht geladen werden.",
         );
         return;
       }
 
       setStoredProjects(Array.isArray(data.projects) ? data.projects : []);
     } catch {
-      setProjectsError("Gespeicherte Projekte konnten nicht geladen werden.");
+      setProjectsError("Gespeicherte Baustellen konnten nicht geladen werden.");
     } finally {
       setIsProjectsLoading(false);
     }
@@ -4588,7 +4609,7 @@ export default function HomePage() {
       }
       if (!response.ok) {
         setProjectArchiveError(
-          data.error ?? "Projekt-Dokumente konnten nicht geladen werden.",
+          data.error ?? "Baustellen-Dokumente konnten nicht geladen werden.",
         );
         return;
       }
@@ -4631,7 +4652,7 @@ export default function HomePage() {
       if (projectArchiveLoadRequestRef.current !== currentLoadRequest) {
         return;
       }
-      setProjectArchiveError("Projekt-Dokumente konnten nicht geladen werden.");
+      setProjectArchiveError("Baustellen-Dokumente konnten nicht geladen werden.");
     } finally {
       if (projectArchiveAbortControllerRef.current === controller) {
         projectArchiveAbortControllerRef.current = null;
@@ -6081,6 +6102,7 @@ export default function HomePage() {
 
   function clearActiveProjectSelection() {
     setActiveProjectNumber("");
+    setIsProjectEditorOpen(false);
     setDocumentTax(null);
     setForm((prev) => ({
       ...prev,
@@ -6098,7 +6120,10 @@ export default function HomePage() {
     let customerNumberForProject = activeCustomerNumber.trim();
 
     if (!projectName) {
-      setErrorAndFocus("Bitte zuerst einen Projektnamen eingeben.", projectNameInputRef);
+      setErrorAndFocus(
+        "Bitte zuerst einen Baustellennamen eingeben.",
+        projectNameInputRef,
+      );
       return;
     }
 
@@ -6163,7 +6188,7 @@ export default function HomePage() {
       });
       const data = (await response.json()) as SaveProjectApiResponse;
       if (!response.ok || !data.project) {
-        setError(data.error ?? "Projekt konnte nicht gespeichert werden.");
+        setError(data.error ?? "Baustelle konnte nicht gespeichert werden.");
         return;
       }
 
@@ -6175,6 +6200,7 @@ export default function HomePage() {
         projectNote: data.project?.note ?? prev.projectNote,
       }));
       setActiveProjectNumber(data.project.projectNumber);
+      setIsProjectEditorOpen(false);
       setStoredProjects((prev) => {
         const existingIndex = prev.findIndex(
           (project) => project.projectNumber === data.project?.projectNumber,
@@ -6188,23 +6214,17 @@ export default function HomePage() {
         return next.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
       });
       setPostActionInfo(
-        `Projekt ${data.project.projectName} wurde gespeichert.`,
+        `Baustelle ${data.project.projectName} wurde gespeichert.`,
       );
       flashAutosave();
     } catch {
-      setError("Projekt konnte nicht gespeichert werden.");
+      setError("Baustelle konnte nicht gespeichert werden.");
     }
   }
 
   async function deleteStoredProject(project: StoredProjectRecord) {
-    const confirmed = window.confirm(
-      `${project.projectName} wirklich löschen?`,
-    );
-    if (!confirmed) {
-      return;
-    }
-
     setProjectsError("");
+    setProjectDeleteError("");
     setDeletingProjectNumber(project.projectNumber);
 
     try {
@@ -6214,7 +6234,9 @@ export default function HomePage() {
       );
       const data = (await response.json()) as DeleteProjectApiResponse;
       if (!response.ok || !data.ok) {
-        setProjectsError(data.error ?? "Projekt konnte nicht gelöscht werden.");
+        setProjectDeleteError(
+          data.error ?? "Baustelle konnte nicht gelöscht werden.",
+        );
         return;
       }
 
@@ -6227,8 +6249,9 @@ export default function HomePage() {
       if (activeProjectNumber === project.projectNumber) {
         clearActiveProjectSelection();
       }
+      setProjectPendingDeletion(null);
     } catch {
-      setProjectsError("Gespeichertes Projekt konnte nicht gelöscht werden.");
+      setProjectDeleteError("Gespeicherte Baustelle konnte nicht gelöscht werden.");
     } finally {
       setDeletingProjectNumber((prev) =>
         prev === project.projectNumber ? null : prev,
@@ -6276,6 +6299,7 @@ export default function HomePage() {
     setSelectedTrade(draftSelectedTrade);
     setActiveCustomerNumber(project.customerNumber ?? "");
     setActiveProjectNumber(project.projectNumber);
+    setIsProjectEditorOpen(false);
     setActivePriceSubitemId(null);
     setAddressSuggestions([]);
     if (project.customerNumber) {
@@ -7482,12 +7506,12 @@ export default function HomePage() {
     );
     const projectName = mergeTextField(
       "projectName",
-      "Projektname",
+      "Baustellenname",
       fields.projectName ? capitalizeEntryStart(fields.projectName) : undefined,
     );
     const projectAddress = mergeTextField(
       "projectAddress",
-      "Projektadresse",
+      "Baustellenadresse",
       fields.projectAddress ? capitalizeEntryStart(fields.projectAddress) : undefined,
     );
     const serviceDescription = mergeTextField(
@@ -8454,7 +8478,7 @@ export default function HomePage() {
         buildGenerateOfferSettingsPayload(settingsPayload);
       if (!settingsPayloadForRequest) {
         setError(
-          "Bitte hinterlegen Sie in den Einstellungen eine gültige IBAN, bevor Dokumente erstellt werden.",
+          "Die Firmeneinstellungen konnten nicht geladen werden. Bitte erneut versuchen.",
         );
         return;
       }
@@ -8472,9 +8496,12 @@ export default function HomePage() {
       const ibanValidation = validateIbanInput(
         settingsPayloadForRequest.companyIban,
       );
-      if (!ibanValidation.isValid) {
+      if (
+        settingsPayloadForRequest.companyIban.trim() &&
+        !ibanValidation.isValid
+      ) {
         setError(
-          "Bitte hinterlegen Sie in den Einstellungen eine gültige IBAN, bevor Dokumente erstellt werden.",
+          "Die hinterlegte IBAN ist ungültig. Bitte in den Einstellungen prüfen.",
         );
         return;
       }
@@ -8503,8 +8530,10 @@ export default function HomePage() {
             positions: positionsPayload,
             settings: {
               ...settingsPayloadForRequest,
-              companyIban: ibanValidation.formatted,
-              ibanVerificationStatus: "valid",
+              companyIban: ibanValidation.isValid ? ibanValidation.formatted : "",
+              ibanVerificationStatus: ibanValidation.isValid
+                ? "valid"
+                : "not_checked",
             },
             sendEmail: false,
           }),
@@ -8547,6 +8576,7 @@ export default function HomePage() {
       }
       if (payload.projectNumber?.trim()) {
         setActiveProjectNumber(payload.projectNumber.trim());
+        setIsProjectEditorOpen(false);
       }
       updateStoredCustomersRealtime(payload);
       updateStoredProjectsRealtime(payload);
@@ -9101,12 +9131,12 @@ export default function HomePage() {
                           openProjectArchive(selectedArchiveCustomer.customerNumber)
                         }
                       >
-                        Projekte dieses Kontakts
+                        Baustellen dieses Kontakts
                       </button>
                     </div>
 
                     <p className="customerArchiveTitle">
-                      Projekte und Dokumente für {selectedArchiveCustomer.customerName}
+                      Baustellen und Dokumente für {selectedArchiveCustomer.customerName}
                     </p>
 
                     {isProjectsLoading ? (
@@ -9136,7 +9166,7 @@ export default function HomePage() {
                     selectedArchiveCustomerProjects.length === 0 &&
                     archiveDocuments.length === 0 ? (
                       <p className="customerArchiveHint">
-                        Für diesen Kontakt sind noch keine Projekte oder Dokumente gespeichert.
+                        Für diesen Kontakt sind noch keine Baustellen oder Dokumente gespeichert.
                       </p>
                     ) : null}
 
@@ -9148,7 +9178,7 @@ export default function HomePage() {
                           aria-expanded={isArchiveProjectsOpen}
                           onClick={() => setIsArchiveProjectsOpen((value) => !value)}
                         >
-                          <span className="customerArchiveGroupLabel">Projekte</span>
+                          <span className="customerArchiveGroupLabel">Baustellen</span>
                           <span className="customerArchiveSectionMeta">
                             {selectedArchiveCustomerProjects.length}
                           </span>
@@ -9156,7 +9186,7 @@ export default function HomePage() {
                         {isArchiveProjectsOpen ? (
                           selectedArchiveCustomerProjects.length === 0 ? (
                             <p className="customerArchiveHint customerArchiveHintCompact">
-                              Keine Projekte für diesen Kontakt vorhanden.
+                              Keine Baustellen für diesen Kontakt vorhanden.
                             </p>
                           ) : (
                             <div className="customerArchiveDocumentList">
@@ -9287,13 +9317,13 @@ export default function HomePage() {
               <div className="customerArchiveHeader">
                 <strong id="project-archive-title">
                   {projectArchiveScopeCustomerName
-                    ? `Projekte von ${projectArchiveScopeCustomerName}`
-                    : "Projektarchiv"}
+                    ? `Baustellen von ${projectArchiveScopeCustomerName}`
+                    : "Baustellenarchiv"}
                 </strong>
                 <button
                   type="button"
                   className="customerArchiveCloseButton"
-                  aria-label="Projektarchiv schließen"
+                  aria-label="Baustellenarchiv schließen"
                   onClick={closeProjectArchive}
                 >
                   <svg
@@ -9323,15 +9353,15 @@ export default function HomePage() {
                       onChange={(event) => setProjectSearch(event.target.value)}
                       placeholder={
                         projectArchiveCustomerNumber
-                          ? "Projekt suchen (Name, Adresse)"
-                          : "Projekt suchen (Name, Kunde, Adresse)"
+                          ? "Baustelle suchen (Name, Adresse)"
+                          : "Baustelle suchen (Name, Kunde, Adresse)"
                       }
-                      aria-label="Gespeicherte Projekte suchen"
+                      aria-label="Gespeicherte Baustellen suchen"
                     />
 
                     {isProjectsLoading ? (
                       <p className="customerArchiveHint">
-                        Gespeicherte Projekte werden geladen ...
+                        Gespeicherte Baustellen werden geladen ...
                       </p>
                     ) : null}
                     {!isProjectsLoading && projectsError ? (
@@ -9343,7 +9373,7 @@ export default function HomePage() {
                     !projectsError &&
                     storedProjects.length === 0 ? (
                       <p className="customerArchiveHint">
-                        Noch keine gespeicherten Projekte vorhanden.
+                        Noch keine gespeicherten Baustellen vorhanden.
                       </p>
                     ) : null}
                     {!isProjectsLoading &&
@@ -9351,7 +9381,7 @@ export default function HomePage() {
                     filteredStoredProjects.length === 0 &&
                     projectArchiveCustomerNumber ? (
                       <p className="customerArchiveHint">
-                        Für diesen Kontakt sind noch keine Projekte gespeichert.
+                        Für diesen Kontakt sind noch keine Baustellen gespeichert.
                       </p>
                     ) : null}
                     {!isProjectsLoading &&
@@ -9361,7 +9391,7 @@ export default function HomePage() {
                     !projectArchiveCustomerNumber &&
                     projectSearch.trim() ? (
                       <p className="customerArchiveHint">
-                        Keine Projekte zur Suche gefunden.
+                        Keine Baustellen zur Suche gefunden.
                       </p>
                     ) : null}
 
@@ -9439,24 +9469,20 @@ export default function HomePage() {
                         />
                       </svg>
                       {projectArchiveScopeCustomerName
-                        ? "Zurück zu den Kontaktprojekten"
-                        : "Zurück zur Projektliste"}
+                        ? "Zurück zu den Baustellen"
+                        : "Zurück zur Baustellenliste"}
                     </button>
 
-                    <div className="customerArchiveDetailHeader">
+                    <div className="customerArchiveDetailHeader projectArchiveDetailHeader">
                       <strong>{selectedArchiveProject.projectName}</strong>
-                      <span>{selectedArchiveProject.projectNumber}</span>
-                      <p>{selectedArchiveProject.projectAddress}</p>
-                    </div>
-
-                    <div className="projectArchiveInfoCard">
                       <div className="projectSummaryMetaRow">
                         <span className="projectStatusBadge">
                           {formatProjectStatusLabel(selectedArchiveProject.status)}
                         </span>
+                        <span>{selectedArchiveProject.projectNumber}</span>
                         <span>{selectedArchiveProject.customerName}</span>
                       </div>
-                      <p>{selectedArchiveProject.customerAddress}</p>
+                      <p>{selectedArchiveProject.projectAddress}</p>
                       {selectedArchiveProject.customerEmail ? (
                         <p>{selectedArchiveProject.customerEmail}</p>
                       ) : null}
@@ -9478,7 +9504,7 @@ export default function HomePage() {
                           closeProjectArchive();
                         }}
                       >
-                        Projekt ins Formular laden
+                        Baustelle verwenden
                       </button>
                       <button
                         type="button"
@@ -9487,9 +9513,12 @@ export default function HomePage() {
                           deletingProjectNumber ===
                           selectedArchiveProject.projectNumber
                         }
-                        onClick={() => void deleteStoredProject(selectedArchiveProject)}
+                        onClick={() => {
+                          setProjectDeleteError("");
+                          setProjectPendingDeletion(selectedArchiveProject);
+                        }}
                       >
-                        Projekt löschen
+                        Baustelle löschen
                       </button>
                     </div>
 
@@ -9502,7 +9531,7 @@ export default function HomePage() {
                       ) : null}
                       {projectTimelineEntries.length === 0 ? (
                         <p className="customerArchiveHint customerArchiveHintCompact">
-                          Für dieses Projekt gibt es noch keine Einträge.
+                          Für diese Baustelle gibt es noch keine Einträge.
                         </p>
                       ) : (
                         <div className="projectTimelineList">
@@ -9623,6 +9652,66 @@ export default function HomePage() {
                     ) : null}
                   </div>
                 )}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {projectPendingDeletion ? (
+          <div
+            className="projectDeleteBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-delete-title"
+            aria-describedby="project-delete-description"
+            onClick={() => {
+              if (!deletingProjectNumber) {
+                setProjectPendingDeletion(null);
+                setProjectDeleteError("");
+              }
+            }}
+          >
+            <section
+              className="projectDeleteDialog"
+              ref={projectDeleteDialogRef}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="projectDeleteDialogIcon" aria-hidden="true">
+                !
+              </div>
+              <div className="projectDeleteDialogCopy">
+                <strong id="project-delete-title">Baustelle löschen?</strong>
+                <p id="project-delete-description">
+                  „{projectPendingDeletion.projectName}“ wird dauerhaft aus dem
+                  Baustellenarchiv entfernt. Diese Aktion kann nicht rückgängig
+                  gemacht werden.
+                </p>
+              </div>
+              {projectDeleteError ? (
+                <p className="voiceWarning" role="alert">
+                  {projectDeleteError}
+                </p>
+              ) : null}
+              <div className="projectDeleteDialogActions">
+                <button
+                  type="button"
+                  className="ghostButton"
+                  disabled={Boolean(deletingProjectNumber)}
+                  onClick={() => {
+                    setProjectPendingDeletion(null);
+                    setProjectDeleteError("");
+                  }}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="projectDeleteConfirmButton"
+                  disabled={Boolean(deletingProjectNumber)}
+                  onClick={() => void deleteStoredProject(projectPendingDeletion)}
+                >
+                  {deletingProjectNumber ? "Wird gelöscht ..." : "Endgültig löschen"}
+                </button>
               </div>
             </section>
           </div>
@@ -9927,7 +10016,7 @@ export default function HomePage() {
                       </select>
                     </label>
                     <label className="field">
-                      <span>Projekt</span>
+                      <span>Baustelle</span>
                       <select
                         value={appointmentForm.projectNumber}
                         onChange={(event) => {
@@ -9947,7 +10036,7 @@ export default function HomePage() {
                           }));
                         }}
                       >
-                        <option value="">Kein Projekt</option>
+                        <option value="">Keine Baustelle</option>
                         {storedProjects.map((project) => (
                           <option
                             key={project.projectNumber}
@@ -11675,184 +11764,217 @@ export default function HomePage() {
               </div>
 
               {activeCustomerNumber ? (
-                <section className="projectWorkspacePanel span2" aria-label="Projekt">
+                <section className="projectWorkspacePanel span2" aria-label="Baustelle">
                   <div className="projectWorkspaceHeader">
                     <div>
-                      <strong>Projekt / Baustelle</strong>
+                      <strong>Baustelle</strong>
                       <p>
-                        Wähle jetzt das passende Projekt zu diesem Kontakt oder lege
-                        eine neue Baustelle an.
+                        Für welche Baustelle ist dieses Dokument?
                       </p>
                     </div>
-                    {activeProjectNumber || form.projectName.trim() ? (
+                    {!isProjectEditorOpen &&
+                    (activeProjectNumber || form.projectName.trim()) ? (
                       <span className="projectStatusBadge">
                         {formatProjectStatusLabel(form.projectStatus)}
                       </span>
                     ) : null}
                   </div>
 
-                  <div className="projectWorkspaceActions">
-                    <button
-                      type="button"
-                      className="ghostButton customerPickerToggle"
-                      onClick={() => void saveCurrentProject()}
-                    >
-                      {activeProjectNumber ? "Projekt aktualisieren" : "Projekt speichern"}
-                    </button>
-                    <button
-                      type="button"
-                      className="ghostButton customerPickerToggle"
-                      onClick={() => openProjectArchive(activeCustomerNumber)}
-                    >
-                      Projekte dieses Kontakts
-                    </button>
-                    {activeProjectNumber ? (
-                      <button
-                        type="button"
-                        className="ghostButton projectClearButton"
-                        onClick={clearActiveProjectSelection}
-                      >
-                        Projekt lösen
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {activeCustomerProjects.length > 0 ? (
-                    <p className="selectedServiceHint">
-                      {activeCustomerProjects.length} gespeicherte{" "}
-                      {activeCustomerProjects.length === 1 ? "Projektakte" : "Projektakten"}{" "}
-                      für diesen Kontakt vorhanden.
-                    </p>
-                  ) : (
-                    <p className="selectedServiceHint">
-                      Für diesen Kontakt ist noch kein Projekt gespeichert.
-                    </p>
-                  )}
-
-                  <div className="projectWorkspaceGrid">
-                    <label className="field span2">
-                      <span>Projektname</span>
-                      <input
-                        ref={projectNameInputRef}
-                        placeholder="z. B. Badezimmer Renovierung"
-                        autoCapitalize="words"
-                        value={form.projectName}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            projectName: capitalizeEntryStart(event.target.value),
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <label className="field">
-                      <span>Baustellenadresse</span>
-                      <input
-                        placeholder="z. B. Musterstraße 10, 40210 Düsseldorf"
-                        autoCapitalize="words"
-                        value={form.projectAddress}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            projectAddress: capitalizeEntryStart(event.target.value),
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <label className="field">
-                      <span>Status</span>
-                      <div className="selectWithIndicator">
-                        <select
-                          className="selectWithIndicatorInput"
-                          value={form.projectStatus}
-                          onChange={(event) =>
-                            setForm((prev) => ({
-                              ...prev,
-                              projectStatus: PROJECT_STATUS_VALUES.includes(
-                                event.target.value as ProjectStatus,
-                              )
-                                ? (event.target.value as ProjectStatus)
-                                : "new",
-                            }))
-                          }
-                        >
-                          {PROJECT_STATUS_VALUES.map((statusValue) => (
-                            <option key={statusValue} value={statusValue}>
-                              {formatProjectStatusLabel(statusValue)}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="serviceSearchIndicator" aria-hidden="true">
-                          <svg
-                            viewBox="0 0 24 24"
-                            className="serviceSearchIndicatorIcon"
-                            focusable="false"
+                  {!isProjectEditorOpen ? (
+                    activeProjectNumber || form.projectName.trim() ? (
+                      <div className="projectWorkspaceSelected">
+                        <div className="projectWorkspaceSelectedCopy">
+                          <strong>
+                            {activeProject?.projectName || form.projectName.trim()}
+                          </strong>
+                          <span>
+                            {activeProject?.projectAddress ||
+                              form.projectAddress.trim() ||
+                              buildProjectAddressFallback(form)}
+                          </span>
+                        </div>
+                        <div className="projectWorkspaceActions">
+                          <button
+                            type="button"
+                            className="ghostButton customerPickerToggle"
+                            onClick={() => openProjectArchive(activeCustomerNumber)}
                           >
-                            <path
-                              d="m8 10 4-4 4 4m-8 4 4 4 4-4"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </span>
+                            Andere Baustelle wählen
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostButton customerPickerToggle"
+                            onClick={() => setIsProjectEditorOpen(true)}
+                          >
+                            Bearbeiten
+                          </button>
+                        </div>
                       </div>
-                    </label>
-
-                    <label className="field span2">
-                      <span>Projektnotiz</span>
-                      <textarea
-                        className="projectDescriptionTextarea"
-                        rows={3}
-                        placeholder="z. B. Kunde wünscht Ausführung in zwei Abschnitten."
-                        value={form.projectNote}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            projectNote: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                  </div>
-
-                  {activeProjectNumber || form.projectName.trim() ? (
-                    <div className="projectSummaryCard">
-                      <div className="projectSummaryHeader">
-                        <strong>
-                          {activeProject?.projectName || form.projectName.trim()}
-                        </strong>
-                        <span>{activeProject?.projectNumber || "Entwurf"}</span>
+                    ) : (
+                      <div className="projectWorkspaceChoice">
+                        <div className="projectWorkspaceActions">
+                          <button
+                            type="button"
+                            className="primaryButton"
+                            onClick={() => openProjectArchive(activeCustomerNumber)}
+                          >
+                            Baustelle auswählen
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostButton customerPickerToggle"
+                            onClick={() => {
+                              clearActiveProjectSelection();
+                              setIsProjectEditorOpen(true);
+                              window.requestAnimationFrame(() =>
+                                projectNameInputRef.current?.focus(),
+                              );
+                            }}
+                          >
+                            + Neue Baustelle anlegen
+                          </button>
+                        </div>
+                        {activeCustomerProjects.length > 0 ? (
+                          <p className="selectedServiceHint">
+                            {activeCustomerProjects.length}{" "}
+                            {activeCustomerProjects.length === 1
+                              ? "gespeicherte Baustelle verfügbar"
+                              : "gespeicherte Baustellen verfügbar"}
+                          </p>
+                        ) : (
+                          <p className="selectedServiceHint">
+                            Für diesen Kontakt ist noch keine Baustelle gespeichert.
+                          </p>
+                        )}
                       </div>
-                      <div className="projectSummaryMetaRow">
-                        <span className="projectStatusBadge">
-                          {formatProjectStatusLabel(
-                            activeProject?.status || form.projectStatus,
-                          )}
-                        </span>
-                        <span>
-                          {activeProject?.customerName || buildCustomerNameForStorage(form)}
-                        </span>
-                      </div>
-                      <p>
-                        {activeProject?.projectAddress ||
-                          form.projectAddress.trim() ||
-                          buildProjectAddressFallback(form)}
-                      </p>
-                      {(activeProject?.note || form.projectNote.trim()) ? (
-                        <p>{activeProject?.note || form.projectNote.trim()}</p>
-                      ) : null}
-                    </div>
+                    )
                   ) : (
-                    <p className="selectedServiceHint">
-                      Lege hier eine Baustelle an oder lade ein bestehendes
-                      Projekt. Beim Erstellen des Dokuments wird die Zuordnung
-                      automatisch gespeichert.
-                    </p>
+                    <>
+                      <div className="projectWorkspaceGrid">
+                        <label className="field span2">
+                          <span>Name der Baustelle</span>
+                          <input
+                            ref={projectNameInputRef}
+                            placeholder="z. B. Badezimmer Familie Müller"
+                            autoCapitalize="words"
+                            value={form.projectName}
+                            onChange={(event) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                projectName: capitalizeEntryStart(event.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <label className="field span2">
+                          <span>Baustellenadresse</span>
+                          <input
+                            placeholder="z. B. Musterstraße 10, 40210 Düsseldorf"
+                            autoCapitalize="words"
+                            value={form.projectAddress}
+                            onChange={(event) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                projectAddress: capitalizeEntryStart(event.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <details className="projectWorkspaceMore span2">
+                          <summary>Weitere Angaben</summary>
+                          <div className="projectWorkspaceGrid projectWorkspaceMoreGrid">
+                            <label className="field">
+                              <span>Status</span>
+                              <div className="selectWithIndicator">
+                                <select
+                                  className="selectWithIndicatorInput"
+                                  value={form.projectStatus}
+                                  onChange={(event) =>
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      projectStatus: PROJECT_STATUS_VALUES.includes(
+                                        event.target.value as ProjectStatus,
+                                      )
+                                        ? (event.target.value as ProjectStatus)
+                                        : "new",
+                                    }))
+                                  }
+                                >
+                                  {PROJECT_STATUS_VALUES.map((statusValue) => (
+                                    <option key={statusValue} value={statusValue}>
+                                      {formatProjectStatusLabel(statusValue)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span
+                                  className="serviceSearchIndicator"
+                                  aria-hidden="true"
+                                >
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    className="serviceSearchIndicatorIcon"
+                                    focusable="false"
+                                  >
+                                    <path
+                                      d="m8 10 4-4 4 4m-8 4 4 4 4-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="1.8"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </span>
+                              </div>
+                            </label>
+
+                            <label className="field span2">
+                              <span>Notiz zur Baustelle</span>
+                              <textarea
+                                className="projectDescriptionTextarea"
+                                rows={3}
+                                placeholder="z. B. Zugang nur über Hinterhof."
+                                value={form.projectNote}
+                                onChange={(event) =>
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    projectNote: event.target.value,
+                                  }))
+                                }
+                              />
+                            </label>
+                          </div>
+                        </details>
+                      </div>
+
+                      <div className="projectWorkspaceActions projectWorkspaceEditorActions">
+                        <button
+                          type="button"
+                          className="primaryButton"
+                          onClick={() => void saveCurrentProject()}
+                        >
+                          {activeProjectNumber
+                            ? "Änderungen speichern"
+                            : "Baustelle speichern"}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghostButton"
+                          onClick={() => {
+                            if (activeProject) {
+                              applyStoredProject(activeProject);
+                            } else {
+                              clearActiveProjectSelection();
+                            }
+                            setIsProjectEditorOpen(false);
+                          }}
+                        >
+                          Abbrechen
+                        </button>
+                      </div>
+                    </>
                   )}
                 </section>
               ) : null}

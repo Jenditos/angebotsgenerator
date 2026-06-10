@@ -799,10 +799,11 @@ export default function SettingsPage() {
             }
           }
 
+          const hasIbanInput = nextSettings.companyIban.trim().length > 0;
           let nextIban = formatIbanForDisplay(nextSettings.companyIban);
           let nextIbanVerificationStatus: IbanVerificationStatus = "not_checked";
 
-          if (mode !== "reset") {
+          if (mode !== "reset" && hasIbanInput) {
             const ibanValidation = validateIbanInput(nextSettings.companyIban);
             if (!ibanValidation.isValid) {
               if (mode !== "autosave") {
@@ -1542,7 +1543,7 @@ export default function SettingsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIbanFieldTouched(true);
+    setIbanFieldTouched(settings.companyIban.trim().length > 0);
     if (!validateSettingsBeforeManualSave()) {
       return;
     }
@@ -1602,13 +1603,10 @@ export default function SettingsPage() {
       setError("Bitte geben Sie eine gültige Website ein.");
       return false;
     }
-    if (!settings.companyIban.trim()) {
-      openSettingsSection("payment");
-      setIbanFieldTouched(true);
-      setError("Bitte geben Sie die IBAN ein.");
-      return false;
-    }
-    if (!validateIbanInput(settings.companyIban).isValid) {
+    if (
+      settings.companyIban.trim() &&
+      !validateIbanInput(settings.companyIban).isValid
+    ) {
       openSettingsSection("payment");
       setIbanFieldTouched(true);
       setError(validateIbanInput(settings.companyIban).message);

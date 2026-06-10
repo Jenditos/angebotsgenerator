@@ -50,16 +50,7 @@ export async function GET(request: Request) {
     const entityType = normalizeEntityType(url.searchParams.get("entityType"));
     const entityIds = normalizeEntityIds(url.searchParams);
     const limit = normalizeLimit(url.searchParams.get("limit"));
-    const includeUnscopedActivity = process.env.NODE_ENV !== "production";
-
-    const activities = (await listActivityLogEntries())
-      .filter((activity) => {
-        if (activity.userId) {
-          return activity.userId === accessResult.user.id;
-        }
-
-        return includeUnscopedActivity;
-      })
+    const activities = (await listActivityLogEntries(accessResult.user.id))
       .filter((activity) => !entityType || activity.entityType === entityType)
       .filter(
         (activity) => entityIds.size === 0 || entityIds.has(activity.entityId),

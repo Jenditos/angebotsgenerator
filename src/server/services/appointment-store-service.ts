@@ -22,6 +22,14 @@ import {
   ensureRuntimeDataDirReady,
   resolveRuntimeDataDir,
 } from "@/server/services/store-runtime-paths";
+import {
+  allocateBusinessSequence,
+  findBusinessRecord,
+  listBusinessRecords,
+  removeBusinessRecord,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "@/server/services/business-record-store";
 
 type AppointmentStore = {
   lastAppointmentSequence: number;
@@ -72,14 +80,8 @@ function normalizeUserId(value: unknown): string {
 function isOwnedByUser(
   recordUserId: unknown,
   userId: string,
-  includeLegacyUnscoped: boolean,
 ): boolean {
-  const normalizedUserId = normalizeUserId(recordUserId);
-  if (normalizedUserId) {
-    return normalizedUserId === userId;
-  }
-
-  return includeLegacyUnscoped;
+  return normalizeUserId(recordUserId) === userId;
 }
 
 function parseAppointmentNumber(value: unknown): number {
@@ -232,6 +234,22 @@ function resolvePaths(
   };
 }
 
+function hasPathOverrides(
+  overrides?: Partial<AppointmentStorePaths>,
+): boolean {
+  return Boolean(
+    overrides?.dataDir || overrides?.storePath || overrides?.lockPath,
+  );
+}
+
+function sanitizeSupabaseAppointment(
+  value: unknown,
+  userId: string,
+): StoredAppointmentRecord | null {
+  const appointment = sanitizeAppointmentRecord(value);
+  return appointment ? { ...appointment, userId } : null;
+}
+
 function isMissingFileError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   return code === "ENOENT";
@@ -323,28 +341,51 @@ export async function listStoredAppointments(
 ): Promise<StoredAppointmentRecord[]> {
   const normalizedUserId = userId.trim();
   if (!normalizedUserId) {
-    return [];
+    throw new Error("User-ID fuer Termin-Speicherung fehlt.");
+  }
+
+  if (shouldUseSupabaseBusinessStore(hasPathOverrides(overrides))) {
+    const appointments = (
+      await listBusinessRecords<StoredAppointmentRecord>(
+        normalizedUserId,
+        "appointment",
+      )
+    )
+      .map((appointment) =>
+        sanitizeSupabaseAppointment(appointment, normalizedUserId),
+      )
+      .filter(
+        (appointment): appointment is StoredAppointmentRecord =>
+          Boolean(appointment),
+      );
+
+    return sortAppointments(appointments);
   }
 
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
   const store = await readStoreWithDataLossProtection(paths.storePath);
-  const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
 
-  return store.appointments
-    .filter((appointment) =>
-      isOwnedByUser(appointment.userId, normalizedUserId, includeLegacyUnscoped),
-    )
-    .sort((left, right) => {
-      const leftTime = Date.parse(left.startAt);
-      const rightTime = Date.parse(right.startAt);
-      if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
-        return leftTime - rightTime;
-      }
+  return sortAppointments(
+    store.appointments.filter((appointment) =>
+      isOwnedByUser(appointment.userId, normalizedUserId),
+    ),
+  );
+}
 
-      return left.appointmentNumber.localeCompare(right.appointmentNumber);
-    });
+function sortAppointments(
+  appointments: StoredAppointmentRecord[],
+): StoredAppointmentRecord[] {
+  return [...appointments].sort((left, right) => {
+    const leftTime = Date.parse(left.startAt);
+    const rightTime = Date.parse(right.startAt);
+    if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+      return leftTime - rightTime;
+    }
+
+    return left.appointmentNumber.localeCompare(right.appointmentNumber);
+  });
 }
 
 export async function upsertStoredAppointment(
@@ -363,6 +404,82 @@ export async function upsertStoredAppointment(
     throw new Error("Termin ist unvollstaendig.");
   }
 
+  if (shouldUseSupabaseBusinessStore(hasPathOverrides(overrides))) {
+    const nowIso = (input.referenceDate ?? new Date()).toISOString();
+    const requestedSequence = parseAppointmentNumber(input.appointmentNumber);
+    const requestedNumber =
+      requestedSequence > 0 ? formatAppointmentNumber(requestedSequence) : "";
+    const existing = requestedNumber
+      ? sanitizeSupabaseAppointment(
+          await findBusinessRecord<StoredAppointmentRecord>(
+            normalizedUserId,
+            "appointment",
+            requestedNumber,
+          ),
+          normalizedUserId,
+        )
+      : null;
+
+    let appointmentNumber = existing?.appointmentNumber ?? "";
+    if (!appointmentNumber) {
+      const appointmentFloor = (
+        await listBusinessRecords<StoredAppointmentRecord>(
+          normalizedUserId,
+          "appointment",
+        )
+      ).reduce(
+        (highest, appointment) =>
+          Math.max(
+            highest,
+            parseAppointmentNumber(appointment.appointmentNumber),
+          ),
+        0,
+      );
+      appointmentNumber = formatAppointmentNumber(
+        await allocateBusinessSequence({
+          userId: normalizedUserId,
+          counterType: "appointment",
+          floor: appointmentFloor,
+        }),
+      );
+    }
+    const appointment: StoredAppointmentRecord = {
+      ...existing,
+      userId: normalizedUserId,
+      appointmentNumber,
+      title,
+      type: sanitizeAppointmentType(input.type),
+      status: sanitizeAppointmentStatus(input.status ?? existing?.status),
+      startAt,
+      endAt,
+      customerNumber:
+        asTrimmedString(input.customerNumber) || existing?.customerNumber,
+      projectNumber:
+        asTrimmedString(input.projectNumber) || existing?.projectNumber,
+      customerName: asTrimmedString(input.customerName),
+      projectName: asTrimmedString(input.projectName) || undefined,
+      documentNumber: asTrimmedString(input.documentNumber) || undefined,
+      documentType: sanitizeDocumentType(input.documentType),
+      address: asTrimmedString(input.address) || undefined,
+      note: asTrimmedString(input.note) || undefined,
+      reminderEnabled: input.reminderEnabled === true,
+      reminderMinutesBefore: sanitizeReminderMinutes(
+        input.reminderMinutesBefore,
+      ),
+      source: sanitizeAppointmentSource(input.source),
+      createdAt: existing?.createdAt ?? nowIso,
+      updatedAt: nowIso,
+    };
+
+    await upsertBusinessRecord({
+      userId: normalizedUserId,
+      entityType: "appointment",
+      entityKey: appointmentNumber,
+      payload: appointment,
+    });
+    return appointment;
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -371,7 +488,6 @@ export async function upsertStoredAppointment(
   try {
     const nowIso = (input.referenceDate ?? new Date()).toISOString();
     const store = await readStoreWithDataLossProtection(paths.storePath);
-    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const requestedSequence = parseAppointmentNumber(input.appointmentNumber);
     const requestedNumber =
       requestedSequence > 0 ? formatAppointmentNumber(requestedSequence) : "";
@@ -379,11 +495,7 @@ export async function upsertStoredAppointment(
       ? store.appointments.findIndex(
           (appointment) =>
             appointment.appointmentNumber === requestedNumber &&
-            isOwnedByUser(
-              appointment.userId,
-              normalizedUserId,
-              includeLegacyUnscoped,
-            ),
+            isOwnedByUser(appointment.userId, normalizedUserId),
         )
       : -1;
 
@@ -461,8 +573,19 @@ export async function removeStoredAppointment(
 ): Promise<boolean> {
   const normalizedUserId = userId.trim();
   const normalizedSequence = parseAppointmentNumber(appointmentNumber);
-  if (!normalizedUserId || !normalizedSequence) {
+  if (!normalizedUserId) {
+    throw new Error("User-ID fuer Termin-Speicherung fehlt.");
+  }
+  if (!normalizedSequence) {
     return false;
+  }
+
+  if (shouldUseSupabaseBusinessStore(hasPathOverrides(overrides))) {
+    return removeBusinessRecord(
+      normalizedUserId,
+      "appointment",
+      formatAppointmentNumber(normalizedSequence),
+    );
   }
 
   await ensureRuntimeDataDirIfNeeded(overrides);
@@ -473,15 +596,10 @@ export async function removeStoredAppointment(
   try {
     const normalizedNumber = formatAppointmentNumber(normalizedSequence);
     const store = await readStoreWithDataLossProtection(paths.storePath);
-    const includeLegacyUnscoped = process.env.NODE_ENV !== "production";
     const nextAppointments = store.appointments.filter(
       (appointment) =>
         appointment.appointmentNumber !== normalizedNumber ||
-        !isOwnedByUser(
-          appointment.userId,
-          normalizedUserId,
-          includeLegacyUnscoped,
-        ),
+        !isOwnedByUser(appointment.userId, normalizedUserId),
     );
     if (nextAppointments.length === store.appointments.length) {
       return false;

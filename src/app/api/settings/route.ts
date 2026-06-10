@@ -19,6 +19,12 @@ import {
   hasCompletedOnboardingRequiredFields,
 } from "@/lib/onboarding";
 import { CompanySettings } from "@/types/offer";
+import {
+  readJsonObject,
+  SETTINGS_TEXT_INPUT_RULES,
+  UserInputValidationError,
+  validateTextInputs,
+} from "@/lib/user-input";
 
 type SettingsPostBody = Partial<CompanySettings> & {
   onboardingCompleted?: boolean;
@@ -143,11 +149,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const rawBody = (await request.json()) as unknown;
-    const body =
-      rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
-        ? (rawBody as SettingsPostBody)
-        : {};
+    const rawBody = await readJsonObject(request);
+    const body = rawBody as SettingsPostBody;
+    const validation = validateTextInputs(rawBody, SETTINGS_TEXT_INPUT_RULES);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
 
     const sanitized: Partial<CompanySettings> = {};
     let hasSettingsChanges = false;
@@ -388,6 +395,12 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
+    if (error instanceof UserInputValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const classified = classifySettingsStoreError(error);
     console.error("[api/settings][POST] Einstellungen konnten nicht gespeichert werden.", {
       userId: accessResult.user.id,

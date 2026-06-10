@@ -22,6 +22,14 @@ import {
   ensureRuntimeDataDirReady,
   resolveRuntimeDataDir,
 } from "@/server/services/store-runtime-paths";
+import {
+  allocateBusinessSequence,
+  findBusinessRecord,
+  listBusinessRecords,
+  removeBusinessRecord,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "@/server/services/business-record-store";
 
 type ProjectStore = {
   lastProjectSequence: number;
@@ -455,6 +463,26 @@ export async function listStoredProjects(
     return [];
   }
 
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const records = await listBusinessRecords<unknown>(
+      normalizedUserId,
+      "project",
+    );
+    return records
+      .map((record) => sanitizeProjectRecord(record))
+      .filter((record): record is StoredProjectRecord => Boolean(record))
+      .map((record) => ({ ...record, userId: normalizedUserId }))
+      .sort((left, right) => {
+        const leftTime = new Date(left.updatedAt).getTime();
+        const rightTime = new Date(right.updatedAt).getTime();
+        if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+          return rightTime - leftTime;
+        }
+
+        return right.projectNumber.localeCompare(left.projectNumber);
+      });
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -492,6 +520,17 @@ export async function findStoredProjectByNumber(
   }
 
   const normalizedProjectNumber = formatProjectNumber(normalizedSequence);
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const record = sanitizeProjectRecord(
+      await findBusinessRecord<unknown>(
+        normalizedUserId,
+        "project",
+        normalizedProjectNumber,
+      ),
+    );
+    return record ? { ...record, userId: normalizedUserId } : null;
+  }
+
   const projects = await listStoredProjects(normalizedUserId, overrides);
   return (
     projects.find((project) => project.projectNumber === normalizedProjectNumber) ??
@@ -509,16 +548,24 @@ export async function removeStoredProject(
     return false;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedSequence = parseProjectNumber(projectNumber);
   if (!normalizedSequence) {
     return false;
   }
 
   const normalizedProjectNumber = formatProjectNumber(normalizedSequence);
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return removeBusinessRecord(
+      normalizedUserId,
+      "project",
+      normalizedProjectNumber,
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
   const releaseLock = await acquireStoreLock(paths.lockPath);
 
   try {
@@ -559,6 +606,102 @@ export async function upsertStoredProject(
   const normalizedUserId = input.userId.trim();
   if (!normalizedUserId) {
     throw new Error("User-ID fuer Projekt-Speicherung fehlt.");
+  }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const now = input.referenceDate ?? new Date();
+    const nowIso = now.toISOString();
+    const projects = (await listBusinessRecords<unknown>(
+      normalizedUserId,
+      "project",
+    ))
+      .map((record) => sanitizeProjectRecord(record))
+      .filter((record): record is StoredProjectRecord => Boolean(record))
+      .map((record) => ({ ...record, userId: normalizedUserId }));
+    const existingIndex = findMatchingProjectIndex(projects, input, false);
+    const normalizedDraftState = sanitizeCustomerDraftState(input.draftState);
+    const resolvedProjectAddress =
+      asTrimmedString(input.projectAddress) ||
+      asTrimmedString(input.customerAddress);
+
+    if (existingIndex >= 0) {
+      const existing = projects[existingIndex];
+      const updated: StoredProjectRecord = {
+        ...existing,
+        userId: normalizedUserId,
+        customerNumber:
+          asTrimmedString(input.customerNumber) || existing.customerNumber,
+        customerType: input.customerType,
+        companyName: asTrimmedString(input.companyName),
+        salutation: input.salutation === "frau" ? "frau" : "herr",
+        firstName: asTrimmedString(input.firstName),
+        lastName: asTrimmedString(input.lastName),
+        street: asTrimmedString(input.street),
+        postalCode: asTrimmedString(input.postalCode),
+        city: asTrimmedString(input.city),
+        customerName: asTrimmedString(input.customerName) || existing.customerName,
+        customerAddress:
+          asTrimmedString(input.customerAddress) || existing.customerAddress,
+        customerEmail:
+          asTrimmedString(input.customerEmail) || existing.customerEmail,
+        projectName: asTrimmedString(input.projectName) || existing.projectName,
+        projectAddress: resolvedProjectAddress || existing.projectAddress,
+        status: sanitizeProjectStatus(input.status ?? existing.status),
+        note: asTrimmedString(input.note),
+        draftState: normalizedDraftState,
+        updatedAt: nowIso,
+      };
+
+      await upsertBusinessRecord({
+        userId: normalizedUserId,
+        entityType: "project",
+        entityKey: updated.projectNumber,
+        payload: updated,
+      });
+      return updated;
+    }
+
+    const highestSequence = projects.reduce(
+      (highest, project) =>
+        Math.max(highest, parseProjectNumber(project.projectNumber)),
+      0,
+    );
+    const nextSequence = await allocateBusinessSequence({
+      userId: normalizedUserId,
+      counterType: "project",
+      floor: highestSequence,
+    });
+    const created: StoredProjectRecord = {
+      userId: normalizedUserId,
+      projectNumber: formatProjectNumber(nextSequence),
+      customerNumber: asTrimmedString(input.customerNumber) || undefined,
+      customerType: input.customerType,
+      companyName: asTrimmedString(input.companyName),
+      salutation: input.salutation === "frau" ? "frau" : "herr",
+      firstName: asTrimmedString(input.firstName),
+      lastName: asTrimmedString(input.lastName),
+      street: asTrimmedString(input.street),
+      postalCode: asTrimmedString(input.postalCode),
+      city: asTrimmedString(input.city),
+      customerName: asTrimmedString(input.customerName),
+      customerAddress: asTrimmedString(input.customerAddress),
+      customerEmail: asTrimmedString(input.customerEmail),
+      projectName: asTrimmedString(input.projectName),
+      projectAddress: resolvedProjectAddress,
+      status: sanitizeProjectStatus(input.status),
+      note: asTrimmedString(input.note),
+      draftState: normalizedDraftState,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    await upsertBusinessRecord({
+      userId: normalizedUserId,
+      entityType: "project",
+      entityKey: created.projectNumber,
+      payload: created,
+    });
+    return created;
   }
 
   await ensureRuntimeDataDirIfNeeded(overrides);

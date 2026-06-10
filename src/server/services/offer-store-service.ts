@@ -37,6 +37,14 @@ import {
   ensureRuntimeDataDirReady,
   resolveRuntimeDataDir,
 } from "@/server/services/store-runtime-paths";
+import {
+  allocateBusinessSequence,
+  findBusinessRecord,
+  findIdempotentDocumentRecord,
+  listBusinessRecords,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "@/server/services/business-record-store";
 
 type OfferStore = {
   lastOfferNumber: string;
@@ -949,6 +957,55 @@ function resolveBaseSequenceForCurrentYear(input: {
   );
 }
 
+function normalizeDocumentEntityKey(offerNumber: string): string {
+  return offerNumber.trim().toUpperCase();
+}
+
+async function upsertSupabaseOfferRecord(
+  record: StoredOfferRecord,
+  userId = normalizeUserId(record.userId),
+): Promise<void> {
+  await upsertBusinessRecord({
+    userId,
+    entityType: "document",
+    entityKey: normalizeDocumentEntityKey(record.offerNumber),
+    documentType: resolveDocumentType(record.documentType),
+    idempotencyKey: record.idempotencyKey,
+    payload: record,
+  });
+}
+
+async function findSupabaseOfferRecord(
+  userId: string,
+  offerNumber: string,
+): Promise<StoredOfferRecord | null> {
+  const record = await findBusinessRecord<StoredOfferRecord>(
+    userId,
+    "document",
+    normalizeDocumentEntityKey(offerNumber),
+  );
+  return sanitizeOfferRecord(record);
+}
+
+async function updateSupabaseOfferRecord(
+  userId: string,
+  offerNumber: string,
+  update: (record: StoredOfferRecord) => StoredOfferRecord | null,
+): Promise<StoredOfferRecord | null> {
+  const existing = await findSupabaseOfferRecord(userId, offerNumber);
+  if (!existing) {
+    return null;
+  }
+
+  const updated = update(existing);
+  if (!updated) {
+    return null;
+  }
+
+  await upsertSupabaseOfferRecord(updated, userId);
+  return updated;
+}
+
 // Angebotsnummern werden zentral serverseitig vergeben und in einem Store persistiert.
 // Die Lock-Datei verhindert doppelte Nummern bei nahezu gleichzeitigen Requests.
 export async function createStoredOfferRecord(
@@ -958,6 +1015,101 @@ export async function createStoredOfferRecord(
   const normalizedUserId = input.userId.trim();
   if (!normalizedUserId) {
     throw new Error("User-ID fuer Dokument-Speicherung fehlt.");
+  }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const documentType = resolveDocumentType(input.documentType);
+    const normalizedIdempotencyKey = asTrimmedString(input.idempotencyKey);
+    const existingIdempotentRecord = normalizedIdempotencyKey
+      ? sanitizeOfferRecord(
+          await findIdempotentDocumentRecord<StoredOfferRecord>(
+            normalizedUserId,
+            documentType,
+            normalizedIdempotencyKey,
+          ),
+        )
+      : null;
+    if (existingIdempotentRecord) {
+      return existingIdempotentRecord;
+    }
+
+    const generatedAt = input.referenceDate ?? new Date();
+    const currentYear = generatedAt.getFullYear();
+    const configuredLastNumber =
+      documentType === "invoice"
+        ? input.configuredLastInvoiceNumber
+        : input.configuredLastOfferNumber;
+    const configuredLast = normalizeDocumentNumber(
+      documentType,
+      configuredLastNumber,
+      currentYear,
+    );
+    const nextSequence = await allocateBusinessSequence({
+      userId: normalizedUserId,
+      counterType: `document:${documentType}`,
+      counterYear: currentYear,
+      floor: configuredLast?.year === currentYear ? configuredLast.sequence : 0,
+    });
+    const assignedOfferNumber = formatDocumentNumberWithTemplate({
+      documentType,
+      template: configuredLastNumber,
+      year: currentYear,
+      sequence: nextSequence,
+    });
+    const generatedAtIso = generatedAt.toISOString();
+    const nextRecord: StoredOfferRecord = {
+      userId: normalizedUserId,
+      documentType,
+      offerNumber: assignedOfferNumber,
+      customerType: input.customerType === "person" ? "person" : "company",
+      idempotencyKey: normalizedIdempotencyKey || undefined,
+      status: input.status ?? "offer_created",
+      payment:
+        documentType === "invoice"
+          ? {
+              status: "unpaid",
+              updatedAt: generatedAtIso,
+            }
+          : undefined,
+      invoice:
+        documentType === "invoice"
+          ? sanitizeStoredInvoiceMetadata(input.invoice)
+          : undefined,
+      compliance: sanitizeDocumentComplianceReport(input.compliance),
+      customerNumber: input.customerNumber?.trim() || undefined,
+      projectNumber: input.projectNumber?.trim() || undefined,
+      projectName: input.projectName?.trim() || undefined,
+      projectAddress: input.projectAddress?.trim() || undefined,
+      createdAt: generatedAtIso,
+      created_at: generatedAtIso,
+      updatedAt: generatedAtIso,
+      customerName: input.customerName,
+      customerAddress: input.customerAddress,
+      customerEmail: input.customerEmail,
+      serviceDescription: input.serviceDescription,
+      lineItems: input.lineItems,
+      documentTax: normalizeDocumentTaxInfo(input.documentTax) ?? null,
+      offer: input.offer,
+    };
+
+    try {
+      await upsertSupabaseOfferRecord(nextRecord);
+    } catch (error) {
+      const concurrentIdempotentRecord = normalizedIdempotencyKey
+        ? sanitizeOfferRecord(
+            await findIdempotentDocumentRecord<StoredOfferRecord>(
+              normalizedUserId,
+              documentType,
+              normalizedIdempotencyKey,
+            ),
+          )
+        : null;
+      if (concurrentIdempotentRecord) {
+        return concurrentIdempotentRecord;
+      }
+      throw error;
+    }
+    return nextRecord;
   }
 
   await ensureRuntimeDataDirIfNeeded(overrides);
@@ -1079,14 +1231,26 @@ export async function updateStoredOfferRecordStatus(
     return null;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
   }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return updateSupabaseOfferRecord(
+      normalizedUserId,
+      normalizedOfferNumber,
+      (record) => ({
+        ...record,
+        status,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
 
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
@@ -1129,14 +1293,26 @@ export async function updateStoredOfferRecordPdfReference(
     return null;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
   }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return updateSupabaseOfferRecord(
+      normalizedUserId,
+      normalizedOfferNumber,
+      (record) => ({
+        ...record,
+        pdf,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
 
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
@@ -1179,14 +1355,26 @@ export async function updateStoredOfferRecordEmailReference(
     return null;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
   }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return updateSupabaseOfferRecord(
+      normalizedUserId,
+      normalizedOfferNumber,
+      (record) => ({
+        ...record,
+        email,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
 
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
@@ -1229,14 +1417,29 @@ export async function updateStoredOfferRecordPaymentReference(
     return null;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
   }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return updateSupabaseOfferRecord(
+      normalizedUserId,
+      normalizedOfferNumber,
+      (record) =>
+        resolveDocumentType(record.documentType) === "invoice"
+          ? {
+              ...record,
+              payment,
+              updatedAt: new Date().toISOString(),
+            }
+          : null,
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
 
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
@@ -1283,14 +1486,26 @@ export async function updateStoredOfferRecordReminderReference(
     return null;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
   }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return updateSupabaseOfferRecord(
+      normalizedUserId,
+      normalizedOfferNumber,
+      (record) => ({
+        ...record,
+        reminder,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
 
   const releaseLock = await acquireStoreLock(paths.lockPath);
   try {
@@ -1331,6 +1546,29 @@ export async function listStoredOfferRecords(
     return [];
   }
 
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const records = await listBusinessRecords<StoredOfferRecord>(
+      normalizedUserId,
+      "document",
+    );
+    return records
+      .map((record) => sanitizeOfferRecord(record))
+      .filter((record): record is StoredOfferRecord => Boolean(record))
+      .sort((left, right) => {
+        const rightTs = Date.parse(right.createdAt);
+        const leftTs = Date.parse(left.createdAt);
+        if (
+          Number.isFinite(rightTs) &&
+          Number.isFinite(leftTs) &&
+          rightTs !== leftTs
+        ) {
+          return rightTs - leftTs;
+        }
+
+        return right.offerNumber.localeCompare(left.offerNumber);
+      });
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   const store = await readStoreWithDataLossProtection(paths.storePath);
@@ -1364,6 +1602,10 @@ export async function findStoredOfferRecordByNumber(
   const normalizedOfferNumber = offerNumber.trim().toUpperCase();
   if (!normalizedOfferNumber) {
     return null;
+  }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return findSupabaseOfferRecord(normalizedUserId, normalizedOfferNumber);
   }
 
   const records = await listStoredOfferRecords(normalizedUserId, overrides);

@@ -6,6 +6,12 @@ import {
   removeStoredCustomer,
   upsertStoredCustomer,
 } from "@/server/services/customer-store-service";
+import {
+  CUSTOMER_TEXT_INPUT_RULES,
+  readJsonObject,
+  UserInputValidationError,
+  validateTextInputs,
+} from "@/lib/user-input";
 
 export async function GET() {
   const accessResult = await requireAppAccess();
@@ -31,33 +37,27 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as {
-      customerType?: unknown;
-      companyName?: unknown;
-      salutation?: unknown;
-      firstName?: unknown;
-      lastName?: unknown;
-      street?: unknown;
-      postalCode?: unknown;
-      city?: unknown;
-      customerEmail?: unknown;
-      customerName?: unknown;
-      customerAddress?: unknown;
-      draftState?: unknown;
-    };
+    const body = await readJsonObject(request);
+    const validation = validateTextInputs(body, CUSTOMER_TEXT_INPUT_RULES);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
 
-    const customerName =
-      typeof body.customerName === "string" ? body.customerName.trim() : "";
-    const street = typeof body.street === "string" ? body.street.trim() : "";
-    const postalCode =
-      typeof body.postalCode === "string" ? body.postalCode.trim() : "";
-    const city = typeof body.city === "string" ? body.city.trim() : "";
+    const {
+      companyName,
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
+      customerEmail,
+      customerName,
+    } = validation.values;
     const customerAddress =
-      typeof body.customerAddress === "string"
-        ? body.customerAddress.trim()
-        : [street, [postalCode, city].filter(Boolean).join(" ")]
-            .filter(Boolean)
-            .join(", ");
+      validation.values.customerAddress ||
+      [street, [postalCode, city].filter(Boolean).join(" ")]
+        .filter(Boolean)
+        .join(", ");
 
     if (!customerName) {
       return NextResponse.json(
@@ -76,24 +76,24 @@ export async function POST(request: Request) {
     const customer = await upsertStoredCustomer({
       userId: accessResult.user.id,
       customerType: body.customerType === "company" ? "company" : "person",
-      companyName:
-        typeof body.companyName === "string" ? body.companyName.trim() : "",
+      companyName,
       salutation: body.salutation === "frau" ? "frau" : "herr",
-      firstName:
-        typeof body.firstName === "string" ? body.firstName.trim() : "",
-      lastName: typeof body.lastName === "string" ? body.lastName.trim() : "",
+      firstName,
+      lastName,
       street,
       postalCode,
       city,
-      customerEmail:
-        typeof body.customerEmail === "string" ? body.customerEmail.trim() : "",
+      customerEmail,
       customerName,
       customerAddress,
       draftState: body.draftState as CustomerDraftState | undefined,
     });
 
     return NextResponse.json({ customer });
-  } catch {
+  } catch (error) {
+    if (error instanceof UserInputValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json(
       { error: "Kontakt konnte nicht gespeichert werden." },
       { status: 500 },

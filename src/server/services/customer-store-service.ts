@@ -20,6 +20,13 @@ import {
   ensureRuntimeDataDirReady,
   resolveRuntimeDataDir,
 } from "@/server/services/store-runtime-paths";
+import {
+  allocateBusinessSequence,
+  listBusinessRecords,
+  removeBusinessRecord,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "@/server/services/business-record-store";
 
 type CustomerStore = {
   lastCustomerSequence: number;
@@ -430,6 +437,26 @@ export async function listStoredCustomers(
     return [];
   }
 
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const records = await listBusinessRecords<unknown>(
+      normalizedUserId,
+      "customer",
+    );
+    return records
+      .map((record) => sanitizeCustomerRecord(record))
+      .filter((record): record is StoredCustomerRecord => Boolean(record))
+      .map((record) => ({ ...record, userId: normalizedUserId }))
+      .sort((left, right) => {
+        const leftTime = new Date(left.updatedAt).getTime();
+        const rightTime = new Date(right.updatedAt).getTime();
+        if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+          return rightTime - leftTime;
+        }
+
+        return right.customerNumber.localeCompare(left.customerNumber);
+      });
+  }
+
   await ensureRuntimeDataDirIfNeeded(overrides);
   const paths = resolvePaths(overrides);
   await mkdir(paths.dataDir, { recursive: true });
@@ -461,16 +488,24 @@ export async function removeStoredCustomer(
     return false;
   }
 
-  await ensureRuntimeDataDirIfNeeded(overrides);
-  const paths = resolvePaths(overrides);
-  await mkdir(paths.dataDir, { recursive: true });
-
   const normalizedSequence = parseCustomerNumber(customerNumber);
   if (!normalizedSequence) {
     return false;
   }
 
   const normalizedCustomerNumber = formatCustomerNumber(normalizedSequence);
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    return removeBusinessRecord(
+      normalizedUserId,
+      "customer",
+      normalizedCustomerNumber,
+    );
+  }
+
+  await ensureRuntimeDataDirIfNeeded(overrides);
+  const paths = resolvePaths(overrides);
+  await mkdir(paths.dataDir, { recursive: true });
+
   const releaseLock = await acquireStoreLock(paths.lockPath);
 
   try {
@@ -511,6 +546,86 @@ export async function upsertStoredCustomer(
   const normalizedUserId = input.userId.trim();
   if (!normalizedUserId) {
     throw new Error("User-ID fuer Kunden-Speicherung fehlt.");
+  }
+
+  if (shouldUseSupabaseBusinessStore(Boolean(overrides))) {
+    const now = input.referenceDate ?? new Date();
+    const nowIso = now.toISOString();
+    const customers = (await listBusinessRecords<unknown>(
+      normalizedUserId,
+      "customer",
+    ))
+      .map((record) => sanitizeCustomerRecord(record))
+      .filter((record): record is StoredCustomerRecord => Boolean(record))
+      .map((record) => ({ ...record, userId: normalizedUserId }));
+    const existingIndex = findMatchingCustomerIndex(customers, input, false);
+    const normalizedDraftState = sanitizeCustomerDraftState(input.draftState);
+
+    if (existingIndex >= 0) {
+      const existing = customers[existingIndex];
+      const updated: StoredCustomerRecord = {
+        ...existing,
+        userId: normalizedUserId,
+        customerType: input.customerType,
+        companyName: asTrimmedString(input.companyName),
+        salutation: input.salutation === "frau" ? "frau" : "herr",
+        firstName: asTrimmedString(input.firstName),
+        lastName: asTrimmedString(input.lastName),
+        street: asTrimmedString(input.street),
+        postalCode: asTrimmedString(input.postalCode),
+        city: asTrimmedString(input.city),
+        customerEmail: asTrimmedString(input.customerEmail),
+        customerName: asTrimmedString(input.customerName),
+        customerAddress: asTrimmedString(input.customerAddress),
+        draftState: normalizedDraftState,
+        updatedAt: nowIso,
+      };
+
+      await upsertBusinessRecord({
+        userId: normalizedUserId,
+        entityType: "customer",
+        entityKey: updated.customerNumber,
+        payload: updated,
+      });
+      return updated;
+    }
+
+    const highestSequence = customers.reduce(
+      (highest, customer) =>
+        Math.max(highest, parseCustomerNumber(customer.customerNumber)),
+      0,
+    );
+    const nextSequence = await allocateBusinessSequence({
+      userId: normalizedUserId,
+      counterType: "customer",
+      floor: highestSequence,
+    });
+    const created: StoredCustomerRecord = {
+      userId: normalizedUserId,
+      customerNumber: formatCustomerNumber(nextSequence),
+      customerType: input.customerType,
+      companyName: asTrimmedString(input.companyName),
+      salutation: input.salutation === "frau" ? "frau" : "herr",
+      firstName: asTrimmedString(input.firstName),
+      lastName: asTrimmedString(input.lastName),
+      street: asTrimmedString(input.street),
+      postalCode: asTrimmedString(input.postalCode),
+      city: asTrimmedString(input.city),
+      customerEmail: asTrimmedString(input.customerEmail),
+      customerName: asTrimmedString(input.customerName),
+      customerAddress: asTrimmedString(input.customerAddress),
+      draftState: normalizedDraftState,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    await upsertBusinessRecord({
+      userId: normalizedUserId,
+      entityType: "customer",
+      entityKey: created.customerNumber,
+      payload: created,
+    });
+    return created;
   }
 
   await ensureRuntimeDataDirIfNeeded(overrides);

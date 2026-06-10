@@ -21,6 +21,10 @@ import {
   chunkRenderableRows,
 } from "@/lib/pdf-layout";
 import {
+  calculateDocumentMoneyTotals,
+  calculatePositionTotal,
+} from "@/lib/offer-position-utils";
+import {
   DocumentType,
   CompanySettings,
   DocumentTaxInfo,
@@ -810,10 +814,15 @@ export function OfferPdfDocument({
     {} as Partial<Record<PdfTableColumnId, string>>,
   );
 
-  const subtotal = lineItems.reduce((sum, lineItem) => sum + lineItem.totalPrice, 0);
   const tableRows =
     lineItems.length > 0
-      ? lineItems
+      ? lineItems.map((lineItem) => ({
+          ...lineItem,
+          totalPrice: calculatePositionTotal(
+            lineItem.quantity,
+            lineItem.unitPrice,
+          ),
+        }))
       : [
           {
             position: 1,
@@ -828,8 +837,13 @@ export function OfferPdfDocument({
   const renderableRows = buildTableRenderableRows(tableRows);
   const rowChunks = chunkRenderableRows(renderableRows, 7.6, 18.8);
   const pageCount = rowChunks.length;
-  const vatAmount = subtotal * (vatRate / 100);
-  const totalAmount = subtotal + vatAmount;
+  const totals = calculateDocumentMoneyTotals(
+    tableRows.map((lineItem) => lineItem.totalPrice),
+    vatRate,
+  );
+  const subtotal = totals.subtotalAmount;
+  const vatAmount = totals.vatAmount;
+  const totalAmount = totals.totalAmount;
   const termsText = settings.offerTermsText?.trim();
   const sanitizedInvoiceTermsText = sanitizeInvoiceTermsText(termsText || "");
   const taxNoteText = resolvedDocumentTax.noticeText?.trim() || "";

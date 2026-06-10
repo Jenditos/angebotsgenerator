@@ -189,28 +189,25 @@ describe("settings-store", () => {
     expect(afterLogoDelete.logoDataUrl).toBe("");
   });
 
-  it("persists the Supabase setup fallback to disk instead of losing the logo on restart", async () => {
-    const dataDir = await createTempDir("settings-store-supabase-fallback-");
-    process.env.DATA_DIR = dataDir;
-    await mkdir(dataDir, { recursive: true });
+  it("fails closed when Supabase settings storage is unavailable", async () => {
     const supabase = buildUnavailableUserSettingsSupabase();
     const originalSettings = buildSettingsFixture({
       companyName: "COMPANY_SUPABASE_FALLBACK",
       logoDataUrl: "data:image/png;base64,FALLBACK_LOGO",
     });
 
-    await writeSettings(originalSettings, {
-      supabase,
-      userId: "user-settings-test",
-    });
-    __resetSettingsStoreForTests();
-
-    const restored = await readSettings({
-      supabase,
-      userId: "user-settings-test",
-    });
-    expect(restored.companyName).toBe("COMPANY_SUPABASE_FALLBACK");
-    expect(restored.logoDataUrl).toBe("data:image/png;base64,FALLBACK_LOGO");
+    await expect(
+      writeSettings(originalSettings, {
+        supabase,
+        userId: "user-settings-test",
+      }),
+    ).rejects.toThrow("Supabase-Einstellungen konnten nicht geladen werden");
+    await expect(
+      readSettings({
+        supabase,
+        userId: "user-settings-test",
+      }),
+    ).rejects.toThrow("Supabase-Einstellungen konnten nicht geladen werden");
   });
 
   it("migrates legacy hardcoded fallback logo to empty logo", async () => {
@@ -270,30 +267,26 @@ describe("settings-store", () => {
     expect(reset.onboardingCompletedAt).toBeNull();
   });
 
-  it("persists onboarding status when Supabase user_settings is unavailable", async () => {
-    const dataDir = await createTempDir("settings-store-onboarding-supabase-fallback-");
-    process.env.DATA_DIR = dataDir;
-    await mkdir(dataDir, { recursive: true });
+  it("fails closed when Supabase onboarding storage is unavailable", async () => {
     const supabase = buildUnavailableUserSettingsSupabase();
 
-    await writeOnboardingStatus(
-      {
-        onboardingCompleted: false,
-        onboardingStep: 3,
-      },
-      {
+    await expect(
+      writeOnboardingStatus(
+        {
+          onboardingCompleted: false,
+          onboardingStep: 3,
+        },
+        {
+          supabase,
+          userId: "user-onboarding-test",
+        },
+      ),
+    ).rejects.toThrow("Supabase-Onboardingstatus konnte nicht geladen werden");
+    await expect(
+      readOnboardingStatus({
         supabase,
         userId: "user-onboarding-test",
-      },
-    );
-    __resetSettingsStoreForTests();
-
-    const restored = await readOnboardingStatus({
-      supabase,
-      userId: "user-onboarding-test",
-    });
-    expect(restored.onboardingCompleted).toBe(false);
-    expect(restored.onboardingStep).toBe(3);
-    expect(restored.onboardingCompletedAt).toBeNull();
+      }),
+    ).rejects.toThrow("Supabase-Onboardingstatus konnte nicht geladen werden");
   });
 });

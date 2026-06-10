@@ -85,6 +85,11 @@ supabase db push
 
 Wenn die Supabase CLI lokal nicht installiert ist, kann die Migration alternativ über den SQL-Editor ausgeführt werden (`supabase/migrations/*.sql`).
 
+Für eine Produktionsbereitstellung müssen immer **alle** Migrationen angewendet
+werden. Fehlende Tabellen führen absichtlich zu einem gesperrten Zugriff, damit
+Abonnementprüfung und Nutzerdaten nicht stillschweigend umgangen oder verloren
+werden.
+
 Optional, aber empfohlen für robuste E-Mail-Bestätigung:
 - Unter `Authentication > Email Templates` kann der Bestätigungslink auf den App-Callback zeigen, z. B.:
   - Signup: `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup`
@@ -124,3 +129,27 @@ npm run dev
 - Persistente Nutzerdaten werden standardmäßig updatesicher im Benutzerverzeichnis unter `~/.visioro-data` gespeichert (lokale Runtime).
 - Beim ersten Start einer neuen Version werden vorhandene Daten aus dem Legacy-Pfad `./data` automatisch migriert, ohne bestehende Dateien im Zielpfad zu überschreiben.
 - Optional kann der Speicherort über `DATA_DIR` (vollständiger Pfad) oder `VISIORO_DATA_HOME` (Basispfad, App nutzt dann `<VISIORO_DATA_HOME>/.visioro-data`) gesetzt werden.
+
+## Produktionsspeicherung auf Vercel
+
+Vercels lokales Dateisystem und `/tmp` sind nicht dauerhaft. In Vercel-Produktion
+verwendet die App deshalb standardmäßig Supabase für Kunden, Baustellen,
+Dokumente, Termine und Aktivitäten. Die Migration
+`supabase/migrations/202606100001_business_records.sql` richtet dafür
+mandantengetrennte Datensätze und atomare Nummernzähler ein.
+
+Empfohlene Produktionsvariablen:
+
+```env
+BUSINESS_DATA_STORAGE_PROVIDER=supabase
+DOCUMENT_PDF_STORAGE_PROVIDER=supabase
+DOCUMENT_PDF_SUPABASE_BUCKET=document-pdfs
+EMAIL_CONNECTION_STORAGE_PROVIDER=supabase
+```
+
+Der Storage-Bucket `document-pdfs` muss privat angelegt sein.
+`SUPABASE_SERVICE_ROLE_KEY` darf ausschließlich serverseitig gesetzt werden.
+Verbundene Gmail-/Outlook-Zugangstokens werden mit `EMAIL_OAUTH_SECRET`
+verschlüsselt und in einer ausschließlich serverseitig zugänglichen Tabelle
+gespeichert.
+Lokale JSON-Speicherung bleibt nur für Entwicklung und Tests vorgesehen.

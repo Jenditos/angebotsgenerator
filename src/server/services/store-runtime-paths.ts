@@ -12,12 +12,33 @@ const MIGRATION_EXCLUDED_ENTRIES = new Set([
 const preparedDataDirs = new Set<string>();
 const preparationPromisesByDir = new Map<string, Promise<void>>();
 
+function isVercelProductionRuntime(): boolean {
+  return process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production";
+}
+
 function isReadonlyServerlessRuntime(): boolean {
   return (
     process.env.VERCEL === "1" ||
     Boolean(process.env.LAMBDA_TASK_ROOT) ||
     /*turbopackIgnore: true*/ process.cwd().startsWith("/var/task")
   );
+}
+
+function assertPersistentProductionDataDir(dataDir: string): void {
+  if (!isVercelProductionRuntime()) {
+    return;
+  }
+
+  const resolvedDataDir = path.resolve(/*turbopackIgnore: true*/ dataDir);
+  if (
+    resolvedDataDir === SERVERLESS_DATA_DIR ||
+    resolvedDataDir === "/tmp" ||
+    resolvedDataDir.startsWith("/tmp/")
+  ) {
+    throw new Error(
+      "Dauerhafte Datenspeicherung ist in Vercel-Produktion nicht konfiguriert: DATA_DIR oder VISIORO_DATA_HOME muss auf persistenten Speicher zeigen und darf nicht unter /tmp liegen.",
+    );
+  }
 }
 
 function resolveLegacyProjectDataDir(): string {
@@ -115,14 +136,23 @@ async function prepareRuntimeDataDir(runtimeDataDir: string): Promise<void> {
 export function resolveRuntimeDataDir(): string {
   const configuredDataDir = process.env.DATA_DIR?.trim();
   if (configuredDataDir) {
+    assertPersistentProductionDataDir(configuredDataDir);
     return configuredDataDir;
   }
 
   const configuredDataHome = process.env.VISIORO_DATA_HOME?.trim();
   if (configuredDataHome) {
-    return path.join(
+    const configuredRuntimeDataDir = path.join(
       /*turbopackIgnore: true*/ configuredDataHome,
       LOCAL_PERSISTENT_DATA_DIR_NAME,
+    );
+    assertPersistentProductionDataDir(configuredRuntimeDataDir);
+    return configuredRuntimeDataDir;
+  }
+
+  if (isVercelProductionRuntime()) {
+    throw new Error(
+      "Dauerhafte Datenspeicherung ist in Vercel-Produktion nicht konfiguriert: DATA_DIR oder VISIORO_DATA_HOME muss auf persistenten Speicher zeigen.",
     );
   }
 

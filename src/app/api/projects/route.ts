@@ -9,6 +9,12 @@ import {
   removeStoredProject,
   upsertStoredProject,
 } from "@/server/services/project-store-service";
+import {
+  PROJECT_TEXT_INPUT_RULES,
+  readJsonObject,
+  UserInputValidationError,
+  validateTextInputs,
+} from "@/lib/user-input";
 
 function isProjectStatus(value: unknown): value is ProjectStatus {
   return PROJECT_STATUS_VALUES.includes(value as ProjectStatus);
@@ -25,7 +31,7 @@ export async function GET() {
     return NextResponse.json({ projects });
   } catch {
     return NextResponse.json(
-      { error: "Gespeicherte Projekte konnten nicht geladen werden." },
+      { error: "Gespeicherte Baustellen konnten nicht geladen werden." },
       { status: 500 },
     );
   }
@@ -38,37 +44,32 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as {
-      projectNumber?: unknown;
-      customerNumber?: unknown;
-      customerType?: unknown;
-      companyName?: unknown;
-      salutation?: unknown;
-      firstName?: unknown;
-      lastName?: unknown;
-      street?: unknown;
-      postalCode?: unknown;
-      city?: unknown;
-      customerName?: unknown;
-      customerAddress?: unknown;
-      customerEmail?: unknown;
-      projectName?: unknown;
-      projectAddress?: unknown;
-      projectStatus?: unknown;
-      projectNote?: unknown;
-      draftState?: unknown;
-    };
+    const body = await readJsonObject(request);
+    const validation = validateTextInputs(body, PROJECT_TEXT_INPUT_RULES);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
 
-    const projectName =
-      typeof body.projectName === "string" ? body.projectName.trim() : "";
-    const customerName =
-      typeof body.customerName === "string" ? body.customerName.trim() : "";
-    const customerAddress =
-      typeof body.customerAddress === "string" ? body.customerAddress.trim() : "";
+    const {
+      projectNumber,
+      customerNumber,
+      companyName,
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
+      customerName,
+      customerAddress,
+      customerEmail,
+      projectName,
+      projectAddress,
+      projectNote,
+    } = validation.values;
 
     if (!projectName) {
       return NextResponse.json(
-        { error: "Projektname fehlt." },
+        { error: "Bitte einen Namen für die Baustelle angeben." },
         { status: 400 },
       );
     }
@@ -89,37 +90,33 @@ export async function POST(request: Request) {
 
     const project = await upsertStoredProject({
       userId: accessResult.user.id,
-      projectNumber:
-        typeof body.projectNumber === "string" ? body.projectNumber.trim() : undefined,
-      customerNumber:
-        typeof body.customerNumber === "string" ? body.customerNumber.trim() : undefined,
+      projectNumber: projectNumber || undefined,
+      customerNumber: customerNumber || undefined,
       customerType: body.customerType === "person" ? "person" : "company",
-      companyName:
-        typeof body.companyName === "string" ? body.companyName.trim() : "",
+      companyName,
       salutation: body.salutation === "frau" ? "frau" : "herr",
-      firstName:
-        typeof body.firstName === "string" ? body.firstName.trim() : "",
-      lastName: typeof body.lastName === "string" ? body.lastName.trim() : "",
-      street: typeof body.street === "string" ? body.street.trim() : "",
-      postalCode:
-        typeof body.postalCode === "string" ? body.postalCode.trim() : "",
-      city: typeof body.city === "string" ? body.city.trim() : "",
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
       customerName,
       customerAddress,
-      customerEmail:
-        typeof body.customerEmail === "string" ? body.customerEmail.trim() : "",
+      customerEmail,
       projectName,
-      projectAddress:
-        typeof body.projectAddress === "string" ? body.projectAddress.trim() : "",
+      projectAddress,
       status: isProjectStatus(body.projectStatus) ? body.projectStatus : "new",
-      note: typeof body.projectNote === "string" ? body.projectNote.trim() : "",
+      note: projectNote,
       draftState: body.draftState,
     });
 
     return NextResponse.json({ project });
-  } catch {
+  } catch (error) {
+    if (error instanceof UserInputValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json(
-      { error: "Projekt konnte nicht gespeichert werden." },
+      { error: "Baustelle konnte nicht gespeichert werden." },
       { status: 500 },
     );
   }
@@ -136,7 +133,7 @@ export async function DELETE(request: Request) {
     const projectNumber = (url.searchParams.get("projectNumber") ?? "").trim();
     if (!projectNumber) {
       return NextResponse.json(
-        { error: "Projektnummer fehlt." },
+        { error: "Baustellennummer fehlt." },
         { status: 400 },
       );
     }
@@ -147,7 +144,7 @@ export async function DELETE(request: Request) {
     );
     if (!removed) {
       return NextResponse.json(
-        { error: "Projekt konnte nicht gelöscht werden." },
+        { error: "Baustelle konnte nicht gelöscht werden." },
         { status: 404 },
       );
     }
@@ -155,7 +152,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
-      { error: "Gespeichertes Projekt konnte nicht gelöscht werden." },
+      { error: "Gespeicherte Baustelle konnte nicht gelöscht werden." },
       { status: 500 },
     );
   }

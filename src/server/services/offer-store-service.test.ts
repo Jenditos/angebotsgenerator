@@ -2,7 +2,17 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import {
+  allocateBusinessSequence,
+  findBusinessRecord,
+  findIdempotentDocumentRecord,
+  listBusinessRecords,
+  shouldUseSupabaseBusinessStore,
+  upsertBusinessRecord,
+} from "./business-record-store";
+import {
   createStoredOfferRecord,
+  findStoredOfferRecordByNumber,
+  listStoredOfferRecords,
   updateStoredOfferRecordEmailReference,
   updateStoredOfferRecordPaymentReference,
   updateStoredOfferRecordPdfReference,
@@ -10,7 +20,26 @@ import {
   updateStoredOfferRecordStatus,
 } from "./offer-store-service";
 
+jest.mock("./business-record-store", () => ({
+  allocateBusinessSequence: jest.fn(),
+  findBusinessRecord: jest.fn(),
+  findIdempotentDocumentRecord: jest.fn(),
+  listBusinessRecords: jest.fn(),
+  shouldUseSupabaseBusinessStore: jest.fn(),
+  upsertBusinessRecord: jest.fn(),
+}));
+
 const TEST_USER_ID = "user-test-1";
+const allocateBusinessSequenceMock = jest.mocked(allocateBusinessSequence);
+const findBusinessRecordMock = jest.mocked(findBusinessRecord);
+const findIdempotentDocumentRecordMock = jest.mocked(
+  findIdempotentDocumentRecord,
+);
+const listBusinessRecordsMock = jest.mocked(listBusinessRecords);
+const shouldUseSupabaseBusinessStoreMock = jest.mocked(
+  shouldUseSupabaseBusinessStore,
+);
+const upsertBusinessRecordMock = jest.mocked(upsertBusinessRecord);
 
 function createSampleInput(seed: string) {
   return {
@@ -47,6 +76,13 @@ function formatInvoiceNumber(year: number, sequence: number): string {
 }
 
 describe("offer-store-service", () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    shouldUseSupabaseBusinessStoreMock.mockImplementation(
+      (hasLocalPathOverrides = false) => !hasLocalPathOverrides,
+    );
+  });
+
   it("persists an incrementing server-side offer number in ANG-JAHR-XXX format", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "offer-store-"));
     const storePath = path.join(dataDir, "offers-store.json");
@@ -683,5 +719,126 @@ describe("offer-store-service", () => {
     } finally {
       await rm(dataDir, { recursive: true, force: true });
     }
+  });
+
+  it("creates Supabase documents with atomic per-type yearly sequences", async () => {
+    allocateBusinessSequenceMock.mockResolvedValue(26);
+    findIdempotentDocumentRecordMock.mockResolvedValue(null);
+
+    const created = await createStoredOfferRecord({
+      ...createSampleInput("supabase-create"),
+      documentType: "invoice",
+      configuredLastInvoiceNumber: "RG-2026-AB-025",
+      idempotencyKey: "invoice-submit-1",
+      referenceDate: new Date("2026-03-04T10:00:00.000Z"),
+    });
+
+    expect(allocateBusinessSequenceMock).toHaveBeenCalledWith({
+      userId: TEST_USER_ID,
+      counterType: "document:invoice",
+      counterYear: 2026,
+      floor: 25,
+    });
+    expect(created.offerNumber).toBe("RG-2026-AB-026");
+    expect(upsertBusinessRecordMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: TEST_USER_ID,
+        entityType: "document",
+        entityKey: "RG-2026-AB-026",
+        documentType: "invoice",
+        idempotencyKey: "invoice-submit-1",
+        payload: created,
+      }),
+    );
+  });
+
+  it("returns an idempotent Supabase document without allocating a number", async () => {
+    const existing = {
+      userId: TEST_USER_ID,
+      documentType: "offer" as const,
+      offerNumber: "ANG-2026-004",
+      customerType: "company" as const,
+      idempotencyKey: "same-submit-key",
+      status: "offer_created" as const,
+      createdAt: "2026-01-01T10:00:00.000Z",
+      created_at: "2026-01-01T10:00:00.000Z",
+      updatedAt: "2026-01-01T10:00:00.000Z",
+      customerName: "Kunde",
+      customerAddress: "Adresse",
+      customerEmail: "kunde@example.com",
+      serviceDescription: "Leistung",
+      lineItems: [],
+      documentTax: null,
+      offer: { subject: "", intro: "", details: "", closing: "" },
+    };
+    findIdempotentDocumentRecordMock.mockResolvedValue(existing);
+
+    const returned = await createStoredOfferRecord({
+      ...createSampleInput("supabase-idempotent"),
+      idempotencyKey: "same-submit-key",
+    });
+
+    expect(returned.offerNumber).toBe(existing.offerNumber);
+    expect(findIdempotentDocumentRecordMock).toHaveBeenCalledWith(
+      TEST_USER_ID,
+      "offer",
+      "same-submit-key",
+    );
+    expect(allocateBusinessSequenceMock).not.toHaveBeenCalled();
+    expect(upsertBusinessRecordMock).not.toHaveBeenCalled();
+  });
+
+  it("routes Supabase list, find, and updates through business_records", async () => {
+    const record = {
+      userId: TEST_USER_ID,
+      documentType: "offer" as const,
+      offerNumber: "ANG-2026-001",
+      customerType: "company" as const,
+      status: "offer_created" as const,
+      createdAt: "2026-01-01T10:00:00.000Z",
+      created_at: "2026-01-01T10:00:00.000Z",
+      updatedAt: "2026-01-01T10:00:00.000Z",
+      customerName: "Kunde",
+      customerAddress: "Adresse",
+      customerEmail: "kunde@example.com",
+      serviceDescription: "Leistung",
+      lineItems: [],
+      documentTax: null,
+      offer: { subject: "", intro: "", details: "", closing: "" },
+    };
+    listBusinessRecordsMock.mockResolvedValue([record]);
+    findBusinessRecordMock.mockResolvedValue(record);
+
+    const listed = await listStoredOfferRecords(TEST_USER_ID);
+    const found = await findStoredOfferRecordByNumber(
+      TEST_USER_ID,
+      "ang-2026-001",
+    );
+    const updated = await updateStoredOfferRecordStatus(
+      "ang-2026-001",
+      TEST_USER_ID,
+      "pdf_ready",
+    );
+
+    expect(listed).toHaveLength(1);
+    expect(found?.offerNumber).toBe("ANG-2026-001");
+    expect(updated?.status).toBe("pdf_ready");
+    expect(listBusinessRecordsMock).toHaveBeenCalledWith(
+      TEST_USER_ID,
+      "document",
+    );
+    expect(findBusinessRecordMock).toHaveBeenCalledWith(
+      TEST_USER_ID,
+      "document",
+      "ANG-2026-001",
+    );
+    expect(upsertBusinessRecordMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: "document",
+        entityKey: "ANG-2026-001",
+        documentType: "offer",
+        payload: expect.objectContaining({ status: "pdf_ready" }),
+      }),
+    );
   });
 });

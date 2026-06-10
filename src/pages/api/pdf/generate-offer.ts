@@ -1,9 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { handleGenerateOfferAuthorizedRequest } from "@/app/api/generate-offer/route";
-import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
+import { buildBypassUser, isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import {
   classifyUserAccessError,
-  isUserAccessSetupError,
   logUserAccessError,
 } from "@/lib/access/access-errors";
 import {
@@ -33,7 +32,7 @@ async function requirePagesApiAppAccess(
   | { ok: false; status: number; error: string }
 > {
   if (isAuthBypassEnabled()) {
-    return { ok: true };
+    return { ok: true, userId: buildBypassUser().id };
   }
 
   if (!isSupabaseConfigured()) {
@@ -69,13 +68,6 @@ async function requirePagesApiAppAccess(
 
     return { ok: true, userId: data.user.id };
   } catch (accessError) {
-    if (isUserAccessSetupError(accessError)) {
-      logUserAccessError("pages/api/pdf/generate-offer transient setup fallback", accessError, {
-        userId: data.user.id,
-      });
-      return { ok: true, userId: data.user.id };
-    }
-
     logUserAccessError("pages/api/pdf/generate-offer", accessError, {
       userId: data.user.id,
     });
