@@ -4,7 +4,6 @@ import { requireAuthenticatedUser } from "@/lib/access/guards";
 import {
   buildAccessState,
   ensureEffectiveUserAccessRecord,
-  isInternalTester,
 } from "@/lib/access/user-access";
 import { readOnboardingStatus, readSettings } from "@/lib/settings-store";
 
@@ -26,7 +25,6 @@ jest.mock("@/lib/access/access-errors", () => ({
 jest.mock("@/lib/access/user-access", () => ({
   buildAccessState: jest.fn(),
   ensureEffectiveUserAccessRecord: jest.fn(),
-  isInternalTester: jest.fn(),
 }));
 
 jest.mock("@/lib/settings-store", () => ({
@@ -55,17 +53,23 @@ describe("GET /api/access/status", () => {
       hasSubscription: true,
       canUseApp: true,
     });
-    jest.mocked(isInternalTester).mockReturnValue(true);
+    jest.mocked(readOnboardingStatus).mockResolvedValue({
+      onboardingCompleted: false,
+      onboardingCompletedAt: null,
+      onboardingStep: 1,
+    });
+    jest.mocked(readSettings).mockResolvedValue({
+      customServiceTypes: [],
+    } as never);
   });
 
-  it("reports internal testers as ready without loading settings storage", async () => {
+  it("loads onboarding status for authenticated users with app access", async () => {
     const response = await GET();
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(payload.onboarding.onboardingCompleted).toBe(true);
-    expect(payload.missingFields).toEqual([]);
-    expect(readOnboardingStatus).not.toHaveBeenCalled();
-    expect(readSettings).not.toHaveBeenCalled();
+    expect(payload.onboarding.onboardingCompleted).toBe(false);
+    expect(readOnboardingStatus).toHaveBeenCalledTimes(1);
+    expect(readSettings).toHaveBeenCalledTimes(1);
   });
 });

@@ -15,7 +15,6 @@ import {
 import {
   buildAccessState,
   ensureEffectiveUserAccessRecord,
-  isInternalTester,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
 import {
@@ -51,33 +50,16 @@ export async function GET() {
   }
 
   try {
-    const accessRecord = await ensureEffectiveUserAccessRecord(
-      authResult.supabase,
-      authResult.user,
-    );
-
-    if (isInternalTester(authResult.user)) {
-      return NextResponse.json({
-        authenticated: true,
-        user: {
-          id: authResult.user.id,
-          email: authResult.user.email ?? "",
-        },
-        access: accessRecord,
-        state: buildAccessState(accessRecord),
-        onboarding: {
-          onboardingCompleted: true,
-          onboardingCompletedAt: null,
-          onboardingStep: ONBOARDING_TOTAL_STEPS,
-        },
-        missingFields: [],
-      });
-    }
-
-    const rawOnboarding = await readOnboardingStatus({
-      supabase: authResult.supabase,
-      userId: authResult.user.id,
-    });
+    const [accessRecord, rawOnboarding] = await Promise.all([
+      ensureEffectiveUserAccessRecord(
+        authResult.supabase,
+        authResult.user,
+      ),
+      readOnboardingStatus({
+        supabase: authResult.supabase,
+        userId: authResult.user.id,
+      }),
+    ]);
     let onboarding = rawOnboarding;
     let missingFields: string[] = [];
 
