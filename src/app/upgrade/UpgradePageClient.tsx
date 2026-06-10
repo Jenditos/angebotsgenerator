@@ -129,11 +129,11 @@ export default function UpgradePageClient() {
     : "nicht verfügbar";
 
   return (
-    <main className="page">
+    <main className="page upgradePage">
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
-      <div className="container pageSurfaceTransition">
-        <section className="hero glassCard compactHero">
+      <div className="container pageSurfaceTransition upgradeContainer">
+        <section className="hero glassCard compactHero upgradeHero">
           <p className="heroEyebrow">Zugang pausiert</p>
           <h1>Ihr kostenloser Testmonat ist beendet</h1>
           <p className="heroText">
@@ -142,7 +142,7 @@ export default function UpgradePageClient() {
           </p>
         </section>
 
-        <section className="glassCard formCard">
+        <section className="glassCard formCard upgradeCard">
           <p className="voiceInfo">
             Preis: <strong>{MONTHLY_PRICE_LABEL}</strong>
           </p>
@@ -151,14 +151,24 @@ export default function UpgradePageClient() {
             wenn du jetzt aktiv auf „Jetzt abonnieren“ klickst.
           </p>
 
-          <button
-            type="button"
-            className="primaryButton"
-            disabled={loadingStatus || isStartingCheckout}
-            onClick={() => void startCheckout()}
-          >
-            {isStartingCheckout ? "Weiter zu Stripe ..." : "Jetzt abonnieren"}
-          </button>
+          <div className="upgradeActions">
+            <button
+              type="button"
+              className="primaryButton"
+              disabled={loadingStatus || isStartingCheckout}
+              onClick={() => void startCheckout()}
+            >
+              {isStartingCheckout ? "Weiter zu Stripe ..." : "Jetzt abonnieren"}
+            </button>
+
+            <button
+              type="button"
+              className="ghostButton"
+              onClick={() => void logout()}
+            >
+              Abmelden
+            </button>
+          </div>
 
           {checkoutStatus === "success" ? (
             <p className="voiceInfo">
@@ -170,10 +180,6 @@ export default function UpgradePageClient() {
             <p className="voiceInfo">Checkout wurde abgebrochen.</p>
           ) : null}
           {error ? <p className="error">{error}</p> : null}
-
-          <button type="button" className="ghostButton" onClick={() => void logout()}>
-            Abmelden
-          </button>
         </section>
       </div>
     </main>

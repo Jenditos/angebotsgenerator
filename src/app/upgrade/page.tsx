@@ -3,11 +3,11 @@ import UpgradePageClient from "./UpgradePageClient";
 
 function UpgradePageFallback() {
   return (
-    <main className="page">
+    <main className="page upgradePage">
       <div className="ambient ambientA" aria-hidden />
       <div className="ambient ambientB" aria-hidden />
-      <div className="container pageSurfaceTransition">
-        <section className="hero glassCard compactHero">
+      <div className="container pageSurfaceTransition upgradeContainer">
+        <section className="hero glassCard compactHero upgradeHero">
           <p className="heroEyebrow">Zugang pausiert</p>
           <h1>Ihr kostenloser Testmonat ist beendet</h1>
           <p className="heroText">Lade Zugriffsdaten ...</p>

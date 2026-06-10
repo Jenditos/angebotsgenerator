@@ -431,6 +431,66 @@
   }
 }
 
+/* Upgrade page: compact, readable and safe at browser zoom/mobile widths */
+html body .upgradePage {
+  overflow-x: hidden !important;
+}
+
+html body .upgradeContainer {
+  width: min(720px, 100%) !important;
+  max-width: 720px !important;
+  gap: 16px !important;
+}
+
+html body .upgradeContainer > *,
+html body .upgradeHero,
+html body .upgradeCard {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html body .upgradeCard {
+  display: grid !important;
+  gap: 12px !important;
+  overflow: hidden !important;
+}
+
+html body .upgradeCard .voiceInfo,
+html body .upgradeHero .heroText {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+html body .upgradeActions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+html body .upgradeActions > button {
+  min-height: 44px !important;
+}
+
+@media (max-width: 600px) {
+  html body .upgradeHero,
+  html body .upgradeCard {
+    padding: 18px !important;
+    border-radius: 18px !important;
+  }
+
+  html body .upgradeActions {
+    display: grid !important;
+  }
+
+  html body .upgradeActions > button {
+    width: 100% !important;
+  }
+}
+
 /* Onboarding */
 .onboardingPage {
   padding-top: 22px;

@@ -9,7 +9,7 @@ import {
 } from "@/lib/access/access-errors";
 import {
   buildAccessState,
-  ensureUserAccessRecord,
+  ensureEffectiveUserAccessRecord,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
 
@@ -28,7 +28,7 @@ export async function POST() {
   }
 
   try {
-    const accessRecord = await ensureUserAccessRecord(
+    const accessRecord = await ensureEffectiveUserAccessRecord(
       authResult.supabase,
       authResult.user,
     );

@@ -14,7 +14,7 @@ import {
 } from "@/lib/access/access-errors";
 import {
   buildAccessState,
-  ensureUserAccessRecord,
+  ensureEffectiveUserAccessRecord,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
 import {
@@ -51,7 +51,7 @@ export async function GET() {
 
   try {
     const [accessRecord, rawOnboarding] = await Promise.all([
-      ensureUserAccessRecord(
+      ensureEffectiveUserAccessRecord(
         authResult.supabase,
         authResult.user,
       ),

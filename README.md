@@ -147,6 +147,18 @@ DOCUMENT_PDF_SUPABASE_BUCKET=document-pdfs
 EMAIL_CONNECTION_STORAGE_PROVIDER=supabase
 ```
 
+Interne Prüfer können ohne Stripe-Zahlung dauerhaft freigeschaltet werden.
+Dafür in Vercel serverseitig eine kommagetrennte Allowlist setzen und danach
+neu deployen:
+
+```env
+APP_TESTER_EMAILS=pruefer@example.com
+# Alternativ oder zusätzlich:
+APP_TESTER_USER_IDS=<supabase-auth-user-id>
+```
+
+Diese Variablen dürfen nicht mit `NEXT_PUBLIC_` beginnen.
+
 Der Storage-Bucket `document-pdfs` muss privat angelegt sein.
 `SUPABASE_SERVICE_ROLE_KEY` darf ausschließlich serverseitig gesetzt werden.
 Verbundene Gmail-/Outlook-Zugangstokens werden mit `EMAIL_OAUTH_SECRET`

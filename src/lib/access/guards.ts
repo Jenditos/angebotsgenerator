@@ -12,7 +12,7 @@ import {
 } from "@/lib/access/access-errors";
 import {
   canUseApp,
-  ensureUserAccessRecord,
+  ensureEffectiveUserAccessRecord,
   UserAccessRecord,
 } from "@/lib/access/user-access";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -96,14 +96,18 @@ export async function requireAppAccess(): Promise<
 
   let accessRecord: UserAccessRecord;
   try {
-    accessRecord = await ensureUserAccessRecord(
+    accessRecord = await ensureEffectiveUserAccessRecord(
       authResult.supabase,
       authResult.user,
     );
   } catch (error) {
-    logUserAccessError("requireAppAccess.ensureUserAccessRecord", error, {
-      userId: authResult.user.id,
-    });
+    logUserAccessError(
+      "requireAppAccess.ensureEffectiveUserAccessRecord",
+      error,
+      {
+        userId: authResult.user.id,
+      },
+    );
     const classifiedError = classifyUserAccessError(
       error,
       "Zugriff konnte aktuell nicht geprüft werden. Bitte später erneut versuchen.",

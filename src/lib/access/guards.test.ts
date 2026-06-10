@@ -1,6 +1,6 @@
 import { requireAppAccess } from "@/lib/access/guards";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
-import { ensureUserAccessRecord } from "@/lib/access/user-access";
+import { ensureEffectiveUserAccessRecord } from "@/lib/access/user-access";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -13,7 +13,7 @@ jest.mock("@/lib/access/auth-bypass", () => ({
 
 jest.mock("@/lib/access/user-access", () => ({
   canUseApp: jest.fn(),
-  ensureUserAccessRecord: jest.fn(),
+  ensureEffectiveUserAccessRecord: jest.fn(),
 }));
 
 jest.mock("@/lib/supabase/config", () => ({
@@ -25,7 +25,9 @@ jest.mock("@/lib/supabase/server", () => ({
 }));
 
 const isAuthBypassEnabledMock = jest.mocked(isAuthBypassEnabled);
-const ensureUserAccessRecordMock = jest.mocked(ensureUserAccessRecord);
+const ensureEffectiveUserAccessRecordMock = jest.mocked(
+  ensureEffectiveUserAccessRecord,
+);
 const isSupabaseConfiguredMock = jest.mocked(isSupabaseConfigured);
 const createSupabaseServerClientMock = jest.mocked(createSupabaseServerClient);
 
@@ -50,7 +52,7 @@ describe("requireAppAccess", () => {
   });
 
   it("fails closed when the access table is not set up", async () => {
-    ensureUserAccessRecordMock.mockRejectedValue({
+    ensureEffectiveUserAccessRecordMock.mockRejectedValue({
       code: "42P01",
       message: 'relation "public.user_access" does not exist',
     });
@@ -68,7 +70,9 @@ describe("requireAppAccess", () => {
   });
 
   it("fails closed on unknown database errors", async () => {
-    ensureUserAccessRecordMock.mockRejectedValue(new Error("database timeout"));
+    ensureEffectiveUserAccessRecordMock.mockRejectedValue(
+      new Error("database timeout"),
+    );
 
     const result = await requireAppAccess();
 

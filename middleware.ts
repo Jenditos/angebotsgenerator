@@ -2,7 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
 import { logUserAccessError } from "@/lib/access/access-errors";
-import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
+import {
+  canUseApp,
+  readEffectiveUserAccessRecord,
+} from "@/lib/access/user-access";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
 const SETTINGS_SETUP_ERROR_CODES = new Set([
@@ -132,10 +135,10 @@ export async function middleware(request: NextRequest) {
 
   let canOpenApp = false;
   try {
-    const accessRecord = await readUserAccessRecord(supabase, user.id);
+    const accessRecord = await readEffectiveUserAccessRecord(supabase, user);
     canOpenApp = Boolean(accessRecord && canUseApp(accessRecord));
   } catch (error) {
-    logUserAccessError("middleware.readUserAccessRecord", error, {
+    logUserAccessError("middleware.readEffectiveUserAccessRecord", error, {
       userId: user.id,
       pathname,
     });

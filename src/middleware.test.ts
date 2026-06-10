@@ -2,7 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest } from "next/server";
 import { middleware } from "../middleware";
 import { isAuthBypassEnabled } from "@/lib/access/auth-bypass";
-import { canUseApp, readUserAccessRecord } from "@/lib/access/user-access";
+import {
+  canUseApp,
+  readEffectiveUserAccessRecord,
+} from "@/lib/access/user-access";
 import {
   getSupabasePublicConfig,
   isSupabaseConfigured,
@@ -22,7 +25,7 @@ jest.mock("@/lib/access/access-errors", () => ({
 
 jest.mock("@/lib/access/user-access", () => ({
   canUseApp: jest.fn(),
-  readUserAccessRecord: jest.fn(),
+  readEffectiveUserAccessRecord: jest.fn(),
 }));
 
 jest.mock("@/lib/supabase/config", () => ({
@@ -33,7 +36,9 @@ jest.mock("@/lib/supabase/config", () => ({
 const createServerClientMock = jest.mocked(createServerClient);
 const isAuthBypassEnabledMock = jest.mocked(isAuthBypassEnabled);
 const canUseAppMock = jest.mocked(canUseApp);
-const readUserAccessRecordMock = jest.mocked(readUserAccessRecord);
+const readEffectiveUserAccessRecordMock = jest.mocked(
+  readEffectiveUserAccessRecord,
+);
 const getSupabasePublicConfigMock = jest.mocked(getSupabasePublicConfig);
 const isSupabaseConfiguredMock = jest.mocked(isSupabaseConfigured);
 
@@ -71,7 +76,7 @@ describe("middleware access control", () => {
       anonKey: "anon-key",
     });
     canUseAppMock.mockReturnValue(true);
-    readUserAccessRecordMock.mockResolvedValue({} as never);
+    readEffectiveUserAccessRecordMock.mockResolvedValue({} as never);
     createServerClientMock.mockReturnValue(buildSupabaseClient() as never);
   });
 
@@ -89,7 +94,7 @@ describe("middleware access control", () => {
   });
 
   it("fails closed when reading user access throws", async () => {
-    readUserAccessRecordMock.mockRejectedValue({
+    readEffectiveUserAccessRecordMock.mockRejectedValue({
       code: "42P01",
       message: 'relation "public.user_access" does not exist',
     });
@@ -100,7 +105,7 @@ describe("middleware access control", () => {
   });
 
   it("fails closed when no access record exists", async () => {
-    readUserAccessRecordMock.mockResolvedValue(null);
+    readEffectiveUserAccessRecordMock.mockResolvedValue(null);
 
     const response = await middleware(new NextRequest("https://example.com/"));
 

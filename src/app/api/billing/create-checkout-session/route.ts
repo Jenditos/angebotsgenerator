@@ -16,6 +16,7 @@ import {
   ensureUserAccessRecord,
 } from "@/lib/access/user-access";
 import { requireAuthenticatedUser } from "@/lib/access/guards";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function createStripeClient(): Stripe {
   return new Stripe(STRIPE_SECRET_KEY);
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
       });
       customerId = customer.id;
 
-      const { error: userAccessUpdateError } = await authResult.supabase
+      const { error: userAccessUpdateError } = await createSupabaseAdminClient()
         .from("user_access")
         .update({
           stripe_customer_id: customerId,

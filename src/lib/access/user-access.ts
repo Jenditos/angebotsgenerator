@@ -9,6 +9,7 @@ export const TRIAL_DURATION_DAYS = 30;
 export const MONTHLY_PLAN_ID = "monthly_49_90";
 export const TRIAL_PLAN_ID = "trial";
 export const TRIAL_STATUS = "trial";
+export const INTERNAL_TESTER_PLAN_ID = "internal_tester";
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
 
@@ -37,6 +38,51 @@ function addDays(date: Date, days: number): Date {
   const next = new Date(date.getTime());
   next.setUTCDate(next.getUTCDate() + days);
   return next;
+}
+
+function parseAllowlist(
+  value: string | undefined,
+  lowercase = false,
+): Set<string> {
+  return new Set(
+    (value ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => (lowercase ? entry.toLowerCase() : entry)),
+  );
+}
+
+export function isInternalTester(
+  user: Pick<User, "id" | "email">,
+): boolean {
+  const userId = user.id.trim();
+  const email = user.email?.trim().toLowerCase() ?? "";
+  const allowedUserIds = parseAllowlist(process.env.APP_TESTER_USER_IDS);
+  const allowedEmails = parseAllowlist(process.env.APP_TESTER_EMAILS, true);
+
+  return (
+    Boolean(userId && allowedUserIds.has(userId)) ||
+    Boolean(email && allowedEmails.has(email))
+  );
+}
+
+export function buildInternalTesterAccessRecord(
+  user: Pick<User, "id" | "email" | "created_at">,
+): UserAccessRecord {
+  const now = new Date();
+  const createdAt = user.created_at || now.toISOString();
+  return {
+    user_id: user.id.trim(),
+    email: user.email?.trim() ?? "",
+    created_at: createdAt,
+    trial_start: createdAt,
+    trial_end: createdAt,
+    subscription_status: "active",
+    plan: INTERNAL_TESTER_PLAN_ID,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+  };
 }
 
 function normalizeAccessRecord(row: Record<string, unknown>): UserAccessRecord {
@@ -141,6 +187,26 @@ export async function ensureUserAccessRecord(
   }
 
   return normalizeAccessRecord(data as Record<string, unknown>);
+}
+
+export async function readEffectiveUserAccessRecord(
+  supabase: SupabaseClient,
+  user: User,
+): Promise<UserAccessRecord | null> {
+  if (isInternalTester(user)) {
+    return buildInternalTesterAccessRecord(user);
+  }
+  return readUserAccessRecord(supabase, user.id);
+}
+
+export async function ensureEffectiveUserAccessRecord(
+  supabase: SupabaseClient,
+  user: User,
+): Promise<UserAccessRecord> {
+  if (isInternalTester(user)) {
+    return buildInternalTesterAccessRecord(user);
+  }
+  return ensureUserAccessRecord(supabase, user);
 }
 
 export function buildAccessState(record: UserAccessRecord) {

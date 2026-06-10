@@ -7,7 +7,7 @@ import {
 } from "@/lib/access/access-errors";
 import {
   canUseApp,
-  ensureUserAccessRecord,
+  ensureEffectiveUserAccessRecord,
 } from "@/lib/access/user-access";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabasePagesServerClient } from "@/lib/supabase/pages";
@@ -56,7 +56,10 @@ async function requirePagesApiAppAccess(
   }
 
   try {
-    const accessRecord = await ensureUserAccessRecord(supabase, data.user);
+    const accessRecord = await ensureEffectiveUserAccessRecord(
+      supabase,
+      data.user,
+    );
     if (!canUseApp(accessRecord)) {
       return {
         ok: false,
