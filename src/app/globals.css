@@ -18657,29 +18657,44 @@ html body .onboardingSetupStepText {
   letter-spacing: 0.02em !important;
 }
 
-html body .onboardingSetupSkip,
 html body .onboardingSetupSecondary,
 html body .onboardingSetupBack {
   appearance: none !important;
   -webkit-appearance: none !important;
-  border: 0 !important;
-  background: transparent !important;
-  color: #64748b !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 52px !important;
+  padding: 0 20px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #334155 !important;
   cursor: pointer !important;
+  box-shadow: none !important;
   font: inherit !important;
-  font-size: 0.92rem !important;
-  font-weight: 720 !important;
+  font-size: 0.98rem !important;
+  font-weight: 760 !important;
   line-height: 1.2 !important;
   text-decoration: none !important;
+  white-space: nowrap !important;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease !important;
 }
 
-html body .onboardingSetupSkip:hover:not(:disabled),
 html body .onboardingSetupSecondary:hover:not(:disabled),
-html body .onboardingSetupBack:hover:not(:disabled) {
-  color: #1f63ff !important;
+html body .onboardingSetupBack:hover:not(:disabled),
+html body .onboardingSetupSecondary:focus-visible:not(:disabled),
+html body .onboardingSetupBack:focus-visible:not(:disabled) {
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 0 4px rgba(31, 99, 255, 0.12) !important;
+  transform: none !important;
 }
 
-html body .onboardingSetupSkip:disabled,
 html body .onboardingSetupSecondary:disabled,
 html body .onboardingSetupBack:disabled {
   opacity: 0.5 !important;
@@ -18991,8 +19006,7 @@ html body .onboardingSetupFooter {
 }
 
 html body .onboardingSetupBack {
-  min-height: 48px !important;
-  padding: 0 !important;
+  min-width: 112px !important;
 }
 
 html body .onboardingSetupBackPlaceholder {
@@ -19008,30 +19022,7 @@ html body .onboardingSetupFooterActions {
 }
 
 html body .onboardingSetupFooterActions .onboardingSetupSecondary {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 52px !important;
-  padding: 0 22px !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 14px !important;
-  background: #ffffff !important;
-  color: #334155 !important;
-  box-shadow: none !important;
-  font-size: 0.98rem !important;
-  font-weight: 760 !important;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease !important;
-}
-
-html body .onboardingSetupFooterActions .onboardingSetupSecondary:hover:not(:disabled),
-html body .onboardingSetupFooterActions .onboardingSetupSecondary:focus-visible:not(:disabled) {
-  border-color: #94a3b8 !important;
-  background: #f8fafc !important;
-  color: #0f172a !important;
-  transform: none !important;
+  min-width: 184px !important;
 }
 
 html body .onboardingSetupPrimary {
@@ -19166,10 +19157,14 @@ html body .onboardingSetupPrimary:disabled {
     width: 100% !important;
   }
 
+  html body .onboardingSetupSecondary {
+    width: 100% !important;
+  }
+
   html body .onboardingSetupBack {
     align-self: flex-start !important;
     flex: 0 0 auto !important;
-    min-height: 32px !important;
+    width: 100% !important;
   }
 
   html body .onboardingSetupBackPlaceholder {

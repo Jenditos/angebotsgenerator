@@ -685,16 +685,6 @@ export default function OnboardingPageClient({
               <p className="onboardingSetupStepText">
                 Schritt {currentStep} von {ONBOARDING_TOTAL_STEPS}
               </p>
-              {currentStep > 1 ? (
-                <button
-                  type="button"
-                  className="onboardingSetupSkip"
-                  onClick={() => void postponeOnboarding()}
-                  disabled={isSaving}
-                >
-                  Zur App
-                </button>
-              ) : null}
             </div>
             <div className="onboardingSetupProgressTrack" aria-hidden>
               <div
@@ -980,16 +970,14 @@ export default function OnboardingPageClient({
               </button>
             )}
             <div className="onboardingSetupFooterActions">
-              {currentStep === 1 ? (
-                <button
-                  type="button"
-                  className="onboardingSetupSecondary"
-                  onClick={() => void postponeOnboarding()}
-                  disabled={isSaving}
-                >
-                  Zur App
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className="onboardingSetupSecondary"
+                onClick={() => void postponeOnboarding()}
+                disabled={isSaving}
+              >
+                Speichern und zur App
+              </button>
               <button
                 type="button"
                 className="onboardingSetupPrimary"

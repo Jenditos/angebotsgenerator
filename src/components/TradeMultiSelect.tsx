@@ -213,7 +213,11 @@ export function TradeMultiSelect({
                 aria-expanded={isFullListOpen}
                 onClick={() => setIsFullListOpen((current) => !current)}
               >
-                <span>{isFullListOpen ? "Liste einklappen" : "Sonstiges Gewerk"}</span>
+                <span>
+                  {isFullListOpen
+                    ? "Weitere Gewerke ausblenden"
+                    : "Weitere Gewerke anzeigen"}
+                </span>
               </button>
             ) : null}
           </div>
