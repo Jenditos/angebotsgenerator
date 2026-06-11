@@ -604,19 +604,20 @@ export default function OnboardingPageClient({
     router.replace("/");
   }
 
-  async function postponeOnboarding() {
+  function postponeOnboarding() {
     setError("");
     setInfo("");
 
     const stepPatch = buildStepPayload(currentStep, settings);
-    const success = await queuePersist(stepPatch, {
-      onboardingStep: currentStep,
-      onboardingCompleted: false,
-      onboardingCompletedAt: null,
-    });
-    if (!success) {
-      return;
-    }
+    const persistence = queuePersist(
+      stepPatch,
+      {
+        onboardingStep: currentStep,
+        onboardingCompleted: false,
+        onboardingCompletedAt: null,
+      },
+      { keepalive: true },
+    );
 
     setOnboardingSnoozeCookie();
     if (isEmbeddedMode) {
@@ -631,6 +632,9 @@ export default function OnboardingPageClient({
     } else {
       router.replace("/");
     }
+
+    // Leaving onboarding must never depend on optional draft persistence.
+    void persistence;
   }
 
   const stepTitle =
@@ -957,7 +961,7 @@ export default function OnboardingPageClient({
               <button
                 type="button"
                 className="onboardingSetupSecondary"
-                onClick={() => void postponeOnboarding()}
+                onClick={postponeOnboarding}
                 disabled={isSaving}
               >
                 Speichern und zur App
