@@ -140,4 +140,34 @@ describe("middleware access control", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it("redirects completed users away from the normal onboarding route", async () => {
+    createServerClientMock.mockReturnValue(
+      buildSupabaseClient({
+        data: { onboarding_completed: true },
+        error: null,
+      }) as never,
+    );
+
+    const response = await middleware(
+      new NextRequest("https://example.com/onboarding"),
+    );
+
+    expect(response.headers.get("location")).toBe("https://example.com/");
+  });
+
+  it("allows completed users to deliberately restart onboarding", async () => {
+    createServerClientMock.mockReturnValue(
+      buildSupabaseClient({
+        data: { onboarding_completed: true },
+        error: null,
+      }) as never,
+    );
+
+    const response = await middleware(
+      new NextRequest("https://example.com/onboarding?restart=1"),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
 });

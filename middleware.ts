@@ -37,6 +37,13 @@ function isOnboardingRoute(pathname: string): boolean {
   return pathname === "/onboarding" || pathname.startsWith("/onboarding/");
 }
 
+function isOnboardingRestartRequest(request: NextRequest): boolean {
+  return (
+    isOnboardingRoute(request.nextUrl.pathname) &&
+    request.nextUrl.searchParams.get("restart") === "1"
+  );
+}
+
 function asLowerString(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -220,7 +227,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/upgrade", request.url));
   }
 
-  if (canOpenApp && hasCompletedOnboarding && isOnboardingRoute(pathname)) {
+  if (
+    canOpenApp &&
+    hasCompletedOnboarding &&
+    isOnboardingRoute(pathname) &&
+    !isOnboardingRestartRequest(request)
+  ) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
