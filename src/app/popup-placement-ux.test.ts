@@ -20,12 +20,14 @@ describe("popup placement contract", () => {
     expect(contract).toContain(".voiceLoginModalBackdrop");
     expect(contract).toContain(".customerArchiveBackdrop");
     expect(contract).toContain(".projectDeleteBackdrop");
-    expect(contract).toContain("place-items: center !important;");
+    expect(contract).toContain("display: flex !important;");
+    expect(contract).not.toContain("display: grid !important;");
+    expect(contract).not.toContain("place-items: center !important;");
     expect(contract).toContain("align-items: center !important;");
     expect(contract).toContain("justify-content: center !important;");
   });
 
-  it("keeps centered dialogs inside the visible viewport", () => {
+  it("keeps centered dialogs inside the visible viewport without shrinking their sheets", () => {
     const contractStart = styles.indexOf(
       "/* Dialog placement contract: every full-screen popup is centered consistently. */",
     );
@@ -35,5 +37,8 @@ describe("popup placement contract", () => {
     expect(contract).toContain("box-sizing: border-box !important;");
     expect(contract).toContain("overflow: auto !important;");
     expect(contract).toContain("margin: auto !important;");
+    expect(styles).toContain(".settingsOverlaySheet {\n  width: min(980px, 100%);");
+    expect(styles).toContain(".customerArchiveSheet {\n  width: min(940px, 100%);");
+    expect(styles).toContain(".infoLegalSheet {\n  width: min(820px, 100%);");
   });
 });
