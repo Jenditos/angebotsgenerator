@@ -1103,7 +1103,7 @@ export async function generateOfferText(input: OfferPromptInput): Promise<OfferT
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4.1-mini",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -1809,7 +1809,7 @@ export async function parseOfferIntake(
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4.1-mini",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -1897,7 +1897,7 @@ export async function parseOfferIntakeFromImage(
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4.1-mini",
       response_format: { type: "json_object" },
       messages: [
         {
