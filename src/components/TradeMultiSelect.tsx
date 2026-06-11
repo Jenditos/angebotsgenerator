@@ -117,6 +117,19 @@ export function TradeMultiSelect({
     selectedRelevantTrades.length > 0 &&
     (!isOnboardingVariant ||
       selectedRelevantTrades.some((tradeName) => !featuredTradeNames.has(tradeName)));
+  const searchControl = (
+    <label className="tradeMultiSelectSearch">
+      <span className={isOnboardingVariant ? "tradeMultiSelectSearchLabel" : "srOnly"}>
+        {isOnboardingVariant ? "Weitere Gewerke durchsuchen" : "Gewerk suchen"}
+      </span>
+      <input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Gewerk suchen, z. B. Elektrotechniker"
+        autoCapitalize="words"
+      />
+    </label>
+  );
 
   return (
     <div
@@ -155,17 +168,7 @@ export function TradeMultiSelect({
         </div>
       ) : null}
 
-      {shouldShowSearch ? (
-        <label className="tradeMultiSelectSearch">
-          <span className="srOnly">Gewerk suchen</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Gewerk suchen, z. B. Elektrotechniker"
-            autoCapitalize="words"
-          />
-        </label>
-      ) : null}
+      {shouldShowSearch && !isOnboardingVariant ? searchControl : null}
 
       {helperText && !hasQuery ? (
         <p className="tradeMultiSelectHelper">{helperText}</p>
@@ -223,6 +226,8 @@ export function TradeMultiSelect({
           </div>
         </section>
       ) : null}
+
+      {shouldShowSearch && isOnboardingVariant ? searchControl : null}
 
       {hasQuery ? (
         <section className="tradeSearchResults" aria-label="Suchergebnisse">

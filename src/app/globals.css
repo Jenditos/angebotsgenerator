@@ -17317,6 +17317,14 @@ html body .onboardingChoiceChip[aria-pressed="true"] {
   box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.13);
 }
 
+.tradeMultiSelectSearchLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: #24324a;
+  font-size: 0.9rem;
+  font-weight: 780;
+}
+
 .tradeQuickSection,
 .tradeSearchResults {
   display: grid;

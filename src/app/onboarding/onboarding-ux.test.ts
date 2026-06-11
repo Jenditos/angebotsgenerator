@@ -20,6 +20,10 @@ describe("onboarding UX contract", () => {
     expect(source).toContain("Zurück");
     expect(tradeSelectSource).not.toContain("Sonstiges Gewerk");
     expect(tradeSelectSource).toContain("Weitere Gewerke anzeigen");
+    expect(tradeSelectSource).toContain("Weitere Gewerke durchsuchen");
+    expect(tradeSelectSource).toContain(
+      "shouldShowSearch && isOnboardingVariant ? searchControl : null",
+    );
   });
 
   it("leaves onboarding immediately even when draft persistence fails", () => {
