@@ -2728,6 +2728,24 @@ export default function HomePage() {
   const [voiceMissingFields, setVoiceMissingFields] = useState<string[]>([]);
   const [photoInfo, setPhotoInfo] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [photoProgress, setPhotoProgress] = useState(0);
+
+  useEffect(() => {
+    if (isParsingPhoto) {
+      setPhotoProgress((prev) => (prev > 0 && prev < 100 ? prev : 8));
+      const intervalId = window.setInterval(() => {
+        setPhotoProgress((prev) => {
+          if (prev >= 92) return prev;
+          const step = Math.max(0.6, (92 - prev) * 0.08);
+          return Math.min(92, prev + step);
+        });
+      }, 180);
+      return () => window.clearInterval(intervalId);
+    }
+    setPhotoProgress((prev) => (prev > 0 ? 100 : 0));
+    const timeoutId = window.setTimeout(() => setPhotoProgress(0), 700);
+    return () => window.clearTimeout(timeoutId);
+  }, [isParsingPhoto]);
   const [pendingPhotoCaptureFiles, setPendingPhotoCaptureFiles] = useState<File[]>(
     [],
   );
@@ -11757,6 +11775,21 @@ export default function HomePage() {
                                 i
                               </span>
                               <span className="voiceStatusText">{photoInfo}</span>
+                              {isParsingPhoto ? (
+                                <span className="aiProgressBar" aria-hidden="true">
+                                  <span className="aiProgressTrack">
+                                    <span
+                                      className="aiProgressFill"
+                                      style={{
+                                        width: `${Math.round(photoProgress)}%`,
+                                      }}
+                                    />
+                                  </span>
+                                  <span className="aiProgressValue">
+                                    {Math.round(photoProgress)}%
+                                  </span>
+                                </span>
+                              ) : null}
                             </p>
                           ) : null}
                           {photoError ? (
@@ -11776,6 +11809,16 @@ export default function HomePage() {
                         </div>
                       </div>
                     ) : null}
+                    <div className="voiceTranscriptActions">
+                      <button
+                        type="button"
+                        className="voiceTranscriptResetAction"
+                        onClick={resetCurrentInputs}
+                        disabled={isSubmitting || isAnyIntakeProcessing}
+                      >
+                        Felder leeren
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

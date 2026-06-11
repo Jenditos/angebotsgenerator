@@ -11577,6 +11577,53 @@ button.settingsPdfColumnsDragHandle:focus-visible {
   border-color: rgba(167, 220, 255, 0.4) !important;
 }
 
+.appFrameWithSidebar .dashboardVoicePanel .aiProgressBar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .aiProgressTrack {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(173, 223, 255, 0.2);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(5, 30, 60, 0.4);
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .aiProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6, #22d3ee);
+  background-size: 200% 100%;
+  transition: width 0.35s ease;
+  animation: aiProgressShimmer 1.6s linear infinite;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+
+@keyframes aiProgressShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+.appFrameWithSidebar .dashboardVoicePanel .aiProgressValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.78rem;
+  min-width: 40px;
+  text-align: right;
+  color: #dcf1ff !important;
+}
+
 .appFrameWithSidebar .dashboardVoicePanel .voiceStatusCardLive {
   border-color: rgba(134, 236, 255, 0.66) !important;
   box-shadow:
