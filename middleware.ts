@@ -6,6 +6,7 @@ import {
   canUseApp,
   readEffectiveUserAccessRecord,
 } from "@/lib/access/user-access";
+import { ONBOARDING_SNOOZE_COOKIE_NAME } from "@/lib/onboarding";
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
 const SETTINGS_SETUP_ERROR_CODES = new Set([
@@ -90,6 +91,8 @@ export async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
+  const hasSnoozedOnboarding =
+    request.cookies.get(ONBOARDING_SNOOZE_COOKIE_NAME)?.value === "1";
   if (!isSupabaseConfigured()) {
     if (isAuthRoute(pathname) || pathname === "/upgrade") {
       return NextResponse.next();
@@ -207,6 +210,7 @@ export async function middleware(request: NextRequest) {
   if (
     canOpenApp &&
     !hasCompletedOnboarding &&
+    !hasSnoozedOnboarding &&
     isProtectedAppRoute(pathname)
   ) {
     return NextResponse.redirect(new URL("/onboarding", request.url));

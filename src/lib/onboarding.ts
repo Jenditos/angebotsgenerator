@@ -5,6 +5,12 @@ export const ONBOARDING_MAX_STEP = 4;
 export const ONBOARDING_TOTAL_STEPS = 4;
 export const ONBOARDING_SNOOZE_COOKIE_NAME = "onboarding_snoozed";
 
+export function hasOnboardingSnoozeCookie(cookieString: string): boolean {
+  return cookieString
+    .split(";")
+    .some((cookie) => cookie.trim() === `${ONBOARDING_SNOOZE_COOKIE_NAME}=1`);
+}
+
 export type OnboardingState = {
   onboardingCompleted: boolean;
   onboardingCompletedAt: string | null;

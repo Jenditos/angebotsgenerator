@@ -219,7 +219,6 @@ export default function OnboardingPageClient({
     onboardingStep: 1,
   });
   const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
-  const lastStepSaveAtRef = useRef(0);
 
   const progressPercent = useMemo(
     () => (currentStep / ONBOARDING_TOTAL_STEPS) * 100,
@@ -480,17 +479,6 @@ export default function OnboardingPageClient({
     return null;
   }
 
-  async function persistCurrentStepDraft() {
-    const now = Date.now();
-    if (now - lastStepSaveAtRef.current < 600) {
-      return;
-    }
-    lastStepSaveAtRef.current = now;
-
-    const stepPatch = buildStepPayload(currentStep, settings);
-    await queuePersist(stepPatch, { onboardingStep: currentStep });
-  }
-
   async function goToNextStep() {
     setInfo("");
     const validationError = validateStep(currentStep);
@@ -620,7 +608,16 @@ export default function OnboardingPageClient({
     setError("");
     setInfo("");
 
-    // Modal sofort schließen; Speichern läuft im Hintergrund.
+    const stepPatch = buildStepPayload(currentStep, settings);
+    const success = await queuePersist(stepPatch, {
+      onboardingStep: currentStep,
+      onboardingCompleted: false,
+      onboardingCompletedAt: null,
+    });
+    if (!success) {
+      return;
+    }
+
     setOnboardingSnoozeCookie();
     if (isEmbeddedMode) {
       emitEmbeddedOnboardingEvent(
@@ -634,14 +631,6 @@ export default function OnboardingPageClient({
     } else {
       router.replace("/");
     }
-
-    // Fortschritt im Hintergrund speichern.
-    const stepPatch = buildStepPayload(currentStep, settings);
-    void queuePersist(stepPatch, {
-      onboardingStep: currentStep,
-      onboardingCompleted: false,
-      onboardingCompletedAt: null,
-    });
   }
 
   const stepTitle =
@@ -694,12 +683,7 @@ export default function OnboardingPageClient({
             </div>
           </header>
 
-          <div
-            className="onboardingSetupScroll"
-            onBlurCapture={() => {
-              void persistCurrentStepDraft();
-            }}
-          >
+          <div className="onboardingSetupScroll">
             <div className="onboardingSetupContent">
               <div className="onboardingSetupIntro">
                 {currentStep === 1 ? (

@@ -14,7 +14,9 @@ describe("onboarding UX contract", () => {
 
     expect(source).not.toContain("Später einrichten");
     expect(source).not.toContain("onboardingSetupSkip");
+    expect(source).not.toContain("onBlurCapture");
     expect(source).toContain("Speichern und zur App");
+    expect(source).toContain("const success = await queuePersist");
     expect(source).toContain("Zurück");
     expect(tradeSelectSource).not.toContain("Sonstiges Gewerk");
     expect(tradeSelectSource).toContain("Weitere Gewerke anzeigen");

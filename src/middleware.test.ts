@@ -10,6 +10,7 @@ import {
   getSupabasePublicConfig,
   isSupabaseConfigured,
 } from "@/lib/supabase/config";
+import { ONBOARDING_SNOOZE_COOKIE_NAME } from "@/lib/onboarding";
 
 jest.mock("@supabase/ssr", () => ({
   createServerClient: jest.fn(),
@@ -125,6 +126,18 @@ describe("middleware access control", () => {
     expect(response.headers.get("location")).toBe(
       "https://example.com/onboarding",
     );
+  });
+
+  it("opens the app when incomplete onboarding was deliberately postponed", async () => {
+    const request = new NextRequest("https://example.com/", {
+      headers: {
+        cookie: `${ONBOARDING_SNOOZE_COOKIE_NAME}=1`,
+      },
+    });
+
+    const response = await middleware(request);
+
+    expect(response.headers.get("location")).toBeNull();
   });
 
 });

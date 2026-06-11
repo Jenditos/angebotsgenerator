@@ -55,6 +55,7 @@ import {
   ONBOARDING_TOTAL_STEPS,
   clampOnboardingStep,
   getMissingOnboardingRequiredFields,
+  hasOnboardingSnoozeCookie,
   hasCompletedOnboardingRequiredFields,
 } from "@/lib/onboarding";
 import {
@@ -2861,6 +2862,8 @@ export default function HomePage() {
   const [onboardingMode, setOnboardingMode] = useState<OnboardingModalMode>("prompt");
   const [hasDismissedOnboardingThisView, setHasDismissedOnboardingThisView] =
     useState(false);
+  const [hasCheckedOnboardingSnooze, setHasCheckedOnboardingSnooze] =
+    useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isClosingAccountMenu, setIsClosingAccountMenu] = useState(false);
   const [isVoiceLoginModalOpen, setIsVoiceLoginModalOpen] = useState(false);
@@ -2983,7 +2986,9 @@ export default function HomePage() {
     !isAuthStatusLoading &&
     onboardingMissingFields.length > 0;
   const shouldAutoPromptOnboarding =
-    shouldRequireOnboarding && !hasDismissedOnboardingThisView;
+    hasCheckedOnboardingSnooze &&
+    shouldRequireOnboarding &&
+    !hasDismissedOnboardingThisView;
   const shouldShowOnboardingCompletionCard = false;
   const onboardingPrimaryMissingField = onboardingMissingFields[0] ?? null;
   const onboardingCompletionTitle = formatOnboardingCompletionTitle(
@@ -3407,13 +3412,20 @@ export default function HomePage() {
   }, [router]);
 
   useEffect(() => {
+    setHasDismissedOnboardingThisView(
+      hasOnboardingSnoozeCookie(document.cookie),
+    );
+    setHasCheckedOnboardingSnooze(true);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
     if (!shouldAutoPromptOnboarding) {
       setShowOnboardingPromptModal(false);
-      if (!shouldRequireOnboarding) {
+      if (hasCheckedOnboardingSnooze && !shouldRequireOnboarding) {
         setOnboardingMode("prompt");
         setHasDismissedOnboardingThisView(false);
       }
@@ -3423,7 +3435,12 @@ export default function HomePage() {
     setOnboardingStep(onboardingEntryStep);
     setShowOnboardingPromptModal(false);
     setOnboardingMode("steps");
-  }, [onboardingEntryStep, shouldAutoPromptOnboarding, shouldRequireOnboarding]);
+  }, [
+    hasCheckedOnboardingSnooze,
+    onboardingEntryStep,
+    shouldAutoPromptOnboarding,
+    shouldRequireOnboarding,
+  ]);
 
   useEffect(() => {
     if (isSettingsOverlayOpen || isClosingSettingsOverlay) {
