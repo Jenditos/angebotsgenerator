@@ -14,6 +14,15 @@ function findRuleBody(selectorFragment: string): string {
   return match?.groups?.body ?? "";
 }
 
+function findLastRuleBody(selectorFragment: string): string {
+  const escapedFragment = selectorFragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = Array.from(
+    contractCss.matchAll(new RegExp(`${escapedFragment}[^{]*\\{(?<body>[^}]*)\\}`, "gm")),
+  );
+
+  return matches.at(-1)?.groups?.body ?? "";
+}
+
 describe("VISIORO interaction CSS contract", () => {
   it("keeps one final interaction layer for hover and focus states", () => {
     expect(contractStart).toBeGreaterThan(-1);
@@ -34,6 +43,40 @@ describe("VISIORO interaction CSS contract", () => {
     expect(contractCss).toContain("box-shadow: none !important");
     expect(contractCss).toContain(".subscriptionBillingToggle button.active:hover:not(:disabled)");
     expect(contractCss).toContain(".appSidebar .sidebarQuickNavButton:hover:not(:disabled)");
+  });
+
+  it("does not overwrite readable colors of selected or expanded controls", () => {
+    const genericHoverRule = contractCss.match(
+      /button\[class\][^{]*:hover\s*\{(?<body>[^}]*)\}/m,
+    );
+    const selector = genericHoverRule?.[0] ?? "";
+
+    expect(selector).toContain(":not(.active)");
+    expect(selector).toContain(":not(.isSelected)");
+    expect(selector).toContain(':not([aria-pressed="true"])');
+    expect(selector).toContain(':not([aria-selected="true"])');
+    expect(selector).toContain(':not([aria-expanded="true"])');
+  });
+
+  it("keeps selected trade choices readable in settings and onboarding", () => {
+    expect(contractCss).toContain("Selected trade contrast contract");
+    expect(contractCss).toContain("html body .tradeChoice.isSelected:hover");
+    expect(contractCss).toContain(
+      'html body .tradeChoice[aria-pressed="true"]:focus-visible',
+    );
+    expect(contractCss).toContain(
+      "html body .tradeMultiSelectOnboarding .tradeChoice.isSelected:hover",
+    );
+
+    const selectedTradeBody = findLastRuleBody("html body .tradeChoice.isSelected,");
+    const onboardingTradeBody = findLastRuleBody(
+      "html body .tradeMultiSelectOnboarding .tradeChoice.isSelected,",
+    );
+
+    expect(selectedTradeBody).toContain("background: #0f766e !important");
+    expect(selectedTradeBody).toContain("color: #ffffff !important");
+    expect(onboardingTradeBody).toContain("background: #1f63ff !important");
+    expect(onboardingTradeBody).toContain("color: #ffffff !important");
   });
 
   it("covers specialist clickable controls that used to fall back to legacy hover", () => {

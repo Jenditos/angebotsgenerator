@@ -15605,7 +15605,7 @@ button.ghostButton:disabled {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button[class]:not(:disabled):not(.primaryButton):not(.submitButton):not(.submitMailButton):not(.intakePrimaryActionButtonPrimary):not(.intakePrimaryActionButtonSecondary):not(.sidebarQuickNavButton):not(.appSidebarNavIconWrap):not(.settingsOverlayCloseButton):not(.customerArchiveCloseButton):not(.customerPickerModalCloseButton):not(.infoLegalCloseButton):not(.voiceLoginModalCloseButton):not(.dashboardTipsCloseButton):not(.customerArchiveBackButton):not(.dateInputIconButton):not(.serviceSuggestionButton):not(.serviceAddCustomButton):not(.addressSuggestionButton):not(.authGithubInlineLink):not(.authGithubInlineLinkStrong):not(.photoCameraLinkButton):not(.settingsDeleteButton):not(.settingsLogoDeleteButton):not(.positionsDeleteButton):not(.positionDeleteButton):not(.customerPickerDeleteButton):not(.appointmentDeleteButton):not(.dashboardModeToggleButton):not(.dashboardSegmentToggleButton):not(.active):hover {
+  button[class]:not(:disabled):not(.primaryButton):not(.submitButton):not(.submitMailButton):not(.intakePrimaryActionButtonPrimary):not(.intakePrimaryActionButtonSecondary):not(.sidebarQuickNavButton):not(.appSidebarNavIconWrap):not(.settingsOverlayCloseButton):not(.customerArchiveCloseButton):not(.customerPickerModalCloseButton):not(.infoLegalCloseButton):not(.voiceLoginModalCloseButton):not(.dashboardTipsCloseButton):not(.customerArchiveBackButton):not(.dateInputIconButton):not(.serviceSuggestionButton):not(.serviceAddCustomButton):not(.addressSuggestionButton):not(.authGithubInlineLink):not(.authGithubInlineLinkStrong):not(.photoCameraLinkButton):not(.settingsDeleteButton):not(.settingsLogoDeleteButton):not(.positionsDeleteButton):not(.positionDeleteButton):not(.customerPickerDeleteButton):not(.appointmentDeleteButton):not(.dashboardModeToggleButton):not(.dashboardSegmentToggleButton):not(.active):not(.isSelected):not([aria-pressed="true"]):not([aria-selected="true"]):not([aria-expanded="true"]):hover {
     background: var(--vis-control-secondary-hover) !important;
     background-color: var(--vis-control-secondary-hover) !important;
     background-image: none !important;
@@ -19448,4 +19448,43 @@ html body :is(
     align-items: center !important;
     justify-content: center !important;
   }
+}
+
+/* Selected trade contrast contract: selection stays readable across every surface. */
+html body .tradeChoice.isSelected,
+html body .tradeChoice[aria-pressed="true"],
+html body .tradeChoice.isSelected:hover,
+html body .tradeChoice[aria-pressed="true"]:hover,
+html body .tradeChoice.isSelected:focus-visible,
+html body .tradeChoice[aria-pressed="true"]:focus-visible {
+  border-color: #0d9488 !important;
+  background: #0f766e !important;
+  background-color: #0f766e !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+html body .tradeChoice.isSelected > *,
+html body .tradeChoice[aria-pressed="true"] > * {
+  color: #ffffff !important;
+}
+
+html body .tradeChoice.isSelected small,
+html body .tradeChoice[aria-pressed="true"] small {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* The onboarding uses the same control with its blue visual language. */
+html body .tradeMultiSelectOnboarding .tradeChoice.isSelected,
+html body .tradeMultiSelectOnboarding .tradeChoice[aria-pressed="true"],
+html body .tradeMultiSelectOnboarding .tradeChoice.isSelected:hover,
+html body .tradeMultiSelectOnboarding .tradeChoice[aria-pressed="true"]:hover,
+html body .tradeMultiSelectOnboarding .tradeChoice.isSelected:focus-visible,
+html body .tradeMultiSelectOnboarding .tradeChoice[aria-pressed="true"]:focus-visible {
+  border-color: #1f63ff !important;
+  background: #1f63ff !important;
+  background-color: #1f63ff !important;
+  background-image: none !important;
+  color: #ffffff !important;
 }
