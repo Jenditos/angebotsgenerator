@@ -2846,6 +2846,7 @@ export default function HomePage() {
   const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false);
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
   const [appointmentDictationText, setAppointmentDictationText] = useState("");
+  const lastAutoParsedAppointmentTextRef = useRef("");
   const [isListeningAppointment, setIsListeningAppointment] = useState(false);
   const [isParsingAppointmentInput, setIsParsingAppointmentInput] =
     useState(false);
@@ -5070,6 +5071,35 @@ export default function HomePage() {
       setIsParsingAppointmentInput(false);
     }
   }
+
+  // Automatisch ausfüllen: kurz nach dem Sprechen/Tippen den Termintext analysieren,
+  // damit man nicht extra auf "Felder ausfüllen" klicken muss.
+  useEffect(() => {
+    if (!isAppointmentFormOpen) {
+      return;
+    }
+    const text = appointmentDictationText.trim();
+    if (text.length < 3) {
+      return;
+    }
+    if (isListeningAppointment || isParsingAppointmentInput) {
+      return;
+    }
+    if (lastAutoParsedAppointmentTextRef.current === text) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      lastAutoParsedAppointmentTextRef.current = text;
+      void fillAppointmentFromDictation();
+    }, 1100);
+    return () => window.clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    appointmentDictationText,
+    isListeningAppointment,
+    isParsingAppointmentInput,
+    isAppointmentFormOpen,
+  ]);
 
   function openNewAppointmentForm() {
     stopAppointmentDictation();
