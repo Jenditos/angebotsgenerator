@@ -11,8 +11,17 @@ describe("onboarding UX contract", () => {
       path.join(process.cwd(), "src/components/TradeMultiSelect.tsx"),
       "utf8",
     );
+    const settingsSource = readFileSync(
+      path.join(process.cwd(), "src/app/settings/SettingsPageClient.tsx"),
+      "utf8",
+    );
+    const appSource = readFileSync(
+      path.join(process.cwd(), "src/app/page.tsx"),
+      "utf8",
+    );
 
     expect(source).not.toContain("Später einrichten");
+    expect(source).not.toContain("Onboarding konnte nicht geladen werden.");
     expect(source).not.toContain("onboardingSetupSkip");
     expect(source).not.toContain("onBlurCapture");
     expect(source).toContain("Speichern und zur App");
@@ -24,6 +33,10 @@ describe("onboarding UX contract", () => {
     expect(tradeSelectSource).toContain(
       "shouldShowSearch && isOnboardingVariant ? searchControl : null",
     );
+    expect(settingsSource).toContain("Firmendaten Schritt für Schritt einrichten");
+    expect(settingsSource).not.toContain("Onboarding erneut starten");
+    expect(appSource).toContain('aria-label="Einrichtungshinweis schließen"');
+    expect(appSource).toContain('aria-label="Einrichtung schließen"');
   });
 
   it("leaves onboarding immediately even when draft persistence fails", () => {

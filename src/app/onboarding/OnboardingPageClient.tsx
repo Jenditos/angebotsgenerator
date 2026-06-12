@@ -243,7 +243,7 @@ export default function OnboardingPageClient({
         const payload = (await response.json()) as SettingsApiResponse;
         if (!response.ok) {
           if (!cancelled) {
-            setError(payload.error ?? "Onboarding konnte nicht geladen werden.");
+            setError(payload.error ?? "Einrichtung konnte nicht geladen werden.");
           }
           return;
         }
@@ -292,7 +292,7 @@ export default function OnboardingPageClient({
         }
       } catch {
         if (!cancelled) {
-          setError("Onboarding konnte nicht geladen werden.");
+          setError("Einrichtung konnte nicht geladen werden.");
         }
       }
     }

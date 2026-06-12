@@ -368,7 +368,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Onboarding kann erst abgeschlossen werden, wenn alle Pflichtfelder ausgefüllt sind.",
+            "Die Einrichtung kann erst abgeschlossen werden, wenn alle Pflichtfelder ausgefüllt sind.",
           missingFields,
         },
         { status: 400 },

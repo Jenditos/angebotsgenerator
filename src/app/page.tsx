@@ -10600,7 +10600,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       className="settingsOverlayCloseButton"
-                      aria-label="Onboarding-Hinweis schließen"
+                      aria-label="Einrichtungshinweis schließen"
                       onClick={dismissOnboardingPromptModal}
                     >
                       <svg
@@ -10648,7 +10648,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       className="settingsOverlayCloseButton"
-                      aria-label="Onboarding schließen"
+                      aria-label="Einrichtung schließen"
                       onClick={closeOnboardingModal}
                     >
                       <svg

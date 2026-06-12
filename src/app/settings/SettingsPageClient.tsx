@@ -1823,7 +1823,7 @@ export default function SettingsPage() {
             target={isEmbedded ? "_top" : undefined}
             className="ghostButton settingsOnboardingRestartButton"
           >
-            Onboarding erneut starten
+            Firmendaten Schritt für Schritt einrichten
           </Link>
         </section>
 
