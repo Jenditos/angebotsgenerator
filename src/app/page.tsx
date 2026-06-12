@@ -11387,7 +11387,7 @@ export default function HomePage() {
                     aria-pressed={documentMode === "offer"}
                     onClick={() => switchDocumentMode("offer")}
                   >
-                    Angebote
+                    Angebot
                   </button>
                   <button
                     type="button"
@@ -11395,7 +11395,7 @@ export default function HomePage() {
                     aria-pressed={documentMode === "invoice"}
                     onClick={() => switchDocumentMode("invoice")}
                   >
-                    Rechnungen
+                    Rechnung
                   </button>
                 </div>
               </div>
